@@ -66,10 +66,12 @@ export default function DemoPricesBB() {
 
   const layout: Partial<Layout> = useMemo(
     () => ({
-      title:
-        (payload?.meta?.note
-          ? `3350.T ${payload.meta.note}`
-          : "3350.T Bollinger Bands") + "（直近1年）",
+      title: {
+        text:
+          (payload?.meta?.note
+            ? `3350.T ${payload.meta.note}`
+            : "3350.T Bollinger Bands") + "（直近1年）",
+      },
       paper_bgcolor: isDark ? "#0b0b0c" : "#ffffff",
       plot_bgcolor: isDark ? "#0b0b0c" : "#ffffff",
       font: { color: isDark ? "#e5e7eb" : "#111827" },

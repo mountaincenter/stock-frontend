@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Plot from "react-plotly.js";
 import { useTheme } from "next-themes";
+import type * as Plotly from "plotly.js";
 
 type IchSeries = { x: string[]; y: number[] };
 type IchPayload = {
@@ -113,8 +114,8 @@ export default function DemoPricesIchimoku() {
 
     const { ohlc, ichimoku } = payload.series;
 
-    // 遅行スパン足りなければ生成（Close を -26）
-    let chikou = ichimoku.chikou;
+    // 遅行スパンが無ければ生成（Close を -26 シフト）
+    let chikou: IchSeries | undefined = ichimoku.chikou;
     if (!chikou) {
       const shift = 26;
       const x: string[] = [];
@@ -142,10 +143,10 @@ export default function DemoPricesIchimoku() {
     const senB = isDark ? "#ef4444" : "#dc2626";
     const chikouC = isDark ? "#a78bfa" : "#7c3aed";
 
-    const data: any[] = [];
+    const traces: Plotly.Data[] = [];
 
     // ロウソク
-    data.push({
+    const candle: Partial<Plotly.CandlestickData> = {
       type: "candlestick",
       x: ohlc.x,
       open: ohlc.open,
@@ -155,13 +156,13 @@ export default function DemoPricesIchimoku() {
       increasing: { line: { color: up } },
       decreasing: { line: { color: down } },
       name: "OHLC",
-      yaxis: "y",
-      xaxis: "x",
-    });
+    };
 
-    // 先行スパン A/B（雲）…A→B の順に追加して fill: "tonexty"
+    traces.push(candle as Plotly.Data);
+
+    // 先行スパン A/B（雲）
     if (ichimoku.senkou_a) {
-      data.push({
+      traces.push({
         type: "scatter",
         mode: "lines",
         name: "Senkou A",
@@ -169,10 +170,10 @@ export default function DemoPricesIchimoku() {
         y: ichimoku.senkou_a.y,
         line: { width: 1.5, color: senA },
         hoverinfo: "skip",
-      });
+      } as Plotly.ScatterData);
     }
     if (ichimoku.senkou_b) {
-      data.push({
+      traces.push({
         type: "scatter",
         mode: "lines",
         name: "Senkou B",
@@ -182,12 +183,12 @@ export default function DemoPricesIchimoku() {
         fill: "tonexty",
         fillcolor: isDark ? "rgba(34,197,94,0.12)" : "rgba(16,185,129,0.12)",
         hoverinfo: "skip",
-      });
+      } as Plotly.ScatterData);
     }
 
     // 転換線・基準線・遅行スパン
     if (ichimoku.tenkan) {
-      data.push({
+      traces.push({
         type: "scatter",
         mode: "lines",
         name: "Tenkan",
@@ -195,10 +196,10 @@ export default function DemoPricesIchimoku() {
         y: ichimoku.tenkan.y,
         line: { width: 2, color: tenkanC },
         hoverinfo: "skip",
-      });
+      } as Plotly.ScatterData);
     }
     if (ichimoku.kijun) {
-      data.push({
+      traces.push({
         type: "scatter",
         mode: "lines",
         name: "Kijun",
@@ -206,10 +207,10 @@ export default function DemoPricesIchimoku() {
         y: ichimoku.kijun.y,
         line: { width: 2, color: kijunC },
         hoverinfo: "skip",
-      });
+      } as Plotly.ScatterData);
     }
     if (chikou) {
-      data.push({
+      traces.push({
         type: "scatter",
         mode: "lines",
         name: "Chikou",
@@ -217,11 +218,11 @@ export default function DemoPricesIchimoku() {
         y: chikou.y,
         line: { width: 2, color: chikouC, dash: "dot" },
         hoverinfo: "skip",
-      });
+      } as Plotly.ScatterData);
     }
 
     const layout: Partial<Plotly.Layout> = {
-      title: "3350.T 一目均衡表（直近1年）",
+      title: { text: "3350.T 一目均衡表（直近1年）" },
       paper_bgcolor: paper,
       plot_bgcolor: plotbg,
       font: { color: font },
@@ -232,9 +233,12 @@ export default function DemoPricesIchimoku() {
       legend: { orientation: "h" },
     };
 
-    const config = { displayModeBar: true, responsive: true };
+    const config: Partial<Plotly.Config> = {
+      displayModeBar: true,
+      responsive: true,
+    };
 
-    return { data, layout, config };
+    return { data: traces, layout, config };
   }, [payload, isDark]);
 
   if (loading)
@@ -245,9 +249,9 @@ export default function DemoPricesIchimoku() {
   return (
     <div className="p-4 border rounded-xl">
       <Plot
-        data={plot.data as any}
-        layout={plot.layout as any}
-        config={plot.config as any}
+        data={plot.data}
+        layout={plot.layout}
+        config={plot.config}
         style={{ width: "100%", height: 560 }}
         useResizeHandler
       />

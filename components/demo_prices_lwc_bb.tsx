@@ -9,7 +9,9 @@ import {
   type IChartApi,
   type Time,
   type LineData as LwcLineData,
-  type LineSeriesPartialOptions,
+  type DeepPartial,
+  type LineSeriesOptions,
+  type LineWidth,
 } from "lightweight-charts";
 
 type SeriesXY = { x: string[]; y: number[] };
@@ -139,13 +141,13 @@ export default function DemoPricesLwcBB() {
 
     const mkLine = (
       color: string,
-      width = 2
+      width: LineWidth = 2
     ): ReturnType<IChartApi["addSeries"]> => {
-      const opt: LineSeriesPartialOptions = { color, lineWidth: width };
+      const opt: DeepPartial<LineSeriesOptions> = { color, lineWidth: width };
       return chart.addSeries(LineSeries, opt);
     };
 
-    lineRefs.current.close = mkLine(style.colClose, 1.2);
+    lineRefs.current.close = mkLine(style.colClose, 1);
     lineRefs.current.ma = mkLine(style.colMA, 2);
     lineRefs.current.upper = mkLine(style.colUp, 2);
     lineRefs.current.lower = mkLine(style.colLow, 2);
