@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Plot from "react-plotly.js";
+import type { CandlestickData, Layout, Config } from "plotly.js";
 import { useTheme } from "next-themes";
 
 type PriceRow = {
@@ -15,7 +16,6 @@ type PriceRow = {
 };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL!;
-const TICKER = "3350.T";
 
 function fmt(d: Date) {
   const y = d.getFullYear();
@@ -43,7 +43,6 @@ export default function DemoPrices() {
       try {
         setLoading(true);
         setErr(null);
-        // ★ demo/parquetベースのJSON化APIに合わせる
         const url = new URL(`${API_BASE}/demo/prices/max/1d/3350T`);
         url.searchParams.set("start", startStr);
         url.searchParams.set("end", endStr);
@@ -52,7 +51,7 @@ export default function DemoPrices() {
         const j: PriceRow[] = await r.json();
         j.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
         setRows(j);
-      } catch (e: unknown) {
+      } catch (e) {
         setErr(e instanceof Error ? e.message : "fetch error");
         setRows([]);
       } finally {
@@ -61,21 +60,36 @@ export default function DemoPrices() {
     })();
   }, []);
 
-  const x = useMemo(() => rows.map((r) => r.date), [rows]);
-  const open = useMemo(() => rows.map((r) => r.Open), [rows]);
-  const high = useMemo(() => rows.map((r) => r.High), [rows]);
-  const low = useMemo(() => rows.map((r) => r.Low), [rows]);
-  const close = useMemo(() => rows.map((r) => r.Close), [rows]);
+  const x = useMemo<string[]>(() => rows.map((r) => r.date), [rows]);
+  const open = useMemo<number[]>(() => rows.map((r) => r.Open), [rows]);
+  const high = useMemo<number[]>(() => rows.map((r) => r.High), [rows]);
+  const low = useMemo<number[]>(() => rows.map((r) => r.Low), [rows]);
+  const close = useMemo<number[]>(() => rows.map((r) => r.Close), [rows]);
 
-  const layout = useMemo(
+  const trace: Partial<CandlestickData> = useMemo(
     () => ({
-      title: "3350.T（日足・直近1年）",
+      type: "candlestick",
+      x,
+      open,
+      high,
+      low,
+      close,
+      increasing: { line: { color: isDark ? "#34d399" : "#059669" } },
+      decreasing: { line: { color: isDark ? "#f87171" : "#dc2626" } },
+      name: "OHLC",
+    }),
+    [x, open, high, low, close, isDark]
+  );
+
+  const layout: Partial<Layout> = useMemo(
+    () => ({
+      title: { text: "3350.T（日足・直近1年）" }, // ← 文字列ではなく { text } に
       paper_bgcolor: isDark ? "#0b0b0c" : "#ffffff",
       plot_bgcolor: isDark ? "#0b0b0c" : "#ffffff",
       font: { color: isDark ? "#e5e7eb" : "#111827" },
       xaxis: {
         gridcolor: isDark ? "#303034" : "#e5e7eb",
-        type: "date" as const,
+        type: "date",
       },
       yaxis: { gridcolor: isDark ? "#303034" : "#e5e7eb" },
       margin: { l: 60, r: 20, t: 50, b: 40 },
@@ -84,7 +98,7 @@ export default function DemoPrices() {
     [isDark]
   );
 
-  const config = useMemo(
+  const config: Partial<Config> = useMemo(
     () => ({ displayModeBar: true, responsive: true }),
     []
   );
@@ -98,19 +112,8 @@ export default function DemoPrices() {
   return (
     <div className="p-4 border rounded-xl">
       <Plot
-        data={[
-          {
-            type: "candlestick",
-            x,
-            open,
-            high,
-            low,
-            close,
-            increasing: { line: { color: isDark ? "#34d399" : "#059669" } },
-            decreasing: { line: { color: isDark ? "#f87171" : "#dc2626" } },
-          } as any,
-        ]}
-        layout={layout as any}
+        data={[trace]}
+        layout={layout}
         config={config}
         style={{ width: "100%", height: 520 }}
         useResizeHandler

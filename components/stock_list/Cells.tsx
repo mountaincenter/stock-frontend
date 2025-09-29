@@ -3,9 +3,7 @@ import React from "react";
 
 export function DiffBadge({
   diff,
-  base, // 互換性維持のため受け取るが、%は表示しない
   nf0,
-  nf2, // 互換性維持のため受け取るが未使用
 }: {
   diff: number | null;
   base: number | null;

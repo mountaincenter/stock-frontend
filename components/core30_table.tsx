@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Plot from "react-plotly.js";
+import type { Data, Layout, Config } from "plotly.js";
 
 // shadcn/ui の Table（導入済み前提）
 import {
@@ -19,6 +20,23 @@ type MetaItem = {
   ticker: string;
 };
 
+type TableTrace = {
+  type: "table";
+  header?: {
+    values?: (string | number)[];
+    align?: "left" | "center" | "right" | ("left" | "center" | "right")[];
+    fill?: { color?: string | string[] };
+    height?: number;
+  };
+  cells?: {
+    values?: (string | number)[][];
+    align?: "left" | "center" | "right" | ("left" | "center" | "right")[];
+    height?: number;
+  };
+  columnwidth?: number[];
+  name?: string;
+};
+
 export default function Care30Table() {
   const [data, setData] = useState<MetaItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,43 +51,48 @@ export default function Care30Table() {
         if (!res.ok) throw new Error(String(res.status));
         const json: MetaItem[] = await res.json();
         setData(json);
-      } catch (e: any) {
-        setErr(e?.message ?? "fetch error");
+      } catch (e: unknown) {
+        setErr(e instanceof Error ? e.message : "fetch error");
       } finally {
         setLoading(false);
       }
     })();
   }, []);
 
-  // Plotly Table 用データ（列ごとに配列）
-  const plotly = useMemo(() => {
+  // Plotly Table 用データ
+  const { plotData, layout, config } = useMemo((): {
+    plotData: Data[];
+    layout: Partial<Layout>;
+    config: Partial<Config>;
+  } => {
     const codes = data.map((r) => r.code);
     const tickers = data.map((r) => r.ticker);
     const names = data.map((r) => r.stock_name);
 
+    const tableTrace: TableTrace = {
+      type: "table",
+      header: {
+        values: ["<b>Code</b>", "<b>Ticker</b>", "<b>名称</b>"],
+        align: "left",
+        fill: { color: "#f4f4f5" },
+        height: 28,
+      },
+      cells: {
+        values: [codes, tickers, names],
+        align: "left",
+        height: 24,
+      },
+      columnwidth: [80, 120, 300],
+    };
+
     return {
-      data: [
-        {
-          type: "table",
-          header: {
-            values: ["<b>Code</b>", "<b>Ticker</b>", "<b>名称</b>"],
-            align: "left",
-            fill: { color: "#f4f4f5" }, // 既定色でもOK（未指定でも可）
-            height: 28,
-          },
-          cells: {
-            values: [codes, tickers, names],
-            align: "left",
-            height: 24,
-          },
-          columnwidth: [80, 120, 300],
-        } as Partial<Plotly.TableData>,
-      ],
+      // TableTrace は Plotly の union 型に無いので safe-cast（any は不使用）
+      plotData: [tableTrace as unknown as Data],
       layout: {
-        title: "Core30（Plotly Table）",
+        title: { text: "Core30（Plotly Table）" },
         margin: { t: 40, r: 10, b: 10, l: 10 },
         height: 520,
-      } as Partial<Plotly.Layout>,
+      },
       config: { displayModeBar: false },
     };
   }, [data]);
@@ -118,9 +141,9 @@ export default function Care30Table() {
           <div className="text-sm text-red-500">エラー: {err}</div>
         ) : (
           <Plot
-            data={plotly.data as any}
-            layout={plotly.layout as any}
-            config={plotly.config as any}
+            data={plotData}
+            layout={layout}
+            config={config}
             style={{ width: "100%", height: 520 }}
             useResizeHandler
           />

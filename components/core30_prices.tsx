@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import type { Layout, CandlestickData } from "plotly.js";
+import type { Layout, CandlestickData, Data } from "plotly.js";
 import { useTheme } from "next-themes";
 import {
   Select,
@@ -12,7 +12,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// ★ ここを修正：サーバでは評価させない
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
 
 type MetaItem = { code: string; stock_name: string; ticker: string };
@@ -54,16 +53,17 @@ export default function Core30Prices() {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const j: MetaItem[] = await r.json();
         setMeta(j);
-        if (!ticker && j.length) setTicker(j[0].ticker);
-      } catch (e: any) {
-        setErr(e?.message ?? "meta fetch error");
+        // ← ticker をクロージャ参照しないので依存に入れなくてOK
+        if (j.length) setTicker((prev) => prev ?? j[0].ticker);
+      } catch (e: unknown) {
+        setErr(e instanceof Error ? e.message : "meta fetch error");
       } finally {
         setLoadingMeta(false);
       }
     })();
-  }, []); // eslint-disable-line
+  }, []);
 
-  // 選択銘柄の直近1年の価格（バックエンドのクエリAPIを利用）
+  // 選択銘柄の直近1年の価格
   useEffect(() => {
     if (!ticker) return;
     const today = new Date();
@@ -86,16 +86,16 @@ export default function Core30Prices() {
         const j: PriceRow[] = await r.json();
         j.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
         setRows(j);
-      } catch (e: any) {
-        setErr(e?.message ?? "prices fetch error");
+      } catch (e: unknown) {
+        setErr(e instanceof Error ? e.message : "prices fetch error");
         setRows([]);
       } finally {
         setLoading(false);
       }
     })();
-  }, [ticker]); // eslint-disable-line
+  }, [ticker]);
 
-  // レイアウト（ダーク対応）— title は { text: string } で型に準拠
+  // レイアウト（ダーク対応）
   const layout = useMemo<Partial<Layout>>(() => {
     const paper = isDark ? "#0b0b0c" : "#ffffff";
     const text = isDark ? "#e5e7eb" : "#111827";
@@ -174,8 +174,8 @@ export default function Core30Prices() {
 
       <div className="border rounded-xl p-4">
         <Plot
-          data={[candleTrace as any]}
-          layout={layout as any}
+          data={[candleTrace] as Data[]} // ← any禁止
+          layout={layout} // ← any禁止（Partial<Layout>でOK）
           config={{ displayModeBar: true }}
           style={{ width: "100%", height: 520 }}
           useResizeHandler

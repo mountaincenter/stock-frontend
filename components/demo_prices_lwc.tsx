@@ -23,7 +23,6 @@ type PriceRow = {
 };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL!;
-const TICKER = "3350.T";
 
 function fmt(d: Date) {
   const y = d.getFullYear();
