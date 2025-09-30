@@ -1,7 +1,14 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  /* config options here */
+// next.config.js
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  async rewrites() {
+    return [
+      {
+        source: "/core30/:path*",
+        destination: "http://192.168.0.20:8000/core30/:path*", // FastAPIが動いているホスト/ポートへ
+      },
+    ];
+  },
 };
 
-export default nextConfig;
+module.exports = nextConfig;

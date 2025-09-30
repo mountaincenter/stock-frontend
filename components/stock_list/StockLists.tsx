@@ -11,8 +11,7 @@ import { PriceTable } from "./PriceTable";
 import { PerfTable } from "./PerfTable";
 
 /**
- * Public コンポーネント（既存 API/表示のまま）
- * - md 以上は従来グリッド、sm はカード型に切替（Price/Perf 各テーブル側）
+ * TabsList を sticky で固定し、TabsContent のみ縦スクロール。
  */
 export default function StockLists(props: Props) {
   const { rows, status, nf0, nf2 } = useStockData(props);
@@ -56,26 +55,39 @@ export default function StockLists(props: Props) {
         {filtered.length}銘柄を表示中 (全{rows.length}銘柄)
       </div>
 
-      <Tabs defaultValue="price" className="w-full">
-        <TabsList className="grid w-fit grid-cols-2 bg-slate-800/50 border border-slate-600/50">
-          <TabsTrigger value="price" className="flex items-center gap-2">
-            <LayoutGrid className="w-4 h-4" />
-            価格
-          </TabsTrigger>
-          <TabsTrigger value="perf" className="flex items-center gap-2">
-            <List className="w-4 h-4" />
-            パフォーマンス
-          </TabsTrigger>
-        </TabsList>
+      {/* ---- スクロール専用ラッパ ----
+           高さは任意に変更可（例: h-[60vh] / h-[80vh] など）
+      */}
+      <div className="h-[70vh] min-h-[520px] rounded-xl border border-slate-700/40 overflow-hidden">
+        <Tabs defaultValue="price" className="h-full">
+          {/* sticky ヘッダー（スクロールしても固定） */}
+          <div className="sticky top-0 z-20 bg-slate-900/85 backdrop-blur supports-[backdrop-filter]:bg-slate-900/60 border-b border-slate-700/50">
+            <div className="p-2">
+              <TabsList className="grid w-fit grid-cols-2 bg-slate-800/50 border border-slate-600/50">
+                <TabsTrigger value="price" className="flex items-center gap-2">
+                  <LayoutGrid className="w-4 h-4" />
+                  価格
+                </TabsTrigger>
+                <TabsTrigger value="perf" className="flex items-center gap-2">
+                  <List className="w-4 h-4" />
+                  パフォーマンス
+                </TabsTrigger>
+              </TabsList>
+            </div>
+          </div>
 
-        <TabsContent value="price" className="mt-6">
-          <PriceTable rows={filtered} nf0={nf0} nf2={nf2} />
-        </TabsContent>
+          {/* コンテンツだけ縦スクロール */}
+          <div className="h-[calc(100%-56px)] overflow-y-auto overscroll-contain p-0">
+            <TabsContent value="price" className="mt-4 px-0">
+              <PriceTable rows={filtered} nf0={nf0} nf2={nf2} />
+            </TabsContent>
 
-        <TabsContent value="perf" className="mt-6">
-          <PerfTable rows={filtered} nf2={nf2} />
-        </TabsContent>
-      </Tabs>
+            <TabsContent value="perf" className="mt-4 px-0">
+              <PerfTable rows={filtered} nf2={nf2} />
+            </TabsContent>
+          </div>
+        </Tabs>
+      </div>
 
       {/* Empty */}
       {filtered.length === 0 && (

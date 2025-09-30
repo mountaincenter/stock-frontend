@@ -12,13 +12,15 @@ import DemoPricesBB from "@/components/demo_prices_bb";
 import DemoPricesLwcBB from "@/components/demo_prices_lwc_bb";
 // import StockLists from "@/components/stock_lists";
 import StockListsTradingViewFlavor from "@/components/stock_lists_flavor";
+import { StockLists as StockListsNew } from "@/components/stock_list_new";
 
-import { StockLists } from "@/components/stock_list";
+// import { StockLists } from "@/components/stock_list";
 
 export default function Page() {
   return (
     <main className="p-6 text-lg">
-      <StockLists />
+      <StockListsNew />
+      {/* <StockLists /> */}
       {/* <StockLists /> */}
       <StockListsTradingViewFlavor />
       <DemoPrices />

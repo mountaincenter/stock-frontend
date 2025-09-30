@@ -22,7 +22,15 @@ export function PriceTable({
   return (
     <div className="space-y-2">
       {/* ヘッダ: モバイルでは隠す */}
-      <div className="hidden md:grid grid-cols-18 gap-4 px-4 py-3 text-slate-400 text-sm font-medium border-b border-slate-700/50">
+      <div
+        className="
+            hidden md:grid grid-cols-18 gap-4 px-4 py-3
+            text-slate-400 text-sm font-medium
+            border-b border-slate-700/50
+            sticky top-0 z-20
+            bg-slate-900/85 backdrop-blur supports-[backdrop-filter]:bg-slate-900/60
+        "
+      >
         <div className="col-span-2">コード</div>
         <div className="col-span-6">銘柄名</div>
         <div className="col-span-2 text-right">終値</div>
