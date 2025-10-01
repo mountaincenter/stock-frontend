@@ -30,7 +30,7 @@ export default function PerfListMobile({ rows }: Props) {
               <h3
                 className="
                   text-slate-50 font-semibold leading-tight
-                  [font-size:clamp(14px,4.2vw,18px)]
+                  [font-size:clamp(12px,3.8vw,15px)]
                   line-clamp-1
                 "
                 title={r.stock_name}
