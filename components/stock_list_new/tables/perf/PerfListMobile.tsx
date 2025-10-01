@@ -53,7 +53,7 @@ export default function PerfListMobile({ rows }: Props) {
             {/* 下段：1年 / 5年 / 全期間 */}
             <div className="mt-1 grid grid-cols-4 gap-x-3 gap-y-1">
               <Kpi label="1年" v={r.r_1y} />
-              {/* <Kpi label="3年" v={r.r_3y} /> */}
+              <Kpi label="3年" v={r.r_3y} />
               <Kpi label="5年" v={r.r_5y} />
               <Kpi label="全期間" v={r.r_all} />
             </div>
