@@ -10,7 +10,7 @@ import type {
 } from "../types";
 
 /**
- * データ取得と初期水和（initial*）を担当（SRP）。
+ * データ取得と初期水和（SRP）。
  */
 export function useStockData({
   apiBase,
@@ -64,6 +64,7 @@ export function useStockData({
           r_3mo: (p?.["r_3mo"] as number) ?? null,
           r_ytd: (p?.["r_ytd"] as number) ?? null,
           r_1y: (p?.["r_1y"] as number) ?? null,
+          r_3y: (p?.["r_3y"] as number) ?? null, // ← 追加
           r_5y: (p?.["r_5y"] as number) ?? null,
           r_all: (p?.["r_all"] as number) ?? null,
         };
@@ -90,10 +91,11 @@ export function useStockData({
             cache: "no-store",
             signal: ac.signal,
           }),
-          fetch(`${base}/core30/perf/returns`, {
-            cache: "no-store",
-            signal: ac.signal,
-          }),
+          // 3y を確実に取るため windows を明示
+          fetch(
+            `${base}/core30/perf/returns?windows=5d,1mo,3mo,ytd,1y,3y,5y,all`,
+            { cache: "no-store", signal: ac.signal }
+          ),
         ]);
         if (!metaRes.ok) throw new Error(`meta HTTP ${metaRes.status}`);
         if (!snapRes.ok) throw new Error(`snapshot HTTP ${snapRes.status}`);
@@ -121,6 +123,7 @@ export function useStockData({
             r_3mo: (p?.["r_3mo"] as number) ?? null,
             r_ytd: (p?.["r_ytd"] as number) ?? null,
             r_1y: (p?.["r_1y"] as number) ?? null,
+            r_3y: (p?.["r_3y"] as number) ?? null, // ← 追加
             r_5y: (p?.["r_5y"] as number) ?? null,
             r_all: (p?.["r_all"] as number) ?? null,
           };

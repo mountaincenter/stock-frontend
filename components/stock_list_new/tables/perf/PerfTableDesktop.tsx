@@ -1,3 +1,4 @@
+// components/stock_list_new/tables/perf/PerfTableDesktop.tsx
 "use client";
 
 import * as React from "react";
@@ -17,7 +18,7 @@ export default function PerfTableDesktop({
       {/* ヘッダ: sticky */}
       <div
         className="
-          grid grid-cols-14 gap-4 px-4 py-3
+          grid grid-cols-15 gap-4 px-4 py-3
           text-slate-400 text-sm font-medium
           border-b border-slate-700/50
           sticky top-0 z-20
@@ -31,6 +32,7 @@ export default function PerfTableDesktop({
         <div className="col-span-1 text-right">3ヶ月</div>
         <div className="col-span-1 text-right">年初来</div>
         <div className="col-span-1 text-right">1年</div>
+        <div className="col-span-1 text-right">3年</div>
         <div className="col-span-1 text-right">5年</div>
         <div className="col-span-2 text-right">全期間</div>
       </div>
@@ -41,7 +43,7 @@ export default function PerfTableDesktop({
           href={`/${encodeURIComponent(r.ticker)}`}
           className="block premium-card rounded-xl border border-slate-700/50 hover:border-blue-500/50 hover:scale-[1.02] transition-all duration-200"
         >
-          <div className="grid grid-cols-14 gap-4 px-4 py-4">
+          <div className="grid grid-cols-15 gap-4 px-4 py-4">
             <div className="col-span-2">
               <span className="text-white font-mono font-bold text-lg">
                 {r.code}
@@ -71,6 +73,9 @@ export default function PerfTableDesktop({
             </div>
             <div className="col-span-1 text-right">
               <PerfCell v={r.r_1y} nf2={nf2} />
+            </div>
+            <div className="col-span-1 text-right">
+              <PerfCell v={r.r_3y} nf2={nf2} />
             </div>
             <div className="col-span-1 text-right">
               <PerfCell v={r.r_5y} nf2={nf2} />

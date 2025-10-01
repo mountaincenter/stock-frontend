@@ -120,3 +120,29 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  /* 親が .tight-mobile を付けた範囲で、モバイル時の余白/高さ/フォントを圧縮 */
+  .tight-mobile :where(.premium-card) {
+    @apply p-2 md:p-4;
+  }
+  .tight-mobile :where(.table-header, .sticky-header) {
+    @apply h-8 md:h-10 px-2 md:px-4 py-1 md:py-2;
+  }
+  .tight-mobile :where(.row) {
+    @apply h-10 md:h-14 px-2 md:px-4;
+  }
+  .tight-mobile :where(.gap-block) {
+    @apply gap-1 md:gap-4;
+  }
+  .tight-mobile :where(.cell-xs) {
+    @apply text-[10px] leading-none md:text-sm;
+  }
+  .tight-mobile :where(.cell-sm) {
+    @apply text-xs md:text-sm;
+  }
+  .tight-mobile :where(.cell-num) {
+    /* 数字セルの可読性は維持 */
+    @apply font-mono tabular-nums;
+  }
+}

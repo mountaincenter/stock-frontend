@@ -1,51 +1,61 @@
+// components/stock_list_new/tables/perf/PerfListMobile.tsx
 "use client";
 
 import * as React from "react";
 import Link from "next/link";
 import type { Row } from "../../types";
+import { PerfCell } from "../../parts/Cells";
 
-export default function PerfListMobile({
-  rows,
-  nf2,
-}: {
+type Props = {
   rows: Row[];
-  nf2: Intl.NumberFormat;
-}) {
+  nf2: Intl.NumberFormat; // 互換のために残す（smart=trueでは未使用）
+};
+
+export default function PerfListMobile({ rows }: Props) {
   return (
     <div className="space-y-2">
       {rows.map((r) => (
         <Link
           key={r.ticker}
           href={`/${encodeURIComponent(r.ticker)}`}
-          className="block premium-card rounded-xl border border-slate-700/50 hover:border-blue-500/50 hover:scale-[1.02] transition-all duration-200"
+          className="
+            block rounded-xl border border-slate-700/60 
+            bg-slate-900/40 hover:border-blue-500/50
+            transition-colors
+          "
         >
-          <div className="px-4 py-4 space-y-3">
-            {/* 上部：銘柄基本情報 */}
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-white font-mono font-bold text-base">
-                    {r.code}
-                  </span>
-                  <span className="text-slate-500 text-xs">
-                    {r.date ?? "—"}
-                  </span>
-                </div>
-                <h3 className="text-white font-semibold text-sm leading-tight mt-0.5 line-clamp-2">
-                  {r.stock_name}
-                </h3>
+          <div className="px-3 py-3">
+            {/* 見出し：銘柄名 + コード/日付（PriceListMobile と同サイズ/トーン） */}
+            <div className="min-w-0 text-left">
+              <h3
+                className="
+                  text-slate-50 font-semibold leading-tight
+                  [font-size:clamp(14px,4.2vw,18px)]
+                  line-clamp-1
+                "
+                title={r.stock_name}
+              >
+                {r.stock_name}
+              </h3>
+              <div className="mt-0.5 text-[11px] text-slate-400 font-mono tabular-nums">
+                {r.code} {r.date ? ` ${r.date}` : " —"}
               </div>
             </div>
 
-            {/* 指標グリッド */}
-            <div className="grid grid-cols-2 gap-3">
-              <L v={r.r_5d} label="1週" nf2={nf2} />
-              <L v={r.r_1mo} label="1ヶ月" nf2={nf2} />
-              <L v={r.r_3mo} label="3ヶ月" nf2={nf2} />
-              <L v={r.r_ytd} label="年初来" nf2={nf2} />
-              <L v={r.r_1y} label="1年" nf2={nf2} />
-              <L v={r.r_5y} label="5年" nf2={nf2} />
-              <L v={r.r_all} label="全期間" nf2={nf2} />
+            {/* 上段：1週 / 1ヶ月 / 3ヶ月 / 年初来 */}
+            <div className="mt-2 grid grid-cols-4 gap-x-3 gap-y-1">
+              <Kpi label="1週" v={r.r_5d} />
+              <Kpi label="1ヶ月" v={r.r_1mo} />
+              <Kpi label="3ヶ月" v={r.r_3mo} />
+              <Kpi label="年初来" v={r.r_ytd} />
+            </div>
+
+            {/* 下段：1年 / 5年 / 全期間 */}
+            <div className="mt-1 grid grid-cols-4 gap-x-3 gap-y-1">
+              <Kpi label="1年" v={r.r_1y} />
+              {/* <Kpi label="3年" v={r.r_3y} /> */}
+              <Kpi label="5年" v={r.r_5y} />
+              <Kpi label="全期間" v={r.r_all} />
             </div>
           </div>
         </Link>
@@ -54,36 +64,24 @@ export default function PerfListMobile({
   );
 }
 
-function L({
-  v,
-  label,
-  nf2,
-}: {
-  v: number | null;
-  label: string;
-  nf2: Intl.NumberFormat;
-}) {
+/* 小コンポーネント：明るめトーン + 賢い丸め + 桁揃え */
+function Kpi({ label, v }: { label: string; v: number | null }) {
   return (
     <div className="text-right">
-      <div className="text-slate-400 text-[11px]">{label}</div>
-      <div className="text-sm">
-        {v == null || !Number.isFinite(v) ? (
-          <span className="text-slate-400">—</span>
-        ) : (
-          <span
-            className={
-              v > 0
-                ? "text-emerald-300"
-                : v < 0
-                ? "text-rose-300"
-                : "text-slate-300"
-            }
-          >
-            {v > 0 ? "+" : ""}
-            {nf2.format(v)}%
-          </span>
-        )}
-      </div>
+      <div className="text-[11px] text-slate-400">{label}</div>
+      <PerfCell
+        v={v}
+        // nf2 は型互換のために渡すが、smart=true では未使用
+        nf2={
+          new Intl.NumberFormat("ja-JP", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })
+        }
+        smart={true} // 10%以上0桁, 1%以上1桁, それ未満2桁
+        fixedWidthCh={7} // “+12.3%” 程度を7chで揃える（モバイルで詰める）
+        className="text-[14px] font-semibold inline-block"
+      />
     </div>
   );
 }

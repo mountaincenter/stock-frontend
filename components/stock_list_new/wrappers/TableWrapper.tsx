@@ -1,22 +1,33 @@
+// components/stock_list_new/wrappers/TableWrapper.tsx
 import React from "react";
 
 export function TableWrapper({
   toolbar,
   children,
-  heightClass = "h-[70vh]",
+  /** モバイルは画面を極力使い切る。md以上は従来の高さ */
+  heightClass = "h-[calc(100vh-112px)] md:h-[70vh]",
 }: {
   toolbar: React.ReactNode;
   children: React.ReactNode;
-  heightClass?: string; // h-[60vh] 等に差し替え可能
+  heightClass?: string;
 }) {
   return (
     <div
-      className={`${heightClass} min-h-[520px] rounded-xl border border-slate-700/40 overflow-hidden`}
+      className={[
+        "relative flex flex-col",
+        heightClass,
+        // モバイルは枠線・角丸を削ってフルブリード、md+ は従来どおり
+        "rounded-none border-0 md:rounded-xl md:border md:border-slate-700/40",
+        "overflow-hidden",
+      ].join(" ")}
     >
-      <div className="sticky top-0 z-20 bg-slate-900/85 backdrop-blur supports-[backdrop-filter]:bg-slate-900/60 border-b border-slate-700/50">
-        <div className="p-2">{toolbar}</div>
+      {/* ツールバー（sticky / モバイルは超省スペース） */}
+      <div className="sticky top-0 z-20 bg-slate-900/90 backdrop-blur supports-[backdrop-filter]:bg-slate-900/70 border-b border-slate-700/50">
+        <div className="px-2 py-1 md:p-2">{toolbar}</div>
       </div>
-      <div className="h-[calc(100%-56px)] overflow-y-auto overscroll-contain">
+
+      {/* 内容。flex-1 + min-h-0 で“高さ計算”無しに安全スクロール */}
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
         {children}
       </div>
     </div>

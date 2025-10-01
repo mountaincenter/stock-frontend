@@ -1,40 +1,42 @@
-"use client";
-
-// import Core30Prices from "../components/core30_prices";
-// import Core30LwcPrices from "@/components/core30_prices_lwc";
-import DemoPrices from "@/components/demo_prices";
-import DemoPricesLwc from "@/components/demo_prices_lwc";
-import LwcEmptyFrame from "../components/lwc_tutorial";
-import LwcAreaMin, { lwcAreaDemoData } from "../components/lwc_area_min";
-import DemoPricesIchimoku from "@/components/demo_prices_ichimoku";
-import DemoPricesLwcIchimoku from "@/components/demo_prices_lwc_ichimoku";
-import DemoPricesBB from "@/components/demo_prices_bb";
-import DemoPricesLwcBB from "@/components/demo_prices_lwc_bb";
-// import StockLists from "@/components/stock_lists";
-import StockListsTradingViewFlavor from "@/components/stock_lists_flavor";
+// app/page.tsx  ← "use client" は付けない（Server Component）
 import { StockLists as StockListsNew } from "@/components/stock_list_new";
 
-// import { StockLists } from "@/components/stock_list";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
-export default function Page() {
+// SSRで初期データを1度だけ取得
+async function fetchInitial() {
+  if (!API_BASE) {
+    return { initialMeta: [], initialSnapshot: [], initialPerf: [] };
+  }
+
+  const [metaRes, snapRes, perfRes] = await Promise.all([
+    fetch(`${API_BASE}/core30/meta`, { cache: "no-store" }),
+    fetch(`${API_BASE}/core30/prices/snapshot/last2`, { cache: "no-store" }),
+    fetch(`${API_BASE}/core30/perf/returns`, { cache: "no-store" }),
+  ]);
+
+  const initialMeta = metaRes.ok ? await metaRes.json() : [];
+  const initialSnapshot = snapRes.ok ? await snapRes.json() : [];
+  const initialPerf = perfRes.ok ? await perfRes.json() : [];
+
+  return { initialMeta, initialSnapshot, initialPerf };
+}
+
+export default async function Page() {
+  const { initialMeta, initialSnapshot, initialPerf } = await fetchInitial();
+
   return (
-    <main className="p-6 text-lg">
-      <StockListsNew />
-      {/* <StockLists /> */}
-      {/* <StockLists /> */}
-      <StockListsTradingViewFlavor />
-      <DemoPrices />
-      <DemoPricesLwc />
-      <DemoPricesIchimoku />
-      <DemoPricesLwcIchimoku />
-      <DemoPricesBB />
-      <DemoPricesLwcBB />
-      <LwcEmptyFrame
-        height={320}
-        backgroundColor="#0b0b0c"
-        textColor="#e5e7eb"
-      />
-      <LwcAreaMin data={lwcAreaDemoData} height={320} />
+    // モバイルは極限まで余白を削り、デスクトップは従来の余白を維持
+    <main className="flex flex-col min-h-[100svh] md:min-h-screen md:p-6 p-2">
+      {/* ここが唯一の“本番”ブロック。子は Client でもフェッチしない */}
+      <section className="tight-mobile">
+        <StockListsNew
+          apiBase={API_BASE}
+          initialMeta={initialMeta}
+          initialSnapshot={initialSnapshot}
+          initialPerf={initialPerf}
+        />
+      </section>
     </main>
   );
 }
