@@ -1,14 +1,4 @@
-// next.config.js
+// next.config.js（rewrites削除版）
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  async rewrites() {
-    return [
-      {
-        source: "/core30/:path*",
-        destination: "http://192.168.0.20:8000/core30/:path*", // FastAPIが動いているホスト/ポートへ
-      },
-    ];
-  },
-};
-
+const nextConfig = {};
 module.exports = nextConfig;

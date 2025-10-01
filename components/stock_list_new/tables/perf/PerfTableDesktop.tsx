@@ -1,4 +1,3 @@
-// components/stock_list_new/tables/perf/PerfTableDesktop.tsx
 "use client";
 
 import * as React from "react";
@@ -45,7 +44,8 @@ export default function PerfTableDesktop({
         >
           <div className="grid grid-cols-15 gap-4 px-4 py-4">
             <div className="col-span-2">
-              <span className="text-white font-mono font-bold text-lg">
+              {/* ★ 金融向け：サンセリフ＋タビュラー */}
+              <span className="text-white font-sans tabular-nums font-bold text-lg">
                 {r.code}
               </span>
             </div>
@@ -54,7 +54,8 @@ export default function PerfTableDesktop({
               <h3 className="text-white font-bold text-base leading-tight hover:text-blue-300 transition-colors">
                 {r.stock_name}
               </h3>
-              <div className="text-slate-500 text-xs mt-0.5">
+              {/* 日付は可読性のため等幅は使わず、必要なら tabular-nums を付与 */}
+              <div className="text-slate-500 text-xs mt-0.5 font-sans tabular-nums">
                 {r.date ?? "—"}
               </div>
             </div>

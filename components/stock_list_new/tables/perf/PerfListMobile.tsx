@@ -1,4 +1,3 @@
-// components/stock_list_new/tables/perf/PerfListMobile.tsx
 "use client";
 
 import * as React from "react";
@@ -37,7 +36,8 @@ export default function PerfListMobile({ rows }: Props) {
               >
                 {r.stock_name}
               </h3>
-              <div className="mt-0.5 text-[11px] text-slate-400 font-mono tabular-nums">
+              {/* ★ 金融向け：サンセリフ＋タビュラー */}
+              <div className="mt-0.5 text-[11px] text-slate-400 font-sans tabular-nums">
                 {r.code} {r.date ? ` ${r.date}` : " —"}
               </div>
             </div>

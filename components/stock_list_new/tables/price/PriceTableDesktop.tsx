@@ -53,7 +53,8 @@ export default function PriceTableDesktop({
           >
             <div className="grid grid-cols-18 gap-4 px-4 py-4">
               <div className="col-span-2">
-                <span className="text-white font-mono font-bold text-lg">
+                {/* ★ 金融向け：サンセリフ＋タビュラー */}
+                <span className="text-white font-sans tabular-nums font-bold text-lg">
                   {r.code}
                 </span>
               </div>
@@ -62,7 +63,7 @@ export default function PriceTableDesktop({
                 <h3 className="text-white font-bold text-base leading-tight hover:text-blue-300 transition-colors">
                   {r.stock_name}
                 </h3>
-                <div className="text-slate-500 text-xs mt-0.5">
+                <div className="text-slate-500 text-xs mt-0.5 font-sans tabular-nums">
                   {r.date ?? "—"}
                 </div>
               </div>
@@ -82,11 +83,11 @@ export default function PriceTableDesktop({
                 ) : (
                   <span
                     className={
-                      pct > 0
+                      (pct > 0
                         ? "text-emerald-300"
                         : pct < 0
                         ? "text-rose-300"
-                        : "text-slate-300"
+                        : "text-slate-300") + " font-sans tabular-nums"
                     }
                   >
                     {pct > 0 ? "+" : ""}

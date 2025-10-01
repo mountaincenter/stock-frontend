@@ -1,4 +1,3 @@
-// components/stock_list_new/tables/price/PriceListMobile.tsx
 "use client";
 
 import * as React from "react";
@@ -61,7 +60,8 @@ export default function PriceListMobile({ rows, nf0, nf2 }: Props) {
                 >
                   {r.stock_name}
                 </h3>
-                <div className="mt-0.5 text-[11px] text-slate-400 font-mono tabular-nums">
+                {/* ★ 金融向け：サンセリフ＋タビュラー */}
+                <div className="mt-0.5 text-[11px] text-slate-400 font-sans tabular-nums">
                   {r.code} {r.date ? ` ${r.date}` : " —"}
                 </div>
               </div>
@@ -74,7 +74,7 @@ export default function PriceListMobile({ rows, nf0, nf2 }: Props) {
                   ) : (
                     <span
                       className={`
-                        font-mono tabular-nums font-extrabold
+                        font-sans tabular-nums font-extrabold
                         [font-size:clamp(18px,6vw,28px)]
                         ${tone}
                       `}
@@ -90,7 +90,7 @@ export default function PriceListMobile({ rows, nf0, nf2 }: Props) {
                     <span className="text-slate-400 text-[12px]">—</span>
                   ) : (
                     <span
-                      className={`font-mono tabular-nums ${tone} text-[13px]`}
+                      className={`font-sans tabular-nums ${tone} text-[13px]`}
                     >
                       {diff > 0 ? "+" : ""}
                       {nf0.format(diff)}
@@ -114,7 +114,7 @@ export default function PriceListMobile({ rows, nf0, nf2 }: Props) {
                 <div className="flex items-baseline justify-between">
                   <div className="text-[11px] text-slate-400">出来高</div>
                   <span
-                    className={`text-[13px] text-slate-100 font-mono tabular-nums inline-block text-right ${valueWidth}`}
+                    className={`text-[13px] text-slate-100 font-sans tabular-nums inline-block text-right ${valueWidth}`}
                   >
                     {r.volume == null || !Number.isFinite(r.volume)
                       ? "—"
@@ -126,7 +126,7 @@ export default function PriceListMobile({ rows, nf0, nf2 }: Props) {
                 <div className="flex items-baseline justify-between">
                   <div className="text-[11px] text-slate-400">出来高(10)</div>
                   <span
-                    className={`text-[13px] text-slate-100 font-mono tabular-nums inline-block text-right ${valueWidth}`}
+                    className={`text-[13px] text-slate-100 font-sans tabular-nums inline-block text-right ${valueWidth}`}
                   >
                     {r.vol_ma10 == null || !Number.isFinite(r.vol_ma10)
                       ? "—"

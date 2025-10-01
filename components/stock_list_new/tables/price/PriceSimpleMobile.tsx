@@ -1,4 +1,3 @@
-// components/stock_list_new/tables/price/PriceSimpleMobile.tsx
 "use client";
 
 import * as React from "react";
@@ -12,17 +11,17 @@ const headerBase =
 const rowBase =
   "grid items-center px-3 h-14 text-[13px] hover:bg-slate-800/40 transition-colors border-b border-slate-800/60";
 
-// コードと日付（サブ行）
-const codeSub = "text-[11px] text-slate-400 font-mono";
+// コードと日付（サブ行）→ ★ サンセリフ＋タビュラー
+const codeSub = "text-[11px] text-slate-400 font-sans tabular-nums";
 const dateSub = "text-[10px] text-slate-500 ml-2";
 
 // 銘柄名：明るめ & 少し太字（デスクトップ寄せ）
 const nameBig =
   "text-white font-semibold leading-tight [font-size:clamp(13px,3.6vw,15px)]";
 
-// 価格：ベース（色はトーンと合成）
-const priceBig = "font-semibold font-mono tabular-nums text-base";
-const pctSmall = "text-[11px] font-mono tabular-nums";
+// 価格/率：★ 金融向け（サンセリフ＋タビュラー）
+const priceBig = "font-semibold font-sans tabular-nums text-base";
+const pctSmall = "text-[11px] font-sans tabular-nums";
 
 export default function PriceSimpleMobile({ rows, nf0, nf2 }: Props) {
   return (
@@ -89,7 +88,7 @@ export default function PriceSimpleMobile({ rows, nf0, nf2 }: Props) {
                   <span className="text-slate-400">—</span>
                 ) : (
                   <div className="inline-flex flex-col items-end">
-                    <span className={`font-mono tabular-nums ${tone}`}>
+                    <span className={`font-sans tabular-nums ${tone}`}>
                       {diff > 0 ? "+" : ""}
                       {nf0.format(diff)}
                     </span>
