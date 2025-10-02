@@ -26,17 +26,19 @@ export default async function Page() {
   const { initialMeta, initialSnapshot, initialPerf } = await fetchInitial();
 
   return (
-    // モバイルは極限まで余白を削り、デスクトップは従来の余白を維持
-    <main className="flex flex-col min-h-[100svh] md:min-h-screen md:p-6 p-2">
-      {/* ここが唯一の“本番”ブロック。子は Client でもフェッチしない */}
-      <section className="tight-mobile">
-        <StockListsNew
-          apiBase={API_BASE}
-          initialMeta={initialMeta}
-          initialSnapshot={initialSnapshot}
-          initialPerf={initialPerf}
-        />
-      </section>
+    <main className="flex flex-col min-h-[100svh] md:min-h-screen py-4 md:py-6">
+      {/* 画面幅に応じて中央 90% → 88% → 85% */}
+      <div className="w-full md:w-[85%] xl:w-[83%] 2xl:w-[80%] mx-auto">
+        {/* 子は Client でもフェッチしない */}
+        <section className="tight-mobile">
+          <StockListsNew
+            apiBase={API_BASE}
+            initialMeta={initialMeta}
+            initialSnapshot={initialSnapshot}
+            initialPerf={initialPerf}
+          />
+        </section>
+      </div>
     </main>
   );
 }

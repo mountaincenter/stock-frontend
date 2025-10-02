@@ -9,8 +9,17 @@ const isFiniteNumber = (v: unknown): v is number =>
 const cx = (...xs: Array<string | false | undefined>) =>
   xs.filter(Boolean).join(" ");
 
+/**
+ * ±トーン（0は“中立”）
+ * - 中立は shadcn のトークンに合わせて text-muted-foreground
+ * - ±は従来どおり金融配色（emerald/rose）
+ */
 const toneBySign = (v: number) =>
-  v > 0 ? "text-emerald-300" : v < 0 ? "text-rose-300" : "text-slate-300";
+  v > 0
+    ? "text-emerald-300"
+    : v < 0
+    ? "text-rose-300"
+    : "text-muted-foreground";
 
 /** 10%以上=小数0桁, 1%以上=1桁, それ未満=2桁 */
 function formatPctSmart(v: number) {
@@ -41,7 +50,8 @@ function Dash({
     <span
       className={cx(
         mono ? "font-mono tabular-nums" : "font-sans tabular-nums",
-        "text-slate-400",
+        // 中立トーンは shadcn のデフォルトに合わせる
+        "text-muted-foreground",
         className
       )}
       style={style}
@@ -135,7 +145,8 @@ export function CloseCell({
     <NumBase
       mono={mono}
       fixedWidthCh={fixedWidthCh}
-      className={cx("text-slate-50", className)}
+      // 明度固定の slate をやめ、テーマ連動の text-foreground に統一
+      className={cx("text-foreground", className)}
     >
       {nf0.format(v)}
     </NumBase>
@@ -165,7 +176,8 @@ export function NumCell({
     <NumBase
       mono={mono}
       fixedWidthCh={fixedWidthCh}
-      className={cx("text-slate-100", className)}
+      // こちらも text-foreground（カード/ページの前景色に追従）
+      className={cx("text-foreground", className)}
     >
       {nf0.format(v)}
     </NumBase>

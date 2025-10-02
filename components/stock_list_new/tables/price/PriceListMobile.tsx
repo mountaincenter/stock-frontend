@@ -30,20 +30,20 @@ export default function PriceListMobile({ rows, nf0, nf2 }: Props) {
 
         const tone =
           diff == null || !Number.isFinite(diff)
-            ? "text-slate-400"
+            ? "text-muted-foreground"
             : diff > 0
             ? "text-emerald-400"
             : diff < 0
             ? "text-rose-400"
-            : "text-slate-300";
+            : "text-muted-foreground";
 
         return (
           <Link
             key={r.ticker}
             href={`/${encodeURIComponent(r.ticker)}`}
             className="
-              block rounded-xl border border-slate-700/60 
-              bg-slate-900/40 hover:border-blue-500/50
+              block rounded-xl border border-border
+              bg-card text-card-foreground hover:border-primary/50
               transition-colors
             "
           >
@@ -52,7 +52,7 @@ export default function PriceListMobile({ rows, nf0, nf2 }: Props) {
               <div className="min-w-0 text-left">
                 <h3
                   className="
-                    text-slate-50 font-semibold leading-tight 
+                    font-semibold leading-tight text-card-foreground
                     [font-size:clamp(12px,3.8vw,15px)]
                     line-clamp-1
                   "
@@ -61,7 +61,7 @@ export default function PriceListMobile({ rows, nf0, nf2 }: Props) {
                   {r.stock_name}
                 </h3>
                 {/* ★ 金融向け：サンセリフ＋タビュラー */}
-                <div className="mt-0.5 text-[11px] text-slate-400 font-sans tabular-nums">
+                <div className="mt-0.5 text-[11px] text-muted-foreground font-sans tabular-nums">
                   {r.code} {r.date ? ` ${r.date}` : " —"}
                 </div>
               </div>
@@ -70,7 +70,7 @@ export default function PriceListMobile({ rows, nf0, nf2 }: Props) {
               <div className="mt-2">
                 <div className="text-right">
                   {r.close == null || !Number.isFinite(r.close) ? (
-                    <span className="text-slate-400">—</span>
+                    <span className="text-muted-foreground">—</span>
                   ) : (
                     <span
                       className={`
@@ -87,7 +87,7 @@ export default function PriceListMobile({ rows, nf0, nf2 }: Props) {
                 {/* 前日差：1行（値 + スペース + (率)）右寄せ */}
                 <div className="mt-0.5 text-right">
                   {diff == null || !Number.isFinite(diff) ? (
-                    <span className="text-slate-400 text-[12px]">—</span>
+                    <span className="text-muted-foreground text-[12px]">—</span>
                   ) : (
                     <span
                       className={`font-sans tabular-nums ${tone} text-[13px]`}
@@ -112,9 +112,11 @@ export default function PriceListMobile({ rows, nf0, nf2 }: Props) {
               <div className="mt-2 space-y-1">
                 {/* 1段目：出来高 */}
                 <div className="flex items-baseline justify-between">
-                  <div className="text-[11px] text-slate-400">出来高</div>
+                  <div className="text-[11px] text-muted-foreground">
+                    出来高
+                  </div>
                   <span
-                    className={`text-[13px] text-slate-100 font-sans tabular-nums inline-block text-right ${valueWidth}`}
+                    className={`text-[13px] text-card-foreground font-sans tabular-nums inline-block text-right ${valueWidth}`}
                   >
                     {r.volume == null || !Number.isFinite(r.volume)
                       ? "—"
@@ -124,9 +126,11 @@ export default function PriceListMobile({ rows, nf0, nf2 }: Props) {
 
                 {/* 2段目：出来高(10) */}
                 <div className="flex items-baseline justify-between">
-                  <div className="text-[11px] text-slate-400">出来高(10)</div>
+                  <div className="text-[11px] text-muted-foreground">
+                    出来高(10)
+                  </div>
                   <span
-                    className={`text-[13px] text-slate-100 font-sans tabular-nums inline-block text-right ${valueWidth}`}
+                    className={`text-[13px] text-card-foreground font-sans tabular-nums inline-block text-right ${valueWidth}`}
                   >
                     {r.vol_ma10 == null || !Number.isFinite(r.vol_ma10)
                       ? "—"

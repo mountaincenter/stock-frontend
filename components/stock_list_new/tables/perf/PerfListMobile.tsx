@@ -18,8 +18,9 @@ export default function PerfListMobile({ rows }: Props) {
           key={r.ticker}
           href={`/${encodeURIComponent(r.ticker)}`}
           className="
-            block rounded-xl border border-slate-700/60 
-            bg-slate-900/40 hover:border-blue-500/50
+            block rounded-xl border border-border
+            bg-card text-card-foreground
+            hover:border-primary/50
             transition-colors
           "
         >
@@ -28,7 +29,7 @@ export default function PerfListMobile({ rows }: Props) {
             <div className="min-w-0 text-left">
               <h3
                 className="
-                  text-slate-50 font-semibold leading-tight
+                  font-semibold leading-tight text-card-foreground
                   [font-size:clamp(12px,3.8vw,15px)]
                   line-clamp-1
                 "
@@ -37,7 +38,7 @@ export default function PerfListMobile({ rows }: Props) {
                 {r.stock_name}
               </h3>
               {/* ★ 金融向け：サンセリフ＋タビュラー */}
-              <div className="mt-0.5 text-[11px] text-slate-400 font-sans tabular-nums">
+              <div className="mt-0.5 text-[11px] text-muted-foreground font-sans tabular-nums">
                 {r.code} {r.date ? ` ${r.date}` : " —"}
               </div>
             </div>
@@ -68,7 +69,7 @@ export default function PerfListMobile({ rows }: Props) {
 function Kpi({ label, v }: { label: string; v: number | null }) {
   return (
     <div className="text-right">
-      <div className="text-[11px] text-slate-400">{label}</div>
+      <div className="text-[11px] text-muted-foreground">{label}</div>
       <PerfCell
         v={v}
         // nf2 は型互換のために渡すが、smart=true では未使用
@@ -80,7 +81,7 @@ function Kpi({ label, v }: { label: string; v: number | null }) {
         }
         smart={true} // 10%以上0桁, 1%以上1桁, それ未満2桁
         fixedWidthCh={7} // “+12.3%” 程度を7chで揃える（モバイルで詰める）
-        className="text-[14px] font-semibold inline-block"
+        className="text-[14px] font-semibold inline-block text-card-foreground"
       />
     </div>
   );

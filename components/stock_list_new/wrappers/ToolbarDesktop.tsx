@@ -28,7 +28,9 @@ export function ToolbarDesktop({
         const cur = sorts.find((s) => s.key === k)?.dir;
         return (
           <div key={k} className="flex items-center gap-1">
-            <span className="text-xs text-slate-400">{PRICE_LABELS[k]}</span>
+            <span className="text-xs text-muted-foreground">
+              {PRICE_LABELS[k]}
+            </span>
             <Button
               size="sm"
               variant={cur === "asc" ? "default" : "outline"}

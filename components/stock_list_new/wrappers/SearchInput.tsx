@@ -22,10 +22,13 @@ export function SearchInput({
         className={[
           // モバイルは詰める、md+は従来
           "w-full h-9 px-3 rounded-md",
-          "bg-slate-900/60 border border-slate-700/60",
-          "text-white placeholder-slate-500",
-          "focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40",
-          "md:h-12 md:px-4 md:rounded-xl md:bg-slate-800/50 md:border-slate-600/50 md:placeholder-slate-400",
+          // shadcn/ui のデフォルトトークンに統一
+          "border border-input bg-background",
+          "text-foreground placeholder:text-muted-foreground",
+          "ring-offset-background",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:border-ring",
+          // md以降のサイズ/丸みだけ維持（色は共通トークンのまま）
+          "md:h-12 md:px-4 md:rounded-xl",
         ].join(" ")}
       />
     </div>

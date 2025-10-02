@@ -26,7 +26,13 @@ export function SortChips<K extends string>({
             key={String(s.key)}
             type="button"
             onClick={() => onRemove(s.key)}
-            className="px-2 py-1 rounded-full bg-slate-700/60 text-xs text-slate-200 inline-flex items-center gap-1"
+            className="
+              px-2 py-1 rounded-full
+              bg-secondary text-secondary-foreground
+              text-xs inline-flex items-center gap-1
+              border border-border
+              hover:bg-secondary/80
+            "
             aria-label={`${label} のソートを解除`}
           >
             <span>

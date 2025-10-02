@@ -28,7 +28,7 @@ export function PriceTable({
             text-slate-400 text-sm font-medium
             border-b border-slate-700/50
             sticky top-0 z-20
-            bg-slate-900/85 backdrop-blur supports-[backdrop-filter]:bg-slate-900/60
+            backdrop-blur
         "
       >
         <div className="col-span-2">コード</div>
@@ -64,14 +64,12 @@ export function PriceTable({
                 </span>
               </div>
               <div className="col-span-6">
-                <h3 className="text-white font-bold text-base leading-tight hover:text-blue-300 transition-colors">
+                <h3 className=" font-bold text-base leading-tight transition-colors">
                   {r.stock_name}
                 </h3>
-                <div className="text-slate-500 text-xs mt-0.5">
-                  {r.date ?? "—"}
-                </div>
+                <div className="text-xs mt-0.5">{r.date ?? "—"}</div>
               </div>
-              <div className="col-span-2 text-right text-white">
+              <div className="col-span-2">
                 <CloseCell v={r.close} nf0={nf0} />
               </div>
               <div className="col-span-2 text-right">
@@ -85,7 +83,7 @@ export function PriceTable({
               </div>
               <div className="col-span-2 text-right">
                 {pct == null || !isFinite(pct) ? (
-                  <span className="text-slate-400">―</span>
+                  <span>―</span>
                 ) : (
                   <span
                     className={
@@ -101,7 +99,7 @@ export function PriceTable({
                   </span>
                 )}
               </div>
-              <div className="col-span-2 text-right text-white">
+              <div className="col-span-2 ">
                 <NumCell v={r.volume} nf0={nf0} />
               </div>
               <div className="col-span-2 text-right text-white">

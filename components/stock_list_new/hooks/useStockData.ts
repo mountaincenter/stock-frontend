@@ -1,4 +1,3 @@
-// components/stock_list_new/hooks/useStockData.ts
 import { useEffect, useMemo, useState } from "react";
 import type {
   FetchState,
@@ -8,9 +7,12 @@ import type {
   SnapshotRow,
   PerfRow,
 } from "../types";
+import type { TechCoreRow } from "../types";
 
 /**
  * データ取得と初期水和（SRP）。
+ * - 価格/パフォーマンス: meta + snapshot + returns
+ * - テクニカル: 事実4指標 + 評価4カラム（/core30/tech/snapshot）
  */
 export function useStockData({
   apiBase,
@@ -22,6 +24,10 @@ export function useStockData({
   const [status, setStatus] = useState<FetchState>(
     initialMeta && initialSnapshot && initialPerf ? "success" : "idle"
   );
+
+  // ★ テクニカル（4指標 + 評価4カラム）
+  const [techRows, setTechRows] = useState<TechCoreRow[]>([]);
+  const [techStatus, setTechStatus] = useState<FetchState>("idle");
 
   const base = useMemo(
     () => apiBase ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? "",
@@ -42,6 +48,7 @@ export function useStockData({
     []
   );
 
+  // 価格/スナップショット/パフォーマンス（既存）
   useEffect(() => {
     // initial* からの水和（SSR/SSG → CSR）
     const hydrateFromInitial = () => {
@@ -147,5 +154,42 @@ export function useStockData({
     };
   }, [base, initialMeta, initialPerf, initialSnapshot]);
 
-  return { rows, status, nf0, nf2 };
+  // ★ テクニカル（4指標 + 評価4カラム）は別エフェクトで取得
+  useEffect(() => {
+    let mounted = true;
+    const ac = new AbortController();
+
+    (async () => {
+      try {
+        if (!base) {
+          setTechStatus("error");
+          return;
+        }
+        setTechStatus("loading");
+        // 旧: /core30/tech/mobile/core → 新: /core30/tech/snapshot
+        const res = await fetch(`${base}/core30/tech/snapshot`, {
+          cache: "no-store",
+          signal: ac.signal,
+        });
+        if (!res.ok) throw new Error(`tech HTTP ${res.status}`);
+        const data = (await res.json()) as TechCoreRow[];
+        if (mounted) {
+          setTechRows(Array.isArray(data) ? data : []);
+          setTechStatus("success");
+        }
+      } catch (e) {
+        if (!(e instanceof DOMException && e.name === "AbortError")) {
+          console.error(e);
+          if (mounted) setTechStatus("error");
+        }
+      }
+    })();
+
+    return () => {
+      mounted = false;
+      ac.abort();
+    };
+  }, [base]);
+
+  return { rows, status, nf0, nf2, techRows, techStatus };
 }

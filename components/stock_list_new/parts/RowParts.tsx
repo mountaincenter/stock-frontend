@@ -13,7 +13,13 @@ export function RowCardLink({
   return (
     <Link
       href={href}
-      className="block premium-card rounded-xl border border-slate-700/50 hover:border-blue-500/50 hover:scale-[1.02] transition-all duration-200"
+      className="
+        block premium-card rounded-xl
+        border border-border
+        bg-card text-card-foreground
+        hover:border-primary/50 hover:scale-[1.02]
+        transition-all duration-200
+      "
     >
       {children}
     </Link>
@@ -35,10 +41,12 @@ export function CodeNameHeader({
   return (
     <div className={`min-w-0 ${className}`}>
       <div className="flex items-center gap-2">
-        <span className="text-white font-mono font-bold text-base">{code}</span>
-        <span className="text-slate-500 text-xs">{date ?? "—"}</span>
+        <span className="font-mono font-bold text-base text-card-foreground">
+          {code}
+        </span>
+        <span className="text-xs text-muted-foreground">{date ?? "—"}</span>
       </div>
-      <h3 className="text-white font-semibold text-sm leading-tight mt-0.5 line-clamp-2">
+      <h3 className="font-semibold text-sm leading-tight mt-0.5 line-clamp-2 text-card-foreground">
         {name}
       </h3>
     </div>
@@ -57,8 +65,8 @@ export function Metric({
 }) {
   return (
     <div className={align === "right" ? "text-right" : "text-left"}>
-      <div className="text-slate-400 text-[11px]">{label}</div>
-      <div className="text-sm">{children}</div>
+      <div className="text-[11px] text-muted-foreground">{label}</div>
+      <div className="text-sm text-card-foreground">{children}</div>
     </div>
   );
 }
@@ -76,19 +84,19 @@ export function PerfMini({
   const isFiniteNumber =
     typeof value === "number" && Number.isFinite(value as number);
   const cls = !isFiniteNumber
-    ? "text-slate-400"
+    ? "text-muted-foreground"
     : value! > 0
     ? "text-emerald-300"
     : value! < 0
     ? "text-rose-300"
-    : "text-slate-300";
+    : "text-muted-foreground";
   const sign = isFiniteNumber && value! > 0 ? "+" : "";
   return (
     <div className="text-right">
-      <div className="text-slate-400 text-[11px]">{label}</div>
+      <div className="text-[11px] text-muted-foreground">{label}</div>
       <div className="text-sm">
         {!isFiniteNumber ? (
-          <span className="text-slate-400">—</span>
+          <span className="text-muted-foreground">—</span>
         ) : (
           <span className={cls}>
             {sign}

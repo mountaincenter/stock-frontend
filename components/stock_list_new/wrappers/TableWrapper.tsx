@@ -17,12 +17,12 @@ export function TableWrapper({
         "relative flex flex-col",
         heightClass,
         // モバイルは枠線・角丸を削ってフルブリード、md+ は従来どおり
-        "rounded-none border-0 md:rounded-xl md:border md:border-slate-700/40",
+        "rounded-none border-0 md:rounded-xl md:border md:border-border",
         "overflow-hidden",
       ].join(" ")}
     >
       {/* ツールバー（sticky / モバイルは超省スペース） */}
-      <div className="sticky top-0 z-20 bg-slate-900/90 backdrop-blur supports-[backdrop-filter]:bg-slate-900/70 border-b border-slate-700/50">
+      <div className="sticky top-0 z-20 bg-card/90 backdrop-blur supports-[backdrop-filter]:bg-card/70 border-b border-border">
         <div className="px-2 py-1 md:p-2">{toolbar}</div>
       </div>
 

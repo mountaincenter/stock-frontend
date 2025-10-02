@@ -226,16 +226,16 @@ export function HoverCardChart({
     <HoverCard openDelay={120} closeDelay={70} onOpenChange={handleOpenChange}>
       <HoverCardTrigger asChild>{children}</HoverCardTrigger>
       <HoverCardContent className="w-80 space-y-3">
-        <div className="text-sm font-medium text-white line-clamp-2">
+        <div className="text-sm font-medium line-clamp-2">
           {stockName ?? ticker}
         </div>
 
-        <div className="rounded-lg border border-slate-700/60 bg-slate-900/50 p-2">
+        <div className="rounded-lg border  p-2">
           {/* content が mount された時点で ref が入る */}
           <div ref={containerRef} className="h-[120px] w-full" />
         </div>
 
-        <div className="text-xs text-slate-300">
+        <div className="text-xs">
           {status === "idle" && "ホバーでプレビューを読み込みます…"}
           {status === "loading" && "読み込み中…"}
           {status === "error" && (
