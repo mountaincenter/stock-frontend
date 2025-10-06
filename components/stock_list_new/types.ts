@@ -14,6 +14,11 @@ export interface SnapshotRow {
   diff: number | null;
   volume?: number | null;
   vol_ma10?: number | null;
+  // 追加: 1日ボラ(TR)とATR(14)
+  tr?: number | null;
+  tr_pct?: number | null;
+  atr14?: number | null;
+  atr14_pct?: number | null;
 }
 
 export interface PerfRow {
@@ -34,18 +39,17 @@ export interface Props {
 // 共通ユーティリティ型（計算可能な「欠損許容」数値）
 export type MaybeNumber = number | null;
 
-// パフォーマンスキーを一元管理（3y を追加）
+// パフォーマンスキー（3y を含む）
 export type PerfKey =
   | "r_5d"
   | "r_1mo"
   | "r_3mo"
   | "r_ytd"
   | "r_1y"
-  | "r_3y" // ← 追加
+  | "r_3y"
   | "r_5y"
   | "r_all";
 
-// 将来の拡張に強い表現（Record で束ねる）
 export type PerfMap = Record<PerfKey, MaybeNumber>;
 
 export type Row = StockMeta & {
@@ -56,11 +60,14 @@ export type Row = StockMeta & {
   diff: MaybeNumber;
   volume: MaybeNumber;
   vol_ma10: MaybeNumber;
+  tr: MaybeNumber;
+  tr_pct: MaybeNumber;
+  atr14: MaybeNumber;
+  atr14_pct: MaybeNumber;
 } & PerfMap;
 
-// ソート関連
+// ソート関連（現状で使用しているキーのみ）
 export type SortDir = "asc" | "desc";
-
 export type PriceSortKey =
   | "code"
   | "stock_name"
@@ -70,7 +77,6 @@ export type PriceSortKey =
   | "volume"
   | "vol_ma10";
 
-// 3y を追加
 export type PerfSortKey =
   | "code"
   | "stock_name"
@@ -83,22 +89,15 @@ export type PerfSortKey =
   | "r_5y"
   | "r_all";
 
-export interface SortSpec<K extends string> {
-  key: K;
-  dir: SortDir;
-}
-
 /* =========================
    テクニカル（事実のみ4指標 + 評価4カラム）
-   - RSI(14): 0–100（数値）
-   - MACD Hist(12,26,9): 実数（0基準）
-   - %b (BB 20,2σ): 0–1（数値）
-   - SMA25 乖離%: 実数（%）
-   - 評価（日本語5段階）: テクニカル / MA / 一目 / 総合
-     「強い買い」「買い」「中立」「売り」「強い売り」
+   - RSI(14)
+   - MACD Hist(12,26,9)
+   - %b (BB 20,2σ) ← UIでは bb_percent_b のキーで保持
+   - SMA25 乖離%
+   - 評価（日本語5段階）
    ========================= */
 
-// コア4指標のキー（モバイル/デスクトップ共通の最小集合）
 export type TechCoreKey =
   | "rsi14"
   | "macd_hist"
@@ -107,38 +106,59 @@ export type TechCoreKey =
 
 export type TechCoreMap = Record<TechCoreKey, MaybeNumber>;
 
-// 5段階評価（日本語）
 export type RatingLabel = "強い買い" | "買い" | "中立" | "売り" | "強い売り";
 
-// 評価4カラム
 export interface TechRatings {
-  tech_rating: RatingLabel; // テクニカル合成（RSI/%b/MACD/乖離）
-  ma_rating: RatingLabel; // 移動平均（位置+クロス）
-  ichimoku_rating: RatingLabel; // 一目均衡表
-  overall_rating: RatingLabel; // 総合（単純平均丸め）
+  tech_rating: RatingLabel;
+  ma_rating: RatingLabel;
+  ichimoku_rating: RatingLabel;
+  overall_rating: RatingLabel;
 }
 
-// 1銘柄の直近スナップショット（一覧表示用）
 export type TechCoreRow = StockMeta & {
-  date: string | null; // YYYY-MM-DD など
+  date: string | null;
 } & TechCoreMap &
   TechRatings;
 
-// 並び替えキー（テーブル用）
 export type TechCoreSortKey = "code" | "stock_name" | "date" | TechCoreKey;
 
-/* デスクトップ版の初期実装はコア4指標と同一スキーマで開始。
-   以後、CCI/ストキャス/ADX/一目数値化を追加する際は
-   - TechDesktopKey を拡張
-   - TechDesktopRow/SortKey を追補
-   とする（既存は不変）。 */
-
+// デスクトップ版は現状コアと同一
 export type TechDesktopKey = TechCoreKey;
-
 export type TechDesktopRow = TechCoreRow;
-
 export type TechDesktopSortKey =
   | "code"
   | "stock_name"
   | "date"
   | TechDesktopKey;
+
+/* =========================
+   v2 判定（フロント参照用の型）
+   ========================= */
+
+export type VoteEntry = { score: number; label: RatingLabel };
+
+export type TechDecisionValues = {
+  rsi14: MaybeNumber;
+  macd_hist: MaybeNumber;
+  percent_b: MaybeNumber; // ← APIは percent_b 名
+  sma25_dev_pct: MaybeNumber;
+  roc12: MaybeNumber;
+  donchian_dist_up: MaybeNumber;
+  donchian_dist_dn: MaybeNumber;
+  atr14_pct: MaybeNumber;
+  rv20: MaybeNumber;
+  er14: MaybeNumber;
+  obv_slope: MaybeNumber;
+  cmf20: MaybeNumber;
+  vol_z20: MaybeNumber;
+};
+
+export type TechDecisionVotes = Record<string, VoteEntry>;
+
+export type TechDecisionItem = {
+  ticker: string;
+  date: string; // YYYY-MM-DD
+  values: TechDecisionValues;
+  votes: TechDecisionVotes; // { rsi14, macd_hist, percent_b, ..., ma, ichimoku }
+  overall: VoteEntry;
+};

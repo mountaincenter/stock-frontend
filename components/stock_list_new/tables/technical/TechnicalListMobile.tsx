@@ -1,4 +1,4 @@
-// components/stock_list_new/tables/mobile/TechnicalListMobile.tsx
+// components/stock_list_new/tables/technical/TechnicalListMobile.tsx
 "use client";
 
 import * as React from "react";
@@ -10,11 +10,17 @@ import {
   ChevronsDown,
   Minus,
 } from "lucide-react";
-import type { TechCoreRow } from "../../types";
+import type {
+  TechCoreRow,
+  RatingLabel,
+  TechDecisionItem,
+  TechDecisionValues,
+} from "../../types";
 
 type Props = {
   rows: TechCoreRow[];
   nf2: Intl.NumberFormat; // %b・MACD Hist（2桁）
+  decisionByTicker?: Record<string, TechDecisionItem>;
 };
 
 // RSI/乖離% は 1桁
@@ -29,7 +35,7 @@ function toneBySign(v: number | null | undefined) {
   return v > 0 ? "text-emerald-400" : "text-rose-400";
 }
 
-function ratingVisual(label: TechCoreRow["tech_rating"]) {
+function ratingVisual(label: RatingLabel) {
   switch (label) {
     case "強い買い":
       return {
@@ -59,13 +65,7 @@ function ratingVisual(label: TechCoreRow["tech_rating"]) {
   }
 }
 
-function RatingInline({
-  label,
-  title,
-}: {
-  label: TechCoreRow["tech_rating"];
-  title: string;
-}) {
+function RatingInline({ label, title }: { label: RatingLabel; title: string }) {
   const { icon, tone } = ratingVisual(label);
   return (
     // KPI 値と同じタイポ（text-sm font-semibold）
@@ -112,7 +112,28 @@ function Kpi({
   );
 }
 
-export default function TechnicalListMobile({ rows, nf2 }: Props) {
+// v2 の数値 → 既存キーへマッピング（%b のみ名称差異）
+function pickCoreValues(v?: TechDecisionValues | null) {
+  if (!v)
+    return {
+      rsi14: null,
+      macd_hist: null,
+      bb_percent_b: null,
+      sma25_dev_pct: null,
+    };
+  return {
+    rsi14: v.rsi14 ?? null,
+    macd_hist: v.macd_hist ?? null,
+    bb_percent_b: v.percent_b ?? null,
+    sma25_dev_pct: v.sma25_dev_pct ?? null,
+  };
+}
+
+export default function TechnicalListMobile({
+  rows,
+  nf2,
+  decisionByTicker,
+}: Props) {
   if (!rows?.length) {
     return (
       <div className="text-muted-foreground text-sm px-2 py-3">
@@ -127,101 +148,122 @@ export default function TechnicalListMobile({ rows, nf2 }: Props) {
 
   return (
     <div className="flex flex-col gap-2">
-      {rows.map((r) => (
-        <Link
-          key={r.ticker}
-          href={`/${encodeURIComponent(r.ticker)}`}
-          className="
+      {rows.map((r) => {
+        const d: TechDecisionItem | undefined = decisionByTicker
+          ? decisionByTicker[r.ticker]
+          : undefined;
+
+        // ラベル優先
+        const overallLabel: RatingLabel =
+          (d?.overall?.label as RatingLabel) ?? r.overall_rating;
+        const techLabel: RatingLabel =
+          (d?.votes?.["tech"]?.label as RatingLabel) ?? r.tech_rating;
+        const maLabel: RatingLabel =
+          (d?.votes?.["ma"]?.label as RatingLabel) ?? r.ma_rating;
+        const ichiLabel: RatingLabel =
+          (d?.votes?.["ichimoku"]?.label as RatingLabel) ?? r.ichimoku_rating;
+
+        // 数値優先
+        const core = pickCoreValues(d?.values);
+        const rsi14 = core.rsi14 ?? r.rsi14;
+        const macd = core.macd_hist ?? r.macd_hist;
+        const pb = core.bb_percent_b ?? r.bb_percent_b;
+        const dev = core.sma25_dev_pct ?? r.sma25_dev_pct;
+
+        return (
+          <Link
+            key={r.ticker}
+            href={`/${encodeURIComponent(r.ticker)}`}
+            className="
             block rounded-xl border border-border
             bg-card text-card-foreground
             hover:border-primary/50 transition-colors
           "
-        >
-          <div className="px-3 py-3">
-            {/* 見出し */}
-            <div className="min-w-0 text-left">
-              <h3
-                className="
+          >
+            <div className="px-3 py-3">
+              {/* 見出し */}
+              <div className="min-w-0 text-left">
+                <h3
+                  className="
                   font-semibold leading-tight text-card-foreground
                   [font-size:clamp(13px,4.2vw,15px)]
                   line-clamp-1
                 "
-                title={r.stock_name}
-              >
-                {r.stock_name}
-              </h3>
-              <div className="mt-0.5 text-[11px] text-muted-foreground font-sans tabular-nums">
-                {r.code ?? r.ticker} {r.date ? ` ${r.date}` : " —"}
-              </div>
-            </div>
-
-            {/* ── 評価ヘッダ（中央寄せ） */}
-            <div className={`mt-2 ${ROW}`}>
-              {["総合", "テクニカル", "MA", "一目"].map((h) => (
-                <div
-                  key={h}
-                  className={`${CELL} text-center text-[11px] text-muted-foreground`}
+                  title={r.stock_name}
                 >
-                  {h}
+                  {r.stock_name}
+                </h3>
+                <div className="mt-0.5 text-[11px] text-muted-foreground font-sans tabular-nums">
+                  {r.code ?? r.ticker}{" "}
+                  {d?.date ? ` ${d.date}` : r.date ? ` ${r.date}` : " —"}
                 </div>
-              ))}
-            </div>
+              </div>
 
-            {/* 評価（中央寄せ・枠なし） */}
-            <div className={`${ROW}`}>
-              <div className={CELL}>
-                <RatingInline label={r.overall_rating} title="総合評価" />
+              {/* ── 評価ヘッダ（中央寄せ） */}
+              <div className={`mt-2 ${ROW}`}>
+                {["総合", "テクニカル", "MA", "一目"].map((h) => (
+                  <div
+                    key={h}
+                    className={`${CELL} text-center text-[11px] text-muted-foreground`}
+                  >
+                    {h}
+                  </div>
+                ))}
               </div>
-              <div className={CELL}>
-                <RatingInline label={r.tech_rating} title="テクニカル評価" />
-              </div>
-              <div className={CELL}>
-                <RatingInline label={r.ma_rating} title="MA評価" />
-              </div>
-              <div className={CELL}>
-                <RatingInline
-                  label={r.ichimoku_rating}
-                  title="一目均衡表評価"
-                />
-              </div>
-            </div>
 
-            {/* ── KPIヘッダ（中央寄せ） */}
-            <div className={`mt-2 ${ROW}`}>
-              {["RSI(14)", "%b", "MACD Hist", "乖離%(25)"].map((h) => (
-                <div
-                  key={h}
-                  className={`${CELL} text-center text-[11px] text-muted-foreground`}
-                >
-                  {h}
+              {/* 評価（中央寄せ・枠なし） */}
+              <div className={`${ROW}`}>
+                <div className={CELL}>
+                  <RatingInline label={overallLabel} title="総合評価" />
                 </div>
-              ))}
-            </div>
+                <div className={CELL}>
+                  <RatingInline label={techLabel} title="テクニカル評価" />
+                </div>
+                <div className={CELL}>
+                  <RatingInline label={maLabel} title="MA評価" />
+                </div>
+                <div className={CELL}>
+                  <RatingInline label={ichiLabel} title="一目均衡表評価" />
+                </div>
+              </div>
 
-            {/* KPI（右寄せ） */}
-            <div className={`${ROW}`}>
-              <div className={CELL}>
-                <Kpi value={r.rsi14} fmt={nf1} alignRight />
+              {/* ── KPIヘッダ（中央寄せ） */}
+              <div className={`mt-2 ${ROW}`}>
+                {["RSI(14)", "%b", "MACD Hist", "乖離%(25)"].map((h) => (
+                  <div
+                    key={h}
+                    className={`${CELL} text-center text-[11px] text-muted-foreground`}
+                  >
+                    {h}
+                  </div>
+                ))}
               </div>
-              <div className={CELL}>
-                <Kpi value={r.bb_percent_b} fmt={nf2} alignRight />
-              </div>
-              <div className={CELL}>
-                <Kpi value={r.macd_hist} fmt={nf2} coloredBySign alignRight />
-              </div>
-              <div className={CELL}>
-                <Kpi
-                  value={r.sma25_dev_pct}
-                  fmt={nf1}
-                  suffix="%"
-                  coloredBySign
-                  alignRight
-                />
+
+              {/* KPI（右寄せ） */}
+              <div className={`${ROW}`}>
+                <div className={CELL}>
+                  <Kpi value={rsi14} fmt={nf1} alignRight />
+                </div>
+                <div className={CELL}>
+                  <Kpi value={pb} fmt={nf2} alignRight />
+                </div>
+                <div className={CELL}>
+                  <Kpi value={macd} fmt={nf2} coloredBySign alignRight />
+                </div>
+                <div className={CELL}>
+                  <Kpi
+                    value={dev}
+                    fmt={nf1}
+                    suffix="%"
+                    coloredBySign
+                    alignRight
+                  />
+                </div>
               </div>
             </div>
-          </div>
-        </Link>
-      ))}
+          </Link>
+        );
+      })}
     </div>
   );
 }

@@ -11,7 +11,7 @@ type Props = {
 };
 
 export default function PriceListMobile({ rows, nf0, nf2 }: Props) {
-  // “桁揃え”用：数値表示の最小幅（等幅数字で9桁ぶん）
+  // “桁揃え”用：数値表示の最小幅（等幅数字で11桁ぶん）
   const valueWidth = "min-w-[11ch] whitespace-nowrap";
 
   return (
@@ -36,6 +36,31 @@ export default function PriceListMobile({ rows, nf0, nf2 }: Props) {
             : diff < 0
             ? "text-rose-400"
             : "text-muted-foreground";
+
+        // TR/ATR14 の表示用フォーマット
+        const trStr =
+          r.tr == null || !Number.isFinite(r.tr) ? null : nf2.format(r.tr);
+        const trPctStr =
+          r.tr_pct == null || !Number.isFinite(r.tr_pct)
+            ? null
+            : nf2.format(r.tr_pct);
+        const atrStr =
+          r.atr14 == null || !Number.isFinite(r.atr14)
+            ? null
+            : nf2.format(r.atr14);
+        const atrPctStr =
+          r.atr14_pct == null || !Number.isFinite(r.atr14_pct)
+            ? null
+            : nf2.format(r.atr14_pct);
+
+        const trPair =
+          trStr == null && trPctStr == null
+            ? "—"
+            : `${trStr ?? "—"} (${trPctStr ?? "—"}%)`;
+        const atrPair =
+          atrStr == null && atrPctStr == null
+            ? "—"
+            : `${atrStr ?? "—"} (${atrPctStr ?? "—"}%)`;
 
         return (
           <Link
@@ -108,9 +133,31 @@ export default function PriceListMobile({ rows, nf0, nf2 }: Props) {
                 </div>
               </div>
 
-              {/* 下段：出来高（2段・右寄せ・最大桁合わせ） */}
+              {/* 下段：TR/ATR14/出来高（右寄せ・最大桁合わせ） */}
               <div className="mt-2 space-y-1">
-                {/* 1段目：出来高 */}
+                {/* TR(%) */}
+                <div className="flex items-baseline justify-between">
+                  <div className="text-[11px] text-muted-foreground">TR(%)</div>
+                  <span
+                    className={`text-[13px] text-card-foreground font-sans tabular-nums inline-block text-right ${valueWidth}`}
+                  >
+                    {trPair}
+                  </span>
+                </div>
+
+                {/* ATR14(%) */}
+                <div className="flex items-baseline justify-between">
+                  <div className="text-[11px] text-muted-foreground">
+                    ATR14(%)
+                  </div>
+                  <span
+                    className={`text-[13px] text-card-foreground font-sans tabular-nums inline-block text-right ${valueWidth}`}
+                  >
+                    {atrPair}
+                  </span>
+                </div>
+
+                {/* 出来高 */}
                 <div className="flex items-baseline justify-between">
                   <div className="text-[11px] text-muted-foreground">
                     出来高
@@ -124,7 +171,7 @@ export default function PriceListMobile({ rows, nf0, nf2 }: Props) {
                   </span>
                 </div>
 
-                {/* 2段目：出来高(10) */}
+                {/* 出来高(10) */}
                 <div className="flex items-baseline justify-between">
                   <div className="text-[11px] text-muted-foreground">
                     出来高(10)

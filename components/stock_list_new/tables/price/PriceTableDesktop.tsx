@@ -7,17 +7,18 @@ import type { Row } from "../../types";
 import { CloseCell, DiffBadge, NumCell } from "../../parts/Cells";
 
 /**
- * 共有の先頭3列：テクニカル基準に合わせる
- * 1:コード(110) 2:銘柄名(minmax 220..480) 3:日付(110)
+ * 共有の先頭3列
+ * 1:コード(110) 2:銘柄名(300) 3:日付(110)
  */
 const COLS_BASE = "110px 300px 110px";
 
 /**
- * 価格タブ：終値以降の列幅をテクニカルのKPI幅に合わせる（左詰め）
- * 4:終値(=RSI相当 72) 5:前日差(=MACD相当 110) 6:前日差%(=%b相当 72)
- * 7:出来高(=新設 110) 8:出来高(10)(=乖離相当 96)
+ * 価格タブ（列順・幅）
+ * 4:終値(90) 5:前日差(110) 6:前日差%(90)
+ * 7:TR(90) 8:TR%(90) 9:ATR14(90) 10:ATR14%(90)
+ * 11:出来高(110) 12:出来高(10)(96)
  */
-const COLS_PRICE = `${COLS_BASE} 72px 110px 72px 110px 96px`;
+const COLS_PRICE = `${COLS_BASE} 90px 110px 90px 90px 90px 90px 90px 110px 96px`;
 
 export default function PriceTableDesktop({
   rows,
@@ -30,7 +31,7 @@ export default function PriceTableDesktop({
 }) {
   return (
     <div className="space-y-2">
-      {/* ヘッダ（先頭3列固定 + 終値以降はKPI幅） */}
+      {/* ヘッダ */}
       <div
         className="
           px-3 py-2 text-muted-foreground text-xs font-medium
@@ -49,6 +50,10 @@ export default function PriceTableDesktop({
         <div className="text-right">終値</div>
         <div className="text-right">前日差</div>
         <div className="text-right">前日差(%)</div>
+        <div className="text-right">TR</div>
+        <div className="text-right">TR(%)</div>
+        <div className="text-right">ATR14</div>
+        <div className="text-right">ATR14(%)</div>
         <div className="text-right">出来高</div>
         <div className="text-right">出来高(10)</div>
       </div>
@@ -91,13 +96,17 @@ export default function PriceTableDesktop({
               </span>
             </div>
 
-            {/* 終値以降（KPI幅に揃える） */}
+            {/* 終値 */}
             <div className="px-3 py-3 text-right">
               <CloseCell v={r.close} nf0={nf0} />
             </div>
+
+            {/* 前日差 */}
             <div className="px-3 py-3 text-right">
               <DiffBadge diff={r.diff} nf0={nf0} />
             </div>
+
+            {/* 前日差(%) */}
             <div className="px-3 py-3 text-right">
               {pct == null || !Number.isFinite(pct) ? (
                 <span className="text-muted-foreground">―</span>
@@ -116,9 +125,57 @@ export default function PriceTableDesktop({
                 </span>
               )}
             </div>
+
+            {/* TR */}
+            <div className="px-3 py-3 text-right">
+              {r.tr == null || !Number.isFinite(r.tr) ? (
+                <span className="text-muted-foreground">―</span>
+              ) : (
+                <span className="font-sans tabular-nums">
+                  {nf2.format(r.tr)}
+                </span>
+              )}
+            </div>
+
+            {/* TR(%) */}
+            <div className="px-3 py-3 text-right">
+              {r.tr_pct == null || !Number.isFinite(r.tr_pct) ? (
+                <span className="text-muted-foreground">―</span>
+              ) : (
+                <span className="font-sans tabular-nums">
+                  {nf2.format(r.tr_pct)}%
+                </span>
+              )}
+            </div>
+
+            {/* ATR14 */}
+            <div className="px-3 py-3 text-right">
+              {r.atr14 == null || !Number.isFinite(r.atr14) ? (
+                <span className="text-muted-foreground">―</span>
+              ) : (
+                <span className="font-sans tabular-nums">
+                  {nf2.format(r.atr14)}
+                </span>
+              )}
+            </div>
+
+            {/* ATR14(%) */}
+            <div className="px-3 py-3 text-right">
+              {r.atr14_pct == null || !Number.isFinite(r.atr14_pct) ? (
+                <span className="text-muted-foreground">―</span>
+              ) : (
+                <span className="font-sans tabular-nums">
+                  {nf2.format(r.atr14_pct)}%
+                </span>
+              )}
+            </div>
+
+            {/* 出来高 */}
             <div className="px-3 py-3 text-right">
               <NumCell v={r.volume} nf0={nf0} />
             </div>
+
+            {/* 出来高(10) */}
             <div className="px-3 py-3 text-right">
               <NumCell v={r.vol_ma10} nf0={nf0} />
             </div>

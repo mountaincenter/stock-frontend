@@ -1,3 +1,4 @@
+// components/stock_list_new/StockLists.tsx
 "use client";
 
 import React, { useMemo, useState, useEffect } from "react";
@@ -51,7 +52,7 @@ function renderMobilePane(
     case "technical":
       return techStatus === "error" ? (
         <div className="text-destructive text-xs px-2 py-2">
-          テクニカルの取得に失敗しました（/core30/tech/snapshot）
+          テクニカルの取得に失敗しました（/core30/tech/decision/snapshot）
         </div>
       ) : (
         <TechnicalTable rows={techRows} nf2={nf2} />
@@ -76,7 +77,7 @@ export default function StockLists(props: Props & { className?: string }) {
     );
   }, [rows, searchTerm]);
 
-  /* ====== Mobile: Tabs と Carousel ====== */
+  /* ====== Mobile: Tabs と Carousel 同期 ====== */
   const [mobileTab, setMobileTab] = useState<MobileTab>(ORDER[0]);
   const [api, setApi] = useState<CarouselApi | undefined>(undefined);
 
@@ -114,7 +115,6 @@ export default function StockLists(props: Props & { className?: string }) {
   }
 
   return (
-    // ※ ページ(85–90%)に合わせてここは幅制御しない
     <div
       className={`flex flex-col gap-2 md:gap-4 flex-1 min-h-0 w-full ${
         props.className ?? ""
@@ -165,7 +165,6 @@ export default function StockLists(props: Props & { className?: string }) {
             heightClass="h-full"
           >
             <div className="h-full flex flex-col">
-              {/* 価格：余計なコンテナを外し、page幅に素直に追従 */}
               <TabsContent value="price" className="h-full px-0">
                 <div className="h-full flex flex-col">
                   <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-0">
@@ -174,7 +173,6 @@ export default function StockLists(props: Props & { className?: string }) {
                 </div>
               </TabsContent>
 
-              {/* パフォーマンス */}
               <TabsContent value="perf" className="h-full px-0">
                 <div className="h-full flex flex-col">
                   <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-0">
@@ -183,13 +181,12 @@ export default function StockLists(props: Props & { className?: string }) {
                 </div>
               </TabsContent>
 
-              {/* テクニカル */}
               <TabsContent value="technical" className="h-full px-0">
                 <div className="h-full flex flex-col">
                   <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-0">
                     {techStatus === "error" ? (
                       <div className="text-destructive text-xs px-2 py-2">
-                        テクニカルの取得に失敗しました（/core30/tech/snapshot）
+                        テクニカルの取得に失敗しました（/core30/tech/decision/snapshot）
                       </div>
                     ) : (
                       <TechnicalTable rows={techRows} nf2={nf2} />

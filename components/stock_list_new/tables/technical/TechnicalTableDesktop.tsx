@@ -1,4 +1,4 @@
-// components/stock_list_new/tables/TechnicalTableDesktop.tsx
+// components/stock_list_new/tables/technical/TechnicalTableDesktop.tsx
 "use client";
 
 import * as React from "react";
@@ -10,9 +10,19 @@ import {
   ChevronsDown,
   Minus,
 } from "lucide-react";
-import type { TechCoreRow } from "../../types";
+import type {
+  TechCoreRow,
+  RatingLabel,
+  TechDecisionItem,
+  TechDecisionValues,
+} from "../../types";
 
-type Props = { rows: TechCoreRow[]; nf2: Intl.NumberFormat };
+type Props = {
+  rows: TechCoreRow[];
+  nf2: Intl.NumberFormat;
+  // 追加: v2 の判定結果（任意）
+  decisionByTicker?: Record<string, TechDecisionItem>;
+};
 
 // 1桁（RSI/乖離）
 const nf1 = new Intl.NumberFormat("ja-JP", {
@@ -36,7 +46,7 @@ function fmt(v: number | null | undefined, f: Intl.NumberFormat, suffix = "") {
   if (typeof v !== "number" || !Number.isFinite(v)) return "—";
   return `${f.format(v)}${suffix}`;
 }
-function ratingVisual(label: TechCoreRow["tech_rating"]) {
+function ratingVisual(label: RatingLabel) {
   switch (label) {
     case "強い買い":
       return {
@@ -65,13 +75,7 @@ function ratingVisual(label: TechCoreRow["tech_rating"]) {
       };
   }
 }
-function RatingInline({
-  label,
-  title,
-}: {
-  label: TechCoreRow["tech_rating"];
-  title: string;
-}) {
+function RatingInline({ label, title }: { label: RatingLabel; title: string }) {
   const { icon, tone } = ratingVisual(label);
   return (
     <div
@@ -84,7 +88,28 @@ function RatingInline({
   );
 }
 
-export default function TechnicalTableDesktop({ rows, nf2 }: Props) {
+// v2 の数値 → 既存キーへマッピング（%b のみ名称差異）
+function pickCoreValues(v?: TechDecisionValues | null) {
+  if (!v)
+    return {
+      rsi14: null,
+      macd_hist: null,
+      bb_percent_b: null,
+      sma25_dev_pct: null,
+    };
+  return {
+    rsi14: v.rsi14 ?? null,
+    macd_hist: v.macd_hist ?? null,
+    bb_percent_b: v.percent_b ?? null, // ← v2 は percent_b
+    sma25_dev_pct: v.sma25_dev_pct ?? null,
+  };
+}
+
+export default function TechnicalTableDesktop({
+  rows,
+  nf2,
+  decisionByTicker,
+}: Props) {
   if (!rows?.length)
     return (
       <div className="text-muted-foreground text-xs px-2 py-3">
@@ -120,79 +145,98 @@ export default function TechnicalTableDesktop({ rows, nf2 }: Props) {
         <div className="text-center">乖離%(25)</div>
       </div>
 
-      {rows.map((r) => (
-        <Link
-          key={r.ticker}
-          href={`/${encodeURIComponent(r.ticker)}`}
-          className="block rounded-lg border border-border bg-card text-card-foreground hover:border-primary/50 transition-colors"
-          style={{
-            display: "grid",
-            gridTemplateColumns: COLS_TECH,
-            columnGap: "12px",
-          }}
-        >
-          {/* 先頭3列 */}
-          <div className="px-3 py-3 flex items-center">
-            <span className="font-sans tabular-nums font-semibold text-base">
-              {r.code ?? r.ticker}
-            </span>
-          </div>
-          <div className="px-3 py-3 min-w-0 flex items-center">
-            <h3 className="font-semibold text-sm leading-snug hover:text-primary transition-colors line-clamp-1">
-              {r.stock_name}
-            </h3>
-          </div>
-          <div className="px-3 py-3 flex items-center justify-center">
-            <span className="text-[12px] font-sans tabular-nums text-muted-foreground">
-              {r.date ?? "—"}
-            </span>
-          </div>
+      {rows.map((r) => {
+        const d: TechDecisionItem | undefined = decisionByTicker
+          ? decisionByTicker[r.ticker]
+          : undefined;
 
-          {/* 評価4（均等割） */}
-          <div className="px-2 py-3">
-            <RatingInline label={r.overall_rating} title="総合評価" />
-          </div>
-          <div className="px-2 py-3">
-            <RatingInline label={r.tech_rating} title="テクニカル評価" />
-          </div>
-          <div className="px-2 py-3">
-            <RatingInline label={r.ma_rating} title="MA評価" />
-          </div>
-          <div className="px-2 py-3">
-            <RatingInline label={r.ichimoku_rating} title="一目均衡表評価" />
-          </div>
+        // ラベルは v2 があれば優先、なければ従来 rows
+        const overallLabel = d?.overall?.label ?? r.overall_rating;
+        const techLabel = d?.votes?.["tech"]?.label ?? r.tech_rating;
+        const maLabel = d?.votes?.["ma"]?.label ?? r.ma_rating;
+        const ichiLabel = d?.votes?.["ichimoku"]?.label ?? r.ichimoku_rating;
 
-          {/* KPI4（均等割・Perf と同じ text-base） */}
-          <div className="px-3 py-3 text-right">
-            <span className="font-sans tabular-nums text-base">
-              {fmt(r.rsi14, nf1)}
-            </span>
-          </div>
-          <div className="px-3 py-3 text-right">
-            <span
-              className={`font-sans tabular-nums text-base ${toneBySign(
-                r.macd_hist
-              )}`}
-            >
-              {fmt(r.macd_hist, nf2)}
-            </span>
-          </div>
-          <div className="px-3 py-3 text-right">
-            <span className="font-sans tabular-nums text-base">
-              {fmt(r.bb_percent_b, nf2)}
-            </span>
-          </div>
-          <div className="px-3 py-3 text-right">
-            <span
-              className={`font-sans tabular-nums text-base ${toneBySign(
-                r.sma25_dev_pct
-              )}`}
-            >
-              {fmt(r.sma25_dev_pct, nf1, "%")}
-            </span>
-          </div>
-        </Link>
-      ))}
+        // 数値は v2 があれば優先
+        const core = pickCoreValues(d?.values);
+        const rsi14 = core.rsi14 ?? r.rsi14;
+        const macd = core.macd_hist ?? r.macd_hist;
+        const pb = core.bb_percent_b ?? r.bb_percent_b;
+        const dev = core.sma25_dev_pct ?? r.sma25_dev_pct;
+
+        return (
+          <Link
+            key={r.ticker}
+            href={`/${encodeURIComponent(r.ticker)}`}
+            className="block rounded-lg border border-border bg-card text-card-foreground hover:border-primary/50 transition-colors"
+            style={{
+              display: "grid",
+              gridTemplateColumns: COLS_TECH,
+              columnGap: "12px",
+            }}
+          >
+            {/* 先頭3列 */}
+            <div className="px-3 py-3 flex items-center">
+              <span className="font-sans tabular-nums font-semibold text-base">
+                {r.code ?? r.ticker}
+              </span>
+            </div>
+            <div className="px-3 py-3 min-w-0 flex items-center">
+              <h3 className="font-semibold text-sm leading-snug hover:text-primary transition-colors line-clamp-1">
+                {r.stock_name}
+              </h3>
+            </div>
+            <div className="px-3 py-3 flex items-center justify-center">
+              <span className="text-[12px] font-sans tabular-nums text-muted-foreground">
+                {d?.date ?? r.date ?? "—"}
+              </span>
+            </div>
+
+            {/* 評価4（均等割） */}
+            <div className="px-2 py-3">
+              <RatingInline label={overallLabel} title="総合評価" />
+            </div>
+            <div className="px-2 py-3">
+              <RatingInline label={techLabel} title="テクニカル評価" />
+            </div>
+            <div className="px-2 py-3">
+              <RatingInline label={maLabel} title="MA評価" />
+            </div>
+            <div className="px-2 py-3">
+              <RatingInline label={ichiLabel} title="一目均衡表評価" />
+            </div>
+
+            {/* KPI4（均等割・Perf と同じ text-base） */}
+            <div className="px-3 py-3 text-right">
+              <span className="font-sans tabular-nums text-base">
+                {fmt(rsi14, nf1)}
+              </span>
+            </div>
+            <div className="px-3 py-3 text-right">
+              <span
+                className={`font-sans tabular-nums text-base ${toneBySign(
+                  macd
+                )}`}
+              >
+                {fmt(macd, nf2)}
+              </span>
+            </div>
+            <div className="px-3 py-3 text-right">
+              <span className="font-sans tabular-nums text-base">
+                {fmt(pb, nf2)}
+              </span>
+            </div>
+            <div className="px-3 py-3 text-right">
+              <span
+                className={`font-sans tabular-nums text-base ${toneBySign(
+                  dev
+                )}`}
+              >
+                {fmt(dev, nf1, "%")}
+              </span>
+            </div>
+          </Link>
+        );
+      })}
     </div>
   );
 }

@@ -1,3 +1,6 @@
+// components/stock_list_new/hooks/useStockData.ts
+"use client";
+
 import { useEffect, useMemo, useState } from "react";
 import type {
   FetchState,
@@ -6,13 +9,18 @@ import type {
   StockMeta,
   SnapshotRow,
   PerfRow,
+  TechCoreRow,
 } from "../types";
-import type { TechCoreRow } from "../types";
+import {
+  isDecisionArray,
+  mapDecisionSnapshotToTechRows,
+} from "../utils/tech_v2";
 
 /**
- * データ取得と初期水和（SRP）。
+ * 役割分離（SRP）
  * - 価格/パフォーマンス: meta + snapshot + returns
- * - テクニカル: 事実4指標 + 評価4カラム（/core30/tech/snapshot）
+ * - テクニカル: v2 decision/snapshot を TechCoreRow[] に変換
+ * 型・バリデーション・マッピングは utils/tech_v2 に集約（DRY）
  */
 export function useStockData({
   apiBase,
@@ -25,7 +33,6 @@ export function useStockData({
     initialMeta && initialSnapshot && initialPerf ? "success" : "idle"
   );
 
-  // ★ テクニカル（4指標 + 評価4カラム）
   const [techRows, setTechRows] = useState<TechCoreRow[]>([]);
   const [techStatus, setTechStatus] = useState<FetchState>("idle");
 
@@ -48,7 +55,7 @@ export function useStockData({
     []
   );
 
-  // 価格/スナップショット/パフォーマンス（既存）
+  /* ========== 価格/スナップショット/パフォーマンス ========== */
   useEffect(() => {
     // initial* からの水和（SSR/SSG → CSR）
     const hydrateFromInitial = () => {
@@ -66,12 +73,16 @@ export function useStockData({
           diff: (s?.diff as number) ?? null,
           volume: (s?.volume as number) ?? null,
           vol_ma10: (s?.vol_ma10 as number) ?? null,
+          tr: (s?.["tr"] as number) ?? null,
+          tr_pct: (s?.["tr_pct"] as number) ?? null,
+          atr14: (s?.["atr14"] as number) ?? null,
+          atr14_pct: (s?.["atr14_pct"] as number) ?? null,
           r_5d: (p?.["r_5d"] as number) ?? null,
           r_1mo: (p?.["r_1mo"] as number) ?? null,
           r_3mo: (p?.["r_3mo"] as number) ?? null,
           r_ytd: (p?.["r_ytd"] as number) ?? null,
           r_1y: (p?.["r_1y"] as number) ?? null,
-          r_3y: (p?.["r_3y"] as number) ?? null, // ← 追加
+          r_3y: (p?.["r_3y"] as number) ?? null,
           r_5y: (p?.["r_5y"] as number) ?? null,
           r_all: (p?.["r_all"] as number) ?? null,
         };
@@ -98,7 +109,6 @@ export function useStockData({
             cache: "no-store",
             signal: ac.signal,
           }),
-          // 3y を確実に取るため windows を明示
           fetch(
             `${base}/core30/perf/returns?windows=5d,1mo,3mo,ytd,1y,3y,5y,all`,
             { cache: "no-store", signal: ac.signal }
@@ -125,12 +135,16 @@ export function useStockData({
             diff: (s?.diff as number) ?? null,
             volume: (s?.volume as number) ?? null,
             vol_ma10: (s?.vol_ma10 as number) ?? null,
+            tr: (s?.["tr"] as number) ?? null,
+            tr_pct: (s?.["tr_pct"] as number) ?? null,
+            atr14: (s?.["atr14"] as number) ?? null,
+            atr14_pct: (s?.["atr14_pct"] as number) ?? null,
             r_5d: (p?.["r_5d"] as number) ?? null,
             r_1mo: (p?.["r_1mo"] as number) ?? null,
             r_3mo: (p?.["r_3mo"] as number) ?? null,
             r_ytd: (p?.["r_ytd"] as number) ?? null,
             r_1y: (p?.["r_1y"] as number) ?? null,
-            r_3y: (p?.["r_3y"] as number) ?? null, // ← 追加
+            r_3y: (p?.["r_3y"] as number) ?? null,
             r_5y: (p?.["r_5y"] as number) ?? null,
             r_all: (p?.["r_all"] as number) ?? null,
           };
@@ -154,7 +168,7 @@ export function useStockData({
     };
   }, [base, initialMeta, initialPerf, initialSnapshot]);
 
-  // ★ テクニカル（4指標 + 評価4カラム）は別エフェクトで取得
+  /* ========== テクニカル（v2 decision/snapshot） ========== */
   useEffect(() => {
     let mounted = true;
     const ac = new AbortController();
@@ -166,15 +180,35 @@ export function useStockData({
           return;
         }
         setTechStatus("loading");
-        // 旧: /core30/tech/mobile/core → 新: /core30/tech/snapshot
-        const res = await fetch(`${base}/core30/tech/snapshot`, {
-          cache: "no-store",
-          signal: ac.signal,
-        });
-        if (!res.ok) throw new Error(`tech HTTP ${res.status}`);
-        const data = (await res.json()) as TechCoreRow[];
+
+        const url = `${base}/core30/tech/decision/snapshot?interval=1d`;
+        const res = await fetch(url, { cache: "no-store", signal: ac.signal });
+        if (!res.ok)
+          throw new Error(`tech(decision/snapshot) HTTP ${res.status}`);
+
+        const json: unknown = await res.json();
+        if (!isDecisionArray(json)) {
+          throw new Error("Invalid v2 decision/snapshot schema");
+        }
+        const arr = json;
+
+        // meta を ticker->meta に（SSR初期・rowsどちらからでも）
+        const metaMap = new Map<string, StockMeta>();
+        (initialMeta ?? []).forEach((m) => metaMap.set(m.ticker, m));
+        if (metaMap.size === 0 && rows.length > 0) {
+          rows.forEach((r) =>
+            metaMap.set(r.ticker, {
+              ticker: r.ticker,
+              code: r.code,
+              stock_name: r.stock_name,
+            })
+          );
+        }
+
+        const mapped = mapDecisionSnapshotToTechRows(arr, metaMap);
+
         if (mounted) {
-          setTechRows(Array.isArray(data) ? data : []);
+          setTechRows(mapped);
           setTechStatus("success");
         }
       } catch (e) {
@@ -189,7 +223,7 @@ export function useStockData({
       mounted = false;
       ac.abort();
     };
-  }, [base]);
+  }, [base, initialMeta, rows]);
 
   return { rows, status, nf0, nf2, techRows, techStatus };
 }
