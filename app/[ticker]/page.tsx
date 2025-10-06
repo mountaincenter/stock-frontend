@@ -1,4 +1,4 @@
-// app/[ticker]/page.tsx  ← Server Component（"use client" は付けない）
+// app/[ticker]/page.tsx
 import Link from "next/link";
 import TickerDailyChart from "./TickerDailyChart";
 import TechnicalDetailTable from "./TechDetailTable";
@@ -57,7 +57,6 @@ async function fetchAll(ticker: string) {
 export default async function TickerPage({
   params,
 }: {
-  // Next.js 15+: params は Promise 扱い
   params: Promise<{ ticker: string }>;
 }) {
   const { ticker: raw } = await params;
@@ -78,7 +77,7 @@ export default async function TickerPage({
             <div className="mt-4">
               <Link
                 href="/"
-                className="text-primary underline underline-offset-2"
+                className="inline-flex items-center justify-center rounded-md px-3 py-2 text-primary text-sm font-medium hover:bg-muted/60 transition-colors"
               >
                 一覧に戻る
               </Link>
@@ -92,11 +91,11 @@ export default async function TickerPage({
   return (
     <main className="flex flex-col py-4 md:py-6">
       <div className="w-full md:w-[85%] xl:w-[83%] 2xl:w-[80%] mx-auto space-y-4">
-        {/* 戻るリンクのみ（見出しは PriceCard に集約） */}
+        {/* 戻るリンク（タップ領域拡大） */}
         <div className="flex justify-end">
           <Link
             href="/"
-            className="shrink-0 text-primary text-sm underline underline-offset-2"
+            className="inline-flex items-center justify-center rounded-md px-3 py-2 text-primary text-sm font-medium hover:bg-muted/60 transition-colors"
           >
             一覧へ戻る
           </Link>
@@ -113,9 +112,12 @@ export default async function TickerPage({
         {/* テクニカル詳細（表のみ。中身はクライアント側で v2 / legacy を吸収） */}
         <TechnicalDetailTable ticker={ticker} />
 
-        {/* 補助リンク */}
+        {/* 補助リンク（下部） */}
         <div className="text-xs text-muted-foreground">
-          <Link href="/" className="text-primary underline underline-offset-2">
+          <Link
+            href="/"
+            className="inline-flex items-center justify-center rounded-md px-2 py-1 text-primary hover:bg-muted/60 transition-colors"
+          >
             &larr; 一覧へ戻る
           </Link>
         </div>

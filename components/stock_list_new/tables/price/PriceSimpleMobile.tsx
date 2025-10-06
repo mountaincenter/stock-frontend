@@ -64,7 +64,11 @@ export default function PriceSimpleMobile({ rows, nf0, nf2 }: Props) {
             <Link
               key={r.ticker}
               href={`/${encodeURIComponent(r.ticker)}`}
-              className={`grid grid-cols-12 gap-2 ${rowBase}`}
+              className={`
+                grid grid-cols-12 gap-2 ${rowBase}
+                active:bg-muted/60 touch-manipulation
+                transition-colors duration-150
+              `}
             >
               {/* 銘柄名（明るめ） + コード/日付（サブ） */}
               <div className="col-span-7 min-w-0">

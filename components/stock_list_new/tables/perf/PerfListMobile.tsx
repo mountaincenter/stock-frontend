@@ -18,10 +18,11 @@ export default function PerfListMobile({ rows }: Props) {
           key={r.ticker}
           href={`/${encodeURIComponent(r.ticker)}`}
           className="
-            block rounded-xl border border-border
+            inline-block w-full rounded-xl border border-border
             bg-card text-card-foreground
-            hover:border-primary/50
-            transition-colors
+            hover:border-primary/50 active:bg-muted/60
+            transition-colors duration-150
+            touch-manipulation
           "
         >
           <div className="px-3 py-3">
