@@ -98,7 +98,7 @@ async function fetchDecision(ticker: string): Promise<TechDecisionItem | null> {
 async function fetchLegacyRow(ticker: string): Promise<LegacyRow | null> {
   if (!API_BASE) return null;
   try {
-    const r = await fetch(`${API_BASE}/core30/tech/snapshot`, {
+    const r = await fetch(`${API_BASE}/core30/tech/decision/snapshot`, {
       cache: "no-store",
     });
     if (!r.ok) return null;
