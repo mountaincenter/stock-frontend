@@ -2,6 +2,14 @@
 
 import * as React from "react";
 
+const normalizeBase = (base: string) =>
+  base.endsWith("/") ? base.slice(0, -1) : base;
+const buildUrl = (base: string, path: string) => {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const normalizedBase = normalizeBase(base);
+  return normalizedBase ? `${normalizedBase}${normalizedPath}` : normalizedPath;
+};
+
 /** ====== 型定義（APIスキーマに準拠） ====== */
 export type TechDecisionValue = {
   rsi14: number | null;
@@ -104,7 +112,7 @@ function isTechDecisionArray(x: unknown): x is TechDecisionItem[] {
 
 /** ====== スナップショット取得（一覧向け） ====== */
 /**
- * /core30/tech/decision/snapshot を 1回だけ取得して
+ * /tech/decision/snapshot を 1回だけ取得して
  * { [ticker]: item } に整形して返す Hook
  */
 export function useTechDecisionSnapshot(
@@ -113,48 +121,56 @@ export function useTechDecisionSnapshot(
 ): SnapshotState {
   const [state, setState] = React.useState<SnapshotState>({
     byTicker: {},
-    loading: apiBase.length > 0,
+    loading: true,
     error: null,
   });
 
   React.useEffect(() => {
-    if (!apiBase) {
-      setState((s) => ({ ...s, loading: false, error: "API_BASE is empty" }));
-      return;
-    }
-
     let aborted = false;
     setState((s) => ({ ...s, loading: true, error: null }));
 
-    const url = `${apiBase}/core30/tech/decision/snapshot?interval=${encodeURIComponent(
-      interval
-    )}`;
+    const base = normalizeBase(apiBase ?? "");
+    const urls = [
+      buildUrl(
+        base,
+        `/tech/decision/snapshot?interval=${encodeURIComponent(interval)}`
+      ),
+    ];
 
-    fetch(url, { cache: "no-store" })
-      .then(async (res) => {
-        if (!res.ok) {
-          const text = await res.text().catch(() => "");
-          throw new Error(text || `HTTP ${res.status}`);
+    (async () => {
+      let lastError: unknown = null;
+      for (const url of urls) {
+        try {
+          const res = await fetch(url, { cache: "no-store" });
+          if (!res.ok) {
+            const text = await res.text().catch(() => "");
+            lastError = new Error(text || `HTTP ${res.status}`);
+            continue;
+          }
+          const json: unknown = await res.json();
+          if (!isTechDecisionArray(json)) {
+            lastError = new Error("Invalid response schema for snapshot");
+            continue;
+          }
+          if (aborted) return;
+          const map: Record<string, TechDecisionItem> = {};
+          for (const it of json) {
+            map[it.ticker] = it;
+          }
+          setState({ byTicker: map, loading: false, error: null });
+          return;
+        } catch (e) {
+          lastError = e;
         }
-        const json: unknown = await res.json();
-        if (!isTechDecisionArray(json)) {
-          throw new Error("Invalid response schema for snapshot");
-        }
-        return json;
-      })
-      .then((arr) => {
-        if (aborted) return;
-        const map: Record<string, TechDecisionItem> = {};
-        for (const it of arr) {
-          map[it.ticker] = it;
-        }
-        setState({ byTicker: map, loading: false, error: null });
-      })
-      .catch((e: unknown) => {
-        if (aborted) return;
-        const msg = e instanceof Error ? e.message : String(e);
+      }
+      if (!aborted) {
+        const msg =
+          lastError instanceof Error
+            ? lastError.message
+            : String(lastError ?? "fetch error");
         setState({ byTicker: {}, loading: false, error: msg });
-      });
+      }
+    })();
 
     return () => {
       aborted = true;
@@ -166,7 +182,7 @@ export function useTechDecisionSnapshot(
 
 /** ====== 単銘柄取得（個別ページ向け） ====== */
 /**
- * /core30/tech/decision?ticker=... を取得する Hook
+ * /tech/decision?ticker=... を取得する Hook
  */
 export function useTechDecisionItem(
   apiBase: string,
@@ -175,15 +191,15 @@ export function useTechDecisionItem(
 ): { data: TechDecisionItem | null; loading: boolean; error: string | null } {
   const [data, setData] = React.useState<TechDecisionItem | null>(null);
   const [loading, setLoading] = React.useState<boolean>(
-    apiBase.length > 0 && ticker.length > 0
+    ticker.length > 0
   );
   const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    if (!apiBase || !ticker) {
+    if (!ticker) {
       setLoading(false);
       setData(null);
-      setError(!apiBase ? "API_BASE is empty" : null);
+      setError(null);
       return;
     }
 
@@ -191,34 +207,49 @@ export function useTechDecisionItem(
     setLoading(true);
     setError(null);
 
-    const url = `${apiBase}/core30/tech/decision?ticker=${encodeURIComponent(
-      ticker
-    )}&interval=${encodeURIComponent(interval)}`;
+    const base = normalizeBase(apiBase ?? "");
+    const urls = [
+      buildUrl(
+        base,
+        `/tech/decision?ticker=${encodeURIComponent(
+          ticker
+        )}&interval=${encodeURIComponent(interval)}`
+      ),
+    ];
 
-    fetch(url, { cache: "no-store" })
-      .then(async (res) => {
-        if (!res.ok) {
-          const text = await res.text().catch(() => "");
-          throw new Error(text || `HTTP ${res.status}`);
+    (async () => {
+      let lastError: unknown = null;
+      for (const url of urls) {
+        try {
+          const res = await fetch(url, { cache: "no-store" });
+          if (!res.ok) {
+            const text = await res.text().catch(() => "");
+            lastError = new Error(text || `HTTP ${res.status}`);
+            continue;
+          }
+          const json: unknown = await res.json();
+          if (!isTechDecisionItem(json)) {
+            lastError = new Error("Invalid response schema for item");
+            continue;
+          }
+          if (aborted) return;
+          setData(json);
+          setLoading(false);
+          return;
+        } catch (e) {
+          lastError = e;
         }
-        const json: unknown = await res.json();
-        if (!isTechDecisionItem(json)) {
-          throw new Error("Invalid response schema for item");
-        }
-        return json;
-      })
-      .then((it) => {
-        if (aborted) return;
-        setData(it);
-        setLoading(false);
-      })
-      .catch((e: unknown) => {
-        if (aborted) return;
-        const msg = e instanceof Error ? e.message : String(e);
+      }
+      if (!aborted) {
+        const msg =
+          lastError instanceof Error
+            ? lastError.message
+            : String(lastError ?? "fetch error");
         setError(msg);
         setData(null);
         setLoading(false);
-      });
+      }
+    })();
 
     return () => {
       aborted = true;

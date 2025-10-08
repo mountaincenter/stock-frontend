@@ -1,70 +1,52 @@
 // components/stock_list_new/StockLists.tsx
 "use client";
 
-import React, { useMemo, useState, useEffect } from "react";
-import { LayoutGrid, List, LineChart } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
-import type { Props, Row, TechCoreRow } from "./types";
+import React, { useEffect, useMemo, useState } from "react";
+import type { Props, Row } from "./types";
 import { useStockData } from "./hooks/useStockData";
 import { SearchInput } from "./wrappers/SearchInput";
-import PriceTable, { PriceListMobile, PriceSimpleMobile } from "./tables/price";
-import PerfTable from "./tables/perf";
-import TechnicalTable from "./tables/technical";
-import { TableWrapper } from "./wrappers/TableWrapper";
-import { Carousel, CarouselContent, CarouselItem } from "../ui/carousel";
-import type { CarouselApi } from "../ui/carousel";
+import StockListsDesktop from "./views/StockListsDesktop";
+import StockListsMobile, { MobileTab } from "./views/StockListsMobile";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { normalizeSelectTag } from "@/lib/tag-utils";
 
-/* ====== モバイル：配列から生成 ====== */
-const MOBILE_PANES = [
-  { key: "simple", label: "シンプル" },
-  { key: "price", label: "価格" },
-  { key: "perf", label: "パフォーマンス" },
-  { key: "technical", label: "テクニカル" },
+const TAG_OPTIONS = [
+  { value: "takaichi", label: "高市銘柄" },
+  { value: "core30", label: "TOPIX Core30" },
 ] as const;
 
-type MobileTab = (typeof MOBILE_PANES)[number]["key"];
-const ORDER: MobileTab[] = MOBILE_PANES.map((p) => p.key);
-const toIndex = (v: MobileTab) => ORDER.indexOf(v);
-const toValue = (i: number) =>
-  ORDER[Math.max(0, Math.min(ORDER.length - 1, i))] as MobileTab;
-
-function getWindow3(active: MobileTab) {
-  const idx = toIndex(active);
-  const start = Math.min(Math.max(idx - 1, 0), Math.max(ORDER.length - 3, 0));
-  return ORDER.slice(start, start + 3);
-}
-
-function renderMobilePane(
-  key: MobileTab,
-  filtered: Row[],
-  nf0: Intl.NumberFormat,
-  nf2: Intl.NumberFormat,
-  techStatus: "idle" | "loading" | "success" | "error",
-  techRows: TechCoreRow[]
-) {
-  switch (key) {
-    case "simple":
-      return <PriceSimpleMobile rows={filtered} nf0={nf0} nf2={nf2} />;
-    case "price":
-      return <PriceListMobile rows={filtered} nf0={nf0} nf2={nf2} />;
-    case "perf":
-      return <PerfTable rows={filtered} nf2={nf2} />;
-    case "technical":
-      return techStatus === "error" ? (
-        <div className="text-destructive text-xs px-2 py-2">
-          テクニカルの取得に失敗しました（/core30/tech/decision/snapshot）
-        </div>
-      ) : (
-        <TechnicalTable rows={techRows} nf2={nf2} />
-      );
-    default:
-      return null;
-  }
-}
+type TagValue = (typeof TAG_OPTIONS)[number]["value"];
 
 export default function StockLists(props: Props & { className?: string }) {
-  const { rows, status, nf0, nf2, techRows, techStatus } = useStockData(props);
+  const { className, ...rest } = props;
+  const { initialTag: initialTagProp, ...restProps } = rest;
+  const initialTag =
+    normalizeSelectTag(initialTagProp as string | undefined) ?? "takaichi";
+  const [selectedTag, setSelectedTag] = useState<TagValue>(initialTag);
+  const [desktopTab, setDesktopTab] = useState<"price" | "perf" | "technical">(
+    "price"
+  );
+  const [mobileTab, setMobileTab] = useState<MobileTab>("simple");
+  const { rows, status, nf0, nf2, techRows, techStatus } = useStockData({
+    ...restProps,
+    initialTag,
+    tag: selectedTag,
+  });
   const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    setSelectedTag(initialTag);
+  }, [initialTag]);
+
+  useEffect(() => {
+    setSearchTerm("");
+  }, [selectedTag]);
 
   const filtered: Row[] = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
@@ -77,24 +59,12 @@ export default function StockLists(props: Props & { className?: string }) {
     );
   }, [rows, searchTerm]);
 
-  /* ====== Mobile: Tabs と Carousel 同期 ====== */
-  const [mobileTab, setMobileTab] = useState<MobileTab>(ORDER[0]);
-  const [api, setApi] = useState<CarouselApi | undefined>(undefined);
-
-  useEffect(() => {
-    if (!api) return;
-    const idx = toIndex(mobileTab);
-    if (idx >= 0 && api.selectedScrollSnap() !== idx) api.scrollTo(idx);
-  }, [mobileTab, api]);
-
-  useEffect(() => {
-    if (!api) return;
-    const onSelect = () => setMobileTab(toValue(api.selectedScrollSnap()));
-    api.on("select", onSelect);
-    return () => {
-      api.off("select", onSelect);
-    };
-  }, [api]);
+  const activeTagLabel = useMemo(() => {
+    return (
+      TAG_OPTIONS.find((option) => option.value === selectedTag)?.label ??
+      selectedTag
+    );
+  }, [selectedTag]);
 
   if (status === "loading" || status === "idle") {
     return (
@@ -108,8 +78,8 @@ export default function StockLists(props: Props & { className?: string }) {
   if (status === "error") {
     return (
       <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-destructive text-sm">
-        データ取得に失敗しました（/core30/meta, /core30/prices/snapshot/last2,
-        /core30/perf/returns）。 サーバを確認してください。
+        データ取得に失敗しました（/stocks, /prices/snapshot/last2,
+        /prices/perf/returns）。 サーバを確認してください。
       </div>
     );
   }
@@ -117,152 +87,54 @@ export default function StockLists(props: Props & { className?: string }) {
   return (
     <div
       className={`flex flex-col gap-2 md:gap-4 flex-1 min-h-0 w-full ${
-        props.className ?? ""
+        className ?? ""
       }`}
     >
-      {/* Search */}
-      <SearchInput value={searchTerm} onChange={setSearchTerm} />
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">リスト</span>
+          <Select
+            value={selectedTag}
+            onValueChange={(value) => setSelectedTag(value as TagValue)}
+          >
+            <SelectTrigger className="w-[160px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TAG_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <SearchInput value={searchTerm} onChange={setSearchTerm} />
+      </div>
 
       <div className="text-muted-foreground text-xs">
-        {filtered.length}銘柄を表示中 (全{rows.length}銘柄)
+        {filtered.length}銘柄を表示中 ({activeTagLabel} / 全{rows.length}銘柄)
       </div>
 
-      {/* --- デスクトップ --- */}
-      <div className="hidden md:flex md:flex-col flex-1 min-h-0">
-        <Tabs defaultValue="price" className="h-full flex flex-col">
-          <TableWrapper
-            toolbar={
-              <TabsList
-                className="
-                  grid w-fit grid-cols-3
-                  bg-card/70 supports-[backdrop-filter]:bg-card/50 backdrop-blur
-                  border border-border/60 rounded-md h-8
-                "
-              >
-                <TabsTrigger
-                  value="price"
-                  className="flex items-center gap-1 px-2 text-xs h-7 data-[state=active]:bg-muted/40"
-                >
-                  <LayoutGrid className="w-3.5 h-3.5" />
-                  価格
-                </TabsTrigger>
-                <TabsTrigger
-                  value="perf"
-                  className="flex items-center gap-1 px-2 text-xs h-7 data-[state=active]:bg-muted/40"
-                >
-                  <List className="w-3.5 h-3.5" />
-                  パフォーマンス
-                </TabsTrigger>
-                <TabsTrigger
-                  value="technical"
-                  className="flex items-center gap-1 px-2 text-xs h-7 data-[state=active]:bg-muted/40"
-                >
-                  <LineChart className="w-3.5 h-3.5" />
-                  テクニカル
-                </TabsTrigger>
-              </TabsList>
-            }
-            heightClass="h-full"
-          >
-            <div className="h-full flex flex-col">
-              <TabsContent value="price" className="h-full px-0">
-                <div className="h-full flex flex-col">
-                  <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-0">
-                    <PriceTable rows={filtered} nf0={nf0} nf2={nf2} />
-                  </div>
-                </div>
-              </TabsContent>
+      <StockListsDesktop
+        rows={filtered}
+        techRows={techRows}
+        techStatus={techStatus}
+        nf0={nf0}
+        nf2={nf2}
+        activeTab={desktopTab}
+        onTabChange={(value) => setDesktopTab(value)}
+      />
 
-              <TabsContent value="perf" className="h-full px-0">
-                <div className="h-full flex flex-col">
-                  <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-0">
-                    <PerfTable rows={filtered} nf2={nf2} />
-                  </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="technical" className="h-full px-0">
-                <div className="h-full flex flex-col">
-                  <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-0">
-                    {techStatus === "error" ? (
-                      <div className="text-destructive text-xs px-2 py-2">
-                        テクニカルの取得に失敗しました（/core30/tech/decision/snapshot）
-                      </div>
-                    ) : (
-                      <TechnicalTable rows={techRows} nf2={nf2} />
-                    )}
-                  </div>
-                </div>
-              </TabsContent>
-            </div>
-          </TableWrapper>
-        </Tabs>
-      </div>
-
-      {/* --- モバイル --- */}
-      <div className="md:hidden flex flex-col flex-1 min-h-0">
-        <Tabs
-          value={mobileTab}
-          onValueChange={(v) => setMobileTab(v as MobileTab)}
-          className="h-full flex flex-col"
-        >
-          <TableWrapper
-            toolbar={
-              <TabsList
-                className="
-                  grid grid-cols-3 w-full
-                  bg-card/80 supports-[backdrop-filter]:bg-card/60 backdrop-blur
-                  border-0 rounded-none
-                "
-              >
-                {getWindow3(mobileTab).map((key) => {
-                  const label = MOBILE_PANES.find((p) => p.key === key)!.label;
-                  return (
-                    <TabsTrigger
-                      key={key}
-                      value={key}
-                      className="
-                        h-8 leading-8 px-1 text-[11px] tracking-tight
-                        rounded-none border-b-2 border-transparent
-                        data-[state=active]:border-b-primary
-                        text-muted-foreground
-                      "
-                    >
-                      <span className="whitespace-nowrap">{label}</span>
-                    </TabsTrigger>
-                  );
-                })}
-              </TabsList>
-            }
-            heightClass=""
-          >
-            <div className="flex-1 min-h-0 overflow-hidden">
-              <Carousel
-                setApi={setApi}
-                opts={{ align: "start", loop: true, dragFree: false }}
-                className="h-full"
-              >
-                <CarouselContent className="h-full">
-                  {ORDER.map((key) => (
-                    <CarouselItem key={key} className="basis-full">
-                      <div className="h-full touch-pan-y">
-                        {renderMobilePane(
-                          key as MobileTab,
-                          filtered,
-                          nf0,
-                          nf2,
-                          techStatus,
-                          techRows as TechCoreRow[]
-                        )}
-                      </div>
-                    </CarouselItem>
-                  ))}
-                </CarouselContent>
-              </Carousel>
-            </div>
-          </TableWrapper>
-        </Tabs>
-      </div>
+      <StockListsMobile
+        rows={filtered}
+        techRows={techRows}
+        techStatus={techStatus}
+        nf0={nf0}
+        nf2={nf2}
+        activeTab={mobileTab}
+        onTabChange={(value) => setMobileTab(value)}
+      />
 
       {/* Empty */}
       {filtered.length === 0 && (

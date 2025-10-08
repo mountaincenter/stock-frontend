@@ -3,10 +3,19 @@ import Link from "next/link";
 import TickerDailyChart from "./TickerDailyChart";
 import TechnicalDetailTable from "./TechDetailTable";
 import PriceCard from "./PriceCard";
+import { canonicalizeTag } from "@/lib/tag-utils";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+const RAW_API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+const API_BASE = RAW_API_BASE.endsWith("/")
+  ? RAW_API_BASE.slice(0, -1)
+  : RAW_API_BASE;
 
-type Meta = { code: string; stock_name: string; ticker: string };
+type Meta = {
+  code: string;
+  stock_name: string;
+  ticker: string;
+  tag1?: string | null;
+};
 type Snapshot = {
   ticker: string;
   date: string | null;
@@ -25,31 +34,73 @@ type Perf = Record<string, number | string | null> & {
   date: string;
 };
 
-async function fetchAll(ticker: string) {
-  if (!API_BASE) {
-    return {
-      meta: null as Meta | null,
-      snap: null as Snapshot | null,
-      perf: null as Perf | null,
-    };
+function join(path: string) {
+  if (!API_BASE) return path;
+  return path.startsWith("/") ? `${API_BASE}${path}` : `${API_BASE}/${path}`;
+}
+
+async function fetchWithFallback<T>(
+  urls: string[],
+  fallbackValue: T
+): Promise<T> {
+  let lastError: unknown = null;
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) {
+        lastError = new Error(`HTTP ${res.status} for ${url}`);
+        continue;
+      }
+      return (await res.json()) as T;
+    } catch (err) {
+      lastError = err;
+    }
   }
+  if (lastError) {
+    console.warn("[ticker] fallback:", lastError);
+  }
+  return fallbackValue;
+}
 
-  const [metaRes, snapRes, perfRes] = await Promise.all([
-    fetch(`${API_BASE}/core30/meta`, { cache: "no-store" }),
-    fetch(`${API_BASE}/core30/prices/snapshot/last2`, { cache: "no-store" }),
-    fetch(
-      `${API_BASE}/core30/perf/returns?windows=5d,1mo,3mo,ytd,1y,3y,5y,all`,
-      { cache: "no-store" }
+async function fetchAll(ticker: string) {
+  const normalizedTicker = ticker.trim().toUpperCase();
+  const windows = "5d,1mo,3mo,ytd,1y,3y,5y,all";
+
+  const metaCandidates = [join("/meta"), join("/stocks")];
+  const metas = await fetchWithFallback<Meta[]>(metaCandidates, []);
+  const meta =
+    metas.find(
+      (m) => (m.ticker ?? "").trim().toUpperCase() === normalizedTicker
+    ) ?? null;
+
+  const tag = canonicalizeTag(meta?.tag1 ?? undefined);
+
+  const snapshotCandidates = [
+    join(
+      `/prices/snapshot/last2${
+        tag ? `?tag=${encodeURIComponent(tag)}` : ""
+      }`
     ),
-  ]);
+  ];
+  const snaps = await fetchWithFallback<Snapshot[]>(snapshotCandidates, []);
+  const snap =
+    snaps.find(
+      (s) => (s.ticker ?? "").trim().toUpperCase() === normalizedTicker
+    ) ?? null;
 
-  const metas = metaRes.ok ? ((await metaRes.json()) as Meta[]) : [];
-  const snaps = snapRes.ok ? ((await snapRes.json()) as Snapshot[]) : [];
-  const perfs = perfRes.ok ? ((await perfRes.json()) as Perf[]) : [];
-
-  const meta = metas.find((m) => m.ticker === ticker) ?? null;
-  const snap = snaps.find((s) => s.ticker === ticker) ?? null;
-  const perf = perfs.find((p) => p.ticker === ticker) ?? null;
+  const perfCandidates = [
+    join(
+      `/perf/returns?windows=${encodeURIComponent(windows)}${
+        tag ? `&tag=${encodeURIComponent(tag)}` : ""
+      }`
+    ),
+    join(`/prices/perf/returns?windows=${encodeURIComponent(windows)}`),
+  ];
+  const perfs = await fetchWithFallback<Perf[]>(perfCandidates, []);
+  const perf =
+    perfs.find(
+      (p) => (p.ticker ?? "").trim().toUpperCase() === normalizedTicker
+    ) ?? null;
 
   return { meta, snap, perf };
 }
@@ -59,8 +110,8 @@ export default async function TickerPage({
 }: {
   params: Promise<{ ticker: string }>;
 }) {
-  const { ticker: raw } = await params;
-  const ticker = decodeURIComponent(raw);
+  const { ticker: rawTicker } = await params;
+  const ticker = decodeURIComponent(rawTicker);
 
   const { meta, snap, perf } = await fetchAll(ticker);
 

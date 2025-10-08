@@ -1,8 +1,7 @@
 "use client";
 
 import React from "react";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+import { buildApiUrl } from "@/lib/api-base";
 
 /* ---------- types (strict, no any) ---------- */
 // v2: 5段階
@@ -72,41 +71,41 @@ const OSC_KEYS: ReadonlyArray<string> = [
 
 /* ---------- data fetch（v2優先 / legacy fallback） ---------- */
 async function fetchDecision(ticker: string): Promise<TechDecisionItem | null> {
-  if (!API_BASE) return null;
   try {
-    const r = await fetch(
-      `${API_BASE}/core30/tech/decision?ticker=${encodeURIComponent(ticker)}`,
-      { cache: "no-store" }
-    );
-    if (!r.ok) return null;
-    const data = (await r.json()) as TechDecisionItem | null;
-    // 最低限の構造チェック
-    if (
-      !data ||
-      typeof data.ticker !== "string" ||
-      !data.votes ||
-      !data.overall
-    ) {
-      return null;
+  const candidates = [
+    buildApiUrl(`/tech/decision?ticker=${encodeURIComponent(ticker)}`),
+  ];
+    for (const url of candidates) {
+      const r = await fetch(url, { cache: "no-store" });
+      if (!r.ok) continue;
+      const data = (await r.json()) as TechDecisionItem | null;
+      if (
+        data &&
+        typeof data.ticker === "string" &&
+        data.votes &&
+        data.overall
+      ) {
+        return data;
+      }
     }
-    return data;
   } catch {
-    return null;
   }
+  return null;
 }
 
 async function fetchLegacyRow(ticker: string): Promise<LegacyRow | null> {
-  if (!API_BASE) return null;
   try {
-    const r = await fetch(`${API_BASE}/core30/tech/decision/snapshot`, {
-      cache: "no-store",
-    });
-    if (!r.ok) return null;
-    const all = (await r.json()) as LegacyRow[];
-    return all.find((x) => x.ticker === ticker) ?? null;
+  const candidates = [buildApiUrl("/tech/decision/snapshot")];
+    for (const url of candidates) {
+      const r = await fetch(url, { cache: "no-store" });
+      if (!r.ok) continue;
+      const all = (await r.json()) as LegacyRow[];
+      const found = all.find((x) => x.ticker === ticker);
+      if (found) return found;
+    }
   } catch {
-    return null;
   }
+  return null;
 }
 
 /* ---------- Gauge ---------- */

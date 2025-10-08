@@ -4,6 +4,13 @@ export interface StockMeta {
   code: string;
   stock_name: string;
   ticker: string;
+  market?: string | null;
+  sectors?: string | null;
+  series?: string | null;
+  topixnewindexseries?: string | null;
+  tag1?: string | null;
+  tag2?: string | null;
+  tag3?: string | null;
 }
 
 export interface SnapshotRow {
@@ -34,6 +41,7 @@ export interface Props {
   initialMeta?: StockMeta[];
   initialSnapshot?: SnapshotRow[];
   initialPerf?: PerfRow[];
+  initialTag?: string;
 }
 
 // 共通ユーティリティ型（計算可能な「欠損許容」数値）
