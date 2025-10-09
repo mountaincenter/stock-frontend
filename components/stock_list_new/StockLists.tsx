@@ -211,7 +211,7 @@ export default function StockLists(props: Props & { className?: string }) {
     []
   );
 
-  const mobileSortConfig = (() => {
+  const mobileSortToolbar = (() => {
     const pane =
       mobileTab === "perf"
         ? "perf"
@@ -220,26 +220,32 @@ export default function StockLists(props: Props & { className?: string }) {
         : "price";
     switch (pane) {
       case "perf":
-        return {
-          columns: PERF_SORT_COLUMNS,
-          activeKey: sortState.perf.key,
-          direction: sortState.perf.direction,
-          onSort: handlePerfSort,
-        } as const;
+        return (
+          <MobileSortToolbar<PerfSortKey>
+            columns={PERF_SORT_COLUMNS}
+            activeKey={sortState.perf.key}
+            direction={sortState.perf.direction}
+            onSort={handlePerfSort}
+          />
+        );
       case "technical":
-        return {
-          columns: TECH_SORT_COLUMNS,
-          activeKey: sortState.tech.key,
-          direction: sortState.tech.direction,
-          onSort: handleTechSort,
-        } as const;
+        return (
+          <MobileSortToolbar<TechSortKey>
+            columns={TECH_SORT_COLUMNS}
+            activeKey={sortState.tech.key}
+            direction={sortState.tech.direction}
+            onSort={handleTechSort}
+          />
+        );
       default:
-        return {
-          columns: PRICE_SORT_COLUMNS,
-          activeKey: sortState.price.key,
-          direction: sortState.price.direction,
-          onSort: handlePriceSort,
-        } as const;
+        return (
+          <MobileSortToolbar<PriceSortKey>
+            columns={PRICE_SORT_COLUMNS}
+            activeKey={sortState.price.key}
+            direction={sortState.price.direction}
+            onSort={handlePriceSort}
+          />
+        );
     }
   })();
 
@@ -319,13 +325,13 @@ export default function StockLists(props: Props & { className?: string }) {
 
       <div className="md:hidden">
         <div className="overflow-x-auto -mx-1 px-1">
-      <MobileSortToolbar {...mobileSortConfig} />
-    </div>
-  </div>
+          {mobileSortToolbar}
+        </div>
+      </div>
 
-  <div className="text-muted-foreground text-xs">
-    {filtered.length}銘柄を表示中 ({activeTagLabel} / 全{rowsAfterPolicy.length}銘柄)
-  </div>
+      <div className="text-muted-foreground text-xs">
+        {filtered.length}銘柄を表示中 ({activeTagLabel} / 全{rowsAfterPolicy.length}銘柄)
+      </div>
 
   <StockListsDesktop
     priceRows={priceSortedRows}
