@@ -16,12 +16,18 @@ import type {
   TechDecisionItem,
   TechDecisionValues,
 } from "../../types";
+import type { SortDirection, TechSortKey } from "../../utils/sort";
+import { TECH_SORT_COLUMNS } from "../../utils/sort";
+import { SortButtonGroup } from "../../parts/SortButtonGroup";
 
 type Props = {
   rows: TechCoreRow[];
   nf2: Intl.NumberFormat;
   // 追加: v2 の判定結果（任意）
   decisionByTicker?: Record<string, TechDecisionItem>;
+  sortKey: TechSortKey | null;
+  direction: SortDirection;
+  onSort: (key: TechSortKey, direction: SortDirection) => void;
 };
 
 // 1桁（RSI/乖離）
@@ -109,6 +115,9 @@ export default function TechnicalTableDesktop({
   rows,
   nf2,
   decisionByTicker,
+  sortKey,
+  direction,
+  onSort,
 }: Props) {
   if (!rows?.length)
     return (
@@ -132,17 +141,41 @@ export default function TechnicalTableDesktop({
           columnGap: "12px",
         }}
       >
-        <div>コード</div>
-        <div>銘柄名</div>
-        <div className="text-center">日付</div>
-        <div className="text-center">総合</div>
-        <div className="text-center">Tech</div>
-        <div className="text-center">MA</div>
-        <div className="text-center">一目</div>
-        <div className="text-center">RSI(14)</div>
-        <div className="text-center">MACD Hist</div>
-        <div className="text-center">%b</div>
-        <div className="text-center">乖離%(25)</div>
+        <SortButtonGroup
+          columnKey="code"
+          label="コード"
+          activeKey={null}
+          direction={null}
+          onSort={() => undefined}
+          align="left"
+        />
+        <SortButtonGroup
+          columnKey="stock_name"
+          label="銘柄名"
+          activeKey={null}
+          direction={null}
+          onSort={() => undefined}
+          align="left"
+        />
+        <SortButtonGroup
+          columnKey="date"
+          label="日付"
+          activeKey={sortKey}
+          direction={direction}
+          onSort={onSort}
+          align="center"
+        />
+        {TECH_SORT_COLUMNS.map((column) => (
+          <SortButtonGroup
+            key={column.key}
+            columnKey={column.key}
+            label={column.label}
+            activeKey={sortKey}
+            direction={direction}
+            onSort={onSort}
+            align={column.align ?? "right"}
+          />
+        ))}
       </div>
 
       {rows.map((r) => {

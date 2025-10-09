@@ -66,6 +66,7 @@ export type Row = StockMeta & {
   close: MaybeNumber;
   prevClose: MaybeNumber;
   diff: MaybeNumber;
+  pct_diff?: MaybeNumber;
   volume: MaybeNumber;
   vol_ma10: MaybeNumber;
   tr: MaybeNumber;

@@ -38,18 +38,18 @@ export default function RangeSwitcher({ perf, activeRange, setActiveRange }: Ran
   );
 
   const perfItems: Array<{
-    key: RangeKey;
+    rangeKey: RangeKey;
     label: string;
-    value: number | null | undefined;
+    perfKey: string;
   }> = [
-    { key: "r_5d", label: "1日", value: perf?.["r_5d"] as number | null | undefined },
-    { key: "r_1mo", label: "5日", value: perf?.["r_1mo"] as number | null | undefined },
-    { key: "r_3mo", label: "1ヶ月", value: perf?.["r_3mo"] as number | null | undefined },
-    { key: "r_ytd", label: "6ヶ月", value: perf?.["r_ytd"] as number | null | undefined },
-    { key: "r_1y", label: "年初来", value: perf?.["r_1y"] as number | null | undefined },
-    { key: "r_3y", label: "1年", value: perf?.["r_3y"] as number | null | undefined },
-    { key: "r_5y", label: "5年", value: perf?.["r_5y"] as number | null | undefined },
-    { key: "r_all", label: "全期間", value: perf?.["r_all"] as number | null | undefined },
+    { rangeKey: "r_5d", label: "1日", perfKey: "r_1d" },
+    { rangeKey: "r_1mo", label: "5日", perfKey: "r_5d" },
+    { rangeKey: "r_3mo", label: "1ヶ月", perfKey: "r_1mo" },
+    { rangeKey: "r_ytd", label: "6ヶ月", perfKey: "r_6mo" },
+    { rangeKey: "r_1y", label: "年初来", perfKey: "r_ytd" },
+    { rangeKey: "r_3y", label: "1年", perfKey: "r_1y" },
+    { rangeKey: "r_5y", label: "5年", perfKey: "r_5y" },
+    { rangeKey: "r_all", label: "全期間", perfKey: "r_all" },
   ];
 
   return (
@@ -58,12 +58,13 @@ export default function RangeSwitcher({ perf, activeRange, setActiveRange }: Ran
         パフォーマンス＆範囲選択
       </div>
       <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
-        {perfItems.map(({ key, label, value }) => {
-          const isActive = activeRange === key;
+        {perfItems.map(({ rangeKey, label, perfKey }) => {
+          const isActive = activeRange === rangeKey;
+          const value = perf?.[perfKey] as number | null | undefined;
           return (
             <button
-              key={key}
-              onClick={() => setActiveRange(key)}
+              key={rangeKey}
+              onClick={() => setActiveRange(rangeKey)}
               className={`
                 rounded-lg border px-3 py-2.5 flex flex-col items-center justify-center
                 transition-all cursor-pointer
@@ -84,7 +85,7 @@ export default function RangeSwitcher({ perf, activeRange, setActiveRange }: Ran
                 className={`text-base font-bold font-sans tabular-nums ${
                   isActive
                     ? "text-primary"
-                    : toneBySign(value as number | null)
+                    : toneBySign(value)
                 }`}>
                 {typeof value === "number" && Number.isFinite(value)
                   ? `${value > 0 ? "+" : ""}${nf2.format(value)}%`

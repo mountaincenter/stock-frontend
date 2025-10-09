@@ -33,12 +33,25 @@ function mergeRows(
   return meta.map((m) => {
     const s = snapMap.get(m.ticker);
     const p = perfMap.get(m.ticker) as PerfRow | undefined;
+    const close = (s?.close as number) ?? null;
+    const prevClose = (s?.prevClose as number) ?? null;
+    const diff = (s?.diff as number) ?? null;
+    const pctDiff =
+      diff != null &&
+      prevClose != null &&
+      Number.isFinite(diff) &&
+      Number.isFinite(prevClose) &&
+      prevClose !== 0
+        ? (diff / prevClose) * 100
+        : null;
+
     return {
       ...m,
       date: (s?.date as string) ?? (p?.date as string) ?? null,
-      close: (s?.close as number) ?? null,
-      prevClose: (s?.prevClose as number) ?? null,
-      diff: (s?.diff as number) ?? null,
+      close,
+      prevClose,
+      diff,
+      pct_diff: pctDiff,
       volume: (s?.volume as number) ?? null,
       vol_ma10: (s?.vol_ma10 as number) ?? null,
       tr: (s?.["tr"] as number) ?? null,
@@ -56,6 +69,17 @@ function mergeRows(
     };
   });
 }
+
+const uniqueByTicker = <T extends { ticker?: string }>(items: T[]): T[] => {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const ticker = item.ticker ? String(item.ticker) : "";
+    if (!ticker) return false;
+    if (seen.has(ticker)) return false;
+    seen.add(ticker);
+    return true;
+  });
+};
 
 /**
  * 役割分離（SRP）
@@ -117,7 +141,8 @@ export function useStockData({
       const preparedMeta = filterMetaByTag(initialMeta, hydrateTarget, {
         allowMissingTagInfo: hydrateCanonical === "TOPIX_CORE30",
       });
-      setRows(mergeRows(preparedMeta, initialSnapshot, initialPerf));
+      const merged = mergeRows(preparedMeta, initialSnapshot, initialPerf);
+      setRows(uniqueByTicker(merged));
       setStatus("success");
       return true;
     };
@@ -133,8 +158,12 @@ export function useStockData({
         if (mounted) setRows([]);
 
         const normalizedTag = (tag ?? "").trim();
+        const lowerTag = normalizedTag.toLowerCase();
+        const isAll = lowerTag === "all" || lowerTag === "全て";
         const canonical = canonicalizeTag(normalizedTag);
-        const queryTag = normalizedTag || canonical || undefined;
+        const queryTag = isAll
+          ? undefined
+          : canonical ?? (normalizedTag ? normalizedTag : undefined);
 
         const join = (path: string) => {
           if (!base) return path;
@@ -266,15 +295,21 @@ export function useStockData({
           }),
         ]);
 
-        const preparedMeta = filterMetaByTag(meta, queryTag, {
-          allowMissingTagInfo: canonical === "TOPIX_CORE30",
-        });
+        const preparedMeta = uniqueByTicker(
+          filterMetaByTag(meta, queryTag, {
+            allowMissingTagInfo: canonical === "TOPIX_CORE30",
+          })
+        );
         const allowedTickers = pickAllowedTickers(preparedMeta);
-        const filteredSnapshot =
-          snapshot?.filter((s) => allowedTickers.has(s.ticker)) ?? [];
-        const filteredPerf =
-          perf?.filter((p) => allowedTickers.has(p.ticker)) ?? [];
-        const merged = mergeRows(preparedMeta, filteredSnapshot, filteredPerf);
+        const filteredSnapshot = uniqueByTicker(
+          snapshot?.filter((s) => allowedTickers.has(s.ticker)) ?? []
+        );
+        const filteredPerf = uniqueByTicker(
+          perf?.filter((p) => allowedTickers.has(p.ticker)) ?? []
+        );
+        const merged = uniqueByTicker(
+          mergeRows(preparedMeta, filteredSnapshot, filteredPerf)
+        );
 
         if (mounted) {
           setRows(merged);
@@ -309,8 +344,12 @@ export function useStockData({
         if (mounted) setTechRows([]);
 
         const normalizedTag = (tag ?? "").trim();
+        const lowerTag = normalizedTag.toLowerCase();
+        const isAll = lowerTag === "all" || lowerTag === "全て";
         const canonical = canonicalizeTag(normalizedTag);
-        const queryTag = normalizedTag || canonical || undefined;
+        const queryTag = isAll
+          ? undefined
+          : canonical ?? (normalizedTag ? normalizedTag : undefined);
 
         const join = (path: string) => {
           if (!base) return path;

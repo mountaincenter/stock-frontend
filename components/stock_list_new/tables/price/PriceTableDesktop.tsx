@@ -5,6 +5,9 @@ import * as React from "react";
 import Link from "next/link";
 import type { Row } from "../../types";
 import { CloseCell, DiffBadge, NumCell } from "../../parts/Cells";
+import type { PriceSortKey, SortDirection } from "../../utils/sort";
+import { PRICE_SORT_COLUMNS } from "../../utils/sort";
+import { SortButtonGroup } from "../../parts/SortButtonGroup";
 
 /**
  * 共有の先頭3列
@@ -20,15 +23,23 @@ const COLS_BASE = "110px 300px 110px";
  */
 const COLS_PRICE = `${COLS_BASE} 90px 110px 90px 90px 90px 90px 90px 110px 96px`;
 
+type Props = {
+  rows: Row[];
+  nf0: Intl.NumberFormat;
+  nf2: Intl.NumberFormat;
+  sortKey: PriceSortKey | null;
+  direction: SortDirection;
+  onSort: (key: PriceSortKey, direction: SortDirection) => void;
+};
+
 export default function PriceTableDesktop({
   rows,
   nf0,
   nf2,
-}: {
-  rows: Row[];
-  nf0: Intl.NumberFormat;
-  nf2: Intl.NumberFormat;
-}) {
+  sortKey,
+  direction,
+  onSort,
+}: Props) {
   return (
     <div className="space-y-2">
       {/* ヘッダ */}
@@ -44,18 +55,17 @@ export default function PriceTableDesktop({
           columnGap: "12px",
         }}
       >
-        <div>コード</div>
-        <div>銘柄名</div>
-        <div className="text-center">日付</div>
-        <div className="text-right">終値</div>
-        <div className="text-right">前日差</div>
-        <div className="text-right">前日差(%)</div>
-        <div className="text-right">TR</div>
-        <div className="text-right">TR(%)</div>
-        <div className="text-right">ATR14</div>
-        <div className="text-right">ATR14(%)</div>
-        <div className="text-right">出来高</div>
-        <div className="text-right">出来高(10)</div>
+        {PRICE_SORT_COLUMNS.map((column) => (
+          <SortButtonGroup
+            key={column.key}
+            columnKey={column.key}
+            label={column.label}
+            activeKey={sortKey}
+            direction={direction}
+            onSort={onSort}
+            align={column.align ?? "right"}
+          />
+        ))}
       </div>
 
       {rows.map((r) => {

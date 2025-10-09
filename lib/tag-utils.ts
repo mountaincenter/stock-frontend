@@ -23,7 +23,7 @@ export function canonicalizeTag(tag?: string): CanonicalTag | undefined {
 
 export function normalizeSelectTag(
   value?: string
-): "takaichi" | "core30" | undefined {
+): "takaichi" | "core30" | "all" | undefined {
   if (!value) return undefined;
   const trimmed = value.trim();
   if (!trimmed) return undefined;
@@ -47,6 +47,9 @@ export function normalizeSelectTag(
   ) {
     return "core30";
   }
+  if (lower === "all" || trimmed === "全て") {
+    return "all";
+  }
   return undefined;
 }
 
@@ -67,7 +70,7 @@ export function filterMetaByTag<T extends MetaLike>(
   if (!tag) return meta;
 
   const trimmed = tag.trim();
-  if (!trimmed) return meta;
+  if (!trimmed || trimmed.toLowerCase() === "all") return meta;
 
   const canonical = canonicalizeTag(trimmed);
   const acceptable: Set<string> = new Set();

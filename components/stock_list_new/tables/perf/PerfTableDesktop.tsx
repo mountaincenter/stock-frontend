@@ -5,6 +5,9 @@ import * as React from "react";
 import Link from "next/link";
 import type { Row } from "../../types";
 import { PerfCell } from "../../parts/Cells";
+import type { PerfSortKey, SortDirection } from "../../utils/sort";
+import { PERF_SORT_COLUMNS } from "../../utils/sort";
+import { SortButtonGroup } from "../../parts/SortButtonGroup";
 
 /**
  * 列幅:
@@ -13,13 +16,21 @@ import { PerfCell } from "../../parts/Cells";
  */
 const COLS_PERF = "110px 300px 110px repeat(8, minmax(84px, 1fr))";
 
+type Props = {
+  rows: Row[];
+  nf2: Intl.NumberFormat;
+  sortKey: PerfSortKey | null;
+  direction: SortDirection;
+  onSort: (key: PerfSortKey, direction: SortDirection) => void;
+};
+
 export default function PerfTableDesktop({
   rows,
   nf2,
-}: {
-  rows: Row[];
-  nf2: Intl.NumberFormat;
-}) {
+  sortKey,
+  direction,
+  onSort,
+}: Props) {
   return (
     <div className="space-y-2">
       {/* ヘッダ */}
@@ -35,18 +46,41 @@ export default function PerfTableDesktop({
           columnGap: "12px",
         }}
       >
-        <div>コード</div>
-        <div>銘柄名</div>
-        <div className="text-center">日付</div>
-        {/* 1週〜全期間：中央揃え & 均等割 */}
-        <div className="text-center">1週</div>
-        <div className="text-center">1ヶ月</div>
-        <div className="text-center">3ヶ月</div>
-        <div className="text-center">年初来</div>
-        <div className="text-center">1年</div>
-        <div className="text-center">3年</div>
-        <div className="text-center">5年</div>
-        <div className="text-center">全期間</div>
+        <SortButtonGroup
+          columnKey="code"
+          label="コード"
+          activeKey={null}
+          direction={null}
+          onSort={() => undefined}
+          align="left"
+        />
+        <SortButtonGroup
+          columnKey="stock_name"
+          label="銘柄名"
+          activeKey={null}
+          direction={null}
+          onSort={() => undefined}
+          align="left"
+        />
+        <SortButtonGroup
+          columnKey="date"
+          label="日付"
+          activeKey={null}
+          direction={null}
+          onSort={() => undefined}
+          align="center"
+        />
+        {PERF_SORT_COLUMNS.map((column) => (
+          <SortButtonGroup
+            key={column.key}
+            columnKey={column.key}
+            label={column.label}
+            activeKey={sortKey}
+            direction={direction}
+            onSort={onSort}
+            align={column.align ?? "right"}
+          />
+        ))}
       </div>
 
       {rows.map((r) => (

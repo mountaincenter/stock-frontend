@@ -20,15 +20,12 @@ export function SearchInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className={[
-          // モバイルは詰める、md+は従来
-          "w-full h-9 px-3 rounded-md",
-          // shadcn/ui のデフォルトトークンに統一
-          "border border-input bg-background",
-          "text-foreground placeholder:text-muted-foreground",
-          "ring-offset-background",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:border-ring",
-          // md以降のサイズ/丸みだけ維持（色は共通トークンのまま）
-          "md:h-12 md:px-4 md:rounded-xl",
+          "w-full h-9 px-4 rounded-full",
+          "border border-border/50 bg-card/60 backdrop-blur-sm",
+          "text-sm text-muted-foreground/80 placeholder:text-muted-foreground/60",
+          "shadow-sm transition-colors",
+          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary",
+          "md:h-10 md:px-5",
         ].join(" ")}
       />
     </div>

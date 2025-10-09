@@ -1,0 +1,72 @@
+.sort-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 0;
+  padding: 0;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: rgba(148, 163, 184, 0.85);
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.sort-toggle::before,
+.sort-toggle::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  opacity: 0.35;
+  color: currentColor;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.sort-toggle::before {
+  top: 30%;
+  border-bottom: 6px solid currentColor;
+}
+
+.sort-toggle::after {
+  top: 70%;
+  border-top: 6px solid currentColor;
+}
+
+.sort-toggle:hover,
+.sort-toggle:focus-visible {
+  color: rgba(100, 116, 139, 0.95);
+}
+
+.sort-toggle[data-state="asc"]::before {
+  opacity: 1;
+  color: rgb(59, 130, 246);
+}
+
+.sort-toggle[data-state="asc"]::after {
+  opacity: 0.25;
+}
+
+.sort-toggle[data-state="desc"]::after {
+  opacity: 1;
+  color: rgb(59, 130, 246);
+}
+
+.sort-toggle[data-state="desc"]::before {
+  opacity: 0.25;
+}
+
+.sort-toggle--active {
+  color: rgb(59, 130, 246);
+}
+
+.sort-toggle--lg {
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 0.6rem;
+}

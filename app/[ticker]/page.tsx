@@ -64,7 +64,7 @@ async function fetchWithFallback<T>(
 
 async function fetchAll(ticker: string) {
   const normalizedTicker = ticker.trim().toUpperCase();
-  const windows = "5d,1mo,3mo,ytd,1y,3y,5y,all";
+  const windows = "1d,5d,1mo,3mo,6mo,ytd,1y,3y,5y,all";
 
   const metaCandidates = [join("/meta"), join("/stocks")];
   const metas = await fetchWithFallback<Meta[]>(metaCandidates, []);

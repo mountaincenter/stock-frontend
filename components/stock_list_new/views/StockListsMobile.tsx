@@ -22,7 +22,8 @@ const MOBILE_PANES = [
 export type MobileTab = (typeof MOBILE_PANES)[number]["key"];
 
 interface StockListsMobileProps {
-  rows: Row[];
+  priceRows: Row[];
+  perfRows: Row[];
   techRows: TechCoreRow[];
   techStatus: "idle" | "loading" | "success" | "error";
   nf0: Intl.NumberFormat;
@@ -43,7 +44,8 @@ function getWindow3(active: MobileTab) {
 
 function renderMobilePane(
   key: MobileTab,
-  filtered: Row[],
+  priceRows: Row[],
+  perfRows: Row[],
   nf0: Intl.NumberFormat,
   nf2: Intl.NumberFormat,
   techStatus: "idle" | "loading" | "success" | "error",
@@ -51,11 +53,11 @@ function renderMobilePane(
 ) {
   switch (key) {
     case "simple":
-      return <PriceSimpleMobile rows={filtered} nf0={nf0} nf2={nf2} />;
+      return <PriceSimpleMobile rows={priceRows} nf0={nf0} nf2={nf2} />;
     case "price":
-      return <PriceListMobile rows={filtered} nf0={nf0} nf2={nf2} />;
+      return <PriceListMobile rows={priceRows} nf0={nf0} nf2={nf2} />;
     case "perf":
-      return <PerfTable rows={filtered} nf2={nf2} />;
+      return <PerfTable rows={perfRows} nf2={nf2} />;
     case "technical":
       return techStatus === "error" ? (
         <div className="text-destructive text-xs px-2 py-2">
@@ -70,7 +72,8 @@ function renderMobilePane(
 }
 
 export default function StockListsMobile({
-  rows,
+  priceRows,
+  perfRows,
   techRows,
   techStatus,
   nf0,
@@ -144,7 +147,8 @@ export default function StockListsMobile({
                     <div className="h-full touch-pan-y">
                       {renderMobilePane(
                         key as MobileTab,
-                        rows,
+                        priceRows,
+                        perfRows,
                         nf0,
                         nf2,
                         techStatus,

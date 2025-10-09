@@ -1,33 +1,63 @@
-// components/stock_list_new/views/StockListsDesktop.tsx
 "use client";
 
 import React from "react";
 import { LayoutGrid, List, LineChart } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/ui/tabs";
 import type { Row, TechCoreRow } from "../types";
-import PriceTable from "../tables/price";
-import PerfTable from "../tables/perf";
-import TechnicalTable from "../tables/technical";
+import PriceTableDesktop from "../tables/price/PriceTableDesktop";
+import PerfTableDesktop from "../tables/perf/PerfTableDesktop";
+import TechnicalTableDesktop from "../tables/technical/TechnicalTableDesktop";
+import type {
+  PriceSortKey,
+  PerfSortKey,
+  TechSortKey,
+  SortDirection,
+} from "../utils/sort";
 import { TableWrapper } from "../wrappers/TableWrapper";
 
 interface StockListsDesktopProps {
-  rows: Row[];
+  priceRows: Row[];
+  perfRows: Row[];
   techRows: TechCoreRow[];
   techStatus: "idle" | "loading" | "success" | "error";
   nf0: Intl.NumberFormat;
   nf2: Intl.NumberFormat;
   activeTab: "price" | "perf" | "technical";
   onTabChange: (value: "price" | "perf" | "technical") => void;
+  priceSortKey: PriceSortKey | null;
+  priceSortDirection: SortDirection;
+  onPriceSort: (key: PriceSortKey, direction: SortDirection) => void;
+  perfSortKey: PerfSortKey | null;
+  perfSortDirection: SortDirection;
+  onPerfSort: (key: PerfSortKey, direction: SortDirection) => void;
+  techSortKey: TechSortKey | null;
+  techSortDirection: SortDirection;
+  onTechSort: (key: TechSortKey, direction: SortDirection) => void;
 }
 
 export default function StockListsDesktop({
-  rows,
+  priceRows,
+  perfRows,
   techRows,
   techStatus,
   nf0,
   nf2,
   activeTab,
   onTabChange,
+  priceSortKey,
+  priceSortDirection,
+  onPriceSort,
+  perfSortKey,
+  perfSortDirection,
+  onPerfSort,
+  techSortKey,
+  techSortDirection,
+  onTechSort,
 }: StockListsDesktopProps) {
   return (
     <div className="hidden md:flex md:flex-col flex-1 min-h-0">
@@ -76,7 +106,14 @@ export default function StockListsDesktop({
             <TabsContent value="price" className="h-full px-0">
               <div className="h-full flex flex-col">
                 <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-0">
-                  <PriceTable rows={rows} nf0={nf0} nf2={nf2} />
+                  <PriceTableDesktop
+                    rows={priceRows}
+                    nf0={nf0}
+                    nf2={nf2}
+                    sortKey={priceSortKey}
+                    direction={priceSortDirection}
+                    onSort={onPriceSort}
+                  />
                 </div>
               </div>
             </TabsContent>
@@ -84,7 +121,13 @@ export default function StockListsDesktop({
             <TabsContent value="perf" className="h-full px-0">
               <div className="h-full flex flex-col">
                 <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-0">
-                  <PerfTable rows={rows} nf2={nf2} />
+                  <PerfTableDesktop
+                    rows={perfRows}
+                    nf2={nf2}
+                    sortKey={perfSortKey}
+                    direction={perfSortDirection}
+                    onSort={onPerfSort}
+                  />
                 </div>
               </div>
             </TabsContent>
@@ -97,7 +140,13 @@ export default function StockListsDesktop({
                       テクニカルの取得に失敗しました（/tech/decision/snapshot）
                     </div>
                   ) : (
-                    <TechnicalTable rows={techRows} nf2={nf2} />
+                    <TechnicalTableDesktop
+                      rows={techRows}
+                      nf2={nf2}
+                      sortKey={techSortKey}
+                      direction={techSortDirection}
+                      onSort={onTechSort}
+                    />
                   )}
                 </div>
               </div>
