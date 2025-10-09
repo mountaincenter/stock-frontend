@@ -2,18 +2,21 @@
 "use client";
 
 import React from "react";
+import { cn } from "@/lib/utils";
 
 export function SearchInput({
   value,
   onChange,
   placeholder = "銘柄名/コード/ティッカーで検索",
+  className,
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
+  className?: string;
 }) {
   return (
-    <div className="flex">
+    <div className={cn("flex", className)}>
       <input
         type="text"
         placeholder={placeholder}

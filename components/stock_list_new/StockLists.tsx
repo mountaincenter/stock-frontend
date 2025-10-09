@@ -29,6 +29,7 @@ import {
   type TechSortKey,
 } from "./utils/sort";
 import { MobileSortToolbar } from "./parts/MobileSortToolbar";
+import { ChevronDown } from "lucide-react";
 
 const TAG_OPTIONS = [
   { value: "takaichi", label: "高市銘柄" },
@@ -75,6 +76,7 @@ export default function StockLists(props: Props & { className?: string }) {
   });
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPolicies, setSelectedPolicies] = useState<string[]>([]);
+  const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
 
   useEffect(() => {
     setSelectedTag(initialTag);
@@ -83,6 +85,7 @@ export default function StockLists(props: Props & { className?: string }) {
   useEffect(() => {
     setSearchTerm("");
     setSelectedPolicies([]);
+    setMobileToolsOpen(false);
   }, [selectedTag]);
 
   useEffect(() => {
@@ -249,6 +252,28 @@ export default function StockLists(props: Props & { className?: string }) {
     }
   })();
 
+  const hasPolicyFilters = selectedTag === "takaichi" && policyOptions.length > 0;
+
+  const renderPolicyFilters = () => {
+    if (!hasPolicyFilters) return null;
+    return (
+      <PolicyFilters
+        options={policyOptions}
+        selected={selectedPolicies}
+        onToggle={(value, checked) =>
+          setSelectedPolicies((prev) => {
+            if (checked) {
+              if (prev.includes(value)) return prev;
+              return [...prev, value];
+            }
+            return prev.filter((item) => item !== value);
+          })
+        }
+        onReset={() => setSelectedPolicies([])}
+      />
+    );
+  };
+
   const activeTagLabel = useMemo(() => {
     return (
       TAG_OPTIONS.find((option) => option.value === selectedTag)?.label ??
@@ -280,14 +305,14 @@ export default function StockLists(props: Props & { className?: string }) {
         className ?? ""
       }`}
     >
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+      <div className="hidden md:flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">リスト</span>
           <Select
             value={selectedTag}
             onValueChange={(value) => setSelectedTag(value as TagValue)}
           >
-            <SelectTrigger className="h-8 w-[176px] rounded-full border border-border/50 bg-card/70 px-3 text-xs font-medium text-muted-foreground/80 shadow-sm backdrop-blur-sm transition-colors hover:border-primary/60 hover:text-primary focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none focus-visible:ring-primary">
+            <SelectTrigger className="h-8 w-full md:w-[176px] rounded-full border border-border/50 bg-card/70 px-3 text-xs font-medium text-muted-foreground/80 shadow-sm backdrop-blur-sm transition-colors hover:border-primary/60 hover:text-primary focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none focus-visible:ring-primary">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -303,31 +328,64 @@ export default function StockLists(props: Props & { className?: string }) {
             </SelectContent>
           </Select>
         </div>
-        <SearchInput value={searchTerm} onChange={setSearchTerm} />
+        <SearchInput
+          value={searchTerm}
+          onChange={setSearchTerm}
+          className="w-72"
+        />
       </div>
 
-      {selectedTag === "takaichi" && policyOptions.length > 0 && (
-        <PolicyFilters
-          options={policyOptions}
-          selected={selectedPolicies}
-          onToggle={(value, checked) =>
-            setSelectedPolicies((prev) => {
-              if (checked) {
-                if (prev.includes(value)) return prev;
-                return [...prev, value];
-              }
-              return prev.filter((item) => item !== value);
-            })
-          }
-          onReset={() => setSelectedPolicies([])}
-        />
-      )}
-
-      <div className="md:hidden">
-        <div className="overflow-x-auto -mx-1 px-1">
-          {mobileSortToolbar}
+      <div className="space-y-2 md:hidden">
+        <div className="rounded-xl border border-border/60 bg-card/60 p-3 shadow-sm space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground">リスト</span>
+            <Select
+              value={selectedTag}
+              onValueChange={(value) => setSelectedTag(value as TagValue)}
+            >
+              <SelectTrigger className="h-8 w-full rounded-full border border-border/50 bg-card/70 px-3 text-xs font-medium text-muted-foreground/80 shadow-sm backdrop-blur-sm transition-colors hover:border-primary/60 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none focus-visible:ring-primary">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {TAG_OPTIONS.map((option) => (
+                  <SelectItem
+                    key={option.value}
+                    value={option.value}
+                    className="text-xs"
+                  >
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <SearchInput
+            value={searchTerm}
+            onChange={setSearchTerm}
+            className="w-full"
+          />
+          <button
+            type="button"
+            onClick={() => setMobileToolsOpen((prev) => !prev)}
+            className="flex w-full items-center justify-between rounded-lg border border-border/60 bg-card/70 px-3 py-2 text-xs font-medium text-muted-foreground/80 shadow-sm"
+          >
+            <span>フィルタ & ソート</span>
+            <ChevronDown
+              className={`h-4 w-4 transition-transform ${mobileToolsOpen ? "rotate-180" : ""}`}
+            />
+          </button>
+          {mobileToolsOpen && (
+            <div className="pt-2 space-y-3">
+              {hasPolicyFilters && <div>{renderPolicyFilters()}</div>}
+              <div className="overflow-x-auto -mx-1 px-1">{mobileSortToolbar}</div>
+            </div>
+          )}
         </div>
       </div>
+
+      {hasPolicyFilters && (
+        <div className="hidden md:block">{renderPolicyFilters()}</div>
+      )}
 
       <div className="text-muted-foreground text-xs">
         {filtered.length}銘柄を表示中 ({activeTagLabel} / 全{rowsAfterPolicy.length}銘柄)

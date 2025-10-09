@@ -106,6 +106,8 @@ export default function StockListsMobile({
         className="h-full flex flex-col"
       >
         <TableWrapper
+          stretch={false}
+          heightClass="h-auto md:h-[70vh]"
           toolbar={
             <TabsList
               className="
@@ -135,16 +137,15 @@ export default function StockListsMobile({
           }
           heightClass=""
         >
-          <div className="flex-1 min-h-0 overflow-hidden">
+          <div className="overflow-hidden">
             <Carousel
               setApi={setApi}
               opts={{ align: "start", loop: true, dragFree: false }}
-              className="h-full"
             >
-              <CarouselContent className="h-full">
+              <CarouselContent>
                 {ORDER.map((key) => (
                   <CarouselItem key={key} className="basis-full">
-                    <div className="h-full touch-pan-y">
+                    <div className="touch-pan-y">
                       {renderMobilePane(
                         key as MobileTab,
                         priceRows,
