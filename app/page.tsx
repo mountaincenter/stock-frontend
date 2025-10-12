@@ -174,19 +174,33 @@ export default async function Page() {
   const { initialMeta, initialSnapshot, initialPerf, initialTag } = await fetchInitial(DEFAULT_TAG);
 
   return (
-    <main className="flex flex-col min-h-[100svh] md:min-h-screen py-4 md:py-6">
-      {/* 画面幅に応じて中央 90% → 88% → 85% */}
-      <div className="w-full md:w-[85%] xl:w-[83%] 2xl:w-[80%] mx-auto">
-        {/* 子は Client でもフェッチしない */}
-        <section className="tight-mobile">
-          <StockListsNew
-            apiBase={API_BASE}
-            initialMeta={initialMeta}
-            initialSnapshot={initialSnapshot}
-            initialPerf={initialPerf}
-            initialTag={initialTag}
-          />
-        </section>
+    <main className="relative flex flex-col min-h-[100svh] md:min-h-screen overflow-hidden">
+      {/* TradingView-inspired animated gradient background */}
+      <div className="fixed inset-0 -z-10 overflow-hidden">
+        {/* Primary gradient layer */}
+        <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20" />
+
+        {/* Animated accent gradients */}
+        <div className="absolute -top-1/2 -right-1/4 w-[800px] h-[800px] rounded-full bg-gradient-to-br from-primary/8 via-primary/3 to-transparent blur-3xl animate-pulse-slow" />
+        <div className="absolute -bottom-1/3 -left-1/4 w-[600px] h-[600px] rounded-full bg-gradient-to-tr from-accent/10 via-accent/4 to-transparent blur-3xl animate-pulse-slower" />
+
+        {/* Subtle grid pattern */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.03)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.03)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]" />
+      </div>
+
+      <div className="flex-1 py-6 md:py-8 lg:py-10">
+        {/* Container with premium width constraints */}
+        <div className="w-full md:w-[92%] lg:w-[88%] xl:w-[85%] 2xl:w-[82%] mx-auto px-4 md:px-0">
+          <section className="tight-mobile">
+            <StockListsNew
+              apiBase={API_BASE}
+              initialMeta={initialMeta}
+              initialSnapshot={initialSnapshot}
+              initialPerf={initialPerf}
+              initialTag={initialTag}
+            />
+          </section>
+        </div>
       </div>
     </main>
   );

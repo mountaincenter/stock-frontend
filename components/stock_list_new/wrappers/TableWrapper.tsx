@@ -18,10 +18,12 @@ export function TableWrapper({
     : heightClass ?? "h-auto";
 
   const containerClasses = [
-    "relative",
+    "relative group",
     stretch ? "flex flex-col" : "",
     resolvedHeightClass,
-    "rounded-none border-0 md:rounded-xl md:border md:border-border",
+    "rounded-none border-0 md:rounded-2xl md:border md:border-border/40",
+    "md:bg-gradient-to-br md:from-card/60 md:via-card/80 md:to-card/60",
+    "md:shadow-2xl md:shadow-black/5 md:backdrop-blur-xl",
     stretch ? "overflow-hidden" : "overflow-visible",
   ]
     .filter(Boolean)
@@ -33,8 +35,11 @@ export function TableWrapper({
 
   return (
     <div className={containerClasses}>
-      <div className="sticky top-0 z-20 bg-card/90 backdrop-blur supports-[backdrop-filter]:bg-card/70 border-b border-border">
-        <div className="px-2 py-1 md:p-2">{toolbar}</div>
+      {/* Premium shine overlay for desktop */}
+      <div className="hidden md:block absolute inset-0 bg-gradient-to-br from-white/[0.03] via-transparent to-transparent pointer-events-none rounded-2xl" />
+
+      <div className="sticky top-0 z-20 bg-card/95 backdrop-blur-xl supports-[backdrop-filter]:bg-card/80 border-b border-border/40">
+        <div className="px-2 py-2 md:p-3">{toolbar}</div>
       </div>
       <div className={contentClasses}>{children}</div>
     </div>

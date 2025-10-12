@@ -301,38 +301,51 @@ export default function StockLists(props: Props & { className?: string }) {
 
   return (
     <div
-      className={`flex flex-col gap-2 md:gap-4 flex-1 min-h-0 w-full ${
+      className={`flex flex-col gap-3 md:gap-5 flex-1 min-h-0 w-full ${
         className ?? ""
       }`}
     >
-      <div className="hidden md:flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">リスト</span>
-          <Select
-            value={selectedTag}
-            onValueChange={(value) => setSelectedTag(value as TagValue)}
-          >
-            <SelectTrigger className="h-8 w-full md:w-[176px] rounded-full border border-border/50 bg-card/70 px-3 text-xs font-medium text-muted-foreground/80 shadow-sm backdrop-blur-sm transition-colors hover:border-primary/60 hover:text-primary focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none focus-visible:ring-primary">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {TAG_OPTIONS.map((option) => (
-                <SelectItem
-                  key={option.value}
-                  value={option.value}
-                  className="text-xs"
-                >
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      {/* Premium glassmorphism header */}
+      <div className="hidden md:block">
+        <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-card/95 via-card/90 to-card/95 p-4 shadow-xl shadow-black/5 backdrop-blur-xl">
+          {/* Subtle shine effect */}
+          <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent" />
+
+          <div className="relative flex items-center justify-between gap-6">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-muted/50 backdrop-blur-sm border border-border/50">
+                <div className="h-1.5 w-1.5 rounded-full bg-primary/80 animate-pulse" />
+                <span className="text-[13px] font-semibold text-foreground/90 tracking-tight">
+                  リスト
+                </span>
+              </div>
+              <Select
+                value={selectedTag}
+                onValueChange={(value) => setSelectedTag(value as TagValue)}
+              >
+                <SelectTrigger className="h-9 w-[190px] rounded-xl border border-border/50 bg-background/60 px-4 text-[13px] font-medium text-foreground/90 shadow-sm backdrop-blur-md transition-all duration-200 hover:border-primary/40 hover:bg-background/80 hover:shadow-md focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-0 focus-visible:outline-none">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-border/50 backdrop-blur-xl">
+                  {TAG_OPTIONS.map((option) => (
+                    <SelectItem
+                      key={option.value}
+                      value={option.value}
+                      className="text-[13px] rounded-lg"
+                    >
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <SearchInput
+              value={searchTerm}
+              onChange={setSearchTerm}
+              className="w-80"
+            />
+          </div>
         </div>
-        <SearchInput
-          value={searchTerm}
-          onChange={setSearchTerm}
-          className="w-72"
-        />
       </div>
 
       <div className="space-y-2 md:hidden">
@@ -387,8 +400,18 @@ export default function StockLists(props: Props & { className?: string }) {
         <div className="hidden md:block">{renderPolicyFilters()}</div>
       )}
 
-      <div className="text-muted-foreground text-xs">
-        {filtered.length}銘柄を表示中 ({activeTagLabel} / 全{rowsAfterPolicy.length}銘柄)
+      <div className="hidden md:flex items-center gap-3 px-1">
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border/40 to-transparent" />
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/30 border border-border/30">
+          <div className="text-[12px] font-medium text-muted-foreground tracking-tight">
+            <span className="text-foreground/80 font-semibold">{filtered.length}</span> 銘柄を表示中
+          </div>
+          <div className="h-3 w-px bg-border/50" />
+          <div className="text-[11px] text-muted-foreground/70">
+            {activeTagLabel} / 全{rowsAfterPolicy.length}銘柄
+          </div>
+        </div>
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border/40 to-transparent" />
       </div>
 
   <StockListsDesktop

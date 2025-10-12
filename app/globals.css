@@ -169,6 +169,27 @@ html {
     "Segoe UI Emoji", "Segoe UI Symbol";
 }
 
+/* Custom animations for premium effects */
+@layer utilities {
+  .animate-pulse-slow {
+    animation: pulse 8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  .animate-pulse-slower {
+    animation: pulse 12s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  .animate-shimmer {
+    animation: shimmer 2s linear infinite;
+  }
+  @keyframes shimmer {
+    0% {
+      background-position: -1000px 0;
+    }
+    100% {
+      background-position: 1000px 0;
+    }
+  }
+}
+
 /* モバイル圧縮プリセット（既存クラスは保持） */
 @layer components {
   /* 親が .tight-mobile を付けた範囲で、モバイル時の余白/高さ/フォントを圧縮 */
@@ -191,7 +212,7 @@ html {
     @apply text-xs md:text-sm;
   }
   .tight-mobile :where(.cell-num) {
-    /* ★ 数字セルは“サンセリフ＋タビュラー”に統一（金融向け） */
+    /* ★ 数字セルは"サンセリフ＋タビュラー"に統一（金融向け） */
     @apply font-sans tabular-nums;
   }
 }

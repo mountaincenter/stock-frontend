@@ -202,7 +202,7 @@ export default function TechnicalTableDesktop({
           <Link
             key={r.ticker}
             href={`/${encodeURIComponent(r.ticker)}`}
-            className="block rounded-lg border border-border bg-card text-card-foreground hover:border-primary/50 transition-colors"
+            className="group/row block rounded-xl border border-border/60 bg-gradient-to-r from-card/50 via-card/80 to-card/50 text-card-foreground transition-all duration-200 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 hover:bg-gradient-to-r hover:from-card/70 hover:via-card/95 hover:to-card/70"
             style={{
               display: "grid",
               gridTemplateColumns: COLS_TECH,

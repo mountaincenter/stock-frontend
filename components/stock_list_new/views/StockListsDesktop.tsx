@@ -70,35 +70,34 @@ export default function StockListsDesktop({
       >
         <TableWrapper
           toolbar={
-            <TabsList
-              className="
-                grid w-fit grid-cols-3
-                bg-card/70 supports-[backdrop-filter]:bg-card/50 backdrop-blur
-                border border-border/60 rounded-md h-8
-              "
-            >
-              <TabsTrigger
-                value="price"
-                className="flex items-center gap-1 px-2 text-xs h-7 data-[state=active]:bg-muted/40"
-              >
-                <LayoutGrid className="w-3.5 h-3.5" />
-                価格
-              </TabsTrigger>
-              <TabsTrigger
-                value="perf"
-                className="flex items-center gap-1 px-2 text-xs h-7 data-[state=active]:bg-muted/40"
-              >
-                <List className="w-3.5 h-3.5" />
-                パフォーマンス
-              </TabsTrigger>
-              <TabsTrigger
-                value="technical"
-                className="flex items-center gap-1 px-2 text-xs h-7 data-[state=active]:bg-muted/40"
-              >
-                <LineChart className="w-3.5 h-3.5" />
-                テクニカル
-              </TabsTrigger>
-            </TabsList>
+            <div className="relative">
+              {/* Backdrop blur container */}
+              <div className="absolute inset-0 -z-10 bg-gradient-to-b from-card/40 via-card/60 to-card/40 backdrop-blur-xl rounded-2xl" />
+
+              <TabsList className="grid w-fit grid-cols-3 gap-1 bg-muted/30 backdrop-blur-sm border border-border/40 rounded-xl p-1 h-10 shadow-lg shadow-black/5">
+                <TabsTrigger
+                  value="price"
+                  className="flex items-center gap-1.5 px-4 text-[13px] font-medium h-8 rounded-lg transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=inactive]:text-muted-foreground/70 data-[state=inactive]:hover:text-foreground/80"
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  価格
+                </TabsTrigger>
+                <TabsTrigger
+                  value="perf"
+                  className="flex items-center gap-1.5 px-4 text-[13px] font-medium h-8 rounded-lg transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=inactive]:text-muted-foreground/70 data-[state=inactive]:hover:text-foreground/80"
+                >
+                  <List className="w-3.5 h-3.5" />
+                  パフォーマンス
+                </TabsTrigger>
+                <TabsTrigger
+                  value="technical"
+                  className="flex items-center gap-1.5 px-4 text-[13px] font-medium h-8 rounded-lg transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=inactive]:text-muted-foreground/70 data-[state=inactive]:hover:text-foreground/80"
+                >
+                  <LineChart className="w-3.5 h-3.5" />
+                  テクニカル
+                </TabsTrigger>
+              </TabsList>
+            </div>
           }
           heightClass="h-full"
         >

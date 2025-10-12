@@ -20,6 +20,7 @@ import {
 } from "../lib/chart-helpers";
 import type { RangeKey } from "../config/chartRangeConfig";
 import ChartTooltip, { type TooltipData } from "./ChartTooltip";
+import { calculateSMA, calculateBollingerBands } from "../lib/indicators";
 
 type PriceRow = {
   date: string;
@@ -27,16 +28,27 @@ type PriceRow = {
   High: number;
   Low: number;
   Close: number;
+  Volume?: number | null;
 };
+
+export interface ChartOptions {
+  showMA5: boolean;
+  showMA25: boolean;
+  showMA75: boolean;
+  showBollinger: boolean;
+  showVolume: boolean;
+}
 
 interface LightweightChartProps {
   rows: PriceRow[];
   rangeKey?: RangeKey;
+  options?: ChartOptions;
 }
 
 export default function LightweightChart({
   rows,
   rangeKey,
+  options,
 }: LightweightChartProps) {
   const { theme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -95,6 +107,48 @@ export default function LightweightChart({
     );
   }, [rows]);
 
+  // Calculate technical indicators
+  const indicators = useMemo(() => {
+    const closePrices = candleData.map((d) => d.close);
+
+    const ma5 = calculateSMA(closePrices, 5);
+    const ma25 = calculateSMA(closePrices, 25);
+    const ma75 = calculateSMA(closePrices, 75);
+    const bollinger = calculateBollingerBands(closePrices, 20, 2);
+
+    return {
+      ma5: candleData.map((d, i) => ({ time: d.time, value: ma5[i] ?? 0 })).filter((d) => d.value !== 0),
+      ma25: candleData.map((d, i) => ({ time: d.time, value: ma25[i] ?? 0 })).filter((d) => d.value !== 0),
+      ma75: candleData.map((d, i) => ({ time: d.time, value: ma75[i] ?? 0 })).filter((d) => d.value !== 0),
+      bollingerUpper: candleData.map((d, i) => ({ time: d.time, value: bollinger.upper[i] ?? 0 })).filter((d) => d.value !== 0),
+      bollingerMiddle: candleData.map((d, i) => ({ time: d.time, value: bollinger.middle[i] ?? 0 })).filter((d) => d.value !== 0),
+      bollingerLower: candleData.map((d, i) => ({ time: d.time, value: bollinger.lower[i] ?? 0 })).filter((d) => d.value !== 0),
+    };
+  }, [candleData]);
+
+  // Volume data
+  const volumeData = useMemo(() => {
+    return rows
+      .filter((r) => r.Volume != null && r.Volume > 0)
+      .map((r) => {
+        if (r.date.length <= 10) {
+          const [y, m, d] = r.date.split("-").map(Number);
+          const time: BusinessDay = { year: y, month: m, day: d };
+          return {
+            time: time as Time,
+            value: r.Volume!,
+            color: r.Close >= r.Open ? style.up : style.down,
+          };
+        }
+        const ts = toUtcSeconds(r.date);
+        return {
+          time: ts as Time,
+          value: r.Volume!,
+          color: r.Close >= r.Open ? style.up : style.down,
+        };
+      });
+  }, [rows, style.up, style.down]);
+
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);
 
@@ -106,7 +160,7 @@ export default function LightweightChart({
     let disposed = false;
 
     const setup = async () => {
-      const { createChart, ColorType, CandlestickSeries } = await import(
+      const { createChart, ColorType, CandlestickSeries, LineSeries, HistogramSeries } = await import(
         "lightweight-charts"
       );
       if (disposed) return;
@@ -119,7 +173,7 @@ export default function LightweightChart({
           textColor: style.text,
         },
         width: el.clientWidth,
-        height: 520,
+        height: options?.showVolume ? 620 : 520,
         grid: {
           vertLines: { color: style.grid },
           horzLines: { color: style.grid },
@@ -131,18 +185,17 @@ export default function LightweightChart({
           tickMarkFormatter: (time: Time, tickMarkType: TickMarkType) =>
             formatTickLabel(time, tickMarkType, rangeKey),
         },
-        rightPriceScale: { borderColor: style.grid },
+        rightPriceScale: {
+          borderColor: style.grid,
+          scaleMargins: options?.showVolume ? { top: 0.1, bottom: 0.3 } : { top: 0.1, bottom: 0.1 },
+        },
         crosshair: {
           vertLine: { color: style.cross },
           horzLine: { color: style.cross },
         },
         localization: {
           locale: "ja-JP",
-          priceFormatter: (p: number) =>
-            new Intl.NumberFormat("ja-JP", {
-              minimumFractionDigits: 0,
-              maximumFractionDigits: 6,
-            }).format(p),
+          priceFormatter: (p: number) => Math.round(p).toString(),
           timeFormatter: (t: UTCTimestamp | BusinessDay) => formatLwcTime(t),
         },
         handleScroll: {
@@ -161,6 +214,27 @@ export default function LightweightChart({
 
       chart = chartApi;
 
+      // Volume histogram FIRST (so it's on bottom layer)
+      if (options?.showVolume && volumeData.length > 0) {
+        const volumeSeries = chartApi.addSeries(HistogramSeries, {
+          color: "#26a69a",
+          priceFormat: {
+            type: "volume",
+          },
+          priceScaleId: "", // Empty string uses a separate left scale
+        });
+
+        volumeSeries.priceScale().applyOptions({
+          scaleMargins: {
+            top: 0.75,
+            bottom: 0,
+          },
+        });
+
+        volumeSeries.setData(volumeData);
+      }
+
+      // Candlestick series (on top of volume)
       const candlestickSeries = chartApi.addSeries(CandlestickSeries, {
         upColor: style.up,
         downColor: style.down,
@@ -169,9 +243,85 @@ export default function LightweightChart({
         wickUpColor: style.up,
         wickDownColor: style.down,
         priceLineVisible: true,
+        lastValueVisible: true,
       });
 
       series = candlestickSeries;
+      candlestickSeries.setData(candleData);
+
+      // Moving averages (on top of candlesticks)
+      if (options?.showMA5) {
+        const ma5Series = chartApi.addSeries(LineSeries, {
+          color: isDark ? "#eab308" : "#ca8a04",
+          lineWidth: 2,
+          priceLineVisible: true,
+          lastValueVisible: true,
+          crosshairMarkerVisible: false,
+          title: "MA5",
+        });
+        ma5Series.setData(indicators.ma5);
+      }
+
+      if (options?.showMA25) {
+        const ma25Series = chartApi.addSeries(LineSeries, {
+          color: isDark ? "#3b82f6" : "#2563eb",
+          lineWidth: 2,
+          priceLineVisible: true,
+          lastValueVisible: true,
+          crosshairMarkerVisible: false,
+          title: "MA25",
+        });
+        ma25Series.setData(indicators.ma25);
+      }
+
+      if (options?.showMA75) {
+        const ma75Series = chartApi.addSeries(LineSeries, {
+          color: isDark ? "#a855f7" : "#9333ea",
+          lineWidth: 2,
+          priceLineVisible: true,
+          lastValueVisible: true,
+          crosshairMarkerVisible: false,
+          title: "MA75",
+        });
+        ma75Series.setData(indicators.ma75);
+      }
+
+      // Bollinger Bands (on top)
+      if (options?.showBollinger) {
+        const bollingerColor = isDark ? "#06b6d4" : "#0891b2";
+
+        const upperSeries = chartApi.addSeries(LineSeries, {
+          color: bollingerColor,
+          lineWidth: 1,
+          lineStyle: 2, // Dashed
+          priceLineVisible: true,
+          lastValueVisible: true,
+          crosshairMarkerVisible: false,
+          title: "BB Upper",
+        });
+        upperSeries.setData(indicators.bollingerUpper);
+
+        const middleSeries = chartApi.addSeries(LineSeries, {
+          color: bollingerColor,
+          lineWidth: 1,
+          priceLineVisible: true,
+          lastValueVisible: true,
+          crosshairMarkerVisible: false,
+          title: "BB Middle",
+        });
+        middleSeries.setData(indicators.bollingerMiddle);
+
+        const lowerSeries = chartApi.addSeries(LineSeries, {
+          color: bollingerColor,
+          lineWidth: 1,
+          lineStyle: 2, // Dashed
+          priceLineVisible: true,
+          lastValueVisible: true,
+          crosshairMarkerVisible: false,
+          title: "BB Lower",
+        });
+        lowerSeries.setData(indicators.bollingerLower);
+      }
 
       const crosshairHandler = (param: MouseEventParams<Time>) => {
         const activeSeries = series;
@@ -206,7 +356,6 @@ export default function LightweightChart({
       });
       ro.observe(el);
 
-      candlestickSeries.setData(candleData);
       chartApi.timeScale().fitContent();
 
       return () => {
@@ -231,8 +380,10 @@ export default function LightweightChart({
     <div className="relative">
       <div
         ref={containerRef}
-        className="border rounded-xl p-3 bg-background"
-        style={{ width: "100%", height: 520 }}
+        style={{
+          width: "100%",
+          height: options?.showVolume ? 620 : 520
+        }}
       />
       <ChartTooltip tooltip={tooltip} />
     </div>

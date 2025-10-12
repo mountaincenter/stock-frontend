@@ -4,8 +4,9 @@
 import React, { useState } from "react";
 import { useTickerData } from "./hooks/useTickerData";
 import { rangeConfigs, type RangeKey } from "./config/chartRangeConfig";
-import LightweightChart from "./components/LightweightChart";
+import LightweightChart, { type ChartOptions } from "./components/LightweightChart";
 import RangeSwitcher from "./components/RangeSwitcher";
+import ChartControls from "./components/ChartControls";
 
 type Perf =
   | (Record<string, number | string | null> & {
@@ -23,6 +24,15 @@ export default function TickerDailyChart({
 }) {
   const [activeRange, setActiveRange] = useState<RangeKey>("r_1y");
   const { rows, loading, err } = useTickerData(ticker, activeRange);
+
+  // Chart options state with Volume default ON
+  const [chartOptions, setChartOptions] = useState<ChartOptions>({
+    showMA5: false,
+    showMA25: false,
+    showMA75: false,
+    showBollinger: false,
+    showVolume: true, // Default ON
+  });
 
   return (
     <div className="space-y-4">
@@ -43,7 +53,10 @@ export default function TickerDailyChart({
         )}
       </div>
 
-      <LightweightChart rows={rows} rangeKey={activeRange} />
+      {/* Chart Controls */}
+      <ChartControls options={chartOptions} onChange={setChartOptions} />
+
+      <LightweightChart rows={rows} rangeKey={activeRange} options={chartOptions} />
 
       <RangeSwitcher
         perf={perf}

@@ -4,6 +4,46 @@ import { rangeConfigs, RangeKey } from "../config/chartRangeConfig";
 import { fmtDate } from "../lib/chart-helpers";
 import { buildApiUrl } from "@/lib/api-base";
 
+// Get the most recent trading day by trying to fetch data
+// Falls back up to 7 days to handle weekends and holidays
+async function getLatestTradingDay(ticker: string): Promise<string | null> {
+  const today = new Date();
+
+  // Try each day going back up to 7 days
+  for (let i = 0; i < 7; i++) {
+    const testDate = new Date(today);
+    testDate.setDate(testDate.getDate() - i);
+
+    const year = testDate.getFullYear();
+    const month = String(testDate.getMonth() + 1).padStart(2, "0");
+    const day = String(testDate.getDate()).padStart(2, "0");
+    const dateStr = `${year}-${month}-${day}`;
+
+    try {
+      const params = new URLSearchParams({
+        ticker,
+        interval: "1d",
+        start: dateStr,
+        end: dateStr,
+      });
+
+      const url = buildApiUrl(`/prices?${params.toString()}`);
+      const res = await fetch(url, { cache: "no-store" });
+
+      if (res.ok) {
+        const json = await res.json();
+        if (Array.isArray(json) && json.length > 0) {
+          return dateStr;
+        }
+      }
+    } catch (e) {
+      // Continue to next date
+    }
+  }
+
+  return null;
+}
+
 type PriceRow = {
   date: string; 
   Open: number;
@@ -22,15 +62,21 @@ export function useTickerData(ticker: string, activeRange: RangeKey) {
   useEffect(() => {
     if (!ticker) return;
 
-    const today = new Date();
-    const config = rangeConfigs[activeRange];
-    const start = config.getStart(today);
-    const end = config.isIntraday && config.getEnd ? config.getEnd(today) : fmtDate(today);
-
     (async () => {
       try {
         setLoading(true);
         setErr(null);
+
+        // Get the latest trading day
+        const latestDay = await getLatestTradingDay(ticker);
+        if (!latestDay) {
+          throw new Error("No trading data available");
+        }
+
+        const latestDate = new Date(latestDay);
+        const config = rangeConfigs[activeRange];
+        const start = config.getStart(latestDate);
+        const end = config.isIntraday && config.getEnd ? config.getEnd(latestDate) : fmtDate(latestDate);
 
         const search = new URLSearchParams();
         search.set("ticker", ticker);

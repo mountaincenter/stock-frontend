@@ -67,22 +67,37 @@ export default async function TechDetailTable({ ticker }: { ticker: string }) {
   const tech_rating = calculateTechRating(decision);
 
   return (
-    <section className="rounded-xl border border-border/50 bg-background p-6">
-      <h2 className="text-lg font-bold">
-        テクニカル判断の内訳（最新日）
-      </h2>
+    <section className="group relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-card/95 via-card/90 to-card/95 p-6 md:p-8 shadow-2xl shadow-black/5 backdrop-blur-xl">
+      {/* Premium shine overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none" />
 
-      <SummaryLabels
-        overall={overall_rating}
-        oscillator={tech_rating}
-        ma={ma_rating}
-        ichimoku={ichimoku_rating}
-      />
+      <div className="relative">
+        {/* Enhanced header with gradient accent */}
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="h-1 w-1 rounded-full bg-primary animate-pulse" />
+            <h2 className="text-xl font-bold tracking-tight">
+              テクニカル判断の内訳
+            </h2>
+          </div>
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground/60">
+            <div className="h-px w-8 bg-gradient-to-r from-border/40 to-transparent" />
+            <span className="tracking-wide uppercase font-medium">最新日</span>
+          </div>
+        </div>
 
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <OscillatorTable decision={decision} />
-        <MovingAverageTable maRows={maRows} lastClose={lastClose} />
-        <IchimokuTable ichi={ichi} />
+        <SummaryLabels
+          overall={overall_rating}
+          oscillator={tech_rating}
+          ma={ma_rating}
+          ichimoku={ichimoku_rating}
+        />
+
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
+          <OscillatorTable decision={decision} />
+          <MovingAverageTable maRows={maRows} lastClose={lastClose} />
+          <IchimokuTable ichi={ichi} />
+        </div>
       </div>
     </section>
   );

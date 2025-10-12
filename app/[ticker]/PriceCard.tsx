@@ -5,6 +5,7 @@ import PriceCardHeader from "./components/price_card/PriceCardHeader";
 import PriceFocus from "./components/price_card/PriceFocus";
 import VolumeInsight from "./components/price_card/VolumeInsight";
 import VolatilityMetrics from "./components/price_card/VolatilityMetrics";
+import MiniChartContainer from "./components/price_card/MiniChartContainer";
 
 export default function PriceCard({
   meta,
@@ -37,28 +38,57 @@ export default function PriceCard({
       : "bg-muted text-muted-foreground ring-1 ring-border/40";
 
   // ─────────────────────────────────────────────────
-  // JSX: Composition of Zones
+  // JSX: Composition of Zones with 2-Column Layout
   // ─────────────────────────────────────────────────
   return (
     <section
-      className="relative rounded-xl border border-border/50 bg-gradient-to-br from-background to-background/95 p-6 shadow-lg backdrop-blur-sm transition-all hover:shadow-xl"
+      className="group relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-card/95 via-card/90 to-card/95 p-6 md:p-8 shadow-2xl shadow-black/5 backdrop-blur-xl transition-all duration-300 hover:shadow-2xl hover:shadow-black/10"
       aria-label="価格サマリー"
     >
-      {/* ZONE 0: Header */}
-      <PriceCardHeader meta={meta} snap={snap} badgeTone={badgeTone} pct={pct} />
+      {/* Premium shine overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none" />
 
-      {/* ZONE 1: Price Focus */}
-      <PriceFocus snap={snap} colorMain={colorMain} />
+      {/* Subtle animated accent on hover */}
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br from-primary/[0.02] via-transparent to-accent/[0.02] pointer-events-none" />
 
-      {/* ZONE 2: Volume Insight */}
-      <VolumeInsight snap={snap} />
+      <div className="relative flex flex-col lg:flex-row gap-6">
+        {/* Left Column: All existing content (about 2/3 width) */}
+        <div className="flex-1 lg:flex-[2] space-y-6">
+          {/* ZONE 0: Header */}
+          <PriceCardHeader meta={meta} snap={snap} badgeTone={badgeTone} pct={pct} />
 
-      {/* ZONE 3: Volatility Metrics */}
-      <VolatilityMetrics snap={snap} />
+          {/* ZONE 1: Price Focus */}
+          <PriceFocus snap={snap} colorMain={colorMain} />
 
-      {/* ZONE 4: Footer */}
-      <div className="mt-6 text-[10px] text-muted-foreground/50 text-right">
-        Data: FastAPI Snapshot
+          {/* ZONE 2: Volume Insight */}
+          <VolumeInsight snap={snap} />
+
+          {/* ZONE 3: Volatility Metrics */}
+          <VolatilityMetrics snap={snap} />
+        </div>
+
+        {/* Right Column: Mini Chart (desktop only) */}
+        <div className="hidden lg:block lg:w-[400px] lg:flex-shrink-0 min-h-[300px]">
+          <MiniChartContainer
+            ticker={meta.ticker}
+            currentPrice={snap?.close ?? null}
+            percentChange={pct}
+            prevClose={snap?.prevClose ?? null}
+          />
+        </div>
+      </div>
+
+      <div className="relative">{/* Spacer for footer */}</div>
+      <div className="relative">
+
+        {/* ZONE 4: Footer - more elegant */}
+        <div className="mt-8 flex items-center justify-between">
+          <div className="h-px flex-1 bg-gradient-to-r from-border/20 via-border/40 to-transparent" />
+          <div className="px-3 text-[10px] font-medium text-muted-foreground/40 tracking-wider uppercase">
+            Snapshot Data
+          </div>
+          <div className="h-px flex-1 bg-gradient-to-l from-border/20 via-border/40 to-transparent" />
+        </div>
       </div>
     </section>
   );

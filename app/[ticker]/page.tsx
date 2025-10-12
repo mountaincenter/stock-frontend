@@ -117,21 +117,34 @@ export default async function TickerPage({
 
   if (!meta) {
     return (
-      <main className="flex flex-col gap-4 py-6 md:py-8">
-        <div className="w-full md:w-[85%] xl:w-[83%] 2xl:w-[80%] mx-auto">
-          <div className="rounded-lg border border-border bg-background p-4">
-            <h1 className="text-lg font-semibold">銘柄が見つかりません</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              指定されたティッカー <span className="font-mono">{ticker}</span>{" "}
-              は一覧に存在しません。
-            </p>
-            <div className="mt-4">
-              <Link
-                href="/"
-                className="inline-flex items-center justify-center rounded-md px-3 py-2 text-primary text-sm font-medium hover:bg-muted/60 transition-colors"
-              >
-                一覧に戻る
-              </Link>
+      <main className="relative flex flex-col min-h-[100svh] md:min-h-screen overflow-hidden">
+        {/* Premium background - same as root page */}
+        <div className="fixed inset-0 -z-10 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20" />
+          <div className="absolute -top-1/2 -right-1/4 w-[800px] h-[800px] rounded-full bg-gradient-to-br from-primary/8 via-primary/3 to-transparent blur-3xl animate-pulse-slow" />
+          <div className="absolute -bottom-1/3 -left-1/4 w-[600px] h-[600px] rounded-full bg-gradient-to-tr from-accent/10 via-accent/4 to-transparent blur-3xl animate-pulse-slower" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.03)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.03)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]" />
+        </div>
+
+        <div className="flex-1 py-8 md:py-12">
+          <div className="w-full md:w-[92%] lg:w-[88%] xl:w-[85%] 2xl:w-[82%] mx-auto px-4 md:px-0">
+            <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-card/95 via-card/90 to-card/95 p-8 shadow-xl shadow-black/5 backdrop-blur-xl">
+              <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent" />
+              <div className="relative">
+                <h1 className="text-xl font-bold mb-2">銘柄が見つかりません</h1>
+                <p className="text-sm text-muted-foreground">
+                  指定されたティッカー <span className="font-mono font-semibold text-foreground/80">{ticker}</span>{" "}
+                  は一覧に存在しません。
+                </p>
+                <div className="mt-6">
+                  <Link
+                    href="/"
+                    className="inline-flex items-center justify-center rounded-xl px-5 py-2.5 text-sm font-medium bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 hover:border-primary/30 transition-all duration-200 hover:shadow-lg hover:shadow-primary/10"
+                  >
+                    一覧に戻る
+                  </Link>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -140,37 +153,60 @@ export default async function TickerPage({
   }
 
   return (
-    <main className="flex flex-col py-4 md:py-6">
-      <div className="w-full md:w-[85%] xl:w-[83%] 2xl:w-[80%] mx-auto space-y-4">
-        {/* 戻るリンク（タップ領域拡大） */}
-        <div className="flex justify-end">
-          <Link
-            href="/"
-            className="inline-flex items-center justify-center rounded-md px-3 py-2 text-primary text-sm font-medium hover:bg-muted/60 transition-colors"
-          >
-            一覧へ戻る
-          </Link>
-        </div>
+    <main className="relative flex flex-col min-h-[100svh] md:min-h-screen overflow-hidden">
+      {/* Premium background - same as root page */}
+      <div className="fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20" />
+        <div className="absolute -top-1/2 -right-1/4 w-[800px] h-[800px] rounded-full bg-gradient-to-br from-primary/8 via-primary/3 to-transparent blur-3xl animate-pulse-slow" />
+        <div className="absolute -bottom-1/3 -left-1/4 w-[600px] h-[600px] rounded-full bg-gradient-to-tr from-accent/10 via-accent/4 to-transparent blur-3xl animate-pulse-slower" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.03)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.03)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]" />
+      </div>
 
-        {/* 価格＋ボラティリティ（ヘッダ含めて集約） */}
-        <PriceCard meta={meta} snap={snap} />
+      <div className="flex-1 py-6 md:py-8 lg:py-10">
+        <div className="w-full md:w-[92%] lg:w-[88%] xl:w-[85%] 2xl:w-[82%] mx-auto px-4 md:px-0 space-y-5">
+          {/* Premium navigation header */}
+          <div className="flex justify-end">
+            <Link
+              href="/"
+              className="group inline-flex items-center gap-2 rounded-xl px-4 py-2 text-[13px] font-medium bg-card/60 hover:bg-card/80 border border-border/40 hover:border-primary/30 backdrop-blur-sm transition-all duration-200 hover:shadow-lg hover:shadow-primary/5"
+            >
+              <svg className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              一覧へ戻る
+            </Link>
+          </div>
 
-        {/* チャート（日足・直近1年） */}
-        <div className="rounded-lg border border-border bg-background p-4">
-          <TickerDailyChart ticker={ticker} perf={perf ?? undefined} />
-        </div>
+          {/* 価格＋ボラティリティ（ヘッダ含めて集約） */}
+          <PriceCard meta={meta} snap={snap} />
 
-        {/* テクニカル詳細（表のみ。中身はクライアント側で v2 / legacy を吸収） */}
-        <TechnicalDetailTable ticker={ticker} />
+          {/* チャート（日足・直近1年） */}
+          <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-card/60 via-card/80 to-card/60 p-5 md:p-6 shadow-xl shadow-black/5 backdrop-blur-xl">
+            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] via-transparent to-transparent pointer-events-none" />
+            <div className="relative">
+              <TickerDailyChart ticker={ticker} perf={perf ?? undefined} />
+            </div>
+          </div>
 
-        {/* 補助リンク（下部） */}
-        <div className="text-xs text-muted-foreground">
-          <Link
-            href="/"
-            className="inline-flex items-center justify-center rounded-md px-2 py-1 text-primary hover:bg-muted/60 transition-colors"
-          >
-            &larr; 一覧へ戻る
-          </Link>
+          {/* テクニカル詳細（表のみ。中身はクライアント側で v2 / legacy を吸収） */}
+          <TechnicalDetailTable ticker={ticker} />
+
+          {/* Elegant bottom navigation */}
+          <div className="flex items-center justify-center pt-2">
+            <div className="flex items-center gap-3">
+              <div className="h-px w-12 bg-gradient-to-r from-transparent to-border/40" />
+              <Link
+                href="/"
+                className="group inline-flex items-center gap-2 text-[12px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <svg className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                一覧へ戻る
+              </Link>
+              <div className="h-px w-12 bg-gradient-to-l from-transparent to-border/40" />
+            </div>
+          </div>
         </div>
       </div>
     </main>
