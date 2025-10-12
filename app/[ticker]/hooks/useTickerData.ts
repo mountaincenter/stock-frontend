@@ -36,7 +36,7 @@ async function getLatestTradingDay(ticker: string): Promise<string | null> {
           return dateStr;
         }
       }
-    } catch (e) {
+    } catch (_e) {
       // Continue to next date
     }
   }
@@ -78,10 +78,20 @@ export function useTickerData(ticker: string, activeRange: RangeKey) {
         const start = config.getStart(latestDate);
         const end = config.isIntraday && config.getEnd ? config.getEnd(latestDate) : fmtDate(latestDate);
 
+        // For MA75 calculation, we need at least 75 data points before the display range
+        // Fetch extra data for short-term charts (1d, 5d)
+        let fetchStart = start;
+        if (config.isIntraday && (activeRange === "r_5d" || activeRange === "r_1mo")) {
+          const extendedDate = new Date(latestDate);
+          // Get approximately 100 days of data for MA calculation
+          extendedDate.setDate(extendedDate.getDate() - 100);
+          fetchStart = fmtDate(extendedDate);
+        }
+
         const search = new URLSearchParams();
         search.set("ticker", ticker);
         search.set("interval", config.interval);
-        const startValue = start ?? (activeRange === "r_all" ? "1900-01-01" : undefined);
+        const startValue = fetchStart ?? (activeRange === "r_all" ? "1900-01-01" : undefined);
         if (startValue) search.set("start", startValue);
         if (end && activeRange !== "r_all") search.set("end", end);
 

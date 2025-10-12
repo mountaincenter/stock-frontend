@@ -38,7 +38,7 @@ async function getLatestTradingDay(ticker: string): Promise<string | null> {
           return dateStr;
         }
       }
-    } catch (e) {
+    } catch (_e) {
       // Continue to next date
     }
   }

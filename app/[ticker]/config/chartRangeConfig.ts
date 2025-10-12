@@ -27,9 +27,8 @@ export const rangeConfigs: Record<RangeKey, RangeConfig> = {
     label: "1日（5分足）",
     isIntraday: true,
     getStart: (today) => {
-      const d = new Date(today);
-      d.setDate(d.getDate() - 1);
-      return fmtDate(d);
+      // 当日のみ（start = end）
+      return fmtDate(today);
     },
     getEnd: (today) => {
       return fmtDate(today);
