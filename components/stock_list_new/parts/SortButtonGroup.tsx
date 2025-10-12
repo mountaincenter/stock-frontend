@@ -13,6 +13,7 @@ interface SortButtonGroupProps<K extends string> {
   onSort: (key: K, direction: SortDirection) => void;
   align?: "left" | "center" | "right";
   className?: string;
+  defaultAscending?: boolean;
 }
 
 export function SortButtonGroup<K extends string>({
@@ -23,14 +24,23 @@ export function SortButtonGroup<K extends string>({
   onSort,
   align = "right",
   className,
+  defaultAscending = false,
 }: SortButtonGroupProps<K>) {
   const isActive = activeKey === columnKey;
   const current: SortDirection = isActive ? direction : null;
 
   const nextDirection = (prev: SortDirection): SortDirection => {
-    if (prev === "asc") return "desc";
-    if (prev === "desc") return null;
-    return "asc";
+    if (defaultAscending) {
+      // 昇順デフォルト: null → asc → desc → null
+      if (prev === "asc") return "desc";
+      if (prev === "desc") return null;
+      return "asc";
+    } else {
+      // 降順デフォルト: null → desc → asc → null
+      if (prev === "desc") return "asc";
+      if (prev === "asc") return null;
+      return "desc";
+    }
   };
 
   const handleCycle = () => {

@@ -30,17 +30,30 @@ export function MobileSortToolbar<K extends string>({
 
   const handleSelectChange = (value: string) => {
     const key = value as K;
-    onSort(key, direction ?? "asc");
+    // カラムが変更された際は、そのカラムのデフォルト方向を使用
+    const defaultAsc = key === "code" || key === "stock_name";
+    onSort(key, defaultAsc ? "asc" : "desc");
   };
 
   const current: SortDirection = activeKey === selectedKey ? direction : null;
-  const nextDirection = (prev: SortDirection): SortDirection => {
-    if (prev === "asc") return "desc";
-    if (prev === "desc") return null;
-    return "asc";
+
+  const nextDirection = (prev: SortDirection, key: K): SortDirection => {
+    const defaultAsc = key === "code" || key === "stock_name";
+    if (defaultAsc) {
+      // 昇順デフォルト: null → asc → desc → null
+      if (prev === "asc") return "desc";
+      if (prev === "desc") return null;
+      return "asc";
+    } else {
+      // 降順デフォルト: null → desc → asc → null
+      if (prev === "desc") return "asc";
+      if (prev === "asc") return null;
+      return "desc";
+    }
   };
+
   const handleCycle = () => {
-    const next = nextDirection(current);
+    const next = nextDirection(current, selectedKey);
     onSort(selectedKey, next);
   };
 

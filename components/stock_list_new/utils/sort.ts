@@ -19,6 +19,9 @@ export type PriceSortKey =
   | "vol_ma10";
 
 export type PerfSortKey =
+  | "code"
+  | "stock_name"
+  | "date"
   | "r_5d"
   | "r_1mo"
   | "r_3mo"
@@ -113,8 +116,26 @@ const priceValue = (row: Row, key: PriceSortKey): number | string => {
   }
 };
 
-const perfValue = (row: Row, key: PerfSortKey): number =>
-  typeof row[key] === "number" ? (row[key] as number) : Number.NaN;
+const perfValue = (row: Row, key: PerfSortKey): number | string => {
+  switch (key) {
+    case "code":
+    case "stock_name":
+      return row[key] ?? "";
+    case "date":
+      return parseDate(row.date ?? null);
+    case "r_5d":
+    case "r_1mo":
+    case "r_3mo":
+    case "r_ytd":
+    case "r_1y":
+    case "r_3y":
+    case "r_5y":
+    case "r_all":
+      return typeof row[key] === "number" ? (row[key] as number) : Number.NaN;
+    default:
+      return Number.NaN;
+  }
+};
 
 const techValue = (row: TechCoreRow, key: TechSortKey): number | string => {
   switch (key) {

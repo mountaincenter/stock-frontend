@@ -64,6 +64,7 @@ export default function PriceTableDesktop({
             direction={direction}
             onSort={onSort}
             align={column.align ?? "right"}
+            defaultAscending={column.key === "code" || column.key === "stock_name"}
           />
         ))}
       </div>

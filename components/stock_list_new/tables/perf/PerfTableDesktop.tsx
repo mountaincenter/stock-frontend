@@ -49,25 +49,27 @@ export default function PerfTableDesktop({
         <SortButtonGroup
           columnKey="code"
           label="コード"
-          activeKey={null}
-          direction={null}
-          onSort={() => undefined}
+          activeKey={sortKey}
+          direction={direction}
+          onSort={onSort}
           align="left"
+          defaultAscending={true}
         />
         <SortButtonGroup
           columnKey="stock_name"
           label="銘柄名"
-          activeKey={null}
-          direction={null}
-          onSort={() => undefined}
+          activeKey={sortKey}
+          direction={direction}
+          onSort={onSort}
           align="left"
+          defaultAscending={true}
         />
         <SortButtonGroup
           columnKey="date"
           label="日付"
-          activeKey={null}
-          direction={null}
-          onSort={() => undefined}
+          activeKey={sortKey}
+          direction={direction}
+          onSort={onSort}
           align="center"
         />
         {PERF_SORT_COLUMNS.map((column) => (
