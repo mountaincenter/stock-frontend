@@ -225,7 +225,7 @@ export default function LightweightChart({
       ro?.disconnect();
       chart?.remove();
     };
-  }, [mounted, style, candleData, rangeKey]);
+  });
 
   return (
     <div className="relative">

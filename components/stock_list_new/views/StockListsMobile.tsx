@@ -135,7 +135,6 @@ export default function StockListsMobile({
               })}
             </TabsList>
           }
-          heightClass=""
         >
           <div className="overflow-hidden">
             <Carousel
