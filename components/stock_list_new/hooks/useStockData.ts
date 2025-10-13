@@ -202,7 +202,7 @@ export function useStockData({
           for (const url of urls) {
             try {
               const res = await fetch(url, {
-                cache: "no-store",
+                next: { revalidate: 60 }, // 60秒間キャッシュ
                 signal: ac.signal,
               });
               if (!res.ok) {
@@ -376,7 +376,7 @@ export function useStockData({
           for (const url of urls) {
             try {
               const res = await fetch(url, {
-                cache: "no-store",
+                next: { revalidate: 60 }, // 60秒間キャッシュ
                 signal: ac.signal,
               });
               if (!res.ok) {

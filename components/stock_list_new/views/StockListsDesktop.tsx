@@ -60,13 +60,13 @@ export default function StockListsDesktop({
   onTechSort,
 }: StockListsDesktopProps) {
   return (
-    <div className="hidden md:flex md:flex-col flex-1 min-h-0">
+    <div className="hidden md:flex md:flex-col flex-1 min-h-0 overflow-hidden">
       <Tabs
         value={activeTab}
         onValueChange={(value) =>
           onTabChange(value as "price" | "perf" | "technical")
         }
-        className="h-full flex flex-col"
+        className="h-full flex flex-col overflow-hidden"
       >
         <TableWrapper
           toolbar={
@@ -101,9 +101,9 @@ export default function StockListsDesktop({
           }
           heightClass="h-full"
         >
-          <div className="h-full flex flex-col">
-            <TabsContent value="price" className="h-full px-0">
-              <div className="h-full flex flex-col">
+          <div className="h-full flex flex-col overflow-hidden">
+            <TabsContent value="price" className="h-full px-0 overflow-hidden">
+              <div className="h-full flex flex-col overflow-hidden">
                 <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-0">
                   <PriceTableDesktop
                     rows={priceRows}
@@ -117,8 +117,8 @@ export default function StockListsDesktop({
               </div>
             </TabsContent>
 
-            <TabsContent value="perf" className="h-full px-0">
-              <div className="h-full flex flex-col">
+            <TabsContent value="perf" className="h-full px-0 overflow-hidden">
+              <div className="h-full flex flex-col overflow-hidden">
                 <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-0">
                   <PerfTableDesktop
                     rows={perfRows}
@@ -131,8 +131,8 @@ export default function StockListsDesktop({
               </div>
             </TabsContent>
 
-            <TabsContent value="technical" className="h-full px-0">
-              <div className="h-full flex flex-col">
+            <TabsContent value="technical" className="h-full px-0 overflow-hidden">
+              <div className="h-full flex flex-col overflow-hidden">
                 <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-0">
                   {techStatus === "error" ? (
                     <div className="text-destructive text-xs px-2 py-2">

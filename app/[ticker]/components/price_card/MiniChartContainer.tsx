@@ -125,7 +125,7 @@ export default function MiniChartContainer({
   percentChange,
   prevClose,
 }: MiniChartContainerProps) {
-  const [activePeriod, setActivePeriod] = useState<PeriodKey>("5d");
+  const [activePeriod, setActivePeriod] = useState<PeriodKey>("1d");
   const [data, setData] = useState<MiniChartData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

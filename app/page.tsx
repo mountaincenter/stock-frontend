@@ -11,6 +11,9 @@ import {
   pickAllowedTickers,
 } from "@/lib/tag-utils";
 
+// キャッシュ戦略: 60秒間キャッシュし、その後バックグラウンドで再検証
+export const revalidate = 60;
+
 const RAW_API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 const API_BASE = RAW_API_BASE.endsWith("/") ? RAW_API_BASE.slice(0, -1) : RAW_API_BASE;
 const DEFAULT_TAG = "takaichi";
@@ -55,7 +58,9 @@ async function fetchInitial(tag: string) {
     let only404 = true;
     for (const url of urls) {
       try {
-        const res = await fetch(url, { cache: "no-store" });
+        const res = await fetch(url, {
+          next: { revalidate: 60 } // 60秒間キャッシュ
+        });
         if (!res.ok) {
           lastError = new Error(`HTTP ${res.status} for ${url}`);
           if (res.status !== 404) {
@@ -112,31 +117,35 @@ async function fetchInitial(tag: string) {
       ),
     ];
 
-    let initialMeta = await fetchJsonWithFallback<StockMeta[]>(metaCandidates, {
-      throwOnFailure: false,
-      fallbackValue: [],
-      context: "meta",
-    });
-    if ((initialMeta?.length ?? 0) === 0 && tagParam) {
-      const unfilteredCandidates = [
-        join(buildUrl("/stocks")),
-        join(buildUrl("/meta")),
-      ];
-      const unfiltered = await fetchJsonWithFallback<StockMeta[]>(
-        unfilteredCandidates,
-        {
+    // 全てのAPIコールを並列実行
+    const [initialMeta, rawSnapshot, rawPerf] = await Promise.all([
+      (async () => {
+        let meta = await fetchJsonWithFallback<StockMeta[]>(metaCandidates, {
           throwOnFailure: false,
           fallbackValue: [],
-          context: "meta(unfiltered)",
-        }
-      );
-      if (unfiltered.length > 0) {
-        initialMeta = filterMetaByTag(unfiltered, tagParam, {
-          allowMissingTagInfo: isCore30,
+          context: "meta",
         });
-      }
-    }
-    const [rawSnapshot, rawPerf] = await Promise.all([
+        if ((meta?.length ?? 0) === 0 && tagParam) {
+          const unfilteredCandidates = [
+            join(buildUrl("/stocks")),
+            join(buildUrl("/meta")),
+          ];
+          const unfiltered = await fetchJsonWithFallback<StockMeta[]>(
+            unfilteredCandidates,
+            {
+              throwOnFailure: false,
+              fallbackValue: [],
+              context: "meta(unfiltered)",
+            }
+          );
+          if (unfiltered.length > 0) {
+            meta = filterMetaByTag(unfiltered, tagParam, {
+              allowMissingTagInfo: isCore30,
+            });
+          }
+        }
+        return meta;
+      })(),
       fetchJsonWithFallback<SnapshotRow[]>(snapshotCandidates, {
         throwOnFailure: false,
         fallbackValue: [],
