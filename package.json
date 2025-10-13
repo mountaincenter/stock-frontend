@@ -14,6 +14,7 @@
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-tabs": "^1.1.13",
+    "@types/react-window": "^1.8.8",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "embla-carousel-react": "^8.6.0",
@@ -26,6 +27,7 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-plotly.js": "^2.6.0",
+    "react-window": "^2.2.1",
     "recharts": "^3.2.1",
     "tailwind-merge": "^3.3.1"
   },
