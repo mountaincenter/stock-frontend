@@ -43,6 +43,9 @@ const nf1 = new Intl.NumberFormat("ja-JP", {
  */
 const COLS_TECH = "110px 300px 110px repeat(8, minmax(84px, 1fr))";
 
+const INITIAL_DISPLAY_COUNT = 50; // 初期表示件数
+const LOAD_MORE_COUNT = 50; // 追加読み込み件数
+
 function toneBySign(v: number | null | undefined) {
   if (typeof v !== "number" || !Number.isFinite(v) || v === 0)
     return "text-card-foreground";
@@ -111,6 +114,110 @@ function pickCoreValues(v?: TechDecisionValues | null) {
   };
 }
 
+// 行コンポーネントをメモ化
+const TechnicalRow = React.memo(({
+  row,
+  nf2,
+  decisionByTicker
+}: {
+  row: TechCoreRow;
+  nf2: Intl.NumberFormat;
+  decisionByTicker?: Record<string, TechDecisionItem>;
+}) => {
+  const r = row;
+  const d: TechDecisionItem | undefined = decisionByTicker
+    ? decisionByTicker[r.ticker]
+    : undefined;
+
+  // ラベルは v2 があれば優先、なければ従来 rows
+  const overallLabel = d?.overall?.label ?? r.overall_rating;
+  const techLabel = d?.votes?.["tech"]?.label ?? r.tech_rating;
+  const maLabel = d?.votes?.["ma"]?.label ?? r.ma_rating;
+  const ichiLabel = d?.votes?.["ichimoku"]?.label ?? r.ichimoku_rating;
+
+  // 数値は v2 があれば優先
+  const core = pickCoreValues(d?.values);
+  const rsi14 = core.rsi14 ?? r.rsi14;
+  const macd = core.macd_hist ?? r.macd_hist;
+  const pb = core.bb_percent_b ?? r.bb_percent_b;
+  const dev = core.sma25_dev_pct ?? r.sma25_dev_pct;
+
+  return (
+    <Link
+      href={`/${encodeURIComponent(r.ticker)}`}
+      className="group/row block rounded-xl border border-border/60 bg-gradient-to-r from-card/50 via-card/80 to-card/50 text-card-foreground transition-all duration-200 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 hover:bg-gradient-to-r hover:from-card/70 hover:via-card/95 hover:to-card/70"
+      style={{
+        display: "grid",
+        gridTemplateColumns: COLS_TECH,
+        columnGap: "12px",
+      }}
+    >
+      {/* 先頭3列 */}
+      <div className="px-3 py-3 flex items-center">
+        <span className="font-sans tabular-nums font-semibold text-base">
+          {r.code ?? r.ticker}
+        </span>
+      </div>
+      <div className="px-3 py-3 min-w-0 flex items-center">
+        <h3 className="font-semibold text-sm leading-snug hover:text-primary transition-colors line-clamp-1">
+          {r.stock_name}
+        </h3>
+      </div>
+      <div className="px-3 py-3 flex items-center justify-center">
+        <span className="text-[12px] font-sans tabular-nums text-muted-foreground">
+          {d?.date ?? r.date ?? "—"}
+        </span>
+      </div>
+
+      {/* 評価4（均等割） */}
+      <div className="px-2 py-3">
+        <RatingInline label={overallLabel} title="総合評価" />
+      </div>
+      <div className="px-2 py-3">
+        <RatingInline label={techLabel} title="テクニカル評価" />
+      </div>
+      <div className="px-2 py-3">
+        <RatingInline label={maLabel} title="MA評価" />
+      </div>
+      <div className="px-2 py-3">
+        <RatingInline label={ichiLabel} title="一目均衡表評価" />
+      </div>
+
+      {/* KPI4（均等割・Perf と同じ text-base） */}
+      <div className="px-3 py-3 text-right">
+        <span className="font-sans tabular-nums text-base">
+          {fmt(rsi14, nf1)}
+        </span>
+      </div>
+      <div className="px-3 py-3 text-right">
+        <span
+          className={`font-sans tabular-nums text-base ${toneBySign(
+            macd
+          )}`}
+        >
+          {fmt(macd, nf2)}
+        </span>
+      </div>
+      <div className="px-3 py-3 text-right">
+        <span className="font-sans tabular-nums text-base">
+          {fmt(pb, nf2)}
+        </span>
+      </div>
+      <div className="px-3 py-3 text-right">
+        <span
+          className={`font-sans tabular-nums text-base ${toneBySign(
+            dev
+          )}`}
+        >
+          {fmt(dev, nf1, "%")}
+        </span>
+      </div>
+    </Link>
+  );
+});
+
+TechnicalRow.displayName = 'TechnicalRow';
+
 export default function TechnicalTableDesktop({
   rows,
   nf2,
@@ -119,6 +226,24 @@ export default function TechnicalTableDesktop({
   direction,
   onSort,
 }: Props) {
+  const [displayCount, setDisplayCount] = React.useState(INITIAL_DISPLAY_COUNT);
+
+  // 表示する行を制限
+  const displayedRows = React.useMemo(() => {
+    return rows.slice(0, displayCount);
+  }, [rows, displayCount]);
+
+  const hasMore = displayCount < rows.length;
+
+  const loadMore = React.useCallback(() => {
+    setDisplayCount(prev => Math.min(prev + LOAD_MORE_COUNT, rows.length));
+  }, [rows.length]);
+
+  // rowsが変わったら表示件数をリセット
+  React.useEffect(() => {
+    setDisplayCount(INITIAL_DISPLAY_COUNT);
+  }, [rows]);
+
   if (!rows?.length)
     return (
       <div className="text-muted-foreground text-xs px-2 py-3">
@@ -180,98 +305,27 @@ export default function TechnicalTableDesktop({
         ))}
       </div>
 
-      {rows.map((r) => {
-        const d: TechDecisionItem | undefined = decisionByTicker
-          ? decisionByTicker[r.ticker]
-          : undefined;
+      {/* テーブル行 */}
+      {displayedRows.map((r) => (
+        <TechnicalRow
+          key={r.ticker}
+          row={r}
+          nf2={nf2}
+          decisionByTicker={decisionByTicker}
+        />
+      ))}
 
-        // ラベルは v2 があれば優先、なければ従来 rows
-        const overallLabel = d?.overall?.label ?? r.overall_rating;
-        const techLabel = d?.votes?.["tech"]?.label ?? r.tech_rating;
-        const maLabel = d?.votes?.["ma"]?.label ?? r.ma_rating;
-        const ichiLabel = d?.votes?.["ichimoku"]?.label ?? r.ichimoku_rating;
-
-        // 数値は v2 があれば優先
-        const core = pickCoreValues(d?.values);
-        const rsi14 = core.rsi14 ?? r.rsi14;
-        const macd = core.macd_hist ?? r.macd_hist;
-        const pb = core.bb_percent_b ?? r.bb_percent_b;
-        const dev = core.sma25_dev_pct ?? r.sma25_dev_pct;
-
-        return (
-          <Link
-            key={r.ticker}
-            href={`/${encodeURIComponent(r.ticker)}`}
-            className="group/row block rounded-xl border border-border/60 bg-gradient-to-r from-card/50 via-card/80 to-card/50 text-card-foreground transition-all duration-200 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 hover:bg-gradient-to-r hover:from-card/70 hover:via-card/95 hover:to-card/70"
-            style={{
-              display: "grid",
-              gridTemplateColumns: COLS_TECH,
-              columnGap: "12px",
-            }}
+      {/* もっと見るボタン */}
+      {hasMore && (
+        <div className="flex justify-center py-4">
+          <button
+            onClick={loadMore}
+            className="px-6 py-2 text-sm font-medium text-foreground bg-muted/30 hover:bg-muted/50 border border-border/40 rounded-lg transition-all duration-200 hover:shadow-md"
           >
-            {/* 先頭3列 */}
-            <div className="px-3 py-3 flex items-center">
-              <span className="font-sans tabular-nums font-semibold text-base">
-                {r.code ?? r.ticker}
-              </span>
-            </div>
-            <div className="px-3 py-3 min-w-0 flex items-center">
-              <h3 className="font-semibold text-sm leading-snug hover:text-primary transition-colors line-clamp-1">
-                {r.stock_name}
-              </h3>
-            </div>
-            <div className="px-3 py-3 flex items-center justify-center">
-              <span className="text-[12px] font-sans tabular-nums text-muted-foreground">
-                {d?.date ?? r.date ?? "—"}
-              </span>
-            </div>
-
-            {/* 評価4（均等割） */}
-            <div className="px-2 py-3">
-              <RatingInline label={overallLabel} title="総合評価" />
-            </div>
-            <div className="px-2 py-3">
-              <RatingInline label={techLabel} title="テクニカル評価" />
-            </div>
-            <div className="px-2 py-3">
-              <RatingInline label={maLabel} title="MA評価" />
-            </div>
-            <div className="px-2 py-3">
-              <RatingInline label={ichiLabel} title="一目均衡表評価" />
-            </div>
-
-            {/* KPI4（均等割・Perf と同じ text-base） */}
-            <div className="px-3 py-3 text-right">
-              <span className="font-sans tabular-nums text-base">
-                {fmt(rsi14, nf1)}
-              </span>
-            </div>
-            <div className="px-3 py-3 text-right">
-              <span
-                className={`font-sans tabular-nums text-base ${toneBySign(
-                  macd
-                )}`}
-              >
-                {fmt(macd, nf2)}
-              </span>
-            </div>
-            <div className="px-3 py-3 text-right">
-              <span className="font-sans tabular-nums text-base">
-                {fmt(pb, nf2)}
-              </span>
-            </div>
-            <div className="px-3 py-3 text-right">
-              <span
-                className={`font-sans tabular-nums text-base ${toneBySign(
-                  dev
-                )}`}
-              >
-                {fmt(dev, nf1, "%")}
-              </span>
-            </div>
-          </Link>
-        );
-      })}
+            もっと見る ({rows.length - displayCount}件)
+          </button>
+        </div>
+      )}
     </div>
   );
 }
