@@ -175,6 +175,14 @@ export default function StockLists(props: Props & { className?: string }) {
     [techFilteredRows, sortState.tech.key, sortState.tech.direction]
   );
 
+  const priceDataByTicker = useMemo(() => {
+    const map: Record<string, Row> = {};
+    filtered.forEach((row) => {
+      map[row.ticker] = row;
+    });
+    return map;
+  }, [filtered]);
+
   const handlePriceSort = useCallback(
     (key: PriceSortKey, direction: SortDirection) => {
       setSortState((prev) => ({
@@ -432,6 +440,7 @@ export default function StockLists(props: Props & { className?: string }) {
     techSortKey={sortState.tech.key}
     techSortDirection={sortState.tech.direction}
     onTechSort={handleTechSort}
+    priceDataByTicker={priceDataByTicker}
   />
 
   <StockListsMobile

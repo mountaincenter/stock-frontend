@@ -15,10 +15,12 @@ import type {
   RatingLabel,
   TechDecisionItem,
   TechDecisionValues,
+  Row,
 } from "../../types";
 import type { SortDirection, TechSortKey } from "../../utils/sort";
 import { TECH_SORT_COLUMNS } from "../../utils/sort";
 import { SortButtonGroup } from "../../parts/SortButtonGroup";
+import { CustomTooltip } from "../../parts/CustomTooltip";
 
 type Props = {
   rows: TechCoreRow[];
@@ -28,6 +30,7 @@ type Props = {
   sortKey: TechSortKey | null;
   direction: SortDirection;
   onSort: (key: TechSortKey, direction: SortDirection) => void;
+  priceDataByTicker?: Record<string, Row>;
 };
 
 // 1桁（RSI/乖離）
@@ -118,11 +121,13 @@ function pickCoreValues(v?: TechDecisionValues | null) {
 const TechnicalRow = React.memo(({
   row,
   nf2,
-  decisionByTicker
+  decisionByTicker,
+  priceDataByTicker
 }: {
   row: TechCoreRow;
   nf2: Intl.NumberFormat;
   decisionByTicker?: Record<string, TechDecisionItem>;
+  priceDataByTicker?: Record<string, Row>;
 }) => {
   const r = row;
   const d: TechDecisionItem | undefined = decisionByTicker
@@ -142,32 +147,78 @@ const TechnicalRow = React.memo(({
   const pb = core.bb_percent_b ?? r.bb_percent_b;
   const dev = core.sma25_dev_pct ?? r.sma25_dev_pct;
 
+  // 価格データを取得
+  const priceData = priceDataByTicker?.[r.ticker];
+  const nf0 = new Intl.NumberFormat("ja-JP", { maximumFractionDigits: 0 });
+  const nf1 = new Intl.NumberFormat("ja-JP", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+  // 価格差を計算
+  const priceDiff = priceData?.close != null && priceData?.prevClose != null
+    ? priceData.close - priceData.prevClose
+    : null;
+
+  const handleClick = React.useCallback(() => {
+    window.location.href = `/${encodeURIComponent(r.ticker)}`;
+  }, [r.ticker]);
+
+  // 前日差の文字列を生成
+  const diffText = React.useMemo(() => {
+    if (priceDiff == null || priceData?.pct_diff == null) return "—";
+    const sign = priceDiff > 0 ? "+" : "";
+    const priceStr = `${sign}${nf0.format(priceDiff)}円`;
+    const pctSign = priceData.pct_diff > 0 ? "+" : "";
+    const pctStr = `${pctSign}${nf1.format(priceData.pct_diff)}%`;
+    return `${priceStr} (${pctStr})`;
+  }, [priceDiff, priceData?.pct_diff, nf0, nf1]);
+
+  const tooltipContent = (
+    <div className="space-y-1">
+      <div className="flex items-center gap-2">
+        <span className="text-muted-foreground">前日終値:</span>
+        <span className="font-semibold tabular-nums">
+          {priceData?.prevClose != null ? `¥${nf0.format(priceData.prevClose)}` : "—"}
+        </span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-muted-foreground">前日差:</span>
+        <span className={`font-semibold tabular-nums ${
+          priceDiff == null ? "" :
+          priceDiff > 0 ? "text-green-600 dark:text-green-400" :
+          priceDiff < 0 ? "text-red-600 dark:text-red-400" : ""
+        }`}>
+          {diffText}
+        </span>
+      </div>
+    </div>
+  );
+
   return (
-    <Link
-      href={`/${encodeURIComponent(r.ticker)}`}
-      className="group/row block rounded-xl border border-border/60 bg-gradient-to-r from-card/50 via-card/80 to-card/50 text-card-foreground transition-all duration-200 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 hover:bg-gradient-to-r hover:from-card/70 hover:via-card/95 hover:to-card/70"
-      style={{
-        display: "grid",
-        gridTemplateColumns: COLS_TECH,
-        columnGap: "12px",
-      }}
-    >
-      {/* 先頭3列 */}
-      <div className="px-3 py-3 flex items-center">
-        <span className="font-sans tabular-nums font-semibold text-base">
-          {r.code ?? r.ticker}
-        </span>
-      </div>
-      <div className="px-3 py-3 min-w-0 flex items-center">
-        <h3 className="font-semibold text-sm leading-snug hover:text-primary transition-colors line-clamp-1">
-          {r.stock_name}
-        </h3>
-      </div>
-      <div className="px-3 py-3 flex items-center justify-center">
-        <span className="text-[12px] font-sans tabular-nums text-muted-foreground">
-          {d?.date ?? r.date ?? "—"}
-        </span>
-      </div>
+    <CustomTooltip content={tooltipContent}>
+      <button
+        onClick={handleClick}
+        className="group/row w-full text-left rounded-xl border border-border/60 bg-gradient-to-r from-card/50 via-card/80 to-card/50 text-card-foreground transition-all duration-200 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 hover:bg-gradient-to-r hover:from-card/70 hover:via-card/95 hover:to-card/70 cursor-pointer"
+        style={{
+          display: "grid",
+          gridTemplateColumns: COLS_TECH,
+          columnGap: "12px",
+        }}
+      >
+          {/* 先頭3列 */}
+          <div className="px-3 py-3 flex items-center">
+            <span className="font-sans tabular-nums font-semibold text-base">
+              {r.code ?? r.ticker}
+            </span>
+          </div>
+          <div className="px-3 py-3 min-w-0 flex items-center">
+            <h3 className="font-semibold text-sm leading-snug hover:text-primary transition-colors line-clamp-1">
+              {r.stock_name}
+            </h3>
+          </div>
+          <div className="px-3 py-3 flex items-center justify-center">
+            <span className="text-[12px] font-sans tabular-nums text-muted-foreground">
+              {d?.date ?? r.date ?? "—"}
+            </span>
+          </div>
 
       {/* 評価4（均等割） */}
       <div className="px-2 py-3">
@@ -212,7 +263,8 @@ const TechnicalRow = React.memo(({
           {fmt(dev, nf1, "%")}
         </span>
       </div>
-    </Link>
+      </button>
+    </CustomTooltip>
   );
 });
 
@@ -225,6 +277,7 @@ export default function TechnicalTableDesktop({
   sortKey,
   direction,
   onSort,
+  priceDataByTicker,
 }: Props) {
   const [displayCount, setDisplayCount] = React.useState(INITIAL_DISPLAY_COUNT);
 
@@ -312,6 +365,7 @@ export default function TechnicalTableDesktop({
           row={r}
           nf2={nf2}
           decisionByTicker={decisionByTicker}
+          priceDataByTicker={priceDataByTicker}
         />
       ))}
 

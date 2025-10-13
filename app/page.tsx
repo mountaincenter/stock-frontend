@@ -183,7 +183,7 @@ export default async function Page() {
   const { initialMeta, initialSnapshot, initialPerf, initialTag } = await fetchInitial(DEFAULT_TAG);
 
   return (
-    <main className="relative flex flex-col min-h-[100svh] md:min-h-screen overflow-hidden">
+    <main className="relative flex flex-col min-h-[100svh] md:min-h-screen">
       {/* TradingView-inspired animated gradient background */}
       <div className="fixed inset-0 -z-10 overflow-hidden">
         {/* Primary gradient layer */}
@@ -197,7 +197,7 @@ export default async function Page() {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.03)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.03)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]" />
       </div>
 
-      <div className="flex-1 py-6 md:py-8 lg:py-10">
+      <div className="py-6 md:py-8 lg:py-10">
         {/* Container with premium width constraints */}
         <div className="w-full md:w-[92%] lg:w-[88%] xl:w-[85%] 2xl:w-[82%] mx-auto px-4 md:px-0">
           <section className="tight-mobile">

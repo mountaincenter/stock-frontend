@@ -8,6 +8,7 @@ import { PerfCell } from "../../parts/Cells";
 import type { PerfSortKey, SortDirection } from "../../utils/sort";
 import { PERF_SORT_COLUMNS } from "../../utils/sort";
 import { SortButtonGroup } from "../../parts/SortButtonGroup";
+import { CustomTooltip } from "../../parts/CustomTooltip";
 
 /**
  * 列幅:
@@ -36,32 +37,74 @@ const PerfRow = React.memo(({
   nf2: Intl.NumberFormat;
 }) => {
   const r = row;
+  const nf0 = new Intl.NumberFormat("ja-JP", { maximumFractionDigits: 0 });
+  const nf1 = new Intl.NumberFormat("ja-JP", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+  // 価格差を計算
+  const priceDiff = r.close != null && r.prevClose != null ? r.close - r.prevClose : null;
+
+  const handleClick = React.useCallback(() => {
+    window.location.href = `/${encodeURIComponent(r.ticker)}`;
+  }, [r.ticker]);
+
+  // 前日差の文字列を生成
+  const diffText = React.useMemo(() => {
+    if (priceDiff == null || r.pct_diff == null) return "—";
+    const sign = priceDiff > 0 ? "+" : "";
+    const priceStr = `${sign}${nf0.format(priceDiff)}円`;
+    const pctSign = r.pct_diff > 0 ? "+" : "";
+    const pctStr = `${pctSign}${nf1.format(r.pct_diff)}%`;
+    return `${priceStr} (${pctStr})`;
+  }, [priceDiff, r.pct_diff, nf0, nf1]);
+
+  const tooltipContent = (
+    <div className="space-y-1">
+      <div className="flex items-center gap-2">
+        <span className="text-muted-foreground">前日終値:</span>
+        <span className="font-semibold tabular-nums">
+          {r.prevClose != null ? `¥${nf0.format(r.prevClose)}` : "—"}
+        </span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-muted-foreground">前日差:</span>
+        <span className={`font-semibold tabular-nums ${
+          priceDiff == null ? "" :
+          priceDiff > 0 ? "text-green-600 dark:text-green-400" :
+          priceDiff < 0 ? "text-red-600 dark:text-red-400" : ""
+        }`}>
+          {diffText}
+        </span>
+      </div>
+    </div>
+  );
+
   return (
-    <Link
-      href={`/${encodeURIComponent(r.ticker)}`}
-      className="group/row block rounded-xl border border-border/60 bg-gradient-to-r from-card/50 via-card/80 to-card/50 text-card-foreground transition-all duration-200 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 hover:bg-gradient-to-r hover:from-card/70 hover:via-card/95 hover:to-card/70"
-      style={{
-        display: "grid",
-        gridTemplateColumns: COLS_PERF,
-        columnGap: "12px",
-      }}
-    >
-      {/* 先頭3列 */}
-      <div className="px-3 py-3 flex items-center">
-        <span className="font-sans tabular-nums font-semibold text-base">
-          {r.code}
-        </span>
-      </div>
-      <div className="px-3 py-3 min-w-0 flex items-center">
-        <h3 className="font-semibold text-sm leading-snug hover:text-primary transition-colors line-clamp-1">
-          {r.stock_name}
-        </h3>
-      </div>
-      <div className="px-3 py-3 flex items-center justify-center">
-        <span className="text-[12px] font-sans tabular-nums text-muted-foreground">
-          {r.date ?? "—"}
-        </span>
-      </div>
+    <CustomTooltip content={tooltipContent}>
+      <button
+        onClick={handleClick}
+        className="group/row w-full text-left rounded-xl border border-border/60 bg-gradient-to-r from-card/50 via-card/80 to-card/50 text-card-foreground transition-all duration-200 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 hover:bg-gradient-to-r hover:from-card/70 hover:via-card/95 hover:to-card/70 cursor-pointer"
+        style={{
+          display: "grid",
+          gridTemplateColumns: COLS_PERF,
+          columnGap: "12px",
+        }}
+      >
+          {/* 先頭3列 */}
+          <div className="px-3 py-3 flex items-center">
+            <span className="font-sans tabular-nums font-semibold text-base">
+              {r.code}
+            </span>
+          </div>
+          <div className="px-3 py-3 min-w-0 flex items-center">
+            <h3 className="font-semibold text-sm leading-snug hover:text-primary transition-colors line-clamp-1">
+              {r.stock_name}
+            </h3>
+          </div>
+          <div className="px-3 py-3 flex items-center justify-center">
+            <span className="text-[12px] font-sans tabular-nums text-muted-foreground">
+              {r.date ?? "—"}
+            </span>
+          </div>
 
       {/* パフォーマンス（均等割・右寄せの数値） */}
       <div className="px-3 py-3 text-right">
@@ -88,7 +131,8 @@ const PerfRow = React.memo(({
       <div className="px-3 py-3 text-right">
         <PerfCell v={r.r_all} nf2={nf2} />
       </div>
-    </Link>
+      </button>
+    </CustomTooltip>
   );
 });
 

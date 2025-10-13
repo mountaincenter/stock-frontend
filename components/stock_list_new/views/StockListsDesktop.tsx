@@ -38,6 +38,7 @@ interface StockListsDesktopProps {
   techSortKey: TechSortKey | null;
   techSortDirection: SortDirection;
   onTechSort: (key: TechSortKey, direction: SortDirection) => void;
+  priceDataByTicker?: Record<string, Row>;
 }
 
 export default function StockListsDesktop({
@@ -58,15 +59,15 @@ export default function StockListsDesktop({
   techSortKey,
   techSortDirection,
   onTechSort,
+  priceDataByTicker,
 }: StockListsDesktopProps) {
   return (
-    <div className="hidden md:flex md:flex-col flex-1 min-h-0 overflow-hidden">
+    <div className="hidden md:block">
       <Tabs
         value={activeTab}
         onValueChange={(value) =>
           onTabChange(value as "price" | "perf" | "technical")
         }
-        className="h-full flex flex-col overflow-hidden"
       >
         <TableWrapper
           toolbar={
@@ -99,58 +100,51 @@ export default function StockListsDesktop({
               </TabsList>
             </div>
           }
-          heightClass="h-full"
+          heightClass="max-h-[600px]"
         >
-          <div className="h-full flex flex-col overflow-hidden">
-            <TabsContent value="price" className="h-full px-0 overflow-hidden">
-              <div className="h-full flex flex-col overflow-hidden">
-                <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-0">
-                  <PriceTableDesktop
-                    rows={priceRows}
-                    nf0={nf0}
-                    nf2={nf2}
-                    sortKey={priceSortKey}
-                    direction={priceSortDirection}
-                    onSort={onPriceSort}
-                  />
-                </div>
-              </div>
-            </TabsContent>
+          <TabsContent value="price" className="mt-0">
+            <div className="max-h-[540px] overflow-y-auto">
+              <PriceTableDesktop
+                rows={priceRows}
+                nf0={nf0}
+                nf2={nf2}
+                sortKey={priceSortKey}
+                direction={priceSortDirection}
+                onSort={onPriceSort}
+              />
+            </div>
+          </TabsContent>
 
-            <TabsContent value="perf" className="h-full px-0 overflow-hidden">
-              <div className="h-full flex flex-col overflow-hidden">
-                <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-0">
-                  <PerfTableDesktop
-                    rows={perfRows}
-                    nf2={nf2}
-                    sortKey={perfSortKey}
-                    direction={perfSortDirection}
-                    onSort={onPerfSort}
-                  />
-                </div>
-              </div>
-            </TabsContent>
+          <TabsContent value="perf" className="mt-0">
+            <div className="max-h-[540px] overflow-y-auto">
+              <PerfTableDesktop
+                rows={perfRows}
+                nf2={nf2}
+                sortKey={perfSortKey}
+                direction={perfSortDirection}
+                onSort={onPerfSort}
+              />
+            </div>
+          </TabsContent>
 
-            <TabsContent value="technical" className="h-full px-0 overflow-hidden">
-              <div className="h-full flex flex-col overflow-hidden">
-                <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-0">
-                  {techStatus === "error" ? (
-                    <div className="text-destructive text-xs px-2 py-2">
-                      テクニカルの取得に失敗しました（/tech/decision/snapshot）
-                    </div>
-                  ) : (
-                    <TechnicalTableDesktop
-                      rows={techRows}
-                      nf2={nf2}
-                      sortKey={techSortKey}
-                      direction={techSortDirection}
-                      onSort={onTechSort}
-                    />
-                  )}
+          <TabsContent value="technical" className="mt-0">
+            <div className="max-h-[540px] overflow-y-auto">
+              {techStatus === "error" ? (
+                <div className="text-destructive text-xs px-2 py-2">
+                  テクニカルの取得に失敗しました（/tech/decision/snapshot）
                 </div>
-              </div>
-            </TabsContent>
-          </div>
+              ) : (
+                <TechnicalTableDesktop
+                  rows={techRows}
+                  nf2={nf2}
+                  sortKey={techSortKey}
+                  direction={techSortDirection}
+                  onSort={onTechSort}
+                  priceDataByTicker={priceDataByTicker}
+                />
+              )}
+            </div>
+          </TabsContent>
         </TableWrapper>
       </Tabs>
     </div>
