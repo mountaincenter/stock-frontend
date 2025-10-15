@@ -52,10 +52,6 @@ const PerfRow = React.memo(({
   // 価格差を計算
   const priceDiff = r.close != null && r.prevClose != null ? r.close - r.prevClose : null;
 
-  const handleClick = React.useCallback(() => {
-    window.location.href = `/${encodeURIComponent(r.ticker)}`;
-  }, [r.ticker]);
-
   // 前日差の文字列を生成
   const diffText = React.useMemo(() => {
     if (priceDiff == null || r.pct_diff == null) return "—";
@@ -89,9 +85,9 @@ const PerfRow = React.memo(({
 
   return (
     <CustomTooltip content={tooltipContent}>
-      <button
-        onClick={handleClick}
-        className="group/row w-full text-left rounded-xl bg-gradient-to-r from-card/50 via-card/80 to-card/50 text-card-foreground transition-all duration-200 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 hover:bg-gradient-to-r hover:from-card/70 hover:via-card/95 hover:to-card/70 cursor-pointer"
+      <Link
+        href={`/${encodeURIComponent(r.ticker)}`}
+        className="group/row block rounded-xl bg-gradient-to-r from-card/50 via-card/80 to-card/50 text-card-foreground transition-all duration-200 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 hover:bg-gradient-to-r hover:from-card/70 hover:via-card/95 hover:to-card/70"
         style={{
           display: "grid",
           gridTemplateColumns: COLS_PERF,
@@ -140,7 +136,7 @@ const PerfRow = React.memo(({
       <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
         <PerfCell v={r.r_all} nf2={nf2} />
       </div>
-      </button>
+      </Link>
     </CustomTooltip>
   );
 });

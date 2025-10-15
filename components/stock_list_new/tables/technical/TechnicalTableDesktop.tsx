@@ -166,10 +166,6 @@ const TechnicalRow = React.memo(({
     ? priceData.close - priceData.prevClose
     : null;
 
-  const handleClick = React.useCallback(() => {
-    window.location.href = `/${encodeURIComponent(r.ticker)}`;
-  }, [r.ticker]);
-
   // 前日差の文字列を生成
   const diffText = React.useMemo(() => {
     if (priceDiff == null || priceData?.pct_diff == null) return "—";
@@ -203,9 +199,9 @@ const TechnicalRow = React.memo(({
 
   return (
     <CustomTooltip content={tooltipContent}>
-      <button
-        onClick={handleClick}
-        className="group/row w-full text-left rounded-xl bg-gradient-to-r from-card/50 via-card/80 to-card/50 text-card-foreground transition-all duration-200 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 hover:bg-gradient-to-r hover:from-card/70 hover:via-card/95 hover:to-card/70 cursor-pointer"
+      <Link
+        href={`/${encodeURIComponent(r.ticker)}`}
+        className="group/row block rounded-xl bg-gradient-to-r from-card/50 via-card/80 to-card/50 text-card-foreground transition-all duration-200 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 hover:bg-gradient-to-r hover:from-card/70 hover:via-card/95 hover:to-card/70"
         style={{
           display: "grid",
           gridTemplateColumns: COLS_TECH,
@@ -272,7 +268,7 @@ const TechnicalRow = React.memo(({
           {fmt(dev, nf1, "%")}
         </span>
       </div>
-      </button>
+      </Link>
     </CustomTooltip>
   );
 });
