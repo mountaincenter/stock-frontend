@@ -25,9 +25,9 @@ export default function PriceCard({
 
   const colorMain =
     sign > 0
-      ? "text-emerald-400"
+      ? "text-emerald-300"
       : sign < 0
-      ? "text-rose-400"
+      ? "text-rose-300"
       : "text-muted-foreground";
 
   const badgeTone =
@@ -42,11 +42,11 @@ export default function PriceCard({
   // ─────────────────────────────────────────────────
   return (
     <section
-      className="group relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-card/95 via-card/90 to-card/95 p-6 md:p-8 shadow-2xl shadow-black/5 backdrop-blur-xl transition-all duration-300 hover:shadow-2xl hover:shadow-black/10"
+      className="group relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 md:p-8 shadow-xl shadow-black/5 backdrop-blur-xl transition-all duration-300 hover:shadow-xl hover:shadow-black/10"
       aria-label="価格サマリー"
     >
       {/* Premium shine overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] via-transparent to-transparent pointer-events-none" />
 
       {/* Subtle animated accent on hover */}
       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br from-primary/[0.02] via-transparent to-accent/[0.02] pointer-events-none" />
@@ -65,6 +65,25 @@ export default function PriceCard({
 
           {/* ZONE 3: Volatility Metrics */}
           <VolatilityMetrics snap={snap} />
+
+          {/* ZONE 4: Reserved Space for TDnet / Fundamental Alerts (Future Phase) */}
+          <div className="mt-4 pt-3 border-t border-border/20">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-medium flex items-center gap-2 mb-2">
+              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border/20 to-transparent" />
+              <span>Fundamental Alerts (Reserved)</span>
+              <div className="h-px flex-1 bg-gradient-to-l from-transparent via-border/20 to-transparent" />
+            </div>
+            <div className="text-[9px] text-muted-foreground/40 leading-relaxed">
+              <p className="mb-1">
+                <span className="font-semibold">データ出典:</span> Yahoo Finance (yfinance)
+              </p>
+              <p>
+                本サービスで提供される情報は、投資判断の参考として提供するものであり、投資勧誘を目的としたものではありません。
+                投資に関する最終決定は、利用者ご自身の判断でなさるようお願いいたします。
+                本サービスの情報に基づいて被ったいかなる損害についても、当方は一切の責任を負いかねます。
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Right Column: Mini Chart (desktop only) */}
@@ -75,19 +94,6 @@ export default function PriceCard({
             percentChange={pct}
             prevClose={snap?.prevClose ?? null}
           />
-        </div>
-      </div>
-
-      <div className="relative">{/* Spacer for footer */}</div>
-      <div className="relative">
-
-        {/* ZONE 4: Footer - more elegant */}
-        <div className="mt-8 flex items-center justify-between">
-          <div className="h-px flex-1 bg-gradient-to-r from-border/20 via-border/40 to-transparent" />
-          <div className="px-3 text-[10px] font-medium text-muted-foreground/40 tracking-wider uppercase">
-            Snapshot Data
-          </div>
-          <div className="h-px flex-1 bg-gradient-to-l from-border/20 via-border/40 to-transparent" />
         </div>
       </div>
     </section>

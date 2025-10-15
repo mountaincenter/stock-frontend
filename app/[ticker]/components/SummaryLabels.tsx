@@ -19,11 +19,11 @@ export default function SummaryLabels({ overall, oscillator, ma, ichimoku }: Sum
   ];
 
   return (
-    <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
       {labels.map((x) => (
-        <div key={x.k} className="px-3 py-3 rounded-lg bg-card/50 text-center border border-border/30">
-          <div className="text-xs font-medium text-muted-foreground/70 mb-1.5">{x.k}</div>
-          <div className="text-base font-bold">
+        <div key={x.k} className="px-2.5 md:px-3 py-2 md:py-2.5 rounded-lg bg-card/50 text-center border border-border/30">
+          <div className="text-[10px] md:text-xs font-semibold text-muted-foreground/70 mb-1 md:mb-1.5">{x.k}</div>
+          <div className="text-sm md:text-base font-bold">
             {renderAction(x.v)}
           </div>
         </div>

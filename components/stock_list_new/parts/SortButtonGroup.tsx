@@ -4,6 +4,13 @@ import "./sort-toggle.css";
 import React from "react";
 import { cn } from "@/lib/utils";
 import type { SortDirection } from "../utils/sort";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { HelpCircle } from "lucide-react";
 
 interface SortButtonGroupProps<K extends string> {
   columnKey: K;
@@ -14,6 +21,10 @@ interface SortButtonGroupProps<K extends string> {
   align?: "left" | "center" | "right";
   className?: string;
   defaultAscending?: boolean;
+  tooltip?: {
+    description: string;
+    formula?: string;
+  };
 }
 
 export function SortButtonGroup<K extends string>({
@@ -25,6 +36,7 @@ export function SortButtonGroup<K extends string>({
   align = "right",
   className,
   defaultAscending = false,
+  tooltip,
 }: SortButtonGroupProps<K>) {
   const isActive = activeKey === columnKey;
   const current: SortDirection = isActive ? direction : null;
@@ -58,7 +70,39 @@ export function SortButtonGroup<K extends string>({
         className
       )}
     >
-      <span className="whitespace-nowrap">{label}</span>
+      <span className="whitespace-nowrap flex items-center gap-1">
+        {label}
+        {tooltip && (
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex items-center opacity-60 hover:opacity-100 transition-opacity"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <HelpCircle className="h-3 w-3" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent
+                side="top"
+                className="max-w-xs text-xs bg-popover/95 backdrop-blur-sm"
+              >
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">
+                    {tooltip.description}
+                  </p>
+                  {tooltip.formula && (
+                    <p className="text-muted-foreground font-mono text-[11px]">
+                      {tooltip.formula}
+                    </p>
+                  )}
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </span>
       <button
         type="button"
         onClick={handleCycle}

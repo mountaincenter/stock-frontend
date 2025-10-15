@@ -10,15 +10,15 @@ const cx = (...xs: Array<string | false | undefined>) =>
   xs.filter(Boolean).join(" ");
 
 /**
- * ±トーン（0は“中立”）
+ * ±トーン（0は"中立"）
  * - 中立は shadcn のトークンに合わせて text-muted-foreground
- * - ±は従来どおり金融配色（emerald/rose）
+ * - ±は株式投資UI専用カラー（直接色指定）
  */
 const toneBySign = (v: number) =>
   v > 0
-    ? "text-emerald-300"
+    ? "text-green-600 dark:text-green-500"
     : v < 0
-    ? "text-rose-300"
+    ? "text-red-600 dark:text-red-500"
     : "text-muted-foreground";
 
 /** 10%以上=小数0桁, 1%以上=1桁, それ未満=2桁 */

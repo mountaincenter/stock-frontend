@@ -4,6 +4,8 @@
 import * as React from "react";
 import Link from "next/link";
 import type { Row } from "../../types";
+import type { DisplayDensity } from "../../types/density";
+import { getDensityStyles, DENSITY_VALUES } from "../../types/density";
 import { PerfCell } from "../../parts/Cells";
 import type { PerfSortKey, SortDirection } from "../../utils/sort";
 import { PERF_SORT_COLUMNS } from "../../utils/sort";
@@ -11,11 +13,11 @@ import { SortButtonGroup } from "../../parts/SortButtonGroup";
 import { CustomTooltip } from "../../parts/CustomTooltip";
 
 /**
- * 列幅:
- * 1:コード(110) 2:銘柄名(300) 3:日付(110)
- * 4〜11: パフォーマンス8カラムを均等割付け
+ * 列幅（フレキシブル版）:
+ * 1:コード(110固定) 2:銘柄名(min240,1.2fr) 3:日付(110固定)
+ * 4〜11: パフォーマンス8カラム(各min85,1fr)
  */
-const COLS_PERF = "110px 300px 110px repeat(8, minmax(84px, 1fr))";
+const COLS_PERF = "110px minmax(240px, 1.2fr) 110px minmax(85px, 1fr) minmax(85px, 1fr) minmax(85px, 1fr) minmax(85px, 1fr) minmax(85px, 1fr) minmax(85px, 1fr) minmax(85px, 1fr) minmax(85px, 1fr)";
 
 const INITIAL_DISPLAY_COUNT = 50; // 初期表示件数
 const LOAD_MORE_COUNT = 50; // 追加読み込み件数
@@ -26,19 +28,26 @@ type Props = {
   sortKey: PerfSortKey | null;
   direction: SortDirection;
   onSort: (key: PerfSortKey, direction: SortDirection) => void;
+  density?: DisplayDensity;
 };
 
 // 行コンポーネントをメモ化
 const PerfRow = React.memo(({
   row,
-  nf2
+  nf2,
+  density = "normal"
 }: {
   row: Row;
   nf2: Intl.NumberFormat;
+  density?: DisplayDensity;
 }) => {
   const r = row;
   const nf0 = new Intl.NumberFormat("ja-JP", { maximumFractionDigits: 0 });
   const nf1 = new Intl.NumberFormat("ja-JP", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+  const densityValues = DENSITY_VALUES[density];
+  const densityStyles = getDensityStyles(density);
+  const paddingY = `${densityValues.rowPaddingY}rem`;
 
   // 価格差を計算
   const priceDiff = r.close != null && r.prevClose != null ? r.close - r.prevClose : null;
@@ -70,7 +79,7 @@ const PerfRow = React.memo(({
         <span className={`font-semibold tabular-nums ${
           priceDiff == null ? "" :
           priceDiff > 0 ? "text-green-600 dark:text-green-400" :
-          priceDiff < 0 ? "text-red-600 dark:text-red-400" : ""
+          priceDiff < 0 ? "text-red-600 dark:text-red-500" : ""
         }`}>
           {diffText}
         </span>
@@ -82,53 +91,53 @@ const PerfRow = React.memo(({
     <CustomTooltip content={tooltipContent}>
       <button
         onClick={handleClick}
-        className="group/row w-full text-left rounded-xl border border-border/60 bg-gradient-to-r from-card/50 via-card/80 to-card/50 text-card-foreground transition-all duration-200 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 hover:bg-gradient-to-r hover:from-card/70 hover:via-card/95 hover:to-card/70 cursor-pointer"
+        className="group/row w-full text-left rounded-xl bg-gradient-to-r from-card/50 via-card/80 to-card/50 text-card-foreground transition-all duration-200 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 hover:bg-gradient-to-r hover:from-card/70 hover:via-card/95 hover:to-card/70 cursor-pointer"
         style={{
           display: "grid",
           gridTemplateColumns: COLS_PERF,
-          columnGap: "12px",
+          columnGap: `${densityValues.columnGap}px`,
         }}
       >
           {/* 先頭3列 */}
-          <div className="px-3 py-3 flex items-center">
-            <span className="font-sans tabular-nums font-semibold text-base">
+          <div className="px-3 flex items-center" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+            <span className={`font-sans tabular-nums font-semibold ${densityStyles.fontSize.code}`}>
               {r.code}
             </span>
           </div>
-          <div className="px-3 py-3 min-w-0 flex items-center">
-            <h3 className="font-semibold text-sm leading-snug hover:text-primary transition-colors line-clamp-1">
+          <div className="px-3 min-w-0 flex items-center" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+            <h3 className={`font-semibold ${densityStyles.fontSize.stockName} leading-snug hover:text-primary transition-colors line-clamp-1`}>
               {r.stock_name}
             </h3>
           </div>
-          <div className="px-3 py-3 flex items-center justify-center">
-            <span className="text-[12px] font-sans tabular-nums text-muted-foreground">
+          <div className="px-3 flex items-center justify-center" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+            <span className={`${densityStyles.fontSize.date} font-sans tabular-nums text-muted-foreground`}>
               {r.date ?? "—"}
             </span>
           </div>
 
       {/* パフォーマンス（均等割・右寄せの数値） */}
-      <div className="px-3 py-3 text-right">
+      <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
         <PerfCell v={r.r_5d} nf2={nf2} />
       </div>
-      <div className="px-3 py-3 text-right">
+      <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
         <PerfCell v={r.r_1mo} nf2={nf2} />
       </div>
-      <div className="px-3 py-3 text-right">
+      <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
         <PerfCell v={r.r_3mo} nf2={nf2} />
       </div>
-      <div className="px-3 py-3 text-right">
+      <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
         <PerfCell v={r.r_ytd} nf2={nf2} />
       </div>
-      <div className="px-3 py-3 text-right">
+      <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
         <PerfCell v={r.r_1y} nf2={nf2} />
       </div>
-      <div className="px-3 py-3 text-right">
+      <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
         <PerfCell v={r.r_3y} nf2={nf2} />
       </div>
-      <div className="px-3 py-3 text-right">
+      <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
         <PerfCell v={r.r_5y} nf2={nf2} />
       </div>
-      <div className="px-3 py-3 text-right">
+      <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
         <PerfCell v={r.r_all} nf2={nf2} />
       </div>
       </button>
@@ -144,8 +153,10 @@ export default function PerfTableDesktop({
   sortKey,
   direction,
   onSort,
+  density = "normal",
 }: Props) {
   const [displayCount, setDisplayCount] = React.useState(INITIAL_DISPLAY_COUNT);
+  const densityValues = DENSITY_VALUES[density];
 
   // 表示する行を制限
   const displayedRows = React.useMemo(() => {
@@ -164,7 +175,7 @@ export default function PerfTableDesktop({
   }, [rows]);
 
   return (
-    <div className="space-y-2">
+    <div className={`${DENSITY_VALUES[density].rowSpacing === 0.5 ? 'space-y-2' : DENSITY_VALUES[density].rowSpacing === 0.625 ? 'space-y-2.5' : 'space-y-3'}`}>
       {/* ヘッダ */}
       <div
         className="
@@ -175,7 +186,7 @@ export default function PerfTableDesktop({
         style={{
           display: "grid",
           gridTemplateColumns: COLS_PERF,
-          columnGap: "12px",
+          columnGap: `${densityValues.columnGap}px`,
         }}
       >
         <SortButtonGroup
@@ -213,13 +224,14 @@ export default function PerfTableDesktop({
             direction={direction}
             onSort={onSort}
             align={column.align ?? "right"}
+            tooltip={column.tooltip}
           />
         ))}
       </div>
 
       {/* テーブル行 */}
       {displayedRows.map((r) => (
-        <PerfRow key={r.ticker} row={r} nf2={nf2} />
+        <PerfRow key={r.ticker} row={r} nf2={nf2} density={density} />
       ))}
 
       {/* もっと見るボタン */}

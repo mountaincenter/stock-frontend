@@ -33,7 +33,7 @@ export function formatNumber(
 export function toneBySign(v: number | null | undefined): string {
   if (typeof v !== "number" || !Number.isFinite(v) || v === 0)
     return "text-muted-foreground";
-  return v > 0 ? "text-emerald-400" : "text-rose-400";
+  return v > 0 ? "text-green-600 dark:text-green-500" : "text-red-600 dark:text-red-500";
 }
 
 /* ======================= 判定ラベル → アイコン＋色 ======================= */
@@ -41,8 +41,8 @@ export function toneBySign(v: number | null | undefined): string {
 export function colorClassByLabel(
   label: RatingLabel5 | RatingLabel3 | "データなし"
 ): string {
-  if (label === "強い買い" || label === "買い") return "text-emerald-400";
-  if (label === "強い売り" || label === "売り") return "text-rose-400";
+  if (label === "強い買い" || label === "買い") return "text-green-600 dark:text-green-500";
+  if (label === "強い売り" || label === "売り") return "text-red-600 dark:text-red-500";
   return "text-muted-foreground";
 }
 

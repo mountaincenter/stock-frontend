@@ -4,6 +4,7 @@ import {
   type PerfRow,
   type SnapshotRow,
   type StockMeta,
+  type Row,
 } from "@/components/stock_list_new";
 import {
   canonicalizeTag,
@@ -90,9 +91,23 @@ async function fetchInitial(tag: string) {
   const normalizedTag = tag.trim();
   const canonical = canonicalizeTag(normalizedTag);
   const isCore30 = canonical === "TOPIX_CORE30";
+  const isScalpingEntry = normalizedTag === "scalping_entry" || canonical === "SCALPING_ENTRY";
+  const isScalpingActive = normalizedTag === "scalping_active" || canonical === "SCALPING_ACTIVE";
   const tagParam = normalizedTag || canonical || undefined;
 
   try {
+    // スキャルピングの場合は専用エンドポイントから直接取得
+    if (isScalpingEntry || isScalpingActive) {
+      // クライアント側のuseStockDataでも同じendpointを使うため、ここでは空を返す
+      // (SSRでのプリフェッチは不要)
+      return {
+        initialMeta: [],
+        initialSnapshot: [],
+        initialPerf: [],
+        initialTag: tag,
+      };
+    }
+
     const metaCandidates = [
       join(buildUrl("/stocks", { tag: tagParam })),
       join(buildUrl("/meta", { tag: tagParam })),
@@ -197,9 +212,9 @@ export default async function Page() {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.03)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.03)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]" />
       </div>
 
-      <div className="py-6 md:py-8 lg:py-10">
+      <div className="py-3 md:py-4">
         {/* Container with premium width constraints */}
-        <div className="w-full md:w-[92%] lg:w-[88%] xl:w-[85%] 2xl:w-[82%] mx-auto px-4 md:px-0">
+        <div className="w-full md:w-[92%] lg:w-[90%] xl:w-[88%] 2xl:w-[86%] mx-auto px-3 md:px-4">
           <section className="tight-mobile">
             <StockListsNew
               apiBase={API_BASE}
@@ -209,6 +224,22 @@ export default async function Page() {
               initialTag={initialTag}
             />
           </section>
+
+          {/* Disclaimer and Data Attribution */}
+          <div className="mt-6 pt-4 border-t border-border/20">
+            <div className="text-[9px] text-muted-foreground/40 leading-relaxed max-w-4xl mx-auto">
+              <p className="mb-2">
+                <span className="font-semibold">データ出典:</span> Yahoo Finance (yfinance)
+              </p>
+              <p className="mb-1">
+                本サービスで提供される情報は、投資判断の参考として提供するものであり、投資勧誘を目的としたものではありません。
+              </p>
+              <p>
+                投資に関する最終決定は、利用者ご自身の判断でなさるようお願いいたします。
+                本サービスの情報に基づいて被ったいかなる損害についても、当方は一切の責任を負いかねます。
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </main>

@@ -12,20 +12,20 @@ type Props = {
 
 export default function PerfListMobile({ rows }: Props) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       {rows.map((r) => (
         <Link
           key={r.ticker}
           href={`/${encodeURIComponent(r.ticker)}`}
           className="
-            inline-block w-full rounded-xl border border-border
+            inline-block w-full rounded-xl
             bg-card text-card-foreground
-            hover:border-primary/50 active:bg-muted/60
-            transition-colors duration-150
+            hover:shadow-lg hover:shadow-primary/5 active:bg-muted/60
+            transition-all duration-150
             touch-manipulation
           "
         >
-          <div className="px-3 py-3">
+          <div className="px-3 py-2.5">
             {/* 見出し：銘柄名 + コード/日付（PriceListMobile と同サイズ/トーン） */}
             <div className="min-w-0 text-left">
               <h3

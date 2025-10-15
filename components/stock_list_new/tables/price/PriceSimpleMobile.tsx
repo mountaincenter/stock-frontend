@@ -55,9 +55,9 @@ export default function PriceSimpleMobile({ rows, nf0, nf2 }: Props) {
             diff == null || !Number.isFinite(diff)
               ? "text-muted-foreground"
               : diff > 0
-              ? "text-emerald-400"
+              ? "text-green-600 dark:text-green-500"
               : diff < 0
-              ? "text-rose-400"
+              ? "text-red-600 dark:text-red-500"
               : "text-muted-foreground";
 
           return (

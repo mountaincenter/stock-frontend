@@ -31,22 +31,22 @@ export default function VolumeInsight({ snap }: VolumeInsightProps) {
   return (
     <div className="mt-8 relative">
       {/* Volume Labels */}
-      <div className="flex items-end justify-between mb-2.5">
-        <div className="flex items-baseline gap-3">
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-3 gap-3">
+        <div className="flex items-baseline gap-2 md:gap-3">
           <div>
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mb-1">
+            <div className="text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground/70 font-medium mb-1">
               Volume
             </div>
-            <div className="text-3xl font-extrabold font-sans tabular-nums">
+            <div className="text-2xl md:text-3xl font-extrabold font-sans tabular-nums">
               {formatNumber(snap?.volume, nf0)}
             </div>
           </div>
-          <div className="text-muted-foreground/60 text-lg pb-0.5">/</div>
+          <div className="text-muted-foreground/60 text-lg md:text-xl pb-0.5 md:pb-1">/</div>
           <div>
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground/60 mb-1">
+            <div className="text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground/60 font-medium mb-1">
               MA10
             </div>
-            <div className="text-2xl font-semibold font-sans tabular-nums text-muted-foreground/80">
+            <div className="text-xl md:text-2xl font-bold font-sans tabular-nums text-muted-foreground/80">
               {formatNumber(snap?.vol_ma10, nf0)}
             </div>
           </div>
@@ -55,9 +55,9 @@ export default function VolumeInsight({ snap }: VolumeInsightProps) {
         {/* Volume Ratio Badge */}
         {volRatio != null && (
           <div
-            className={`px-3 py-1.5 rounded-lg font-bold font-sans tabular-nums text-base transition-all ${
+            className={`px-2.5 md:px-3 py-1.5 md:py-2 rounded-lg font-bold font-sans tabular-nums text-base md:text-lg transition-all self-start md:self-auto ${
               isVolAnomalous
-                ? "bg-amber-500/20 text-amber-300 ring-2 ring-amber-400/50 shadow-[0_0_10px_rgba(251,191,36,0.4)]"
+                ? "bg-amber-500/20 text-amber-300 ring-2 ring-amber-400/50 shadow-[0_0_10px_rgba(251,191,36,0.3)]"
                 : "bg-muted/50 text-foreground/70"
             }`}
           >
@@ -76,7 +76,7 @@ export default function VolumeInsight({ snap }: VolumeInsightProps) {
         />
       </div>
       {volRatio != null && (
-        <div className="text-[10px] text-muted-foreground/60 mt-1 text-right">
+        <div className="text-xs text-muted-foreground/60 mt-1.5 text-right">
           {volRatio >= 1.5
             ? "⚠ 異常出来高（平均の1.5倍超）"
             : volRatio >= 1.0

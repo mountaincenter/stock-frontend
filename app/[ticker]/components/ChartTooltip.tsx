@@ -49,19 +49,19 @@ export default function ChartTooltip({ tooltip }: ChartTooltipProps) {
           {nfOhlc.format(tooltip.open)}
         </div>
         <div className="text-muted-foreground/70">高値</div>
-        <div className="font-semibold font-sans tabular-nums text-right text-emerald-400">
+        <div className="font-semibold font-sans tabular-nums text-right text-green-600 dark:text-green-500">
           {nfOhlc.format(tooltip.high)}
         </div>
         <div className="text-muted-foreground/70">安値</div>
-        <div className="font-semibold font-sans tabular-nums text-right text-rose-400">
+        <div className="font-semibold font-sans tabular-nums text-right text-red-600 dark:text-red-500">
           {nfOhlc.format(tooltip.low)}
         </div>
         <div className="text-muted-foreground/70">終値</div>
         <div
           className={`font-bold font-sans tabular-nums text-right ${
             tooltip.close >= tooltip.open
-              ? "text-emerald-400"
-              : "text-rose-400"
+              ? "text-green-600 dark:text-green-500"
+              : "text-red-600 dark:text-red-500"
           }`}
         >
           {nfOhlc.format(tooltip.close)}

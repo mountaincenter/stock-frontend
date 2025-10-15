@@ -26,15 +26,15 @@ export default function OscillatorTable({ decision }: OscillatorTableProps) {
 
   return (
     <div className="rounded-lg border border-border/50 bg-card/40">
-      <div className="px-3 py-2.5 text-sm font-bold border-b border-border/30">オシレーター</div>
-      <table className="w-full text-sm leading-6 border-separate border-spacing-y-1">
+      <div className="px-2.5 md:px-3 py-2 md:py-2.5 text-xs md:text-sm font-bold border-b border-border/30">オシレーター</div>
+      <table className="w-full text-xs md:text-sm leading-5 md:leading-6 border-separate border-spacing-y-0.5 md:border-spacing-y-1">
         <thead>
-          <tr className="text-xs font-semibold text-muted-foreground/80">
-            <th className="text-left px-2 py-1.5">指標</th>
-            <th className="text-right px-2 py-1.5">現在値</th>
-            <th className="text-right px-2 py-1.5">閾値</th>
-            <th className="text-right px-2 py-1.5">乖離</th>
-            <th className="text-center px-2 py-1.5">判定</th>
+          <tr className="text-[10px] md:text-xs font-semibold text-muted-foreground/80">
+            <th className="text-left px-1.5 md:px-2 py-1 md:py-1.5">指標</th>
+            <th className="text-right px-1.5 md:px-2 py-1 md:py-1.5">現在値</th>
+            <th className="text-right px-1.5 md:px-2 py-1 md:py-1.5">閾値</th>
+            <th className="text-right px-1.5 md:px-2 py-1 md:py-1.5">乖離</th>
+            <th className="text-center px-1.5 md:px-2 py-1 md:py-1.5">判定</th>
           </tr>
         </thead>
         <tbody>

@@ -35,9 +35,9 @@ export default function TickerDailyChart({
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="flex items-baseline justify-between">
-        <div className="text-base font-medium text-muted-foreground/80">
+        <div className="text-[13px] font-medium text-muted-foreground">
           {loading ? (
             "読み込み中…"
           ) : err ? (
@@ -47,7 +47,7 @@ export default function TickerDailyChart({
           )}
         </div>
         {perf?.date && (
-          <div className="text-xs text-muted-foreground/60">
+          <div className="text-[11px] text-muted-foreground/60">
             基準日: {perf.date}
           </div>
         )}

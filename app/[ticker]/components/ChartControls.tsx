@@ -22,76 +22,76 @@ export default function ChartControls({ options, onChange }: ChartControlsProps)
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-4 px-4 py-3 bg-muted/20 border border-border/30 rounded-lg">
+    <div className="flex flex-wrap items-center gap-3 px-3 py-2 bg-muted/20 border border-border/30 rounded-lg">
       {/* Moving Averages */}
-      <div className="flex items-center gap-3">
-        <span className="text-sm font-medium text-muted-foreground mr-1">移動平均:</span>
-        <label className="flex items-center gap-2 cursor-pointer group">
+      <div className="flex items-center gap-2">
+        <span className="text-[13px] font-medium text-muted-foreground mr-0.5">移動平均:</span>
+        <label className="flex items-center gap-1.5 cursor-pointer group">
           <input
             type="checkbox"
             checked={options.showMA5}
             onChange={() => handleToggle("showMA5")}
-            className="w-4 h-4 rounded border-border/50 text-yellow-500 focus:ring-2 focus:ring-yellow-500/20 cursor-pointer"
+            className="w-3.5 h-3.5 rounded border-border/50 text-yellow-500 focus:ring-2 focus:ring-yellow-500/20 cursor-pointer"
           />
-          <span className="text-sm font-medium text-yellow-600 dark:text-yellow-400 group-hover:text-yellow-500">
+          <span className="text-[13px] font-medium text-yellow-600 dark:text-yellow-400 group-hover:text-yellow-500">
             MA5
           </span>
         </label>
-        <label className="flex items-center gap-2 cursor-pointer group">
+        <label className="flex items-center gap-1.5 cursor-pointer group">
           <input
             type="checkbox"
             checked={options.showMA25}
             onChange={() => handleToggle("showMA25")}
-            className="w-4 h-4 rounded border-border/50 text-blue-500 focus:ring-2 focus:ring-blue-500/20 cursor-pointer"
+            className="w-3.5 h-3.5 rounded border-border/50 text-blue-500 focus:ring-2 focus:ring-blue-500/20 cursor-pointer"
           />
-          <span className="text-sm font-medium text-blue-600 dark:text-blue-400 group-hover:text-blue-500">
+          <span className="text-[13px] font-medium text-blue-600 dark:text-blue-400 group-hover:text-blue-500">
             MA25
           </span>
         </label>
-        <label className="flex items-center gap-2 cursor-pointer group">
+        <label className="flex items-center gap-1.5 cursor-pointer group">
           <input
             type="checkbox"
             checked={options.showMA75}
             onChange={() => handleToggle("showMA75")}
-            className="w-4 h-4 rounded border-border/50 text-purple-500 focus:ring-2 focus:ring-purple-500/20 cursor-pointer"
+            className="w-3.5 h-3.5 rounded border-border/50 text-purple-500 focus:ring-2 focus:ring-purple-500/20 cursor-pointer"
           />
-          <span className="text-sm font-medium text-purple-600 dark:text-purple-400 group-hover:text-purple-500">
+          <span className="text-[13px] font-medium text-purple-600 dark:text-purple-400 group-hover:text-purple-500">
             MA75
           </span>
         </label>
       </div>
 
       {/* Divider */}
-      <div className="h-5 w-px bg-border/50" />
+      <div className="h-4 w-px bg-border/50" />
 
       {/* Bollinger Bands */}
-      <div className="flex items-center gap-3">
-        <label className="flex items-center gap-2 cursor-pointer group">
+      <div className="flex items-center gap-2">
+        <label className="flex items-center gap-1.5 cursor-pointer group">
           <input
             type="checkbox"
             checked={options.showBollinger}
             onChange={() => handleToggle("showBollinger")}
-            className="w-4 h-4 rounded border-border/50 text-cyan-500 focus:ring-2 focus:ring-cyan-500/20 cursor-pointer"
+            className="w-3.5 h-3.5 rounded border-border/50 text-cyan-500 focus:ring-2 focus:ring-cyan-500/20 cursor-pointer"
           />
-          <span className="text-sm font-medium text-cyan-600 dark:text-cyan-400 group-hover:text-cyan-500">
+          <span className="text-[13px] font-medium text-cyan-600 dark:text-cyan-400 group-hover:text-cyan-500">
             Bollinger
           </span>
         </label>
       </div>
 
       {/* Divider */}
-      <div className="h-5 w-px bg-border/50" />
+      <div className="h-4 w-px bg-border/50" />
 
       {/* Volume */}
-      <div className="flex items-center gap-3">
-        <label className="flex items-center gap-2 cursor-pointer group">
+      <div className="flex items-center gap-2">
+        <label className="flex items-center gap-1.5 cursor-pointer group">
           <input
             type="checkbox"
             checked={options.showVolume}
             onChange={() => handleToggle("showVolume")}
-            className="w-4 h-4 rounded border-border/50 text-emerald-500 focus:ring-2 focus:ring-emerald-500/20 cursor-pointer"
+            className="w-3.5 h-3.5 rounded border-border/50 text-emerald-500 focus:ring-2 focus:ring-emerald-500/20 cursor-pointer"
           />
-          <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground">
+          <span className="text-[13px] font-medium text-muted-foreground group-hover:text-foreground">
             出来高
           </span>
         </label>

@@ -59,8 +59,9 @@ export default function LightweightChart({
     const paper = isDark ? "#0b0b0c" : "#ffffff";
     const text = isDark ? "#e5e7eb" : "#111827";
     const grid = isDark ? "#303034" : "#e5e7eb";
-    const up = isDark ? "#34d399" : "#059669";
-    const down = isDark ? "#f87171" : "#dc2626";
+    // Material Design colors matching root page: green-600/green-500, red-600/red-500
+    const up = isDark ? "#22c55e" : "#16a34a";
+    const down = isDark ? "#ef4444" : "#dc2626";
     const cross = isDark ? "#6b7280" : "#9ca3af";
     return { paper, text, grid, up, down, cross };
   }, [isDark]);

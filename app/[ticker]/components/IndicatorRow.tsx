@@ -22,18 +22,18 @@ export default function IndicatorRow({
 }: IndicatorRowProps) {
   return (
     <tr className="bg-card/60">
-      <td className="px-2 py-1">{name}</td>
-      <td className="px-2 py-1 text-right font-sans tabular-nums">
+      <td className="px-1.5 md:px-2 py-0.5 md:py-1">{name}</td>
+      <td className="px-1.5 md:px-2 py-0.5 md:py-1 text-right font-sans tabular-nums">
         {currentValue}
       </td>
-      <td className="px-2 py-1 text-right font-sans tabular-nums">
+      <td className="px-1.5 md:px-2 py-0.5 md:py-1 text-right font-sans tabular-nums">
         {threshold}
       </td>
       <td
-        className={`px-2 py-1 text-right font-sans tabular-nums ${deltaClassName}`}>
+        className={`px-1.5 md:px-2 py-0.5 md:py-1 text-right font-sans tabular-nums ${deltaClassName}`}>
         {delta}
       </td>
-      <td className="px-2 py-1 text-center">{renderAction(action)}</td>
+      <td className="px-1.5 md:px-2 py-0.5 md:py-1 text-center">{renderAction(action)}</td>
     </tr>
   );
 }

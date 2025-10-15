@@ -128,8 +128,8 @@ export default async function TickerPage({
 
         <div className="flex-1 py-8 md:py-12">
           <div className="w-full md:w-[92%] lg:w-[88%] xl:w-[85%] 2xl:w-[82%] mx-auto px-4 md:px-0">
-            <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-card/95 via-card/90 to-card/95 p-8 shadow-xl shadow-black/5 backdrop-blur-xl">
-              <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent" />
+            <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-8 shadow-xl shadow-black/5 backdrop-blur-xl">
+              <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] via-transparent to-transparent" />
               <div className="relative">
                 <h1 className="text-xl font-bold mb-2">銘柄が見つかりません</h1>
                 <p className="text-sm text-muted-foreground">
@@ -162,15 +162,15 @@ export default async function TickerPage({
         <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.03)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.03)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]" />
       </div>
 
-      <div className="flex-1 py-6 md:py-8 lg:py-10">
-        <div className="w-full md:w-[92%] lg:w-[88%] xl:w-[85%] 2xl:w-[82%] mx-auto px-4 md:px-0 space-y-5">
+      <div className="flex-1 py-4 md:py-5 lg:py-6">
+        <div className="w-full md:w-[92%] lg:w-[90%] xl:w-[88%] 2xl:w-[86%] mx-auto px-3 md:px-4 space-y-4">
           {/* Premium navigation header */}
           <div className="flex justify-end">
             <Link
               href="/"
-              className="group inline-flex items-center gap-2 rounded-xl px-4 py-2 text-[13px] font-medium bg-card/60 hover:bg-card/80 border border-border/40 hover:border-primary/30 backdrop-blur-sm transition-all duration-200 hover:shadow-lg hover:shadow-primary/5"
+              className="group inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium bg-card/60 hover:bg-card/80 border border-border/40 hover:border-primary/30 backdrop-blur-sm transition-all duration-200 hover:shadow-md hover:shadow-primary/5"
             >
-              <svg className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
               一覧へ戻る
@@ -181,7 +181,7 @@ export default async function TickerPage({
           <PriceCard meta={meta} snap={snap} />
 
           {/* チャート（日足・直近1年） */}
-          <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-card/60 via-card/80 to-card/60 p-5 md:p-6 shadow-xl shadow-black/5 backdrop-blur-xl">
+          <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 md:p-6 shadow-xl shadow-black/5 backdrop-blur-xl">
             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] via-transparent to-transparent pointer-events-none" />
             <div className="relative">
               <TickerDailyChart ticker={ticker} perf={perf ?? undefined} />
@@ -192,19 +192,19 @@ export default async function TickerPage({
           <TechnicalDetailTable ticker={ticker} />
 
           {/* Elegant bottom navigation */}
-          <div className="flex items-center justify-center pt-2">
-            <div className="flex items-center gap-3">
-              <div className="h-px w-12 bg-gradient-to-r from-transparent to-border/40" />
+          <div className="flex items-center justify-center pt-1">
+            <div className="flex items-center gap-2">
+              <div className="h-px w-8 bg-gradient-to-r from-transparent to-border/40" />
               <Link
                 href="/"
-                className="group inline-flex items-center gap-2 text-[12px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+                className="group inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
-                <svg className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 transition-transform group-hover:-translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
                 一覧へ戻る
               </Link>
-              <div className="h-px w-12 bg-gradient-to-l from-transparent to-border/40" />
+              <div className="h-px w-8 bg-gradient-to-l from-transparent to-border/40" />
             </div>
           </div>
         </div>

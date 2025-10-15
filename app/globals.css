@@ -92,6 +92,13 @@
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
 
+  /* 株式投資UI専用カラー */
+  --price-up: oklch(0.55 0.18 145);        /* 上昇: 落ち着いた緑 */
+  --price-up-bright: oklch(0.65 0.20 145); /* 上昇（強調） */
+  --price-down: oklch(0.55 0.18 25);       /* 下降: 落ち着いた赤 */
+  --price-down-bright: oklch(0.65 0.20 25);/* 下降（強調） */
+  --price-neutral: oklch(0.556 0 0);       /* 中立: グレー */
+
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -145,6 +152,13 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  /* 株式投資UI専用カラー - Dark Mode */
+  --price-up: oklch(0.65 0.16 145);
+  --price-up-bright: oklch(0.75 0.18 145);
+  --price-down: oklch(0.65 0.16 25);
+  --price-down-bright: oklch(0.75 0.18 25);
+  --price-neutral: oklch(0.708 0 0);
 }
 
 /* ベース適用 */
@@ -167,6 +181,23 @@ html {
     system-ui, -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN",
     "Hiragino Sans", "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji",
     "Segoe UI Emoji", "Segoe UI Symbol";
+}
+
+/* 株式投資UI専用カラー utility classes */
+.text-price-up {
+  color: var(--price-up) !important;
+}
+.text-price-up-bright {
+  color: var(--price-up-bright) !important;
+}
+.text-price-down {
+  color: var(--price-down) !important;
+}
+.text-price-down-bright {
+  color: var(--price-down-bright) !important;
+}
+.text-price-neutral {
+  color: var(--price-neutral) !important;
 }
 
 /* Custom animations for premium effects */

@@ -102,7 +102,61 @@ export function useTickerData(ticker: string, activeRange: RangeKey) {
         const j = (await r.json()) as PriceRow[];
 
         j.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
-        setRows(j);
+
+        // Use actual latest date from fetched data instead of latestDay
+        let actualLatestDate = latestDate;
+        let actualLatestDateStr = latestDay;
+        if (j.length > 0) {
+          // Get the actual latest date from the data
+          const lastDateStr = j[j.length - 1].date;
+          // Extract date part (YYYY-MM-DD) in case it's a datetime string
+          actualLatestDateStr = lastDateStr.split(' ')[0];
+          actualLatestDate = new Date(actualLatestDateStr);
+          console.log('[useTickerData] Actual latest date from data:', actualLatestDateStr, 'vs expected:', latestDay);
+        }
+
+        // Filter data to display range (start to end)
+        // We fetched extra data for MA calculation, but only display the requested range
+        let filteredData = j;
+
+        // For 1d/5d charts, use actual latest date from data
+        if (config.isIntraday && (activeRange === "r_5d" || activeRange === "r_1mo")) {
+          const displayStart = config.getStart(actualLatestDate);
+          const displayEnd = actualLatestDateStr; // Use actual latest date string
+
+          if (displayStart && displayEnd) {
+            // For intraday data, filter by date prefix (YYYY-MM-DD)
+            filteredData = j.filter((row) => {
+              const rowDate = row.date.split(' ')[0]; // Get date part only
+              return rowDate >= displayStart && rowDate <= displayEnd;
+            });
+          } else if (displayStart) {
+            filteredData = j.filter((row) => {
+              const rowDate = row.date.split(' ')[0];
+              return rowDate >= displayStart;
+            });
+          }
+          console.log('[useTickerData] Range:', activeRange, 'displayStart:', displayStart, 'displayEnd:', displayEnd, 'filtered:', filteredData.length, 'total:', j.length);
+        } else {
+          // For other ranges, use original logic
+          const displayStart = config.getStart(latestDate);
+          const displayEnd = config.isIntraday && config.getEnd ? config.getEnd(latestDate) : fmtDate(latestDate);
+
+          if (displayStart && displayEnd) {
+            filteredData = j.filter((row) => {
+              const rowDate = row.date.split(' ')[0];
+              return rowDate >= displayStart && rowDate <= displayEnd;
+            });
+          } else if (displayStart) {
+            filteredData = j.filter((row) => {
+              const rowDate = row.date.split(' ')[0];
+              return rowDate >= displayStart;
+            });
+          }
+          console.log('[useTickerData] Range:', activeRange, 'displayStart:', displayStart, 'displayEnd:', displayEnd, 'filtered:', filteredData.length, 'total:', j.length);
+        }
+
+        setRows(filteredData);
       } catch (e: unknown) {
         setErr(e instanceof Error ? e.message : "fetch error");
         setRows([]);

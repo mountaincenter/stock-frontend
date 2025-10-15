@@ -90,9 +90,9 @@ export default function VolatilityCard({
               (snap?.diff == null || !Number.isFinite(snap.diff)
                 ? "text-muted-foreground"
                 : snap.diff > 0
-                ? "text-emerald-400"
+                ? "text-green-600 dark:text-green-500"
                 : snap.diff < 0
-                ? "text-rose-400"
+                ? "text-red-600 dark:text-red-500"
                 : "text-muted-foreground") +
               " text-right font-sans tabular-nums text-sm"
             }
@@ -113,9 +113,9 @@ export default function VolatilityCard({
             <span
               className={
                 (pct > 0
-                  ? "text-emerald-300"
+                  ? "text-green-600 dark:text-green-500"
                   : pct < 0
-                  ? "text-rose-300"
+                  ? "text-red-600 dark:text-red-500"
                   : "text-muted-foreground") +
                 " text-right font-sans tabular-nums text-sm"
               }

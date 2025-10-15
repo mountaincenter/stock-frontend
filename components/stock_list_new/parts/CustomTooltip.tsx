@@ -51,7 +51,7 @@ export function CustomTooltip({ children, content }: CustomTooltipProps) {
     <>
       {React.cloneElement(
         children,
-        getReferenceProps({ ref: refs.setReference, ...children.props })
+        getReferenceProps({ ref: refs.setReference, ...(children.props as Record<string, unknown>) })
       )}
       <FloatingPortal>
         {isOpen && (

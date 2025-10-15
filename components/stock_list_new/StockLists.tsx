@@ -29,12 +29,36 @@ import {
   type TechSortKey,
 } from "./utils/sort";
 import { MobileSortToolbar } from "./parts/MobileSortToolbar";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, HelpCircle } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const TAG_OPTIONS = [
-  { value: "takaichi", label: "高市銘柄" },
-  { value: "core30", label: "TOPIX Core30" },
-  { value: "all", label: "全て" },
+  {
+    value: "takaichi",
+    label: "高市銘柄",
+    description: "高市早苗政調会長の政策に関連する銘柄 - 防衛・安全保障、サイバーセキュリティ、エネルギー、半導体国産化、経済安全保障、宇宙産業、地方創生などの重点政策分野"
+  },
+  {
+    value: "core30",
+    label: "TOPIX Core30",
+    description: "東証TOPIX構成銘柄のうち時価総額・流動性が特に高い30銘柄 - 日本を代表する超大型株"
+  },
+  {
+    value: "scalping_entry",
+    label: "スキャルピング Entry",
+    description: "初心者向けスキャルピング銘柄 - 株価100〜1500円、出来高1億円以上、ATR14% 1.0〜3.5%の安定的なボラティリティ、変動幅±3%以内の予測しやすい値動き"
+  },
+  {
+    value: "scalping_active",
+    label: "スキャルピング Active",
+    description: "上級者向けスキャルピング銘柄 - 株価100〜3000円、出来高5千万円以上または出来高急増、ATR14% 2.5%以上の高ボラティリティ、変動幅±2%以上の大きな値動き"
+  },
+  { value: "all", label: "全て", description: "全ての銘柄を表示" },
 ] as const;
 
 type TagValue = (typeof TAG_OPTIONS)[number]["value"];
@@ -309,7 +333,7 @@ export default function StockLists(props: Props & { className?: string }) {
 
   return (
     <div
-      className={`flex flex-col gap-3 md:gap-5 flex-1 min-h-0 w-full ${
+      className={`flex flex-col gap-2 md:gap-2 flex-1 min-h-0 w-full ${
         className ?? ""
       }`}
     >
@@ -327,25 +351,53 @@ export default function StockLists(props: Props & { className?: string }) {
                   リスト
                 </span>
               </div>
-              <Select
-                value={selectedTag}
-                onValueChange={(value) => setSelectedTag(value as TagValue)}
-              >
-                <SelectTrigger className="h-9 w-[190px] rounded-xl border border-border/50 bg-background/60 px-4 text-[13px] font-medium text-foreground/90 shadow-sm backdrop-blur-md transition-all duration-200 hover:border-primary/40 hover:bg-background/80 hover:shadow-md focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-0 focus-visible:outline-none">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border-border/50 backdrop-blur-xl">
-                  {TAG_OPTIONS.map((option) => (
-                    <SelectItem
-                      key={option.value}
-                      value={option.value}
-                      className="text-[13px] rounded-lg"
+              <div className="flex items-center gap-2">
+                <Select
+                  value={selectedTag}
+                  onValueChange={(value) => setSelectedTag(value as TagValue)}
+                >
+                  <SelectTrigger className="h-9 w-[190px] rounded-xl border border-border/50 bg-background/60 px-4 text-[13px] font-medium text-foreground/90 shadow-sm backdrop-blur-md transition-all duration-200 hover:border-primary/40 hover:bg-background/80 hover:shadow-md focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-0 focus-visible:outline-none">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-border/50 backdrop-blur-xl">
+                    {TAG_OPTIONS.map((option) => (
+                      <SelectItem
+                        key={option.value}
+                        value={option.value}
+                        className="text-[13px] rounded-lg"
+                      >
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <TooltipProvider delayDuration={200}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        className="inline-flex items-center opacity-60 hover:opacity-100 transition-opacity"
+                      >
+                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="bottom"
+                      align="start"
+                      className="max-w-md text-xs bg-popover/95 backdrop-blur-sm"
                     >
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                      <div className="space-y-1">
+                        <p className="font-semibold text-foreground">
+                          {TAG_OPTIONS.find(opt => opt.value === selectedTag)?.label}
+                        </p>
+                        <p className="text-muted-foreground">
+                          {TAG_OPTIONS.find(opt => opt.value === selectedTag)?.description}
+                        </p>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
             </div>
             <SearchInput
               value={searchTerm}
@@ -360,25 +412,53 @@ export default function StockLists(props: Props & { className?: string }) {
         <div className="rounded-xl border border-border/60 bg-card/60 p-3 shadow-sm space-y-2">
           <div className="flex items-center gap-2">
             <span className="text-xs font-medium text-muted-foreground">リスト</span>
-            <Select
-              value={selectedTag}
-              onValueChange={(value) => setSelectedTag(value as TagValue)}
-            >
-              <SelectTrigger className="h-8 w-full rounded-full border border-border/50 bg-card/70 px-3 text-xs font-medium text-muted-foreground/80 shadow-sm backdrop-blur-sm transition-colors hover:border-primary/60 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none focus-visible:ring-primary">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {TAG_OPTIONS.map((option) => (
-                  <SelectItem
-                    key={option.value}
-                    value={option.value}
-                    className="text-xs"
+            <div className="flex-1 flex items-center gap-2">
+              <Select
+                value={selectedTag}
+                onValueChange={(value) => setSelectedTag(value as TagValue)}
+              >
+                <SelectTrigger className="h-8 w-full rounded-full border border-border/50 bg-card/70 px-3 text-xs font-medium text-muted-foreground/80 shadow-sm backdrop-blur-sm transition-colors hover:border-primary/60 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none focus-visible:ring-primary">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TAG_OPTIONS.map((option) => (
+                    <SelectItem
+                      key={option.value}
+                      value={option.value}
+                      className="text-xs"
+                    >
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <TooltipProvider delayDuration={200}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="inline-flex items-center opacity-60 hover:opacity-100 transition-opacity flex-shrink-0"
+                    >
+                      <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    side="bottom"
+                    align="start"
+                    className="max-w-xs text-xs bg-popover/95 backdrop-blur-sm"
                   >
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                    <div className="space-y-1">
+                      <p className="font-semibold text-foreground">
+                        {TAG_OPTIONS.find(opt => opt.value === selectedTag)?.label}
+                      </p>
+                      <p className="text-muted-foreground">
+                        {TAG_OPTIONS.find(opt => opt.value === selectedTag)?.description}
+                      </p>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
           </div>
           <SearchInput
             value={searchTerm}
@@ -408,20 +488,6 @@ export default function StockLists(props: Props & { className?: string }) {
         <div className="hidden md:block">{renderPolicyFilters()}</div>
       )}
 
-      <div className="hidden md:flex items-center gap-3 px-1">
-        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border/40 to-transparent" />
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/30 border border-border/30">
-          <div className="text-[12px] font-medium text-muted-foreground tracking-tight">
-            <span className="text-foreground/80 font-semibold">{filtered.length}</span> 銘柄を表示中
-          </div>
-          <div className="h-3 w-px bg-border/50" />
-          <div className="text-[11px] text-muted-foreground/70">
-            {activeTagLabel} / 全{rowsAfterPolicy.length}銘柄
-          </div>
-        </div>
-        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border/40 to-transparent" />
-      </div>
-
   <StockListsDesktop
     priceRows={priceSortedRows}
     perfRows={perfSortedRows}
@@ -441,6 +507,7 @@ export default function StockLists(props: Props & { className?: string }) {
     techSortDirection={sortState.tech.direction}
     onTechSort={handleTechSort}
     priceDataByTicker={priceDataByTicker}
+    displayedCount={filtered.length}
   />
 
   <StockListsMobile

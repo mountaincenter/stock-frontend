@@ -147,11 +147,20 @@ export default function MiniChartContainer({
 
         const latestDate = new Date(latestDay);
 
+        // For short-term charts, fetch extra data to ensure we get the latest
+        let fetchStart = config.getStart(latestDate);
+        if (config.isIntraday && config.key === "1d") {
+          // Fetch last 5 days to ensure we get data even if latestDay is stale
+          const extendedDate = new Date(latestDate);
+          extendedDate.setDate(extendedDate.getDate() - 5);
+          fetchStart = fmtDate(extendedDate);
+        }
+
         // Build API URL using latest trading day
         const params = new URLSearchParams({
           ticker,
           interval: config.interval,
-          start: config.getStart(latestDate),
+          start: fetchStart,
           end: config.getEnd(latestDate),
         });
 
@@ -163,7 +172,7 @@ export default function MiniChartContainer({
         const json = await res.json();
 
         // Transform to MiniChartData (OHLC)
-        const chartData: MiniChartData[] = (
+        let chartData: MiniChartData[] = (
           json as Array<{
             date?: string;
             Open?: number;
@@ -184,6 +193,27 @@ export default function MiniChartContainer({
 
         // Sort by date
         chartData.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+
+        // Filter to display range using actual latest date from data
+        if (chartData.length > 0 && config.isIntraday) {
+          const actualLatestDateStr = chartData[chartData.length - 1].date.split(' ')[0];
+          const actualLatestDate = new Date(actualLatestDateStr);
+
+          const displayStart = config.getStart(actualLatestDate);
+          const displayEnd = actualLatestDateStr;
+
+          chartData = chartData.filter((row) => {
+            const rowDate = row.date.split(' ')[0];
+            return rowDate >= displayStart && rowDate <= displayEnd;
+          });
+
+          console.log('[MiniChart] Period:', config.key, 'displayStart:', displayStart, 'displayEnd:', displayEnd, 'filtered:', chartData.length);
+        }
+
+        // Debug: Log first and last data points
+        if (chartData.length > 0) {
+          console.log('[MiniChart] Data range:', chartData[0].date, 'to', chartData[chartData.length - 1].date, 'currentPrice:', currentPrice);
+        }
 
         setData(chartData);
         setLoading(false);

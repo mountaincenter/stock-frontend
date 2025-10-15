@@ -161,6 +161,8 @@ export function useStockData({
         const lowerTag = normalizedTag.toLowerCase();
         const isAll = lowerTag === "all" || lowerTag === "全て";
         const canonical = canonicalizeTag(normalizedTag);
+        const isScalpingEntry = lowerTag === "scalping_entry" || canonical === "SCALPING_ENTRY";
+        const isScalpingActive = lowerTag === "scalping_active" || canonical === "SCALPING_ACTIVE";
         const queryTag = isAll
           ? undefined
           : canonical ?? (normalizedTag ? normalizedTag : undefined);
@@ -202,7 +204,6 @@ export function useStockData({
           for (const url of urls) {
             try {
               const res = await fetch(url, {
-                next: { revalidate: 60 }, // 60秒間キャッシュ
                 signal: ac.signal,
               });
               if (!res.ok) {
@@ -234,6 +235,13 @@ export function useStockData({
           return fallbackValue as T;
         };
 
+        // スキャルピング用のエンドポイント
+        const scalpingCandidates = isScalpingEntry
+          ? [join("/scalping/entry")]
+          : isScalpingActive
+          ? [join("/scalping/active")]
+          : [];
+
         const metaCandidates = [
           join(buildUrl("/stocks", { tag: queryTag })),
           join(buildUrl("/meta", { tag: queryTag })),
@@ -257,6 +265,20 @@ export function useStockData({
             })
           ),
         ];
+
+        // スキャルピングデータの取得
+        if (scalpingCandidates.length > 0) {
+          const scalpingData = await fetchJsonWithFallback<Row[]>(scalpingCandidates, {
+            throwOnFailure: false,
+            fallbackValue: [],
+            context: isScalpingEntry ? "scalping/entry" : "scalping/active",
+          });
+          if (mounted) {
+            setRows(uniqueByTicker(scalpingData));
+            setStatus("success");
+          }
+          return;
+        }
 
         let meta = await fetchJsonWithFallback<StockMeta[]>(metaCandidates, {
           throwOnFailure: false,
@@ -376,7 +398,6 @@ export function useStockData({
           for (const url of urls) {
             try {
               const res = await fetch(url, {
-                next: { revalidate: 60 }, // 60秒間キャッシュ
                 signal: ac.signal,
               });
               if (!res.ok) {

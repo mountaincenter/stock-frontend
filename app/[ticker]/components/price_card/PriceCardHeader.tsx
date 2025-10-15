@@ -18,12 +18,12 @@ export default function PriceCardHeader({ meta, snap, badgeTone, pct }: PriceCar
         <h1 className="text-xl font-bold leading-tight tracking-tight truncate">
           {meta.stock_name}
         </h1>
-        <div className="flex items-baseline gap-2 mt-1.5">
-          <span className="font-mono text-sm text-muted-foreground/80 font-medium">
+        <div className="flex items-baseline gap-2 mt-2">
+          <span className="font-mono text-base text-muted-foreground font-semibold">
             {meta.ticker}
           </span>
           {snap?.date && (
-            <span className="text-xs text-muted-foreground/60">
+            <span className="text-sm text-muted-foreground/70">
               {snap.date}
             </span>
           )}
@@ -34,18 +34,18 @@ export default function PriceCardHeader({ meta, snap, badgeTone, pct }: PriceCar
       <div className="flex-shrink-0">
         {snap?.diff != null && Number.isFinite(snap.diff) ? (
           <div
-            className={`inline-flex flex-col items-end gap-0.5 rounded-xl px-4 py-2.5 ${badgeTone} transition-all duration-300`}
+            className={`inline-flex flex-col items-end gap-1 rounded-xl px-4 py-3 ${badgeTone} transition-all duration-300`}
           >
-            <div className="text-2xl font-black font-sans tabular-nums leading-none">
+            <div className="text-3xl font-black font-sans tabular-nums leading-none">
               {formatNumber(pct, nf2, "%")}
             </div>
-            <div className="text-sm font-semibold font-sans tabular-nums opacity-90">
+            <div className="text-base font-bold font-sans tabular-nums opacity-90">
               {snap.diff > 0 ? "+" : ""}
               {formatNumber(snap.diff, nf0)}
             </div>
           </div>
         ) : (
-          <div className="text-muted-foreground text-sm">—</div>
+          <div className="text-muted-foreground text-base">—</div>
         )}
       </div>
     </div>

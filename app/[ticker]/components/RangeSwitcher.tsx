@@ -21,9 +21,9 @@ interface RangeSwitcherProps {
 const toneBySign = (v: number | null | undefined) =>
   typeof v === "number"
     ? v > 0
-      ? "text-emerald-400"
+      ? "text-green-600 dark:text-green-500"
       : v < 0
-      ? "text-rose-400"
+      ? "text-red-600 dark:text-red-500"
       : "text-muted-foreground"
     : "text-muted-foreground";
 
@@ -53,11 +53,11 @@ export default function RangeSwitcher({ perf, activeRange, setActiveRange }: Ran
   ];
 
   return (
-    <div className="mt-4">
-      <div className="text-sm font-medium text-muted-foreground/80 mb-2">
+    <div className="mt-3">
+      <div className="text-[13px] font-medium text-muted-foreground mb-1.5">
         パフォーマンス＆範囲選択
       </div>
-      <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
+      <div className="grid grid-cols-4 md:grid-cols-8 gap-1.5">
         {perfItems.map(({ rangeKey, label, perfKey }) => {
           const isActive = activeRange === rangeKey;
           const value = perf?.[perfKey] as number | null | undefined;
@@ -66,23 +66,23 @@ export default function RangeSwitcher({ perf, activeRange, setActiveRange }: Ran
               key={rangeKey}
               onClick={() => setActiveRange(rangeKey)}
               className={`
-                rounded-lg border px-3 py-2.5 flex flex-col items-center justify-center
+                rounded-lg border px-2 py-2 flex flex-col items-center justify-center
                 transition-all cursor-pointer
                 ${
                   isActive
-                    ? "border-primary bg-primary/10 ring-2 ring-primary/30 shadow-md"
+                    ? "border-primary bg-primary/10 ring-1 ring-primary/30 shadow-sm"
                     : "border-border/50 bg-background hover:border-border hover:shadow-sm"
                 }
               `}
             >
               <div
-                className={`text-xs font-medium mb-1 ${
+                className={`text-[11px] font-medium mb-0.5 ${
                   isActive ? "text-primary" : "text-muted-foreground/70"
                 }`}>
                 {label}
               </div>
               <div
-                className={`text-base font-bold font-sans tabular-nums ${
+                className={`text-[13px] font-bold font-sans tabular-nums ${
                   isActive
                     ? "text-primary"
                     : toneBySign(value)

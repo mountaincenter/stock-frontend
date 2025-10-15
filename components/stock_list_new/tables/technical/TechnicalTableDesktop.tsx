@@ -17,6 +17,8 @@ import type {
   TechDecisionValues,
   Row,
 } from "../../types";
+import type { DisplayDensity } from "../../types/density";
+import { getDensityStyles, DENSITY_VALUES } from "../../types/density";
 import type { SortDirection, TechSortKey } from "../../utils/sort";
 import { TECH_SORT_COLUMNS } from "../../utils/sort";
 import { SortButtonGroup } from "../../parts/SortButtonGroup";
@@ -31,6 +33,7 @@ type Props = {
   direction: SortDirection;
   onSort: (key: TechSortKey, direction: SortDirection) => void;
   priceDataByTicker?: Record<string, Row>;
+  density?: DisplayDensity;
 };
 
 // 1桁（RSI/乖離）
@@ -40,11 +43,11 @@ const nf1 = new Intl.NumberFormat("ja-JP", {
 });
 
 /**
- * テクニカルの列幅（基準表）
- * 1:コード(110) 2:銘柄名(300) 3:日付(110)
- * 4〜11: 評価/KPI 8カラムを均等割付け
+ * テクニカルの列幅（フレキシブル版）
+ * 1:コード(110固定) 2:銘柄名(min240,1.2fr) 3:日付(110固定)
+ * 4〜7: 評価4列(各min90,1fr) 8〜11: KPI4列(各min85,1fr)
  */
-const COLS_TECH = "110px 300px 110px repeat(8, minmax(84px, 1fr))";
+const COLS_TECH = "110px minmax(240px, 1.2fr) 110px minmax(90px, 1fr) minmax(90px, 1fr) minmax(90px, 1fr) minmax(90px, 1fr) minmax(85px, 1fr) minmax(85px, 1fr) minmax(85px, 1fr) minmax(85px, 1fr)";
 
 const INITIAL_DISPLAY_COUNT = 50; // 初期表示件数
 const LOAD_MORE_COUNT = 50; // 追加読み込み件数
@@ -52,7 +55,7 @@ const LOAD_MORE_COUNT = 50; // 追加読み込み件数
 function toneBySign(v: number | null | undefined) {
   if (typeof v !== "number" || !Number.isFinite(v) || v === 0)
     return "text-card-foreground";
-  return v > 0 ? "text-emerald-300" : "text-rose-300";
+  return v > 0 ? "text-green-600 dark:text-green-500" : "text-red-600 dark:text-red-500";
 }
 function fmt(v: number | null | undefined, f: Intl.NumberFormat, suffix = "") {
   if (typeof v !== "number" || !Number.isFinite(v)) return "—";
@@ -63,22 +66,22 @@ function ratingVisual(label: RatingLabel) {
     case "強い買い":
       return {
         icon: <ChevronsUp className="w-4 h-4 stroke-[2.25]" />,
-        tone: "text-emerald-400",
+        tone: "text-emerald-500 dark:text-emerald-300",
       };
     case "買い":
       return {
         icon: <ChevronUp className="w-4 h-4 stroke-[2.25]" />,
-        tone: "text-emerald-300",
+        tone: "text-green-600 dark:text-green-500",
       };
     case "売り":
       return {
         icon: <ChevronDown className="w-4 h-4 stroke-[2.25]" />,
-        tone: "text-rose-300",
+        tone: "text-red-600 dark:text-red-500",
       };
     case "強い売り":
       return {
         icon: <ChevronsDown className="w-4 h-4 stroke-[2.25]" />,
-        tone: "text-rose-400",
+        tone: "text-red-500 dark:text-red-300",
       };
     default:
       return {
@@ -122,17 +125,23 @@ const TechnicalRow = React.memo(({
   row,
   nf2,
   decisionByTicker,
-  priceDataByTicker
+  priceDataByTicker,
+  density = "normal"
 }: {
   row: TechCoreRow;
   nf2: Intl.NumberFormat;
   decisionByTicker?: Record<string, TechDecisionItem>;
   priceDataByTicker?: Record<string, Row>;
+  density?: DisplayDensity;
 }) => {
   const r = row;
   const d: TechDecisionItem | undefined = decisionByTicker
     ? decisionByTicker[r.ticker]
     : undefined;
+
+  const densityValues = DENSITY_VALUES[density];
+  const densityStyles = getDensityStyles(density);
+  const paddingY = `${densityValues.rowPaddingY}rem`;
 
   // ラベルは v2 があれば優先、なければ従来 rows
   const overallLabel = d?.overall?.label ?? r.overall_rating;
@@ -184,7 +193,7 @@ const TechnicalRow = React.memo(({
         <span className={`font-semibold tabular-nums ${
           priceDiff == null ? "" :
           priceDiff > 0 ? "text-green-600 dark:text-green-400" :
-          priceDiff < 0 ? "text-red-600 dark:text-red-400" : ""
+          priceDiff < 0 ? "text-red-600 dark:text-red-500" : ""
         }`}>
           {diffText}
         </span>
@@ -196,67 +205,67 @@ const TechnicalRow = React.memo(({
     <CustomTooltip content={tooltipContent}>
       <button
         onClick={handleClick}
-        className="group/row w-full text-left rounded-xl border border-border/60 bg-gradient-to-r from-card/50 via-card/80 to-card/50 text-card-foreground transition-all duration-200 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 hover:bg-gradient-to-r hover:from-card/70 hover:via-card/95 hover:to-card/70 cursor-pointer"
+        className="group/row w-full text-left rounded-xl bg-gradient-to-r from-card/50 via-card/80 to-card/50 text-card-foreground transition-all duration-200 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 hover:bg-gradient-to-r hover:from-card/70 hover:via-card/95 hover:to-card/70 cursor-pointer"
         style={{
           display: "grid",
           gridTemplateColumns: COLS_TECH,
-          columnGap: "12px",
+          columnGap: `${densityValues.columnGap}px`,
         }}
       >
           {/* 先頭3列 */}
-          <div className="px-3 py-3 flex items-center">
-            <span className="font-sans tabular-nums font-semibold text-base">
+          <div className="px-3 flex items-center" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+            <span className={`font-sans tabular-nums font-semibold ${densityStyles.fontSize.code}`}>
               {r.code ?? r.ticker}
             </span>
           </div>
-          <div className="px-3 py-3 min-w-0 flex items-center">
-            <h3 className="font-semibold text-sm leading-snug hover:text-primary transition-colors line-clamp-1">
+          <div className="px-3 min-w-0 flex items-center" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+            <h3 className={`font-semibold ${densityStyles.fontSize.stockName} leading-snug hover:text-primary transition-colors line-clamp-1`}>
               {r.stock_name}
             </h3>
           </div>
-          <div className="px-3 py-3 flex items-center justify-center">
-            <span className="text-[12px] font-sans tabular-nums text-muted-foreground">
+          <div className="px-3 flex items-center justify-center" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+            <span className={`${densityStyles.fontSize.date} font-sans tabular-nums text-muted-foreground`}>
               {d?.date ?? r.date ?? "—"}
             </span>
           </div>
 
       {/* 評価4（均等割） */}
-      <div className="px-2 py-3">
+      <div className="px-2" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
         <RatingInline label={overallLabel} title="総合評価" />
       </div>
-      <div className="px-2 py-3">
+      <div className="px-2" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
         <RatingInline label={techLabel} title="テクニカル評価" />
       </div>
-      <div className="px-2 py-3">
+      <div className="px-2" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
         <RatingInline label={maLabel} title="MA評価" />
       </div>
-      <div className="px-2 py-3">
+      <div className="px-2" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
         <RatingInline label={ichiLabel} title="一目均衡表評価" />
       </div>
 
       {/* KPI4（均等割・Perf と同じ text-base） */}
-      <div className="px-3 py-3 text-right">
-        <span className="font-sans tabular-nums text-base">
+      <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+        <span className={`font-sans tabular-nums ${densityStyles.fontSize.data}`}>
           {fmt(rsi14, nf1)}
         </span>
       </div>
-      <div className="px-3 py-3 text-right">
+      <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
         <span
-          className={`font-sans tabular-nums text-base ${toneBySign(
+          className={`font-sans tabular-nums ${densityStyles.fontSize.data} ${toneBySign(
             macd
           )}`}
         >
           {fmt(macd, nf2)}
         </span>
       </div>
-      <div className="px-3 py-3 text-right">
-        <span className="font-sans tabular-nums text-base">
+      <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+        <span className={`font-sans tabular-nums ${densityStyles.fontSize.data}`}>
           {fmt(pb, nf2)}
         </span>
       </div>
-      <div className="px-3 py-3 text-right">
+      <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
         <span
-          className={`font-sans tabular-nums text-base ${toneBySign(
+          className={`font-sans tabular-nums ${densityStyles.fontSize.data} ${toneBySign(
             dev
           )}`}
         >
@@ -278,8 +287,10 @@ export default function TechnicalTableDesktop({
   direction,
   onSort,
   priceDataByTicker,
+  density = "normal",
 }: Props) {
   const [displayCount, setDisplayCount] = React.useState(INITIAL_DISPLAY_COUNT);
+  const densityValues = DENSITY_VALUES[density];
 
   // 表示する行を制限
   const displayedRows = React.useMemo(() => {
@@ -299,13 +310,13 @@ export default function TechnicalTableDesktop({
 
   if (!rows?.length)
     return (
-      <div className="text-muted-foreground text-xs px-2 py-3">
+      <div className="text-muted-foreground text-xs px-2 py-3.5">
         データがありません
       </div>
     );
 
   return (
-    <div className="space-y-2">
+    <div className={`${DENSITY_VALUES[density].rowSpacing === 0.5 ? 'space-y-2' : DENSITY_VALUES[density].rowSpacing === 0.625 ? 'space-y-2.5' : 'space-y-3'}`}>
       {/* ヘッダ（基準表） */}
       <div
         className="
@@ -316,7 +327,7 @@ export default function TechnicalTableDesktop({
         style={{
           display: "grid",
           gridTemplateColumns: COLS_TECH,
-          columnGap: "12px",
+          columnGap: `${densityValues.columnGap}px`,
         }}
       >
         <SortButtonGroup
@@ -354,6 +365,7 @@ export default function TechnicalTableDesktop({
             direction={direction}
             onSort={onSort}
             align={column.align ?? "right"}
+            tooltip={column.tooltip}
           />
         ))}
       </div>
@@ -366,6 +378,7 @@ export default function TechnicalTableDesktop({
           nf2={nf2}
           decisionByTicker={decisionByTicker}
           priceDataByTicker={priceDataByTicker}
+          density={density}
         />
       ))}
 

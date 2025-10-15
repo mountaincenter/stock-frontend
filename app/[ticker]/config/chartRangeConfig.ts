@@ -22,7 +22,7 @@ export type RangeConfig = {
 
 export const rangeConfigs: Record<RangeKey, RangeConfig> = {
   r_5d: {
-    period: "60d",
+    period: "1d",
     interval: "5m",
     label: "1日（5分足）",
     isIntraday: true,
@@ -35,7 +35,7 @@ export const rangeConfigs: Record<RangeKey, RangeConfig> = {
     },
   },
   r_1mo: {
-    period: "60d",
+    period: "5d",
     interval: "15m",
     label: "5日（15分足）",
     isIntraday: true,

@@ -9,6 +9,7 @@ import {
   TabsContent,
 } from "@/components/ui/tabs";
 import type { Row, TechCoreRow } from "../types";
+import type { DisplayDensity } from "../types/density";
 import PriceTableDesktop from "../tables/price/PriceTableDesktop";
 import PerfTableDesktop from "../tables/perf/PerfTableDesktop";
 import TechnicalTableDesktop from "../tables/technical/TechnicalTableDesktop";
@@ -19,6 +20,7 @@ import type {
   SortDirection,
 } from "../utils/sort";
 import { TableWrapper } from "../wrappers/TableWrapper";
+import { DensitySelector } from "../parts/DensitySelector";
 
 interface StockListsDesktopProps {
   priceRows: Row[];
@@ -39,6 +41,7 @@ interface StockListsDesktopProps {
   techSortDirection: SortDirection;
   onTechSort: (key: TechSortKey, direction: SortDirection) => void;
   priceDataByTicker?: Record<string, Row>;
+  displayedCount?: number;
 }
 
 export default function StockListsDesktop({
@@ -60,7 +63,10 @@ export default function StockListsDesktop({
   techSortDirection,
   onTechSort,
   priceDataByTicker,
+  displayedCount,
 }: StockListsDesktopProps) {
+  const [density, setDensity] = React.useState<DisplayDensity>("normal");
+
   return (
     <div className="hidden md:block">
       <Tabs
@@ -71,11 +77,12 @@ export default function StockListsDesktop({
       >
         <TableWrapper
           toolbar={
-            <div className="relative">
+            <div className="relative flex items-center justify-between gap-4">
               {/* Backdrop blur container */}
               <div className="absolute inset-0 -z-10 bg-gradient-to-b from-card/40 via-card/60 to-card/40 backdrop-blur-xl rounded-2xl" />
 
-              <TabsList className="grid w-fit grid-cols-3 gap-1 bg-muted/30 backdrop-blur-sm border border-border/40 rounded-xl p-1 h-10 shadow-lg shadow-black/5">
+              <div className="flex items-center gap-3">
+                <TabsList className="grid w-fit grid-cols-3 gap-1 bg-muted/30 backdrop-blur-sm border border-border/40 rounded-xl p-1 h-10 shadow-lg shadow-black/5">
                 <TabsTrigger
                   value="price"
                   className="flex items-center gap-1.5 px-4 text-[13px] font-medium h-8 rounded-lg transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=inactive]:text-muted-foreground/70 data-[state=inactive]:hover:text-foreground/80"
@@ -98,12 +105,23 @@ export default function StockListsDesktop({
                   テクニカル
                 </TabsTrigger>
               </TabsList>
+
+              <DensitySelector value={density} onChange={setDensity} />
+              </div>
+
+              {displayedCount !== undefined && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/20 border border-border/30">
+                  <span className="text-[13px] text-muted-foreground font-medium">
+                    <span className="text-foreground font-semibold">{displayedCount}</span>件
+                  </span>
+                </div>
+              )}
             </div>
           }
-          heightClass="max-h-[600px]"
+          heightClass="h-auto"
         >
           <TabsContent value="price" className="mt-0">
-            <div className="max-h-[540px] overflow-y-auto">
+            <div className="max-h-[65vh] overflow-y-auto">
               <PriceTableDesktop
                 rows={priceRows}
                 nf0={nf0}
@@ -111,24 +129,26 @@ export default function StockListsDesktop({
                 sortKey={priceSortKey}
                 direction={priceSortDirection}
                 onSort={onPriceSort}
+                density={density}
               />
             </div>
           </TabsContent>
 
           <TabsContent value="perf" className="mt-0">
-            <div className="max-h-[540px] overflow-y-auto">
+            <div className="max-h-[65vh] overflow-y-auto">
               <PerfTableDesktop
                 rows={perfRows}
                 nf2={nf2}
                 sortKey={perfSortKey}
                 direction={perfSortDirection}
                 onSort={onPerfSort}
+                density={density}
               />
             </div>
           </TabsContent>
 
           <TabsContent value="technical" className="mt-0">
-            <div className="max-h-[540px] overflow-y-auto">
+            <div className="max-h-[65vh] overflow-y-auto">
               {techStatus === "error" ? (
                 <div className="text-destructive text-xs px-2 py-2">
                   テクニカルの取得に失敗しました（/tech/decision/snapshot）
@@ -141,6 +161,7 @@ export default function StockListsDesktop({
                   direction={techSortDirection}
                   onSort={onTechSort}
                   priceDataByTicker={priceDataByTicker}
+                  density={density}
                 />
               )}
             </div>

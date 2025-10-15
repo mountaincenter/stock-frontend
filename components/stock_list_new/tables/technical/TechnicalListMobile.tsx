@@ -32,7 +32,7 @@ const nf1 = new Intl.NumberFormat("ja-JP", {
 function toneBySign(v: number | null | undefined) {
   if (typeof v !== "number" || !Number.isFinite(v) || v === 0)
     return "text-card-foreground";
-  return v > 0 ? "text-emerald-400" : "text-rose-400";
+  return v > 0 ? "text-green-600 dark:text-green-500" : "text-red-600 dark:text-red-500";
 }
 
 function ratingVisual(label: RatingLabel) {
@@ -40,22 +40,22 @@ function ratingVisual(label: RatingLabel) {
     case "強い買い":
       return {
         icon: <ChevronsUp className="w-4 h-4 stroke-[2.25]" />,
-        tone: "text-emerald-400",
+        tone: "text-emerald-500 dark:text-emerald-300",
       };
     case "買い":
       return {
         icon: <ChevronUp className="w-4 h-4 stroke-[2.25]" />,
-        tone: "text-emerald-300",
+        tone: "text-green-600 dark:text-green-500",
       };
     case "売り":
       return {
         icon: <ChevronDown className="w-4 h-4 stroke-[2.25]" />,
-        tone: "text-rose-300",
+        tone: "text-red-600 dark:text-red-500",
       };
     case "強い売り":
       return {
         icon: <ChevronsDown className="w-4 h-4 stroke-[2.25]" />,
-        tone: "text-rose-400",
+        tone: "text-red-500 dark:text-red-300",
       };
     default:
       return {
@@ -147,7 +147,7 @@ export default function TechnicalListMobile({
   const CELL = "px-2 py-2"; // 高さを揃える
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-1.5">
       {rows.map((r) => {
         const d: TechDecisionItem | undefined = decisionByTicker
           ? decisionByTicker[r.ticker]
@@ -175,14 +175,14 @@ export default function TechnicalListMobile({
             key={r.ticker}
             href={`/${encodeURIComponent(r.ticker)}`}
             className="
-            inline-block w-full rounded-xl border border-border
+            inline-block w-full rounded-xl
             bg-card text-card-foreground
-            hover:border-primary/50 active:bg-muted/60
-            transition-colors duration-150
+            hover:shadow-lg hover:shadow-primary/5 active:bg-muted/60
+            transition-all duration-150
             touch-manipulation
           "
           >
-            <div className="px-3 py-3">
+            <div className="px-3 py-2.5">
               {/* 見出し */}
               <div className="min-w-0 text-left">
                 <h3
