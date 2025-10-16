@@ -194,8 +194,14 @@ async function fetchInitial(tag: string) {
   }
 }
 
-export default async function Page() {
-  const { initialMeta, initialSnapshot, initialPerf, initialTag } = await fetchInitial(DEFAULT_TAG);
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ tag?: string }>;
+}) {
+  const { tag: tagParam } = await searchParams;
+  const requestedTag = tagParam || DEFAULT_TAG;
+  const { initialMeta, initialSnapshot, initialPerf, initialTag } = await fetchInitial(requestedTag);
 
   return (
     <main className="relative flex flex-col min-h-[100svh] md:min-h-screen">

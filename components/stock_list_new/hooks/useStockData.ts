@@ -6,69 +6,9 @@ import type {
   FetchState,
   Props,
   Row,
-  StockMeta,
-  SnapshotRow,
-  PerfRow,
   TechCoreRow,
 } from "../types";
-import {
-  isDecisionArray,
-  mapDecisionSnapshotToTechRows,
-} from "../utils/tech_v2";
-import {
-  filterMetaByTag,
-  pickAllowedTickers,
-  canonicalizeTag,
-} from "@/lib/tag-utils";
-
-const DEFAULT_RETURN_WINDOWS = "5d,1mo,3mo,ytd,1y,3y,5y,all";
-
-function mergeRows(
-  meta: StockMeta[],
-  snapshot: SnapshotRow[],
-  perf: PerfRow[]
-): Row[] {
-  const snapMap = new Map(snapshot.map((s) => [s.ticker, s]));
-  const perfMap = new Map(perf.map((p) => [p.ticker, p]));
-  return meta.map((m) => {
-    const s = snapMap.get(m.ticker);
-    const p = perfMap.get(m.ticker) as PerfRow | undefined;
-    const close = (s?.close as number) ?? null;
-    const prevClose = (s?.prevClose as number) ?? null;
-    const diff = (s?.diff as number) ?? null;
-    const pctDiff =
-      diff != null &&
-      prevClose != null &&
-      Number.isFinite(diff) &&
-      Number.isFinite(prevClose) &&
-      prevClose !== 0
-        ? (diff / prevClose) * 100
-        : null;
-
-    return {
-      ...m,
-      date: (s?.date as string) ?? (p?.date as string) ?? null,
-      close,
-      prevClose,
-      diff,
-      pct_diff: pctDiff,
-      volume: (s?.volume as number) ?? null,
-      vol_ma10: (s?.vol_ma10 as number) ?? null,
-      tr: (s?.["tr"] as number) ?? null,
-      tr_pct: (s?.["tr_pct"] as number) ?? null,
-      atr14: (s?.["atr14"] as number) ?? null,
-      atr14_pct: (s?.["atr14_pct"] as number) ?? null,
-      r_5d: (p?.["r_5d"] as number) ?? null,
-      r_1mo: (p?.["r_1mo"] as number) ?? null,
-      r_3mo: (p?.["r_3mo"] as number) ?? null,
-      r_ytd: (p?.["r_ytd"] as number) ?? null,
-      r_1y: (p?.["r_1y"] as number) ?? null,
-      r_3y: (p?.["r_3y"] as number) ?? null,
-      r_5y: (p?.["r_5y"] as number) ?? null,
-      r_all: (p?.["r_all"] as number) ?? null,
-    };
-  });
-}
+import { canonicalizeTag } from "@/lib/tag-utils";
 
 const uniqueByTicker = <T extends { ticker?: string }>(items: T[]): T[] => {
   const seen = new Set<string>();
@@ -82,10 +22,9 @@ const uniqueByTicker = <T extends { ticker?: string }>(items: T[]): T[] => {
 };
 
 /**
- * 役割分離（SRP）
- * - 価格/パフォーマンス: meta + snapshot + returns
- * - テクニカル: v2 decision/snapshot を TechCoreRow[] に変換
- * 型・バリデーション・マッピングは utils/tech_v2 に集約（DRY）
+ * 統合エンドポイント /stocks/enriched を使用
+ * - 1回のAPIコールで全データ取得（メタ + 価格 + テクニカル + パフォーマンス）
+ * - スパゲッティコード削減とパフォーマンス向上
  */
 export function useStockData({
   apiBase,
@@ -98,8 +37,9 @@ export function useStockData({
   const [rows, setRows] = useState<Row[]>([]);
   const [status, setStatus] = useState<FetchState>("idle");
 
-  const [techRows, setTechRows] = useState<TechCoreRow[]>([]);
-  const [techStatus, setTechStatus] = useState<FetchState>("idle");
+  // techRowsは/stocks/enrichedに統合されたため、互換性のために空配列を返す
+  const [techRows] = useState<TechCoreRow[]>([]);
+  const [techStatus] = useState<FetchState>("success");
 
   const base = useMemo(
     () => {
@@ -124,36 +64,17 @@ export function useStockData({
     []
   );
 
-  /* ========== 価格/スナップショット/パフォーマンス ========== */
+  /* ========== 統合データ取得 (/stocks/enriched) ========== */
   useEffect(() => {
-    // initial* からの水和（SSR/SSG → CSR）
-    const hydrateFromInitial = () => {
-      if (!initialMeta || !initialSnapshot || !initialPerf) return false;
-      const normalizedTag = (tag ?? "").trim().toLowerCase();
-      const normalizedInitial = (initialTag ?? "").trim().toLowerCase();
-      if (normalizedInitial) {
-        if (normalizedTag !== normalizedInitial) return false;
-      } else if (normalizedTag) {
-        return false;
-      }
-      const hydrateTarget = tag ?? initialTag;
-      const hydrateCanonical = canonicalizeTag(hydrateTarget);
-      const preparedMeta = filterMetaByTag(initialMeta, hydrateTarget, {
-        allowMissingTagInfo: hydrateCanonical === "TOPIX_CORE30",
-      });
-      const merged = mergeRows(preparedMeta, initialSnapshot, initialPerf);
-      setRows(uniqueByTicker(merged));
-      setStatus("success");
-      return true;
-    };
-
-    if (hydrateFromInitial()) return;
+    // SSR水和は現在未使用（将来の拡張用に残す）
+    // 全てのデータを /stocks/enriched から取得する統一アプローチ
 
     let mounted = true;
     const ac = new AbortController();
 
     (async () => {
       try {
+        console.log(`[useStockData] Starting fetch for tag: "${tag}"`);
         setStatus("loading");
         if (mounted) setRows([]);
 
@@ -161,11 +82,11 @@ export function useStockData({
         const lowerTag = normalizedTag.toLowerCase();
         const isAll = lowerTag === "all" || lowerTag === "全て";
         const canonical = canonicalizeTag(normalizedTag);
-        const isScalpingEntry = lowerTag === "scalping_entry" || canonical === "SCALPING_ENTRY";
-        const isScalpingActive = lowerTag === "scalping_active" || canonical === "SCALPING_ACTIVE";
         const queryTag = isAll
           ? undefined
           : canonical ?? (normalizedTag ? normalizedTag : undefined);
+
+        console.log(`[useStockData] Computed - normalizedTag: "${normalizedTag}", canonical: "${canonical}", queryTag: "${queryTag}"`);
 
         const join = (path: string) => {
           if (!base) return path;
@@ -203,26 +124,32 @@ export function useStockData({
           let only404 = true;
           for (const url of urls) {
             try {
+              console.log(`[useStockData${context ? `/${context}` : ""}] Fetching: ${url}`);
               const res = await fetch(url, {
                 signal: ac.signal,
               });
               if (!res.ok) {
-                lastError = new Error(`HTTP ${res.status} for ${url}`);
+                const errorMsg = `HTTP ${res.status} for ${url}`;
+                console.warn(`[useStockData${context ? `/${context}` : ""}] ${errorMsg}`);
+                lastError = new Error(errorMsg);
                 if (res.status !== 404) {
                   only404 = false;
                 }
                 continue;
               }
+              console.log(`[useStockData${context ? `/${context}` : ""}] Success: ${url}`);
               return (await res.json()) as T;
             } catch (err) {
               if (err instanceof DOMException && err.name === "AbortError") {
                 throw err;
               }
+              console.error(`[useStockData${context ? `/${context}` : ""}] Fetch error for ${url}:`, err);
               lastError = err;
               only404 = false;
             }
           }
           if (throwOnFailure) {
+            console.error(`[useStockData${context ? `/${context}` : ""}] All attempts failed:`, lastError);
             throw lastError ?? new Error("All fetch attempts failed");
           }
           if (!only404) {
@@ -235,106 +162,20 @@ export function useStockData({
           return fallbackValue as T;
         };
 
-        // スキャルピング用のエンドポイント
-        const scalpingCandidates = isScalpingEntry
-          ? [join("/scalping/entry")]
-          : isScalpingActive
-          ? [join("/scalping/active")]
-          : [];
-
-        const metaCandidates = [
-          join(buildUrl("/stocks", { tag: queryTag })),
-          join(buildUrl("/meta", { tag: queryTag })),
+        // 全タグで /stocks/enriched を使用（1回のAPIコールで全データ取得）
+        const enrichedCandidates = [
+          join(buildUrl("/stocks/enriched", { tag: queryTag })),
         ];
-
-        const snapshotCandidates = [
-          join(buildUrl("/prices/snapshot/last2", { tag: queryTag })),
-        ];
-
-        const perfCandidates = [
-          join(
-            buildUrl("/perf/returns", {
-              tag: queryTag,
-              windows: DEFAULT_RETURN_WINDOWS,
-            })
-          ),
-          join(
-            buildUrl("/prices/perf/returns", {
-              tag: queryTag,
-              windows: DEFAULT_RETURN_WINDOWS,
-            })
-          ),
-        ];
-
-        // スキャルピングデータの取得
-        if (scalpingCandidates.length > 0) {
-          const scalpingData = await fetchJsonWithFallback<Row[]>(scalpingCandidates, {
-            throwOnFailure: false,
-            fallbackValue: [],
-            context: isScalpingEntry ? "scalping/entry" : "scalping/active",
-          });
-          if (mounted) {
-            setRows(uniqueByTicker(scalpingData));
-            setStatus("success");
-          }
-          return;
-        }
-
-        let meta = await fetchJsonWithFallback<StockMeta[]>(metaCandidates, {
+        const enrichedData = await fetchJsonWithFallback<Row[]>(enrichedCandidates, {
           throwOnFailure: false,
           fallbackValue: [],
-          context: "meta",
+          context: "stocks/enriched",
         });
-        if ((meta?.length ?? 0) === 0 && queryTag) {
-          const unfilteredCandidates = [
-            join(buildUrl("/stocks")),
-            join(buildUrl("/meta")),
-          ];
-          const unfiltered = await fetchJsonWithFallback<StockMeta[]>(
-            unfilteredCandidates,
-            {
-              throwOnFailure: false,
-              fallbackValue: [],
-              context: "meta(unfiltered)",
-            }
-          );
-          if (unfiltered.length > 0) {
-            meta = filterMetaByTag(unfiltered, queryTag, {
-              allowMissingTagInfo: canonical === "TOPIX_CORE30",
-            });
-          }
-        }
-        const [snapshot, perf] = await Promise.all([
-          fetchJsonWithFallback<SnapshotRow[]>(snapshotCandidates, {
-            throwOnFailure: false,
-            fallbackValue: [],
-            context: "snapshot",
-          }),
-          fetchJsonWithFallback<PerfRow[]>(perfCandidates, {
-            throwOnFailure: false,
-            fallbackValue: [],
-            context: "performance",
-          }),
-        ]);
 
-        const preparedMeta = uniqueByTicker(
-          filterMetaByTag(meta, queryTag, {
-            allowMissingTagInfo: canonical === "TOPIX_CORE30",
-          })
-        );
-        const allowedTickers = pickAllowedTickers(preparedMeta);
-        const filteredSnapshot = uniqueByTicker(
-          snapshot?.filter((s) => allowedTickers.has(s.ticker)) ?? []
-        );
-        const filteredPerf = uniqueByTicker(
-          perf?.filter((p) => allowedTickers.has(p.ticker)) ?? []
-        );
-        const merged = uniqueByTicker(
-          mergeRows(preparedMeta, filteredSnapshot, filteredPerf)
-        );
+        console.log(`[useStockData] Fetch completed - ${enrichedData.length} rows for tag "${queryTag}"`);
 
         if (mounted) {
-          setRows(merged);
+          setRows(uniqueByTicker(enrichedData));
           setStatus("success");
         }
       } catch (e) {
@@ -349,132 +190,7 @@ export function useStockData({
       mounted = false;
       ac.abort();
     };
-  }, [base, initialMeta, initialPerf, initialSnapshot, initialTag, tag]);
-
-  /* ========== テクニカル（v2 decision/snapshot） ========== */
-  useEffect(() => {
-    let mounted = true;
-    const ac = new AbortController();
-
-    (async () => {
-      try {
-        if (!base) {
-          setTechStatus("error");
-          return;
-        }
-        setTechStatus("loading");
-        if (mounted) setTechRows([]);
-
-        const normalizedTag = (tag ?? "").trim();
-        const lowerTag = normalizedTag.toLowerCase();
-        const isAll = lowerTag === "all" || lowerTag === "全て";
-        const canonical = canonicalizeTag(normalizedTag);
-        const queryTag = isAll
-          ? undefined
-          : canonical ?? (normalizedTag ? normalizedTag : undefined);
-
-        const join = (path: string) => {
-          if (!base) return path;
-          if (path.startsWith("/")) return `${base}${path}`;
-          return `${base}/${path}`;
-        };
-
-        const buildUrl = (
-          path: string,
-          params: Record<string, string | undefined> = {}
-        ) => {
-          const search = new URLSearchParams();
-          Object.entries(params).forEach(([key, value]) => {
-            if (value !== undefined && value !== "") {
-              search.set(key, value);
-            }
-          });
-          const qs = search.toString();
-          return `${path}${qs ? `?${qs}` : ""}`;
-        };
-
-        const fetchJsonWithFallback = async (urls: string[]) => {
-          let lastError: unknown;
-          for (const url of urls) {
-            try {
-              const res = await fetch(url, {
-                signal: ac.signal,
-              });
-              if (!res.ok) {
-                lastError = new Error(`HTTP ${res.status} for ${url}`);
-                continue;
-              }
-              return await res.json();
-            } catch (err) {
-              if (err instanceof DOMException && err.name === "AbortError") {
-                throw err;
-              }
-              lastError = err;
-            }
-          }
-          throw lastError ?? new Error("All fetch attempts failed");
-        };
-
-        const techCandidates = [
-          join(
-            buildUrl("/tech/decision/snapshot", {
-              interval: "1d",
-              tag: queryTag,
-            })
-          ),
-          join(buildUrl("/tech/decision/snapshot", { interval: "1d" })),
-        ];
-
-        const json: unknown = await fetchJsonWithFallback(techCandidates);
-
-        if (!isDecisionArray(json)) {
-          throw new Error("Invalid v2 decision/snapshot schema");
-        }
-        const arr = json;
-
-        // meta を ticker->meta に（SSR初期・rowsどちらからでも）
-        const metaMap = new Map<string, StockMeta>();
-        const techTarget = queryTag ?? initialTag;
-        const techCanonical = canonicalizeTag(techTarget);
-        const initialFiltered = filterMetaByTag(initialMeta ?? [], techTarget, {
-          allowMissingTagInfo: techCanonical === "TOPIX_CORE30",
-        });
-        initialFiltered.forEach((m) => metaMap.set(m.ticker, m));
-        if (metaMap.size === 0 && rows.length > 0) {
-          rows.forEach((r) =>
-            metaMap.set(r.ticker, {
-              ticker: r.ticker,
-              code: r.code,
-              stock_name: r.stock_name,
-            })
-          );
-        }
-
-        const allowedTickers =
-          rows.length > 0
-            ? new Set(rows.map((r) => r.ticker))
-            : pickAllowedTickers(initialFiltered);
-        const mapped = mapDecisionSnapshotToTechRows(arr, metaMap).filter((t) =>
-          allowedTickers.has(t.ticker)
-        );
-
-        if (mounted) {
-          setTechRows(mapped);
-          setTechStatus("success");
-        }
-      } catch (e) {
-        if (!(e instanceof DOMException && e.name === "AbortError")) {
-          console.error(e);
-          if (mounted) setTechStatus("error");
-        }
-      }
-    })();
-
-    return () => {
-      mounted = false;
-      ac.abort();
-    };
-  }, [base, initialMeta, initialTag, rows, tag]);
+  }, [base, tag]);
 
   return { rows, status, nf0, nf2, techRows, techStatus };
 }

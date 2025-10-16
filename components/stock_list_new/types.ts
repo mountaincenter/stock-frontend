@@ -8,9 +8,8 @@ export interface StockMeta {
   sectors?: string | null;
   series?: string | null;
   topixnewindexseries?: string | null;
-  tag1?: string | null;
-  tag2?: string | null;
-  tag3?: string | null;
+  categories?: string[] | null;
+  tags?: string[] | null;
 }
 
 export interface SnapshotRow {

@@ -41,22 +41,26 @@ const TAG_OPTIONS = [
   {
     value: "takaichi",
     label: "高市銘柄",
-    description: "高市早苗政調会長の政策に関連する銘柄 - 防衛・安全保障、サイバーセキュリティ、エネルギー、半導体国産化、経済安全保障、宇宙産業、地方創生などの重点政策分野"
+    description:
+      "高市早苗自民党総裁の政策に関連する銘柄 - 防衛・安全保障、サイバーセキュリティ、エネルギー、半導体国産化、経済安全保障、宇宙産業、地方創生などの重点政策分野",
   },
   {
     value: "core30",
     label: "TOPIX Core30",
-    description: "東証TOPIX構成銘柄のうち時価総額・流動性が特に高い30銘柄 - 日本を代表する超大型株"
+    description:
+      "東証TOPIX構成銘柄のうち時価総額・流動性が特に高い30銘柄 - 日本を代表する超大型株",
   },
   {
     value: "scalping_entry",
     label: "スキャルピング Entry",
-    description: "初心者向けスキャルピング銘柄 - 株価100〜1500円、出来高1億円以上、ATR14% 1.0〜3.5%の安定的なボラティリティ、変動幅±3%以内の予測しやすい値動き"
+    description:
+      "初心者向けスキャルピング銘柄 - 株価100〜1500円、出来高1億円以上、ATR14% 1.0〜3.5%の安定的なボラティリティ、変動幅±3%以内の予測しやすい値動き",
   },
   {
     value: "scalping_active",
     label: "スキャルピング Active",
-    description: "上級者向けスキャルピング銘柄 - 株価100〜3000円、出来高5千万円以上または出来高急増、ATR14% 2.5%以上の高ボラティリティ、変動幅±2%以上の大きな値動き"
+    description:
+      "上級者向けスキャルピング銘柄 - 株価100〜3000円、出来高5千万円以上または出来高急増、ATR14% 2.5%以上の高ボラティリティ、変動幅±2%以上の大きな値動き",
   },
   { value: "all", label: "全て", description: "全ての銘柄を表示" },
 ] as const;
@@ -84,6 +88,13 @@ export default function StockLists(props: Props & { className?: string }) {
   const initialTag =
     normalizeSelectTag(initialTagProp as string | undefined) ?? "takaichi";
   const [selectedTag, setSelectedTag] = useState<TagValue>(initialTag);
+
+  // タグ選択時にsessionStorageに保存（個別銘柄から戻る時のため）
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('lastSelectedTag', selectedTag);
+    }
+  }, [selectedTag]);
   const [desktopTab, setDesktopTab] = useState<"price" | "perf" | "technical">(
     "price"
   );
@@ -124,8 +135,9 @@ export default function StockLists(props: Props & { className?: string }) {
     if (selectedTag !== "takaichi") return [];
     const set = new Set<string>();
     rows.forEach((row) => {
-      const tags = [row.tag2, row.tag3];
-      tags.forEach((tag) => {
+      // tags配列から政策フィルタを抽出
+      const tagsArray = Array.isArray(row.tags) ? row.tags : [];
+      tagsArray.forEach((tag) => {
         const value = tag?.toString().trim();
         if (value) set.add(value);
       });
@@ -139,7 +151,9 @@ export default function StockLists(props: Props & { className?: string }) {
     }
     const policySet = new Set(selectedPolicies);
     return rows.filter((row) => {
-      const tags = [row.tag2, row.tag3]
+      // tags配列から政策タグを取得してフィルタリング
+      const tagsArray = Array.isArray(row.tags) ? row.tags : [];
+      const tags = tagsArray
         .map((value) => value?.toString().trim())
         .filter((value): value is string => Boolean(value));
       return tags.some((tag) => policySet.has(tag));
@@ -171,21 +185,12 @@ export default function StockLists(props: Props & { className?: string }) {
 
   const priceSortedRows = useMemo(
     () =>
-      sortPriceRows(
-        filtered,
-        sortState.price.key,
-        sortState.price.direction
-      ),
+      sortPriceRows(filtered, sortState.price.key, sortState.price.direction),
     [filtered, sortState.price.key, sortState.price.direction]
   );
 
   const perfSortedRows = useMemo(
-    () =>
-      sortPerfRows(
-        filtered,
-        sortState.perf.key,
-        sortState.perf.direction
-      ),
+    () => sortPerfRows(filtered, sortState.perf.key, sortState.perf.direction),
     [filtered, sortState.perf.key, sortState.perf.direction]
   );
 
@@ -284,7 +289,8 @@ export default function StockLists(props: Props & { className?: string }) {
     }
   })();
 
-  const hasPolicyFilters = selectedTag === "takaichi" && policyOptions.length > 0;
+  const hasPolicyFilters =
+    selectedTag === "takaichi" && policyOptions.length > 0;
 
   const renderPolicyFilters = () => {
     if (!hasPolicyFilters) return null;
@@ -388,10 +394,16 @@ export default function StockLists(props: Props & { className?: string }) {
                     >
                       <div className="space-y-1">
                         <p className="font-semibold text-foreground">
-                          {TAG_OPTIONS.find(opt => opt.value === selectedTag)?.label}
+                          {
+                            TAG_OPTIONS.find((opt) => opt.value === selectedTag)
+                              ?.label
+                          }
                         </p>
                         <p className="text-muted-foreground">
-                          {TAG_OPTIONS.find(opt => opt.value === selectedTag)?.description}
+                          {
+                            TAG_OPTIONS.find((opt) => opt.value === selectedTag)
+                              ?.description
+                          }
                         </p>
                       </div>
                     </TooltipContent>
@@ -411,7 +423,9 @@ export default function StockLists(props: Props & { className?: string }) {
       <div className="space-y-2 md:hidden">
         <div className="rounded-xl border border-border/60 bg-card/60 p-3 shadow-sm space-y-2">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-muted-foreground">リスト</span>
+            <span className="text-xs font-medium text-muted-foreground">
+              リスト
+            </span>
             <div className="flex-1 flex items-center gap-2">
               <Select
                 value={selectedTag}
@@ -449,10 +463,16 @@ export default function StockLists(props: Props & { className?: string }) {
                   >
                     <div className="space-y-1">
                       <p className="font-semibold text-foreground">
-                        {TAG_OPTIONS.find(opt => opt.value === selectedTag)?.label}
+                        {
+                          TAG_OPTIONS.find((opt) => opt.value === selectedTag)
+                            ?.label
+                        }
                       </p>
                       <p className="text-muted-foreground">
-                        {TAG_OPTIONS.find(opt => opt.value === selectedTag)?.description}
+                        {
+                          TAG_OPTIONS.find((opt) => opt.value === selectedTag)
+                            ?.description
+                        }
                       </p>
                     </div>
                   </TooltipContent>
@@ -472,13 +492,17 @@ export default function StockLists(props: Props & { className?: string }) {
           >
             <span>フィルタ & ソート</span>
             <ChevronDown
-              className={`h-4 w-4 transition-transform ${mobileToolsOpen ? "rotate-180" : ""}`}
+              className={`h-4 w-4 transition-transform ${
+                mobileToolsOpen ? "rotate-180" : ""
+              }`}
             />
           </button>
           {mobileToolsOpen && (
             <div className="pt-2 space-y-3">
               {hasPolicyFilters && <div>{renderPolicyFilters()}</div>}
-              <div className="overflow-x-auto -mx-1 px-1">{mobileSortToolbar}</div>
+              <div className="overflow-x-auto -mx-1 px-1">
+                {mobileSortToolbar}
+              </div>
             </div>
           )}
         </div>
@@ -488,31 +512,31 @@ export default function StockLists(props: Props & { className?: string }) {
         <div className="hidden md:block">{renderPolicyFilters()}</div>
       )}
 
-  <StockListsDesktop
-    priceRows={priceSortedRows}
-    perfRows={perfSortedRows}
-    techRows={techSortedRows}
-    techStatus={techStatus}
-    nf0={nf0}
-    nf2={nf2}
-    activeTab={desktopTab}
-    onTabChange={(value) => setDesktopTab(value)}
-    priceSortKey={sortState.price.key}
-    priceSortDirection={sortState.price.direction}
-    onPriceSort={handlePriceSort}
-    perfSortKey={sortState.perf.key}
-    perfSortDirection={sortState.perf.direction}
-    onPerfSort={handlePerfSort}
-    techSortKey={sortState.tech.key}
-    techSortDirection={sortState.tech.direction}
-    onTechSort={handleTechSort}
-    priceDataByTicker={priceDataByTicker}
-    displayedCount={filtered.length}
-  />
+      <StockListsDesktop
+        priceRows={priceSortedRows}
+        perfRows={perfSortedRows}
+        techRows={techSortedRows}
+        techStatus={techStatus}
+        nf0={nf0}
+        nf2={nf2}
+        activeTab={desktopTab}
+        onTabChange={(value) => setDesktopTab(value)}
+        priceSortKey={sortState.price.key}
+        priceSortDirection={sortState.price.direction}
+        onPriceSort={handlePriceSort}
+        perfSortKey={sortState.perf.key}
+        perfSortDirection={sortState.perf.direction}
+        onPerfSort={handlePerfSort}
+        techSortKey={sortState.tech.key}
+        techSortDirection={sortState.tech.direction}
+        onTechSort={handleTechSort}
+        priceDataByTicker={priceDataByTicker}
+        displayedCount={filtered.length}
+      />
 
-  <StockListsMobile
-    priceRows={priceSortedRows}
-    perfRows={perfSortedRows}
+      <StockListsMobile
+        priceRows={priceSortedRows}
+        perfRows={perfSortedRows}
         techRows={techSortedRows}
         techStatus={techStatus}
         nf0={nf0}

@@ -77,7 +77,8 @@ export interface MetaLike {
   ticker?: string | null;
   code?: string | null;
   stock_name?: string | null;
-  tag1?: string | null;
+  categories?: string[] | null;
+  tags?: string[] | null;
   tag?: string | null;
   tag_primary?: string | null;
 }
@@ -100,8 +101,13 @@ export function filterMetaByTag<T extends MetaLike>(
 
   let hasTagInfo = false;
   const filtered = meta.filter((item) => {
+    // categories と tags を配列として展開
+    const categoriesArray = Array.isArray(item.categories) ? item.categories : [];
+    const tagsArray = Array.isArray(item.tags) ? item.tags : [];
+
     const tagCandidates = [
-      item.tag1,
+      ...categoriesArray,
+      ...tagsArray,
       (item as Record<string, unknown>).tag,
       (item as Record<string, unknown>).tag_primary,
     ]

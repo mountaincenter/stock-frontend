@@ -3,6 +3,7 @@ import Link from "next/link";
 import TickerDailyChart from "./TickerDailyChart";
 import TechnicalDetailTable from "./TechDetailTable";
 import PriceCard from "./PriceCard";
+import BackToListButton from "./BackToListButton";
 import { canonicalizeTag } from "@/lib/tag-utils";
 
 const RAW_API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
@@ -14,7 +15,8 @@ type Meta = {
   code: string;
   stock_name: string;
   ticker: string;
-  tag1?: string | null;
+  categories?: string[] | null;
+  tags?: string[] | null;
 };
 type Snapshot = {
   ticker: string;
@@ -73,7 +75,12 @@ async function fetchAll(ticker: string) {
       (m) => (m.ticker ?? "").trim().toUpperCase() === normalizedTicker
     ) ?? null;
 
-  const tag = canonicalizeTag(meta?.tag1 ?? undefined);
+  // categories配列の最初の要素を使用（TOPIX_CORE30 or 高市銘柄）
+  const tag = canonicalizeTag(
+    Array.isArray(meta?.categories) && meta.categories.length > 0
+      ? meta.categories[0]
+      : undefined
+  );
 
   const snapshotCandidates = [
     join(
@@ -137,12 +144,7 @@ export default async function TickerPage({
                   は一覧に存在しません。
                 </p>
                 <div className="mt-6">
-                  <Link
-                    href="/"
-                    className="inline-flex items-center justify-center rounded-xl px-5 py-2.5 text-sm font-medium bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 hover:border-primary/30 transition-all duration-200 hover:shadow-lg hover:shadow-primary/10"
-                  >
-                    一覧に戻る
-                  </Link>
+                  <BackToListButton variant="button" />
                 </div>
               </div>
             </div>
@@ -166,15 +168,7 @@ export default async function TickerPage({
         <div className="w-full md:w-[92%] lg:w-[90%] xl:w-[88%] 2xl:w-[86%] mx-auto px-3 md:px-4 space-y-4">
           {/* Premium navigation header */}
           <div className="flex justify-end">
-            <Link
-              href="/"
-              className="group inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium bg-card/60 hover:bg-card/80 border border-border/40 hover:border-primary/30 backdrop-blur-sm transition-all duration-200 hover:shadow-md hover:shadow-primary/5"
-            >
-              <svg className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              一覧へ戻る
-            </Link>
+            <BackToListButton />
           </div>
 
           {/* 価格＋ボラティリティ（ヘッダ含めて集約） */}
@@ -195,15 +189,7 @@ export default async function TickerPage({
           <div className="flex items-center justify-center pt-1">
             <div className="flex items-center gap-2">
               <div className="h-px w-8 bg-gradient-to-r from-transparent to-border/40" />
-              <Link
-                href="/"
-                className="group inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <svg className="w-3 h-3 transition-transform group-hover:-translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-                一覧へ戻る
-              </Link>
+              <BackToListButton variant="minimal" />
               <div className="h-px w-8 bg-gradient-to-l from-transparent to-border/40" />
             </div>
           </div>
