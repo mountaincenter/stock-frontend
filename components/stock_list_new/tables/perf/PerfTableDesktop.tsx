@@ -42,8 +42,8 @@ const PerfRow = React.memo(({
   density?: DisplayDensity;
 }) => {
   const r = row;
-  const nf0 = new Intl.NumberFormat("ja-JP", { maximumFractionDigits: 0 });
-  const nf1 = new Intl.NumberFormat("ja-JP", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const nf0 = React.useMemo(() => new Intl.NumberFormat("ja-JP", { maximumFractionDigits: 0 }), []);
+  const nf1 = React.useMemo(() => new Intl.NumberFormat("ja-JP", { minimumFractionDigits: 1, maximumFractionDigits: 1 }), []);
 
   const densityValues = DENSITY_VALUES[density];
   const densityStyles = getDensityStyles(density);

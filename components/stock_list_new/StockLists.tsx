@@ -312,13 +312,6 @@ export default function StockLists(props: Props & { className?: string }) {
     );
   };
 
-  const activeTagLabel = useMemo(() => {
-    return (
-      TAG_OPTIONS.find((option) => option.value === selectedTag)?.label ??
-      selectedTag
-    );
-  }, [selectedTag]);
-
   if (status === "loading" || status === "idle") {
     return (
       <div className="flex flex-col gap-2 flex-1 min-h-0">

@@ -4,7 +4,6 @@ import {
   type PerfRow,
   type SnapshotRow,
   type StockMeta,
-  type Row,
 } from "@/components/stock_list_new";
 import {
   canonicalizeTag,
@@ -110,7 +109,6 @@ async function fetchInitial(tag: string) {
 
     const metaCandidates = [
       join(buildUrl("/stocks", { tag: tagParam })),
-      join(buildUrl("/meta", { tag: tagParam })),
     ];
 
     const snapshotCandidates = [
@@ -143,7 +141,6 @@ async function fetchInitial(tag: string) {
         if ((meta?.length ?? 0) === 0 && tagParam) {
           const unfilteredCandidates = [
             join(buildUrl("/stocks")),
-            join(buildUrl("/meta")),
           ];
           const unfiltered = await fetchJsonWithFallback<StockMeta[]>(
             unfilteredCandidates,

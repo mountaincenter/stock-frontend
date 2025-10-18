@@ -6,7 +6,6 @@ import type {
   FetchState,
   Props,
   Row,
-  TechCoreRow,
 } from "../types";
 import { canonicalizeTag } from "@/lib/tag-utils";
 
@@ -28,18 +27,14 @@ const uniqueByTicker = <T extends { ticker?: string }>(items: T[]): T[] => {
  */
 export function useStockData({
   apiBase,
-  initialMeta,
-  initialSnapshot,
-  initialPerf,
-  initialTag,
   tag,
 }: Props & { tag: string }) {
   const [rows, setRows] = useState<Row[]>([]);
   const [status, setStatus] = useState<FetchState>("idle");
 
-  // techRowsは/stocks/enrichedに統合されたため、互換性のために空配列を返す
-  const [techRows] = useState<TechCoreRow[]>([]);
-  const [techStatus] = useState<FetchState>("success");
+  // techRowsはrowsと同じデータを使用（/stocks/enrichedに統合済み）
+  const techRows = rows;
+  const techStatus = status;
 
   const base = useMemo(
     () => {

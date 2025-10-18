@@ -111,7 +111,35 @@ export function mapDecisionSnapshotToTechRows(
       ticker: it.ticker,
       code: meta.code,
       stock_name: meta.stock_name,
+      market: meta.market ?? null,
+      sectors: meta.sectors ?? null,
+      series: meta.series ?? null,
+      topixnewindexseries: meta.topixnewindexseries ?? null,
+      categories: meta.categories ?? null,
+      tags: meta.tags ?? null,
       date: it.date ?? null,
+
+      // 価格データ（tech viewでは使用しないのでnull）
+      close: null,
+      prevClose: null,
+      diff: null,
+      pct_diff: null,
+      volume: null,
+      vol_ma10: null,
+      tr: null,
+      tr_pct: null,
+      atr14: null,
+      atr14_pct: null,
+
+      // パフォーマンスデータ（tech viewでは使用しないのでnull）
+      r_5d: null,
+      r_1mo: null,
+      r_3mo: null,
+      r_ytd: null,
+      r_1y: null,
+      r_3y: null,
+      r_5y: null,
+      r_all: null,
 
       // UIの表示キーに合わせて percent_b → bb_percent_b にリネーム
       rsi14: it.values.rsi14,

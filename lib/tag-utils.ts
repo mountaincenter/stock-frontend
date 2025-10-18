@@ -13,6 +13,8 @@ const TAG_CANONICAL_MAP: Record<string, CanonicalTag> = {
   TOPIX_CORE30: "TOPIX_CORE30",
   scalping_entry: "SCALPING_ENTRY",
   scalping_active: "SCALPING_ACTIVE",
+  SCALPING_ENTRY: "SCALPING_ENTRY",
+  SCALPING_ACTIVE: "SCALPING_ACTIVE",
   "スキャルピング entry": "SCALPING_ENTRY",
   "スキャルピング active": "SCALPING_ACTIVE",
 };

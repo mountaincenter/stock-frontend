@@ -36,12 +36,6 @@ type Props = {
   density?: DisplayDensity;
 };
 
-// 1桁（RSI/乖離）
-const nf1 = new Intl.NumberFormat("ja-JP", {
-  minimumFractionDigits: 1,
-  maximumFractionDigits: 1,
-});
-
 /**
  * テクニカルの列幅（フレキシブル版）
  * 1:コード(110固定) 2:銘柄名(min240,1.2fr) 3:日付(110固定)
@@ -158,8 +152,8 @@ const TechnicalRow = React.memo(({
 
   // 価格データを取得
   const priceData = priceDataByTicker?.[r.ticker];
-  const nf0 = new Intl.NumberFormat("ja-JP", { maximumFractionDigits: 0 });
-  const nf1 = new Intl.NumberFormat("ja-JP", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const nf0 = React.useMemo(() => new Intl.NumberFormat("ja-JP", { maximumFractionDigits: 0 }), []);
+  const nf1Local = React.useMemo(() => new Intl.NumberFormat("ja-JP", { minimumFractionDigits: 1, maximumFractionDigits: 1 }), []);
 
   // 価格差を計算
   const priceDiff = priceData?.close != null && priceData?.prevClose != null
@@ -172,9 +166,9 @@ const TechnicalRow = React.memo(({
     const sign = priceDiff > 0 ? "+" : "";
     const priceStr = `${sign}${nf0.format(priceDiff)}円`;
     const pctSign = priceData.pct_diff > 0 ? "+" : "";
-    const pctStr = `${pctSign}${nf1.format(priceData.pct_diff)}%`;
+    const pctStr = `${pctSign}${nf1Local.format(priceData.pct_diff)}%`;
     return `${priceStr} (${pctStr})`;
-  }, [priceDiff, priceData?.pct_diff, nf0, nf1]);
+  }, [priceDiff, priceData?.pct_diff, nf0, nf1Local]);
 
   const tooltipContent = (
     <div className="space-y-1">
@@ -242,7 +236,7 @@ const TechnicalRow = React.memo(({
       {/* KPI4（均等割・Perf と同じ text-base） */}
       <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
         <span className={`font-sans tabular-nums ${densityStyles.fontSize.data}`}>
-          {fmt(rsi14, nf1)}
+          {fmt(rsi14, nf1Local)}
         </span>
       </div>
       <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
@@ -265,7 +259,7 @@ const TechnicalRow = React.memo(({
             dev
           )}`}
         >
-          {fmt(dev, nf1, "%")}
+          {fmt(dev, nf1Local, "%")}
         </span>
       </div>
       </Link>

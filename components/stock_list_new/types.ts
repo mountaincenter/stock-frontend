@@ -72,7 +72,7 @@ export type Row = StockMeta & {
   tr_pct: MaybeNumber;
   atr14: MaybeNumber;
   atr14_pct: MaybeNumber;
-} & PerfMap;
+} & PerfMap & TechCoreMap & TechRatings;
 
 // ソート関連（現状で使用しているキーのみ）
 export type SortDir = "asc" | "desc";
@@ -123,10 +123,8 @@ export interface TechRatings {
   overall_rating: RatingLabel;
 }
 
-export type TechCoreRow = StockMeta & {
-  date: string | null;
-} & TechCoreMap &
-  TechRatings;
+// TechCoreRowはRowと同じ（/stocks/enrichedに統合済み）
+export type TechCoreRow = Row;
 
 export type TechCoreSortKey = "code" | "stock_name" | "date" | TechCoreKey;
 
