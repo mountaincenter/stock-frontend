@@ -69,6 +69,11 @@ export default function LightweightChart({
   const candleData = useMemo<LwcCandleData<Time>[]>(() => {
     const map = new Map<string, LwcCandleData<Time>>();
     rows.forEach((r) => {
+      // Skip rows with null OHLC data
+      if (r.Open == null || r.High == null || r.Low == null || r.Close == null) {
+        return;
+      }
+
       const value = (() => {
         if (r.date.length <= 10) {
           const [y, m, d] = r.date.split("-").map((v) => Number(v));

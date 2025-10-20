@@ -22,7 +22,7 @@ export default function TickerDailyChart({
   ticker: string;
   perf?: Perf;
 }) {
-  const [activeRange, setActiveRange] = useState<RangeKey>("r_1y");
+  const [activeRange, setActiveRange] = useState<RangeKey>("r_ytd"); // Default: 6ヶ月
   const { rows, loading, err } = useTickerData(ticker, activeRange);
 
   // Chart options state with Volume default ON
