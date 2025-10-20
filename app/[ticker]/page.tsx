@@ -16,6 +16,9 @@ type Meta = {
   ticker: string;
   categories?: string[] | null;
   tags?: string[] | null;
+  sectors?: string | null;
+  series?: string | null;
+  market?: string | null;
 };
 type Snapshot = {
   ticker: string;

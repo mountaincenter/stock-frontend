@@ -38,7 +38,14 @@ export type IchimokuDetail = {
   chikou: number | null; // 26本前の終値
 };
 
-export type Meta = { code: string; stock_name: string; ticker: string };
+export type Meta = {
+  code: string;
+  stock_name: string;
+  ticker: string;
+  sectors?: string | null;
+  series?: string | null;
+  market?: string | null;
+};
 
 export type Snapshot = {
   ticker: string;
