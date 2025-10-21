@@ -1,4 +1,4 @@
-export type CanonicalTag = "高市銘柄" | "TOPIX_CORE30" | "SCALPING_ENTRY" | "SCALPING_ACTIVE";
+export type CanonicalTag = "高市銘柄" | "TOPIX_CORE30" | "SCALPING_ENTRY" | "SCALPING_ACTIVE" | "GROK";
 
 const TAG_CANONICAL_MAP: Record<string, CanonicalTag> = {
   takaichi: "高市銘柄",
@@ -17,6 +17,9 @@ const TAG_CANONICAL_MAP: Record<string, CanonicalTag> = {
   SCALPING_ACTIVE: "SCALPING_ACTIVE",
   "スキャルピング entry": "SCALPING_ENTRY",
   "スキャルピング active": "SCALPING_ACTIVE",
+  grok: "GROK",
+  grok_trending: "GROK",
+  GROK: "GROK",
 };
 
 export function canonicalizeTag(tag?: string): CanonicalTag | undefined {

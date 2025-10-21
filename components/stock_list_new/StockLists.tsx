@@ -62,6 +62,12 @@ const TAG_OPTIONS = [
     description:
       "上級者向けスキャルピング銘柄 - 株価100〜3000円、流動性5千万円以上または出来高150%以上、ATR14% 2.5%以上の高ボラティリティ、変動幅±2%以上の大きな値動き、テクニカル評価不問",
   },
+  {
+    value: "grok",
+    label: "GROK トレンド",
+    description:
+      "GROK AIが選定したトレンド銘柄 - AI分析による注目株の抽出",
+  },
   { value: "all", label: "全て", description: "全ての銘柄を表示" },
 ] as const;
 

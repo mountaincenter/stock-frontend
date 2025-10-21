@@ -79,9 +79,9 @@ export function useTickerData(ticker: string, activeRange: RangeKey) {
         const end = config.isIntraday && config.getEnd ? config.getEnd(latestDate) : fmtDate(latestDate);
 
         // For MA75 calculation, we need at least 75 data points before the display range
-        // Fetch extra data for short-term charts (1d, 5d)
+        // Fetch extra data for short-term charts (1d, 5d, 1mo)
         let fetchStart = start;
-        if (config.isIntraday && (activeRange === "r_5d" || activeRange === "r_1mo")) {
+        if (config.isIntraday && (activeRange === "r_5d" || activeRange === "r_1mo" || activeRange === "r_3mo")) {
           const extendedDate = new Date(latestDate);
           // Get approximately 100 days of data for MA calculation
           extendedDate.setDate(extendedDate.getDate() - 100);
@@ -119,8 +119,8 @@ export function useTickerData(ticker: string, activeRange: RangeKey) {
         // We fetched extra data for MA calculation, but only display the requested range
         let filteredData = j;
 
-        // For 1d/5d charts, use actual latest date from data
-        if (config.isIntraday && (activeRange === "r_5d" || activeRange === "r_1mo")) {
+        // For intraday charts (1d/5d/1mo), use actual latest date from data
+        if (config.isIntraday && (activeRange === "r_5d" || activeRange === "r_1mo" || activeRange === "r_3mo")) {
           const displayStart = config.getStart(actualLatestDate);
           const displayEnd = actualLatestDateStr; // Use actual latest date string
 

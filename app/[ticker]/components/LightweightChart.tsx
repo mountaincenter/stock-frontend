@@ -24,10 +24,10 @@ import { calculateSMA, calculateBollingerBands } from "../lib/indicators";
 
 type PriceRow = {
   date: string;
-  Open: number;
-  High: number;
-  Low: number;
-  Close: number;
+  Open: number | null;
+  High: number | null;
+  Low: number | null;
+  Close: number | null;
   Volume?: number | null;
 };
 
@@ -69,39 +69,73 @@ export default function LightweightChart({
   const candleData = useMemo<LwcCandleData<Time>[]>(() => {
     const map = new Map<string, LwcCandleData<Time>>();
     rows.forEach((r) => {
+      // Skip rows with null or invalid date
+      if (!r.date || typeof r.date !== 'string') {
+        return;
+      }
+
       // Skip rows with null OHLC data
       if (r.Open == null || r.High == null || r.Low == null || r.Close == null) {
         return;
       }
 
-      const value = (() => {
-        if (r.date.length <= 10) {
-          const [y, m, d] = r.date.split("-").map((v) => Number(v));
-          const time: BusinessDay = { year: y, month: m, day: d };
+      // Additional validation: ensure OHLC are actual numbers
+      if (typeof r.Open !== 'number' || typeof r.High !== 'number' ||
+          typeof r.Low !== 'number' || typeof r.Close !== 'number') {
+        return;
+      }
+
+      // Skip invalid numbers (NaN, Infinity)
+      if (!isFinite(r.Open) || !isFinite(r.High) || !isFinite(r.Low) || !isFinite(r.Close)) {
+        return;
+      }
+
+      try {
+        const value = (() => {
+          if (r.date.length <= 10) {
+            const parts = r.date.split("-");
+            if (parts.length !== 3) return null;
+
+            const [y, m, d] = parts.map((v) => Number(v));
+
+            // Validate date components
+            if (!isFinite(y) || !isFinite(m) || !isFinite(d)) return null;
+            if (y < 1970 || y > 2100 || m < 1 || m > 12 || d < 1 || d > 31) return null;
+
+            const time: BusinessDay = { year: y, month: m, day: d };
+            return {
+              key: `${y}-${m}-${d}`,
+              data: {
+                time: time as Time,
+                open: r.Open,
+                high: r.High,
+                low: r.Low,
+                close: r.Close,
+              } satisfies LwcCandleData<Time>,
+            };
+          }
+          const ts = toUtcSeconds(r.date);
+          if (!isFinite(ts) || ts <= 0) return null;
+
           return {
-            key: `${y}-${m}-${d}`,
+            key: String(ts),
             data: {
-              time: time as Time,
+              time: ts as Time,
               open: r.Open,
               high: r.High,
               low: r.Low,
               close: r.Close,
             } satisfies LwcCandleData<Time>,
           };
+        })();
+
+        if (value && value.data) {
+          map.set(value.key, value.data);
         }
-        const ts = toUtcSeconds(r.date);
-        return {
-          key: String(ts),
-          data: {
-            time: ts as Time,
-            open: r.Open,
-            high: r.High,
-            low: r.Low,
-            close: r.Close,
-          } satisfies LwcCandleData<Time>,
-        };
-      })();
-      map.set(value.key, value.data);
+      } catch (e) {
+        // Skip invalid rows
+        return;
+      }
     });
     const resolve = (time: Time): number => {
       if (typeof time === "number") return time;
@@ -135,7 +169,7 @@ export default function LightweightChart({
   // Volume data
   const volumeData = useMemo(() => {
     return rows
-      .filter((r) => r.Volume != null && r.Volume > 0)
+      .filter((r) => r.Volume != null && r.Volume > 0 && r.Close != null && r.Open != null)
       .map((r) => {
         if (r.date.length <= 10) {
           const [y, m, d] = r.date.split("-").map(Number);
@@ -143,14 +177,14 @@ export default function LightweightChart({
           return {
             time: time as Time,
             value: r.Volume!,
-            color: r.Close >= r.Open ? style.up : style.down,
+            color: r.Close! >= r.Open! ? style.up : style.down,
           };
         }
         const ts = toUtcSeconds(r.date);
         return {
           time: ts as Time,
           value: r.Volume!,
-          color: r.Close >= r.Open ? style.up : style.down,
+          color: r.Close! >= r.Open! ? style.up : style.down,
         };
       });
   }, [rows, style.up, style.down]);
@@ -253,7 +287,21 @@ export default function LightweightChart({
       });
 
       series = candlestickSeries;
-      candlestickSeries.setData(candleData);
+
+      // Final validation: ensure all data points are valid before setting
+      const validCandleData = candleData.filter((d) => {
+        return (
+          d.time != null &&
+          typeof d.open === 'number' && isFinite(d.open) &&
+          typeof d.high === 'number' && isFinite(d.high) &&
+          typeof d.low === 'number' && isFinite(d.low) &&
+          typeof d.close === 'number' && isFinite(d.close)
+        );
+      });
+
+      if (validCandleData.length > 0) {
+        candlestickSeries.setData(validCandleData);
+      }
 
       // Moving averages (on top of candlesticks)
       if (options?.showMA5) {
