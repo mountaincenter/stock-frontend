@@ -32,7 +32,7 @@ export function canonicalizeTag(tag?: string): CanonicalTag | undefined {
 
 export function normalizeSelectTag(
   value?: string
-): "takaichi" | "core30" | "scalping_entry" | "scalping_active" | "grok" | "all" | undefined {
+): "takaichi" | "core30" | "scalping_entry" | "scalping_active" | "all" | undefined {
   if (!value) return undefined;
   const trimmed = value.trim();
   if (!trimmed) return undefined;
@@ -71,13 +71,6 @@ export function normalizeSelectTag(
     trimmed === "スキャルピング Active"
   ) {
     return "scalping_active";
-  }
-  if (
-    lower === "grok" ||
-    lower === "grok_trending" ||
-    trimmed === "GROK"
-  ) {
-    return "grok";
   }
   if (lower === "all" || trimmed === "全て") {
     return "all";

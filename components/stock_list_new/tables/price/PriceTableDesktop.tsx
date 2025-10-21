@@ -10,7 +10,6 @@ import { CloseCell, DiffBadge, NumCell } from "../../parts/Cells";
 import type { PriceSortKey, SortDirection } from "../../utils/sort";
 import { PRICE_SORT_COLUMNS } from "../../utils/sort";
 import { SortButtonGroup } from "../../parts/SortButtonGroup";
-import { CustomTooltip } from "../../parts/CustomTooltip";
 
 /**
  * 価格タブ（列順・幅）フレキシブル版
@@ -59,10 +58,6 @@ const PriceRow = React.memo(({
   const densityStyles = getDensityStyles(density);
   const paddingY = `${densityValues.rowPaddingY}rem`;
 
-  // Grok銘柄の判定とtooltip用のreason取得
-  const isGrokStock = r.categories?.includes("GROK") ?? false;
-  const grokReason = isGrokStock && r.tags && r.tags.length > 1 ? r.tags[1] : null;
-
   return (
     <Link
         href={`/${encodeURIComponent(r.ticker)}`}
@@ -92,22 +87,7 @@ const PriceRow = React.memo(({
 
         {/* 終値 */}
         <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
-          {isGrokStock && grokReason ? (
-            <CustomTooltip
-              content={
-                <div className="max-w-md whitespace-normal">
-                  <div className="font-semibold text-xs mb-1">選定理由:</div>
-                  <div className="text-xs leading-relaxed">{grokReason}</div>
-                </div>
-              }
-            >
-              <div className="inline-block">
-                <CloseCell v={r.close} nf0={nf0} />
-              </div>
-            </CustomTooltip>
-          ) : (
-            <CloseCell v={r.close} nf0={nf0} />
-          )}
+          <CloseCell v={r.close} nf0={nf0} />
         </div>
 
         {/* 前日差 */}

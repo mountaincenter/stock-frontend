@@ -60,10 +60,6 @@ export default function PriceSimpleMobile({ rows, nf0, nf2 }: Props) {
               ? "text-red-600 dark:text-red-500"
               : "text-muted-foreground";
 
-          // Grok銘柄の判定とreason取得
-          const isGrokStock = r.categories?.includes("GROK") ?? false;
-          const grokReason = isGrokStock && r.tags && r.tags.length > 1 ? r.tags[1] : null;
-
           return (
             <Link
               key={r.ticker}
@@ -74,7 +70,7 @@ export default function PriceSimpleMobile({ rows, nf0, nf2 }: Props) {
                 transition-colors duration-150
               `}
             >
-              {/* 銘柄名（明るめ） + コード/日付（サブ） + Grok選定理由 */}
+              {/* 銘柄名（明るめ） + コード/日付（サブ） */}
               <div className="col-span-7 min-w-0">
                 <div className={nameBig} title={r.stock_name}>
                   {r.stock_name}
@@ -83,11 +79,6 @@ export default function PriceSimpleMobile({ rows, nf0, nf2 }: Props) {
                   {r.code}
                   <span className={dateSub}>{r.date ?? "—"}</span>
                 </div>
-                {isGrokStock && grokReason && (
-                  <div className="mt-1 text-[10px] leading-tight text-muted-foreground/80 line-clamp-2">
-                    {grokReason}
-                  </div>
-                )}
               </div>
 
               {/* 株価：前日差と同じ色トーンに合わせる */}
