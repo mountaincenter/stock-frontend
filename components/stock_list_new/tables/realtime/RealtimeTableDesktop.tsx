@@ -130,17 +130,17 @@ const RealtimeRow = React.memo(({
 
       {/* 始値 */}
       <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
-        <NumCell v={r.open} nf0={nf0} />
+        <NumCell v={r.open ?? null} nf0={nf0} />
       </div>
 
       {/* 高値 */}
       <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
-        <NumCell v={r.high} nf0={nf0} />
+        <NumCell v={r.high ?? null} nf0={nf0} />
       </div>
 
       {/* 安値 */}
       <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
-        <NumCell v={r.low} nf0={nf0} />
+        <NumCell v={r.low ?? null} nf0={nf0} />
       </div>
 
       {/* 出来高 */}
@@ -198,8 +198,6 @@ export function RealtimeTableDesktop({
   }, [rows]);
 
   const densityValues = DENSITY_VALUES[density];
-  const densityStyles = getDensityStyles(density);
-  const paddingY = `${densityValues.headerPaddingY}rem`;
 
   return (
     <div className={`${DENSITY_VALUES[density].rowSpacing === 0.5 ? 'space-y-2' : DENSITY_VALUES[density].rowSpacing === 0.625 ? 'space-y-2.5' : 'space-y-3'}`}>

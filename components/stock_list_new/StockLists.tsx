@@ -40,6 +40,18 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+interface RealtimeQuote {
+  ticker: string;
+  price: number | null;
+  change: number | null;
+  changePercent: number | null;
+  volume: number | null;
+  marketTime: string | null;
+  open: number | null;
+  high: number | null;
+  low: number | null;
+}
+
 const TAG_OPTIONS = [
   {
     value: "takaichi",
@@ -145,8 +157,8 @@ export default function StockLists(props: Props & { className?: string }) {
 
       // 取得したデータをMapに保存
       if (result.data && result.data.length > 0) {
-        const newPrices = new Map<string, any>();
-        result.data.forEach((quote: any) => {
+        const newPrices = new Map<string, Omit<RealtimeQuote, 'ticker'>>();
+        result.data.forEach((quote: RealtimeQuote) => {
           newPrices.set(quote.ticker, {
             price: quote.price,
             change: quote.change,
