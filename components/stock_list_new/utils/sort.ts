@@ -44,6 +44,19 @@ export type TechSortKey =
   | "bb_percent_b"
   | "sma25_dev_pct";
 
+export type RealtimeSortKey =
+  | "code"
+  | "stock_name"
+  | "marketTime"
+  | "close"
+  | "prevClose"
+  | "open"
+  | "diff"
+  | "pct_diff"
+  | "high"
+  | "low"
+  | "volume";
+
 export type SortableColumn<K extends string> = {
   key: K;
   label: string;
@@ -450,3 +463,63 @@ export const nextSortDirection = (
   }
   return requested;
 };
+
+// =========================
+// Realtime (リアルタイム)
+// =========================
+
+export const REALTIME_SORT_COLUMNS: SortableColumn<RealtimeSortKey>[] = [
+  { key: "code", label: "コード", align: "left" },
+  { key: "stock_name", label: "銘柄名", align: "left" },
+  { key: "marketTime", label: "時刻", align: "center" },
+  { key: "close", label: "現在値", align: "right" },
+  { key: "diff", label: "前日比", align: "right" },
+  { key: "pct_diff", label: "前日比%", align: "right" },
+  { key: "prevClose", label: "前日終値", align: "right" },
+  { key: "open", label: "始値", align: "right" },
+  { key: "high", label: "高値", align: "right" },
+  { key: "low", label: "安値", align: "right" },
+  { key: "volume", label: "出来高", align: "right" },
+];
+
+const realtimeValue = (row: Row, key: RealtimeSortKey): number | string => {
+  switch (key) {
+    case "code":
+      return row.code ?? "";
+    case "stock_name":
+      return row.stock_name ?? "";
+    case "marketTime":
+      return row.marketTime ?? "";
+    case "close":
+      return typeof row.close === "number" ? row.close : Number.NaN;
+    case "prevClose":
+      return typeof row.prevClose === "number" ? row.prevClose : Number.NaN;
+    case "open":
+      return typeof row.open === "number" ? row.open : Number.NaN;
+    case "diff":
+      return typeof row.diff === "number" ? row.diff : Number.NaN;
+    case "pct_diff":
+      return typeof row.pct_diff === "number"
+        ? row.pct_diff
+        : typeof row.diff === "number" &&
+          typeof row.prevClose === "number" &&
+          row.prevClose !== 0
+        ? (row.diff / row.prevClose) * 100
+        : Number.NaN;
+    case "high":
+      return typeof row.high === "number" ? row.high : Number.NaN;
+    case "low":
+      return typeof row.low === "number" ? row.low : Number.NaN;
+    case "volume":
+      return typeof row.volume === "number" ? row.volume : Number.NaN;
+    default:
+      return Number.NaN;
+  }
+};
+
+export const sortRealtimeRows = (
+  rows: Row[],
+  key: RealtimeSortKey | null,
+  direction: SortDirection
+): Row[] =>
+  applySort(rows, key, direction, (row) => realtimeValue(row, key ?? "code"));

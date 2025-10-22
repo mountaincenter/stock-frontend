@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { LayoutGrid, List, LineChart } from "lucide-react";
+import { LayoutGrid, List, LineChart, Zap } from "lucide-react";
 import {
   Tabs,
   TabsList,
@@ -13,10 +13,12 @@ import type { DisplayDensity } from "../types/density";
 import PriceTableDesktop from "../tables/price/PriceTableDesktop";
 import PerfTableDesktop from "../tables/perf/PerfTableDesktop";
 import TechnicalTableDesktop from "../tables/technical/TechnicalTableDesktop";
+import { RealtimeTableDesktop } from "../tables/realtime/RealtimeTableDesktop";
 import type {
   PriceSortKey,
   PerfSortKey,
   TechSortKey,
+  RealtimeSortKey,
   SortDirection,
 } from "../utils/sort";
 import { TableWrapper } from "../wrappers/TableWrapper";
@@ -26,11 +28,12 @@ interface StockListsDesktopProps {
   priceRows: Row[];
   perfRows: Row[];
   techRows: TechCoreRow[];
+  realtimeRows: Row[];
   techStatus: "idle" | "loading" | "success" | "error";
   nf0: Intl.NumberFormat;
   nf2: Intl.NumberFormat;
-  activeTab: "price" | "perf" | "technical";
-  onTabChange: (value: "price" | "perf" | "technical") => void;
+  activeTab: "price" | "perf" | "technical" | "realtime";
+  onTabChange: (value: "price" | "perf" | "technical" | "realtime") => void;
   priceSortKey: PriceSortKey | null;
   priceSortDirection: SortDirection;
   onPriceSort: (key: PriceSortKey, direction: SortDirection) => void;
@@ -40,6 +43,9 @@ interface StockListsDesktopProps {
   techSortKey: TechSortKey | null;
   techSortDirection: SortDirection;
   onTechSort: (key: TechSortKey, direction: SortDirection) => void;
+  realtimeSortKey: RealtimeSortKey | null;
+  realtimeSortDirection: SortDirection;
+  onRealtimeSort: (key: RealtimeSortKey, direction: SortDirection) => void;
   priceDataByTicker?: Record<string, Row>;
   displayedCount?: number;
 }
@@ -48,6 +54,7 @@ export default function StockListsDesktop({
   priceRows,
   perfRows,
   techRows,
+  realtimeRows,
   techStatus,
   nf0,
   nf2,
@@ -62,6 +69,9 @@ export default function StockListsDesktop({
   techSortKey,
   techSortDirection,
   onTechSort,
+  realtimeSortKey,
+  realtimeSortDirection,
+  onRealtimeSort,
   priceDataByTicker,
   displayedCount,
 }: StockListsDesktopProps) {
@@ -72,7 +82,7 @@ export default function StockListsDesktop({
       <Tabs
         value={activeTab}
         onValueChange={(value) =>
-          onTabChange(value as "price" | "perf" | "technical")
+          onTabChange(value as "price" | "perf" | "technical" | "realtime")
         }
       >
         <TableWrapper
@@ -82,7 +92,14 @@ export default function StockListsDesktop({
               <div className="absolute inset-0 -z-10 bg-gradient-to-b from-card/40 via-card/60 to-card/40 backdrop-blur-xl rounded-2xl" />
 
               <div className="flex items-center gap-3">
-                <TabsList className="grid w-fit grid-cols-3 gap-1 bg-muted/30 backdrop-blur-sm border border-border/40 rounded-xl p-1 h-10 shadow-lg shadow-black/5">
+                <TabsList className="grid w-fit grid-cols-4 gap-1 bg-muted/30 backdrop-blur-sm border border-border/40 rounded-xl p-1 h-10 shadow-lg shadow-black/5">
+                <TabsTrigger
+                  value="realtime"
+                  className="flex items-center gap-1.5 px-4 text-[13px] font-medium h-8 rounded-lg transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=inactive]:text-muted-foreground/70 data-[state=inactive]:hover:text-foreground/80"
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  リアルタイム
+                </TabsTrigger>
                 <TabsTrigger
                   value="price"
                   className="flex items-center gap-1.5 px-4 text-[13px] font-medium h-8 rounded-lg transition-all duration-200 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=inactive]:text-muted-foreground/70 data-[state=inactive]:hover:text-foreground/80"
@@ -120,8 +137,22 @@ export default function StockListsDesktop({
           }
           heightClass="h-auto"
         >
+          <TabsContent value="realtime" className="mt-0">
+            <div className="max-h-[80vh] overflow-y-auto">
+              <RealtimeTableDesktop
+                rows={realtimeRows}
+                nf0={nf0}
+                nf2={nf2}
+                sortKey={realtimeSortKey}
+                direction={realtimeSortDirection}
+                onSort={onRealtimeSort}
+                density={density}
+              />
+            </div>
+          </TabsContent>
+
           <TabsContent value="price" className="mt-0">
-            <div className="max-h-[65vh] overflow-y-auto">
+            <div className="max-h-[80vh] overflow-y-auto">
               <PriceTableDesktop
                 rows={priceRows}
                 nf0={nf0}
@@ -135,7 +166,7 @@ export default function StockListsDesktop({
           </TabsContent>
 
           <TabsContent value="perf" className="mt-0">
-            <div className="max-h-[65vh] overflow-y-auto">
+            <div className="max-h-[80vh] overflow-y-auto">
               <PerfTableDesktop
                 rows={perfRows}
                 nf2={nf2}
@@ -148,7 +179,7 @@ export default function StockListsDesktop({
           </TabsContent>
 
           <TabsContent value="technical" className="mt-0">
-            <div className="max-h-[65vh] overflow-y-auto">
+            <div className="max-h-[80vh] overflow-y-auto">
               {techStatus === "error" ? (
                 <div className="text-destructive text-xs px-2 py-2">
                   テクニカルの取得に失敗しました（/tech/decision/snapshot）

@@ -9,7 +9,7 @@ type Props = { rows: Row[]; nf0: Intl.NumberFormat; nf2: Intl.NumberFormat };
 const headerBase =
   "text-[11px] leading-none text-muted-foreground font-medium uppercase tracking-wide";
 const rowBase =
-  "grid items-center px-3 h-14 text-[13px] hover:bg-muted/40 transition-colors border-b border-border";
+  "grid items-start px-3 py-3 min-h-14 text-[13px] hover:bg-muted/40 transition-colors border-b border-border";
 
 // コードと日付（サブ行）→ ★ サンセリフ＋タビュラー
 const codeSub = "text-[11px] text-muted-foreground font-sans tabular-nums";
@@ -24,6 +24,22 @@ const priceBig = "font-semibold font-sans tabular-nums text-base";
 const pctSmall = "text-[11px] font-sans tabular-nums";
 
 export default function PriceSimpleMobile({ rows, nf0, nf2 }: Props) {
+  // 日時フォーマット関数 (YYYY-MM-DD HH:mm)
+  const formatDateTime = (timeStr: string | null | undefined): string => {
+    if (!timeStr) return "—";
+    try {
+      const date = new Date(timeStr);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${year}-${month}-${day} ${hours}:${minutes}`;
+    } catch {
+      return timeStr;
+    }
+  };
+
   return (
     <div className="rounded-none border-0 overflow-hidden md:rounded-md md:border md:border-border">
       {/* ヘッダ（sticky） */}
@@ -64,6 +80,9 @@ export default function PriceSimpleMobile({ rows, nf0, nf2 }: Props) {
           const isGrokStock = r.categories?.includes("GROK") ?? false;
           const grokReason = isGrokStock && r.tags && r.tags.length > 1 ? r.tags[1] : null;
 
+          // marketTimeがあればそれを使用、なければdateを使用
+          const displayDate = r.marketTime ? formatDateTime(r.marketTime) : (r.date ?? "—");
+
           return (
             <Link
               key={r.ticker}
@@ -81,10 +100,10 @@ export default function PriceSimpleMobile({ rows, nf0, nf2 }: Props) {
                 </div>
                 <div className={codeSub}>
                   {r.code}
-                  <span className={dateSub}>{r.date ?? "—"}</span>
+                  <span className={dateSub}>{displayDate}</span>
                 </div>
                 {isGrokStock && grokReason && (
-                  <div className="mt-1 text-[10px] leading-tight text-muted-foreground/80 line-clamp-2">
+                  <div className="mt-0.5 text-[10px] leading-tight text-muted-foreground/80">
                     {grokReason}
                   </div>
                 )}

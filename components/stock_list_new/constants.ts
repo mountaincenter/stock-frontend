@@ -1,5 +1,5 @@
 // constants.ts
-import type { PriceSortKey } from "./types";
+import type { PriceSortKey, RealtimeSortKey } from "./types";
 
 export const PRICE_LABELS = {
   code: "コード",
@@ -31,3 +31,16 @@ export function pickLabels<
 }
 
 export const SIMPLE_PRICE_LABELS = pickLabels(PRICE_LABELS, SIMPLE_PRICE_KEYS);
+
+export const REALTIME_LABELS = {
+  code: "コード",
+  stock_name: "銘柄名",
+  marketTime: "時刻",
+  close: "現在値",
+  diff: "前日比",
+  pct_diff: "前日比%",
+  open: "始値",
+  high: "高値",
+  low: "安値",
+  volume: "出来高",
+} as const satisfies Record<RealtimeSortKey, string>;

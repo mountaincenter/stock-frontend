@@ -8,6 +8,7 @@ import { SearchInput } from "./wrappers/SearchInput";
 import StockListsDesktop from "./views/StockListsDesktop";
 import StockListsMobile, { MobileTab } from "./views/StockListsMobile";
 import { PolicyFilters } from "./parts/PolicyFilters";
+import { shouldFetchRealtimePrice } from "@/lib/market-hours";
 import {
   Select,
   SelectContent,
@@ -23,13 +24,15 @@ import {
   sortPriceRows,
   sortPerfRows,
   sortTechRows,
+  sortRealtimeRows,
   type SortDirection,
   type PriceSortKey,
   type PerfSortKey,
   type TechSortKey,
+  type RealtimeSortKey,
 } from "./utils/sort";
 import { MobileSortToolbar } from "./parts/MobileSortToolbar";
-import { ChevronDown, HelpCircle } from "lucide-react";
+import { ChevronDown, HelpCircle, RefreshCw } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -70,10 +73,12 @@ const DEFAULT_SORT_STATE: {
   price: SortConfig<PriceSortKey>;
   perf: SortConfig<PerfSortKey>;
   tech: SortConfig<TechSortKey>;
+  realtime: SortConfig<RealtimeSortKey>;
 } = {
   price: { key: null, direction: null },
   perf: { key: null, direction: null },
   tech: { key: null, direction: null },
+  realtime: { key: null, direction: null },
 };
 
 export default function StockLists(props: Props & { className?: string }) {
@@ -89,14 +94,15 @@ export default function StockLists(props: Props & { className?: string }) {
       sessionStorage.setItem('lastSelectedTag', selectedTag);
     }
   }, [selectedTag]);
-  const [desktopTab, setDesktopTab] = useState<"price" | "perf" | "technical">(
-    "price"
+  const [desktopTab, setDesktopTab] = useState<"price" | "perf" | "technical" | "realtime">(
+    "realtime"
   );
   const [mobileTab, setMobileTab] = useState<MobileTab>("simple");
   const [sortState, setSortState] = useState(() => ({
     price: { ...DEFAULT_SORT_STATE.price },
     perf: { ...DEFAULT_SORT_STATE.perf },
     tech: { ...DEFAULT_SORT_STATE.tech },
+    realtime: { ...DEFAULT_SORT_STATE.realtime },
   }));
   const { rows, status, nf0, nf2, techRows, techStatus } = useStockData({
     ...restProps,
@@ -106,6 +112,93 @@ export default function StockLists(props: Props & { className?: string }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPolicies, setSelectedPolicies] = useState<string[]>([]);
   const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
+  const [realtimeData, setRealtimeData] = useState<{ticker: string; price: number; timestamp: string} | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [realtimePrices, setRealtimePrices] = useState<Map<string, {
+    price: number | null;
+    change: number | null;
+    changePercent: number | null;
+    volume: number | null;
+    marketTime: string | null;
+    open: number | null;
+    high: number | null;
+    low: number | null;
+  }>>(new Map());
+
+  const fetchRealtimePrice = useCallback(async (forceRefresh = false) => {
+    if (rows.length === 0) return;
+
+    setIsRefreshing(true);
+    try {
+      // 全銘柄のティッカーを取得
+      const tickers = rows.map(r => r.ticker).join(',');
+      console.log(`[Realtime] Fetching ${rows.length} tickers${forceRefresh ? ' (force refresh)' : ''}`);
+      const url = `/api/realtime?tickers=${tickers}${forceRefresh ? '&force=true' : ''}`;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch realtime prices');
+      }
+
+      const result = await response.json();
+      console.log(`[Realtime] Response received, cached: ${result.cached}`);
+
+      // 取得したデータをMapに保存
+      if (result.data && result.data.length > 0) {
+        const newPrices = new Map<string, any>();
+        result.data.forEach((quote: any) => {
+          newPrices.set(quote.ticker, {
+            price: quote.price,
+            change: quote.change,
+            changePercent: quote.changePercent,
+            volume: quote.volume,
+            marketTime: quote.marketTime,
+            open: quote.open,
+            high: quote.high,
+            low: quote.low,
+          });
+        });
+        setRealtimePrices(newPrices);
+        console.log(`[Realtime] Updated ${newPrices.size} prices`);
+
+        // 最初の銘柄の価格を表示用に保存（タイムスタンプは更新実行時刻）
+        const firstQuote = result.data[0];
+        const now = new Date();
+
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const formattedTime = `${year}-${month}-${day} ${hours}:${minutes}`;
+
+        setRealtimeData({
+          ticker: firstQuote.ticker,
+          price: firstQuote.price,
+          timestamp: formattedTime
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching realtime prices:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [rows]);
+
+  // タグ変更時、データロード完了時に自動で最新株価を取得
+  useEffect(() => {
+    if (status === 'success' && rows.length > 0) {
+      (async () => {
+        const shouldFetch = await shouldFetchRealtimePrice();
+        if (shouldFetch) {
+          console.log(`[Realtime] Auto-fetching prices for ${rows.length} stocks`);
+          fetchRealtimePrice();
+        } else {
+          console.log('[Realtime] Skipping realtime fetch');
+        }
+      })();
+    }
+  }, [status, rows.length, fetchRealtimePrice]);
 
   useEffect(() => {
     setSelectedTag(initialTag);
@@ -122,6 +215,7 @@ export default function StockLists(props: Props & { className?: string }) {
       price: { ...DEFAULT_SORT_STATE.price },
       perf: { ...DEFAULT_SORT_STATE.perf },
       tech: { ...DEFAULT_SORT_STATE.tech },
+      realtime: { ...DEFAULT_SORT_STATE.realtime },
     });
   }, [selectedTag]);
 
@@ -177,10 +271,38 @@ export default function StockLists(props: Props & { className?: string }) {
     return techRows.filter((row) => allowed.has(row.ticker));
   }, [filtered, techRows]);
 
+  // リアルタイムデータをマージした配列を作成
+  const filteredWithRealtime = useMemo(() => {
+    if (realtimePrices.size === 0) return filtered;
+
+    let matchedCount = 0;
+    const result = filtered.map(row => {
+      const realtimeData = realtimePrices.get(row.ticker);
+      if (!realtimeData) return row;
+
+      matchedCount++;
+
+      return {
+        ...row,
+        close: realtimeData.price ?? row.close,
+        diff: realtimeData.change ?? row.diff,
+        pct_diff: realtimeData.changePercent ?? row.pct_diff,
+        volume: realtimeData.volume ?? row.volume,
+        marketTime: realtimeData.marketTime ?? row.marketTime,
+        open: realtimeData.open ?? row.open,
+        high: realtimeData.high ?? row.high,
+        low: realtimeData.low ?? row.low,
+      };
+    });
+
+    console.log(`[Realtime] Merged ${matchedCount} of ${filtered.length} rows with live data`);
+    return result;
+  }, [filtered, realtimePrices]);
+
   const priceSortedRows = useMemo(
     () =>
-      sortPriceRows(filtered, sortState.price.key, sortState.price.direction),
-    [filtered, sortState.price.key, sortState.price.direction]
+      sortPriceRows(filteredWithRealtime, sortState.price.key, sortState.price.direction),
+    [filteredWithRealtime, sortState.price.key, sortState.price.direction]
   );
 
   const perfSortedRows = useMemo(
@@ -196,6 +318,11 @@ export default function StockLists(props: Props & { className?: string }) {
         sortState.tech.direction
       ),
     [techFilteredRows, sortState.tech.key, sortState.tech.direction]
+  );
+
+  const realtimeSortedRows = useMemo(
+    () => sortRealtimeRows(filteredWithRealtime, sortState.realtime?.key ?? null, sortState.realtime?.direction ?? null),
+    [filteredWithRealtime, sortState.realtime?.key, sortState.realtime?.direction]
   );
 
   const priceDataByTicker = useMemo(() => {
@@ -237,6 +364,19 @@ export default function StockLists(props: Props & { className?: string }) {
       setSortState((prev) => ({
         ...prev,
         tech: {
+          key: direction ? key : null,
+          direction,
+        },
+      }));
+    },
+    []
+  );
+
+  const handleRealtimeSort = useCallback(
+    (key: RealtimeSortKey, direction: SortDirection) => {
+      setSortState((prev) => ({
+        ...prev,
+        realtime: {
           key: direction ? key : null,
           direction,
         },
@@ -396,6 +536,26 @@ export default function StockLists(props: Props & { className?: string }) {
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
+                <button
+                  type="button"
+                  onClick={() => {
+                    fetchRealtimePrice(true); // forceRefresh=true でキャッシュを無視して常に最新データ取得
+                  }}
+                  className="inline-flex items-center opacity-60 hover:opacity-100 transition-opacity"
+                  disabled={isRefreshing}
+                >
+                  <RefreshCw className={`h-4 w-4 text-muted-foreground ${isRefreshing ? 'animate-spin' : ''}`} />
+                </button>
+                <div className="flex flex-col gap-0.5">
+                  {realtimeData && (
+                    <div className="text-xs text-muted-foreground font-mono">
+                      最終更新: {realtimeData.timestamp}
+                    </div>
+                  )}
+                  <div className="text-[10px] text-muted-foreground/70">
+                    Yahoo Finance API（20分ディレイ・15分間隔）
+                  </div>
+                </div>
               </div>
             </div>
             <SearchInput
@@ -465,6 +625,26 @@ export default function StockLists(props: Props & { className?: string }) {
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
+              <button
+                type="button"
+                onClick={() => {
+                  fetchRealtimePrice(true);
+                }}
+                className="inline-flex items-center opacity-60 hover:opacity-100 transition-opacity"
+                disabled={isRefreshing}
+              >
+                <RefreshCw className={`h-4 w-4 text-muted-foreground ${isRefreshing ? 'animate-spin' : ''}`} />
+              </button>
+              <div className="flex flex-col gap-0.5">
+                {realtimeData && (
+                  <div className="text-[10px] text-muted-foreground font-mono">
+                    最終更新: {realtimeData.timestamp}
+                  </div>
+                )}
+                <div className="text-[9px] text-muted-foreground/70">
+                  Yahoo Finance API（20分ディレイ・15分間隔）
+                </div>
+              </div>
             </div>
           </div>
           <SearchInput
@@ -503,6 +683,7 @@ export default function StockLists(props: Props & { className?: string }) {
         priceRows={priceSortedRows}
         perfRows={perfSortedRows}
         techRows={techSortedRows}
+        realtimeRows={realtimeSortedRows}
         techStatus={techStatus}
         nf0={nf0}
         nf2={nf2}
@@ -517,6 +698,9 @@ export default function StockLists(props: Props & { className?: string }) {
         techSortKey={sortState.tech.key}
         techSortDirection={sortState.tech.direction}
         onTechSort={handleTechSort}
+        realtimeSortKey={sortState.realtime.key}
+        realtimeSortDirection={sortState.realtime.direction}
+        onRealtimeSort={handleRealtimeSort}
         priceDataByTicker={priceDataByTicker}
         displayedCount={filtered.length}
       />
