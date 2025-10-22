@@ -19,6 +19,10 @@ const TAG_CANONICAL_MAP: Record<string, CanonicalTag> = {
   "スキャルピング active": "SCALPING_ACTIVE",
   grok: "GROK",
   grok_trending: "GROK",
+  "grok トレンド": "GROK",
+  "grokトレンド": "GROK",
+  "GROK トレンド": "GROK",
+  "GROKトレンド": "GROK",
   GROK: "GROK",
 };
 
@@ -32,7 +36,7 @@ export function canonicalizeTag(tag?: string): CanonicalTag | undefined {
 
 export function normalizeSelectTag(
   value?: string
-): "takaichi" | "core30" | "scalping_entry" | "scalping_active" | "grok" | "all" | undefined {
+): "takaichi" | "core30" | "grok" | "all" | undefined {
   if (!value) return undefined;
   const trimmed = value.trim();
   if (!trimmed) return undefined;
@@ -75,7 +79,11 @@ export function normalizeSelectTag(
   if (
     lower === "grok" ||
     lower === "grok_trending" ||
-    trimmed === "GROK"
+    lower === "grok トレンド" ||
+    lower === "grokトレンド" ||
+    trimmed === "GROK" ||
+    trimmed === "GROK トレンド" ||
+    trimmed === "GROKトレンド"
   ) {
     return "grok";
   }
