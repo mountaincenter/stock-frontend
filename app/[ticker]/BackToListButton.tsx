@@ -14,7 +14,7 @@ export default function BackToListButton({ variant = "default" }: Props) {
   useEffect(() => {
     // sessionStorageから前回選択したタグを取得
     const lastTag = sessionStorage.getItem("lastSelectedTag");
-    if (lastTag && lastTag !== "takaichi") {
+    if (lastTag && lastTag !== "policy") {
       setBackUrl(`/?tag=${encodeURIComponent(lastTag)}`);
     } else {
       setBackUrl("/");

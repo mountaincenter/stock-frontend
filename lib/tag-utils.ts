@@ -1,10 +1,10 @@
-export type CanonicalTag = "高市銘柄" | "TOPIX_CORE30" | "SCALPING_ENTRY" | "SCALPING_ACTIVE" | "GROK";
+export type CanonicalTag = "政策銘柄" | "TOPIX_CORE30" | "SCALPING_ENTRY" | "SCALPING_ACTIVE" | "GROK";
 
 const TAG_CANONICAL_MAP: Record<string, CanonicalTag> = {
-  takaichi: "高市銘柄",
-  takaichi_stock: "高市銘柄",
-  "高市": "高市銘柄",
-  "高市銘柄": "高市銘柄",
+  policy: "政策銘柄",
+  policy_stock: "政策銘柄",
+  "政策": "政策銘柄",
+  "政策銘柄": "政策銘柄",
   core30: "TOPIX_CORE30",
   "topix core30": "TOPIX_CORE30",
   topix: "TOPIX_CORE30",
@@ -36,18 +36,18 @@ export function canonicalizeTag(tag?: string): CanonicalTag | undefined {
 
 export function normalizeSelectTag(
   value?: string
-): "takaichi" | "core30" | "grok" | "all" | undefined {
+): "policy" | "core30" | "grok" | "all" | undefined {
   if (!value) return undefined;
   const trimmed = value.trim();
   if (!trimmed) return undefined;
   const lower = trimmed.toLowerCase();
   if (
-    lower === "takaichi" ||
-    lower === "takaichi_stock" ||
-    trimmed === "高市銘柄" ||
-    trimmed === "高市"
+    lower === "policy" ||
+    lower === "policy_stock" ||
+    trimmed === "政策銘柄" ||
+    trimmed === "政策"
   ) {
-    return "takaichi";
+    return "policy";
   }
   if (
     lower === "core30" ||

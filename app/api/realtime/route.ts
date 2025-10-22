@@ -79,10 +79,16 @@ export async function GET(request: NextRequest) {
 
     const quotes = await Promise.all(quotePromises);
 
-    // データを整形（nullを除外）
+    // データを整形（nullとundefinedを除外）
     const formattedData = quotes
-      .filter((quote): quote is NonNullable<typeof quote> => quote !== null)
+      .filter((quote): quote is NonNullable<typeof quote> => quote !== null && quote !== undefined)
       .map((quote, index: number): QuoteData => {
+        // 念のため追加チェック
+        if (!quote) {
+          console.error('[Realtime API] Unexpected undefined quote at index:', index);
+          throw new Error('Quote data is undefined');
+        }
+
         // デバッグ用: 最初の銘柄のみログ出力
         if (index === 0) {
           console.log('[DEBUG Backend] First ticker:', quote.symbol);
@@ -93,7 +99,7 @@ export async function GET(request: NextRequest) {
 
         // regularMarketTimeの型チェックと変換
         let marketTime = null;
-        if (quote.regularMarketTime) {
+        if (quote && quote.regularMarketTime) {
           // 数値の場合（UNIXタイムスタンプ）
           if (typeof quote.regularMarketTime === 'number') {
             marketTime = new Date(quote.regularMarketTime * 1000).toISOString();

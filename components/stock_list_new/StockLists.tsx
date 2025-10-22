@@ -54,10 +54,10 @@ interface RealtimeQuote {
 
 const TAG_OPTIONS = [
   {
-    value: "takaichi",
-    label: "高市銘柄",
+    value: "policy",
+    label: "政策銘柄",
     description:
-      "高市早苗自民党総裁の政策に関連する銘柄 - 防衛・安全保障、サイバーセキュリティ、エネルギー、半導体国産化、経済安全保障、宇宙産業、地方創生などの重点政策分野",
+      "連立政権の重点政策に関連する銘柄 - 防衛・安全保障、半導体・先端技術、エネルギー安全保障、経済安全保障、インフラ・建設、デジタル・AI、地方創生などの政策分野",
   },
   {
     value: "core30",
@@ -97,7 +97,7 @@ export default function StockLists(props: Props & { className?: string }) {
   const { className, ...rest } = props;
   const { initialTag: initialTagProp, ...restProps } = rest;
   const initialTag =
-    normalizeSelectTag(initialTagProp as string | undefined) ?? "takaichi";
+    normalizeSelectTag(initialTagProp as string | undefined) ?? "policy";
   const [selectedTag, setSelectedTag] = useState<TagValue>(initialTag);
 
   // タグ選択時にsessionStorageに保存（個別銘柄から戻る時のため）
@@ -232,7 +232,7 @@ export default function StockLists(props: Props & { className?: string }) {
   }, [selectedTag]);
 
   const policyOptions = useMemo(() => {
-    if (selectedTag !== "takaichi") return [];
+    if (selectedTag !== "policy") return [];
     const set = new Set<string>();
     rows.forEach((row) => {
       // tags配列から政策フィルタを抽出
@@ -246,7 +246,7 @@ export default function StockLists(props: Props & { className?: string }) {
   }, [rows, selectedTag]);
 
   const rowsAfterPolicy = useMemo(() => {
-    if (selectedTag !== "takaichi" || selectedPolicies.length === 0) {
+    if (selectedTag !== "policy" || selectedPolicies.length === 0) {
       return rows;
     }
     const policySet = new Set(selectedPolicies);
@@ -261,7 +261,7 @@ export default function StockLists(props: Props & { className?: string }) {
   }, [rows, selectedPolicies, selectedTag]);
 
   useEffect(() => {
-    if (selectedTag !== "takaichi") return;
+    if (selectedTag !== "policy") return;
     setSelectedPolicies((prev) =>
       prev.filter((value) => policyOptions.includes(value))
     );
@@ -436,7 +436,7 @@ export default function StockLists(props: Props & { className?: string }) {
   })();
 
   const hasPolicyFilters =
-    selectedTag === "takaichi" && policyOptions.length > 0;
+    selectedTag === "policy" && policyOptions.length > 0;
 
   const renderPolicyFilters = () => {
     if (!hasPolicyFilters) return null;

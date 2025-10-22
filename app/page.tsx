@@ -16,7 +16,7 @@ export const revalidate = 60;
 
 const RAW_API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 const API_BASE = RAW_API_BASE.endsWith("/") ? RAW_API_BASE.slice(0, -1) : RAW_API_BASE;
-const DEFAULT_TAG = "takaichi";
+const DEFAULT_TAG = "policy";
 const RETURN_WINDOWS = "5d,1mo,3mo,ytd,1y,3y,5y,all";
 
 // SSRで初期データを1度だけ取得
