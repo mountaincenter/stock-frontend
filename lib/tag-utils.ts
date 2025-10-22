@@ -61,22 +61,6 @@ export function normalizeSelectTag(
     return "core30";
   }
   if (
-    lower === "scalping_entry" ||
-    lower === "scalping entry" ||
-    trimmed === "スキャルピング entry" ||
-    trimmed === "スキャルピング Entry"
-  ) {
-    return "scalping_entry";
-  }
-  if (
-    lower === "scalping_active" ||
-    lower === "scalping active" ||
-    trimmed === "スキャルピング active" ||
-    trimmed === "スキャルピング Active"
-  ) {
-    return "scalping_active";
-  }
-  if (
     lower === "grok" ||
     lower === "grok_trending" ||
     lower === "grok トレンド" ||
