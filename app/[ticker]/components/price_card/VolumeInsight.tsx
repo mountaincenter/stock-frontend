@@ -32,20 +32,15 @@ export default function VolumeInsight({ snap }: VolumeInsightProps) {
     <div className="mt-8 relative">
       {/* Volume Labels */}
       <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-3 gap-3">
-        <div className="flex items-baseline gap-2 md:gap-3">
-          <div>
-            <div className="text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground/70 font-medium mb-1">
-              Volume
-            </div>
+        <div className="flex-1">
+          <div className="text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground/70 font-semibold mb-2">
+            Volume / MA10 {snap?.date && <span className="font-mono">({snap.date}終値基準)</span>}
+          </div>
+          <div className="flex items-baseline gap-2 md:gap-3">
             <div className="text-2xl md:text-3xl font-extrabold font-sans tabular-nums">
               {formatNumber(snap?.volume, nf0)}
             </div>
-          </div>
-          <div className="text-muted-foreground/60 text-lg md:text-xl pb-0.5 md:pb-1">/</div>
-          <div>
-            <div className="text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground/60 font-medium mb-1">
-              MA10
-            </div>
+            <div className="text-muted-foreground/60 text-lg md:text-xl">/</div>
             <div className="text-xl md:text-2xl font-bold font-sans tabular-nums text-muted-foreground/80">
               {formatNumber(snap?.vol_ma10, nf0)}
             </div>

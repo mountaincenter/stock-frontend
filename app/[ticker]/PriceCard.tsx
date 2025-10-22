@@ -1,4 +1,6 @@
 // app/[ticker]/PriceCard.tsx
+"use client";
+
 import * as React from "react";
 import type { Meta, Snapshot } from "./lib/types";
 import PriceCardHeader from "./components/price_card/PriceCardHeader";
@@ -7,6 +9,13 @@ import VolumeInsight from "./components/price_card/VolumeInsight";
 import VolatilityMetrics from "./components/price_card/VolatilityMetrics";
 import MiniChartContainer from "./components/price_card/MiniChartContainer";
 
+interface RealtimeData {
+  price: number | null;
+  change: number | null;
+  changePercent: number | null;
+  marketTime: string | null;
+}
+
 export default function PriceCard({
   meta,
   snap,
@@ -14,14 +23,64 @@ export default function PriceCard({
   meta: Meta;
   snap: Snapshot | null;
 }) {
+  const [realtimeData, setRealtimeData] = React.useState<RealtimeData | null>(null);
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const [lastUpdated, setLastUpdated] = React.useState<string | null>(null);
+
+  const fetchRealtimePrice = React.useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      const url = `/api/realtime?tickers=${meta.ticker}&force=true`;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch realtime price');
+      }
+
+      const result = await response.json();
+
+      if (result.data && result.data.length > 0) {
+        const quote = result.data[0];
+        setRealtimeData({
+          price: quote.price,
+          change: quote.change,
+          changePercent: quote.changePercent,
+          marketTime: quote.marketTime,
+        });
+
+        // 更新時刻を記録（YYYY-MM-DD HH:mm形式）
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        setLastUpdated(`${year}-${month}-${day} ${hours}:${minutes}`);
+      }
+    } catch (error) {
+      console.error('Error fetching realtime price:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [meta.ticker]);
+
+  // 初回マウント時に自動取得
+  React.useEffect(() => {
+    fetchRealtimePrice();
+  }, [fetchRealtimePrice]);
+
+  // リアルタイムデータがある場合は上書き、なければスナップショットデータを使用
+  const currentPrice = realtimeData?.price ?? snap?.close ?? null;
+  const currentDiff = realtimeData?.change ?? snap?.diff ?? null;
+  const currentMarketTime = realtimeData?.marketTime ?? snap?.date ?? null;
 
   // ───────────── Derived Values & Dynamic Styles ─────────────
   const pct =
-    snap?.diff != null && snap?.prevClose != null && snap.prevClose !== 0
-      ? (snap.diff / snap.prevClose) * 100
+    currentDiff != null && snap?.prevClose != null && snap.prevClose !== 0
+      ? (currentDiff / snap.prevClose) * 100
       : null;
 
-  const sign = snap?.diff == null ? 0 : Math.sign(snap.diff);
+  const sign = currentDiff == null ? 0 : Math.sign(currentDiff);
 
   const colorMain =
     sign > 0
@@ -55,10 +114,24 @@ export default function PriceCard({
         {/* Left Column: All existing content (about 2/3 width) */}
         <div className="flex-1 lg:flex-[2] space-y-6">
           {/* ZONE 0: Header */}
-          <PriceCardHeader meta={meta} snap={snap} badgeTone={badgeTone} pct={pct} />
+          <PriceCardHeader
+            meta={meta}
+            snap={snap}
+            badgeTone={badgeTone}
+            pct={pct}
+            onRefresh={fetchRealtimePrice}
+            isRefreshing={isRefreshing}
+            lastUpdated={lastUpdated}
+          />
 
           {/* ZONE 1: Price Focus */}
-          <PriceFocus snap={snap} colorMain={colorMain} />
+          <PriceFocus
+            snap={snap}
+            colorMain={colorMain}
+            currentPrice={currentPrice}
+            currentDiff={currentDiff}
+            currentMarketTime={currentMarketTime}
+          />
 
           {/* ZONE 2: Volume Insight */}
           <VolumeInsight snap={snap} />

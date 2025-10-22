@@ -229,18 +229,27 @@ export default async function Page({
           </section>
 
           {/* Disclaimer and Data Attribution */}
-          <div className="mt-6 pt-4 border-t border-border/20">
-            <div className="text-[9px] text-muted-foreground/40 leading-relaxed max-w-4xl mx-auto">
-              <p className="mb-2">
-                <span className="font-semibold">データ出典:</span> Yahoo Finance (yfinance)
-              </p>
-              <p className="mb-1">
-                本サービスで提供される情報は、投資判断の参考として提供するものであり、投資勧誘を目的としたものではありません。
-              </p>
-              <p>
-                投資に関する最終決定は、利用者ご自身の判断でなさるようお願いいたします。
-                本サービスの情報に基づいて被ったいかなる損害についても、当方は一切の責任を負いかねます。
-              </p>
+          <div className="mt-8 pt-6 border-t border-border/30">
+            <div className="text-xs text-muted-foreground/70 leading-relaxed max-w-4xl mx-auto space-y-3">
+              <div>
+                <p className="font-semibold text-foreground/80 mb-2">データ出典</p>
+                <ul className="space-y-1 ml-4 list-disc">
+                  <li>リアルタイム株価データ: Yahoo Finance (yfinance) - 20分ディレイ、15分間隔で更新</li>
+                  <li>GROK トレンド銘柄: GROK AIによる分析・選定（AI分析結果は参考情報であり、投資成果を保証するものではありません）</li>
+                </ul>
+              </div>
+
+              <div className="space-y-1.5 pt-2">
+                <p>
+                  本サービスで提供される情報は、投資判断の参考として提供するものであり、投資勧誘を目的としたものではありません。
+                </p>
+                <p>
+                  投資に関する最終決定は、利用者ご自身の判断でなさるようお願いいたします。
+                </p>
+                <p>
+                  本サービスの情報に基づいて被ったいかなる損害についても、当方は一切の責任を負いかねます。
+                </p>
+              </div>
             </div>
           </div>
         </div>

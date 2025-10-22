@@ -63,7 +63,7 @@ const PriceRow = React.memo(({
   const isGrokStock = r.categories?.includes("GROK") ?? false;
   const grokReason = isGrokStock && r.tags && r.tags.length > 1 ? r.tags[1] : null;
 
-  return (
+  const rowContent = (
     <Link
         href={`/${encodeURIComponent(r.ticker)}`}
         className="group/row block rounded-xl bg-gradient-to-r from-card/50 via-card/80 to-card/50 text-card-foreground transition-all duration-200 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 hover:bg-gradient-to-r hover:from-card/70 hover:via-card/95 hover:to-card/70"
@@ -92,22 +92,7 @@ const PriceRow = React.memo(({
 
         {/* 終値 */}
         <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
-          {isGrokStock && grokReason ? (
-            <CustomTooltip
-              content={
-                <div className="max-w-md whitespace-normal">
-                  <div className="font-semibold text-xs mb-1">選定理由:</div>
-                  <div className="text-xs leading-relaxed">{grokReason}</div>
-                </div>
-              }
-            >
-              <div className="inline-block">
-                <CloseCell v={r.close} nf0={nf0} />
-              </div>
-            </CustomTooltip>
-          ) : (
-            <CloseCell v={r.close} nf0={nf0} />
-          )}
+          <CloseCell v={r.close} nf0={nf0} />
         </div>
 
         {/* 前日差 */}
@@ -190,6 +175,24 @@ const PriceRow = React.memo(({
         </div>
       </Link>
   );
+
+  // GROK銘柄の場合は行全体にtooltipを適用
+  if (isGrokStock && grokReason) {
+    return (
+      <CustomTooltip
+        content={
+          <div className="max-w-md whitespace-normal">
+            <div className="font-semibold text-xs mb-1">選定理由:</div>
+            <div className="text-xs leading-relaxed">{grokReason}</div>
+          </div>
+        }
+      >
+        {rowContent}
+      </CustomTooltip>
+    );
+  }
+
+  return rowContent;
 });
 
 PriceRow.displayName = 'PriceRow';

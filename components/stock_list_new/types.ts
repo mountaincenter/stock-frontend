@@ -72,6 +72,11 @@ export type Row = StockMeta & {
   tr_pct: MaybeNumber;
   atr14: MaybeNumber;
   atr14_pct: MaybeNumber;
+  // リアルタイムタブ
+  marketTime?: string | null;  // 更新時刻
+  open?: MaybeNumber;           // 始値
+  high?: MaybeNumber;           // 高値
+  low?: MaybeNumber;            // 安値
 } & PerfMap & TechCoreMap & TechRatings;
 
 // ソート関連（現状で使用しているキーのみ）
@@ -96,6 +101,18 @@ export type PerfSortKey =
   | "r_3y"
   | "r_5y"
   | "r_all";
+
+export type RealtimeSortKey =
+  | "code"
+  | "stock_name"
+  | "marketTime"
+  | "close"
+  | "diff"
+  | "pct_diff"
+  | "open"
+  | "high"
+  | "low"
+  | "volume";
 
 /* =========================
    テクニカル（事実のみ4指標 + 評価4カラム）
