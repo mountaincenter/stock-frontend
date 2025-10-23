@@ -29,10 +29,11 @@ const nf1 = new Intl.NumberFormat("ja-JP", {
   maximumFractionDigits: 1,
 });
 
+// 楽天証券スタイル: 高彩度・高明度の鮮やかな色
 function toneBySign(v: number | null | undefined) {
   if (typeof v !== "number" || !Number.isFinite(v) || v === 0)
     return "text-card-foreground";
-  return v > 0 ? "text-green-600 dark:text-green-500" : "text-red-600 dark:text-red-500";
+  return v > 0 ? "text-[rgb(76,175,80)]" : "text-[rgb(244,67,54)]";
 }
 
 function ratingVisual(label: RatingLabel) {
@@ -144,10 +145,10 @@ export default function TechnicalListMobile({
 
   // 4列：縦線は控えめトーンで統一
   const ROW = "grid grid-cols-4 gap-0 divide-x divide-border/60";
-  const CELL = "px-2 py-2"; // 高さを揃える
+  const CELL = "px-1.5 py-1.5"; // 高さを揃える
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-1">
       {rows.map((r) => {
         const d: TechDecisionItem | undefined = decisionByTicker
           ? decisionByTicker[r.ticker]
@@ -175,14 +176,14 @@ export default function TechnicalListMobile({
             key={r.ticker}
             href={`/${encodeURIComponent(r.ticker)}`}
             className="
-            inline-block w-full rounded-xl
+            inline-block w-full rounded-lg
             bg-card text-card-foreground
             hover:shadow-lg hover:shadow-primary/5 active:bg-muted/60
             transition-all duration-150
             touch-manipulation
           "
           >
-            <div className="px-3 py-2.5">
+            <div className="px-2 py-1.5">
               {/* 見出し */}
               <div className="min-w-0 text-left">
                 <h3

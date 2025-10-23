@@ -16,7 +16,7 @@ export default function PriceListMobile({ rows, nf0, nf2 }: Props) {
 
   return (
     // 2カラムカード
-    <div className="grid grid-cols-2 gap-1.5">
+    <div className="grid grid-cols-2 gap-1">
       {rows.map((r) => {
         const diff = r.diff;
         const pct =
@@ -28,13 +28,14 @@ export default function PriceListMobile({ rows, nf0, nf2 }: Props) {
             ? (r.diff / r.prevClose) * 100
             : null;
 
+        // 楽天証券スタイル: 高彩度・高明度の鮮やかな色
         const tone =
           diff == null || !Number.isFinite(diff)
             ? "text-muted-foreground"
             : diff > 0
-            ? "text-green-600 dark:text-green-500"
+            ? "text-[rgb(76,175,80)]" // 楽天証券の鮮やかな緑
             : diff < 0
-            ? "text-red-600 dark:text-red-500"
+            ? "text-[rgb(244,67,54)]" // 楽天証券の鮮やかな赤
             : "text-muted-foreground";
 
         // TR/ATR14 の表示用フォーマット
@@ -67,14 +68,14 @@ export default function PriceListMobile({ rows, nf0, nf2 }: Props) {
             key={r.ticker}
             href={`/${encodeURIComponent(r.ticker)}`}
             className="
-              inline-block w-full rounded-xl
+              inline-block w-full rounded-lg
               bg-card text-card-foreground
               hover:shadow-lg hover:shadow-primary/5 active:bg-muted/60
               transition-all duration-150
               touch-manipulation
             "
           >
-            <div className="px-3 py-2.5">
+            <div className="px-2 py-1.5">
               {/* 銘柄名/コード/日付（左寄せ） */}
               <div className="min-w-0 text-left">
                 <h3

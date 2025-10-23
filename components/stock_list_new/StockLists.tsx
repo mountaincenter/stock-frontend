@@ -478,7 +478,7 @@ export default function StockLists(props: Props & { className?: string }) {
 
   return (
     <div
-      className={`flex flex-col gap-2 md:gap-2 flex-1 min-h-0 w-full ${
+      className={`flex flex-col gap-1 md:gap-2 flex-1 min-h-0 w-full ${
         className ?? ""
       }`}
     >
@@ -579,10 +579,10 @@ export default function StockLists(props: Props & { className?: string }) {
         </div>
       </div>
 
-      <div className="space-y-2 md:hidden">
-        <div className="rounded-xl border border-border/60 bg-card/60 p-3 shadow-sm space-y-2">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-muted-foreground">
+      <div className="space-y-1 md:hidden">
+        <div className="rounded-none border-0 border-b border-border/40 bg-card/60 px-2 py-1.5 shadow-sm space-y-1">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-medium text-muted-foreground">
               リスト
             </span>
             <div className="flex-1 flex items-center gap-2">
@@ -590,7 +590,7 @@ export default function StockLists(props: Props & { className?: string }) {
                 value={selectedTag}
                 onValueChange={(value) => setSelectedTag(value as TagValue)}
               >
-                <SelectTrigger className="h-8 w-full rounded-full border border-border/50 bg-card/70 px-3 text-xs font-medium text-muted-foreground/80 shadow-sm backdrop-blur-sm transition-colors hover:border-primary/60 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none focus-visible:ring-primary">
+                <SelectTrigger className="h-7 w-full rounded-md border border-border/50 bg-card/70 px-2 text-[11px] font-medium text-muted-foreground/80 shadow-sm backdrop-blur-sm transition-colors hover:border-primary/60 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none focus-visible:ring-primary">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -598,7 +598,7 @@ export default function StockLists(props: Props & { className?: string }) {
                     <SelectItem
                       key={option.value}
                       value={option.value}
-                      className="text-xs"
+                      className="text-[11px]"
                     >
                       {option.label}
                     </SelectItem>
@@ -647,14 +647,14 @@ export default function StockLists(props: Props & { className?: string }) {
               >
                 <RefreshCw className={`h-4 w-4 text-muted-foreground ${isRefreshing ? 'animate-spin' : ''}`} />
               </button>
-              <div className="flex flex-col gap-0.5">
+              <div className="flex flex-col gap-0">
                 {realtimeData && (
-                  <div className="text-[10px] text-muted-foreground font-mono">
-                    最終更新: {realtimeData.timestamp}
+                  <div className="text-[9px] text-muted-foreground font-mono leading-tight">
+                    {realtimeData.timestamp}
                   </div>
                 )}
-                <div className="text-[9px] text-muted-foreground/70">
-                  Yahoo Finance API（20分ディレイ・15分間隔）
+                <div className="text-[8px] text-muted-foreground/70 leading-tight">
+                  Yahoo Finance API
                 </div>
               </div>
             </div>
@@ -667,11 +667,11 @@ export default function StockLists(props: Props & { className?: string }) {
           <button
             type="button"
             onClick={() => setMobileToolsOpen((prev) => !prev)}
-            className="flex w-full items-center justify-between rounded-lg border border-border/60 bg-card/70 px-3 py-2 text-xs font-medium text-muted-foreground/80 shadow-sm"
+            className="flex w-full items-center justify-between rounded-md border border-border/60 bg-card/70 px-2 py-1 text-[11px] font-medium text-muted-foreground/80 shadow-sm"
           >
             <span>フィルタ & ソート</span>
             <ChevronDown
-              className={`h-4 w-4 transition-transform ${
+              className={`h-3.5 w-3.5 transition-transform ${
                 mobileToolsOpen ? "rotate-180" : ""
               }`}
             />

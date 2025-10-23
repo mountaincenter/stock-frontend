@@ -92,12 +92,12 @@
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
 
-  /* 株式投資UI専用カラー */
-  --price-up: oklch(0.55 0.18 145);        /* 上昇: 落ち着いた緑 */
-  --price-up-bright: oklch(0.65 0.20 145); /* 上昇（強調） */
-  --price-down: oklch(0.55 0.18 25);       /* 下降: 落ち着いた赤 */
-  --price-down-bright: oklch(0.65 0.20 25);/* 下降（強調） */
-  --price-neutral: oklch(0.556 0 0);       /* 中立: グレー */
+  /* 株式投資UI専用カラー - 楽天証券スタイル（高彩度・高明度） */
+  --price-up: oklch(0.68 0.177 145);        /* 上昇: 鮮やかな緑 rgb(76,175,80) */
+  --price-up-bright: oklch(0.75 0.20 145);  /* 上昇（強調） */
+  --price-down: oklch(0.63 0.257 27);       /* 下降: 鮮やかな赤 rgb(244,67,54) */
+  --price-down-bright: oklch(0.70 0.28 27); /* 下降（強調） */
+  --price-neutral: oklch(0.556 0 0);        /* 中立: グレー */
 
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
@@ -153,11 +153,11 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
 
-  /* 株式投資UI専用カラー - Dark Mode */
-  --price-up: oklch(0.65 0.16 145);
-  --price-up-bright: oklch(0.75 0.18 145);
-  --price-down: oklch(0.65 0.16 25);
-  --price-down-bright: oklch(0.75 0.18 25);
+  /* 株式投資UI専用カラー - Dark Mode（楽天証券スタイル） */
+  --price-up: oklch(0.68 0.177 145);        /* 上昇: 鮮やかな緑 */
+  --price-up-bright: oklch(0.75 0.20 145);  /* 上昇（強調） */
+  --price-down: oklch(0.63 0.257 27);       /* 下降: 鮮やかな赤 */
+  --price-down-bright: oklch(0.70 0.28 27); /* 下降（強調） */
   --price-neutral: oklch(0.708 0 0);
 }
 
@@ -225,22 +225,22 @@ html {
 @layer components {
   /* 親が .tight-mobile を付けた範囲で、モバイル時の余白/高さ/フォントを圧縮 */
   .tight-mobile :where(.premium-card) {
-    @apply p-2 md:p-4;
+    @apply p-1 md:p-4;
   }
   .tight-mobile :where(.table-header, .sticky-header) {
-    @apply h-8 md:h-10 px-2 md:px-4 py-1 md:py-2;
+    @apply h-7 md:h-10 px-1.5 md:px-4 py-0.5 md:py-2;
   }
   .tight-mobile :where(.row) {
-    @apply h-10 md:h-14 px-2 md:px-4;
+    @apply h-9 md:h-14 px-1.5 md:px-4;
   }
   .tight-mobile :where(.gap-block) {
-    @apply gap-1 md:gap-4;
+    @apply gap-0.5 md:gap-4;
   }
   .tight-mobile :where(.cell-xs) {
-    @apply text-[10px] leading-none md:text-sm;
+    @apply text-[10px] leading-tight md:text-sm;
   }
   .tight-mobile :where(.cell-sm) {
-    @apply text-xs md:text-sm;
+    @apply text-[11px] md:text-sm;
   }
   .tight-mobile :where(.cell-num) {
     /* ★ 数字セルは"サンセリフ＋タビュラー"に統一（金融向け） */

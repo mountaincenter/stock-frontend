@@ -123,7 +123,7 @@ export default function StockListsMobile({
                     key={key}
                     value={key}
                     className="
-                      h-8 leading-8 px-1 text-[11px] tracking-tight
+                      h-7 leading-7 px-1 text-[10px] tracking-tight
                       rounded-none border-b-2 border-transparent
                       data-[state=active]:border-b-primary
                       text-muted-foreground

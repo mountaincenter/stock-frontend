@@ -23,12 +23,12 @@ export function SearchInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className={[
-          "w-full h-9 px-4 rounded-full",
+          "w-full h-7 px-2 rounded-md",
           "border border-border/50 bg-card/60 backdrop-blur-sm",
-          "text-sm text-muted-foreground/80 placeholder:text-muted-foreground/60",
+          "text-[11px] text-muted-foreground/80 placeholder:text-muted-foreground/60",
           "shadow-sm transition-colors",
           "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary",
-          "md:h-10 md:px-5",
+          "md:h-10 md:px-5 md:text-sm md:rounded-full",
         ].join(" ")}
       />
     </div>

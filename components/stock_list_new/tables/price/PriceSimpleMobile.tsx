@@ -7,21 +7,21 @@ import type { Row } from "../../types";
 type Props = { rows: Row[]; nf0: Intl.NumberFormat; nf2: Intl.NumberFormat };
 
 const headerBase =
-  "text-[11px] leading-none text-muted-foreground font-medium uppercase tracking-wide";
+  "text-[10px] leading-none text-muted-foreground font-medium uppercase tracking-wide";
 const rowBase =
-  "grid items-start px-3 py-3 min-h-14 text-[13px] hover:bg-muted/40 transition-colors border-b border-border";
+  "grid items-center px-2 py-2 min-h-[56px] text-[12px] hover:bg-muted/40 transition-colors border-b border-border";
 
 // コードと日付（サブ行）→ ★ サンセリフ＋タビュラー
-const codeSub = "text-[11px] text-muted-foreground font-sans tabular-nums";
-const dateSub = "text-[10px] text-muted-foreground/70 ml-2";
+const codeSub = "text-[10px] text-muted-foreground font-sans tabular-nums";
+const dateSub = "text-[9px] text-muted-foreground/70 ml-1.5";
 
 // 銘柄名：明るめ & 少し太字（デスクトップ寄せ）
 const nameBig =
-  "text-card-foreground font-semibold leading-tight [font-size:clamp(13px,3.6vw,15px)]";
+  "text-card-foreground font-semibold leading-tight text-[13px]";
 
-// 価格/率：★ 金融向け（サンセリフ＋タビュラー）
-const priceBig = "font-semibold font-sans tabular-nums text-base";
-const pctSmall = "text-[11px] font-sans tabular-nums";
+// 価格/率：★ 金融向け（サンセリフ＋タビュラー）楽天証券スタイル
+const priceBig = "font-bold font-sans tabular-nums text-[22px] leading-none";
+const pctSmall = "text-[13px] font-bold font-sans tabular-nums leading-none";
 
 export default function PriceSimpleMobile({ rows, nf0, nf2 }: Props) {
   // 日時フォーマット関数 (YYYY-MM-DD HH:mm)
@@ -45,7 +45,7 @@ export default function PriceSimpleMobile({ rows, nf0, nf2 }: Props) {
       {/* ヘッダ（sticky） */}
       <div
         className="
-          grid grid-cols-12 gap-2 px-3 h-8 items-center
+          grid grid-cols-12 gap-2 px-2 h-7 items-center
           bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60
           sticky top-0 z-10
         "
@@ -67,13 +67,14 @@ export default function PriceSimpleMobile({ rows, nf0, nf2 }: Props) {
               ? (r.diff / r.prevClose) * 100
               : null;
 
+          // 楽天証券スタイル: 高彩度・高明度の鮮やかな色
           const tone =
             diff == null || !Number.isFinite(diff)
               ? "text-muted-foreground"
               : diff > 0
-              ? "text-green-600 dark:text-green-500"
+              ? "text-[rgb(76,175,80)]" // 楽天証券の鮮やかな緑
               : diff < 0
-              ? "text-red-600 dark:text-red-500"
+              ? "text-[rgb(244,67,54)]" // 楽天証券の鮮やかな赤
               : "text-muted-foreground";
 
           // Grok銘柄の判定とreason取得
@@ -125,8 +126,8 @@ export default function PriceSimpleMobile({ rows, nf0, nf2 }: Props) {
                 {diff == null || !Number.isFinite(diff) ? (
                   <span className="text-muted-foreground">—</span>
                 ) : (
-                  <div className="inline-flex flex-col items-end">
-                    <span className={`font-sans tabular-nums ${tone}`}>
+                  <div className="inline-flex flex-col items-end gap-0.5">
+                    <span className={`font-bold font-sans tabular-nums text-[16px] leading-none ${tone}`}>
                       {diff > 0 ? "+" : ""}
                       {nf0.format(diff)}
                     </span>

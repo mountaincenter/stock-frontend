@@ -10,15 +10,15 @@ const cx = (...xs: Array<string | false | undefined>) =>
   xs.filter(Boolean).join(" ");
 
 /**
- * ±トーン（0は"中立"）
+ * ±トーン（0は"中立"）楽天証券スタイル
  * - 中立は shadcn のトークンに合わせて text-muted-foreground
- * - ±は株式投資UI専用カラー（直接色指定）
+ * - ±は高彩度・高明度の鮮やかな色（楽天証券レベル）
  */
 const toneBySign = (v: number) =>
   v > 0
-    ? "text-green-600 dark:text-green-500"
+    ? "text-[rgb(76,175,80)]" // 楽天証券の鮮やかな緑
     : v < 0
-    ? "text-red-600 dark:text-red-500"
+    ? "text-[rgb(244,67,54)]" // 楽天証券の鮮やかな赤
     : "text-muted-foreground";
 
 /** 10%以上=小数0桁, 1%以上=1桁, それ未満=2桁 */
