@@ -108,10 +108,10 @@ const PriceRow = React.memo(({
             <span
               className={
                 (pct > 0
-                  ? "text-green-600 dark:text-green-500"
+                  ? "text-[rgb(76,175,80)]"
                   : pct < 0
-                  ? "text-red-600 dark:text-red-500"
-                  : "text-muted-foreground") + ` font-sans tabular-nums ${densityStyles.fontSize.data}`
+                  ? "text-[rgb(244,67,54)]"
+                  : "text-muted-foreground") + ` font-bold font-sans tabular-nums ${densityStyles.fontSize.data}`
               }
             >
               {pct > 0 ? "+" : ""}

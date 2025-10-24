@@ -68,6 +68,10 @@ export default function LightweightChart({
 
   const candleData = useMemo<LwcCandleData<Time>[]>(() => {
     const map = new Map<string, LwcCandleData<Time>>();
+    // Debug: log first few dates to understand format
+    if (rows.length > 0) {
+      console.log('[LightweightChart] Sample dates from API:', rows.slice(0, 3).map(r => r.date));
+    }
     rows.forEach((r) => {
       // Skip rows with null or invalid date
       if (!r.date || typeof r.date !== 'string') {

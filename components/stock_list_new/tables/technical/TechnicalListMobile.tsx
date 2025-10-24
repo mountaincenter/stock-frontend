@@ -46,12 +46,12 @@ function ratingVisual(label: RatingLabel) {
     case "買い":
       return {
         icon: <ChevronUp className="w-4 h-4 stroke-[2.25]" />,
-        tone: "text-green-600 dark:text-green-500",
+        tone: "text-[rgb(76,175,80)]",
       };
     case "売り":
       return {
         icon: <ChevronDown className="w-4 h-4 stroke-[2.25]" />,
-        tone: "text-red-600 dark:text-red-500",
+        tone: "text-[rgb(244,67,54)]",
       };
     case "強い売り":
       return {

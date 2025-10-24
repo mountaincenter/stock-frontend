@@ -74,8 +74,8 @@ const PerfRow = React.memo(({
         <span className="text-muted-foreground">前日差:</span>
         <span className={`font-semibold tabular-nums ${
           priceDiff == null ? "" :
-          priceDiff > 0 ? "text-green-600 dark:text-green-400" :
-          priceDiff < 0 ? "text-red-600 dark:text-red-500" : ""
+          priceDiff > 0 ? "text-[rgb(76,175,80)]" :
+          priceDiff < 0 ? "text-[rgb(244,67,54)]" : ""
         }`}>
           {diffText}
         </span>
@@ -87,7 +87,7 @@ const PerfRow = React.memo(({
     <CustomTooltip content={tooltipContent}>
       <Link
         href={`/${encodeURIComponent(r.ticker)}`}
-        className="group/row block rounded-xl bg-gradient-to-r from-card/50 via-card/80 to-card/50 text-card-foreground transition-all duration-200 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 hover:bg-gradient-to-r hover:from-card/70 hover:via-card/95 hover:to-card/70"
+        className="group/row block rounded-xl bg-gradient-to-r from-card/50 via-card/80 to-card/50 transition-all duration-200 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 hover:bg-gradient-to-r hover:from-card/70 hover:via-card/95 hover:to-card/70"
         style={{
           display: "grid",
           gridTemplateColumns: COLS_PERF,
@@ -96,12 +96,12 @@ const PerfRow = React.memo(({
       >
           {/* 先頭3列 */}
           <div className="px-3 flex items-center" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
-            <span className={`font-sans tabular-nums font-semibold ${densityStyles.fontSize.code}`}>
+            <span className={`font-sans tabular-nums font-semibold text-card-foreground ${densityStyles.fontSize.code}`}>
               {r.code}
             </span>
           </div>
           <div className="px-3 min-w-0 flex items-center" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
-            <h3 className={`font-semibold ${densityStyles.fontSize.stockName} leading-snug hover:text-primary transition-colors line-clamp-1`}>
+            <h3 className={`font-semibold text-card-foreground ${densityStyles.fontSize.stockName} leading-snug hover:text-primary transition-colors line-clamp-1`}>
               {r.stock_name}
             </h3>
           </div>

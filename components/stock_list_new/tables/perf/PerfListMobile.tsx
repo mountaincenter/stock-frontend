@@ -19,7 +19,7 @@ export default function PerfListMobile({ rows }: Props) {
           href={`/${encodeURIComponent(r.ticker)}`}
           className="
             inline-block w-full rounded-lg
-            bg-card text-card-foreground
+            bg-card
             hover:shadow-lg hover:shadow-primary/5 active:bg-muted/60
             transition-all duration-150
             touch-manipulation
@@ -81,8 +81,8 @@ function Kpi({ label, v }: { label: string; v: number | null }) {
           })
         }
         smart={true} // 10%以上0桁, 1%以上1桁, それ未満2桁
-        fixedWidthCh={7} // “+12.3%” 程度を7chで揃える（モバイルで詰める）
-        className="text-[14px] font-semibold inline-block text-card-foreground"
+        fixedWidthCh={7} // "+12.3%" 程度を7chで揃える（モバイルで詰める）
+        className="text-[14px] font-semibold inline-block"
       />
     </div>
   );

@@ -49,7 +49,7 @@ const LOAD_MORE_COUNT = 50; // 追加読み込み件数
 function toneBySign(v: number | null | undefined) {
   if (typeof v !== "number" || !Number.isFinite(v) || v === 0)
     return "text-card-foreground";
-  return v > 0 ? "text-green-600 dark:text-green-500" : "text-red-600 dark:text-red-500";
+  return v > 0 ? "text-[rgb(76,175,80)]" : "text-[rgb(244,67,54)]";
 }
 function fmt(v: number | null | undefined, f: Intl.NumberFormat, suffix = "") {
   if (typeof v !== "number" || !Number.isFinite(v)) return "—";
@@ -65,12 +65,12 @@ function ratingVisual(label: RatingLabel) {
     case "買い":
       return {
         icon: <ChevronUp className="w-4 h-4 stroke-[2.25]" />,
-        tone: "text-green-600 dark:text-green-500",
+        tone: "text-[rgb(76,175,80)]",
       };
     case "売り":
       return {
         icon: <ChevronDown className="w-4 h-4 stroke-[2.25]" />,
-        tone: "text-red-600 dark:text-red-500",
+        tone: "text-[rgb(244,67,54)]",
       };
     case "強い売り":
       return {
@@ -182,8 +182,8 @@ const TechnicalRow = React.memo(({
         <span className="text-muted-foreground">前日差:</span>
         <span className={`font-semibold tabular-nums ${
           priceDiff == null ? "" :
-          priceDiff > 0 ? "text-green-600 dark:text-green-400" :
-          priceDiff < 0 ? "text-red-600 dark:text-red-500" : ""
+          priceDiff > 0 ? "text-[rgb(76,175,80)]" :
+          priceDiff < 0 ? "text-[rgb(244,67,54)]" : ""
         }`}>
           {diffText}
         </span>

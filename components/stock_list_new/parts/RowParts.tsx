@@ -86,9 +86,9 @@ export function PerfMini({
   const cls = !isFiniteNumber
     ? "text-muted-foreground"
     : value! > 0
-    ? "text-green-600 dark:text-green-500"
+    ? "text-[rgb(76,175,80)]"
     : value! < 0
-    ? "text-red-600 dark:text-red-500"
+    ? "text-[rgb(244,67,54)]"
     : "text-muted-foreground";
   const sign = isFiniteNumber && value! > 0 ? "+" : "";
   return (
