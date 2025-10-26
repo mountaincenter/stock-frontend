@@ -11,6 +11,7 @@ import type { RealtimeSortKey, SortDirection } from "../../utils/sort";
 import { REALTIME_SORT_COLUMNS } from "../../utils/sort";
 import { SortButtonGroup } from "../../parts/SortButtonGroup";
 import { CustomTooltip } from "../../parts/CustomTooltip";
+import { GrokTags } from "../../parts/GrokTags";
 
 /**
  * リアルタイムタブ（11カラム）
@@ -94,11 +95,12 @@ const RealtimeRow = React.memo(({
         </span>
       </div>
 
-      {/* 銘柄名 */}
-      <div className="px-3 min-w-0 flex items-center" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+      {/* 銘柄名 + Grokタグ */}
+      <div className="px-3 min-w-0 flex flex-col justify-center gap-1" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
         <h3 className={`font-semibold ${densityStyles.fontSize.stockName} leading-snug hover:text-primary transition-colors line-clamp-1`}>
           {r.stock_name}
         </h3>
+        {isGrokStock && <GrokTags tags={r.tags} />}
       </div>
 
       {/* 時刻 */}

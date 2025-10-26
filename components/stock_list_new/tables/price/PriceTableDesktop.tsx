@@ -11,6 +11,7 @@ import type { PriceSortKey, SortDirection } from "../../utils/sort";
 import { PRICE_SORT_COLUMNS } from "../../utils/sort";
 import { SortButtonGroup } from "../../parts/SortButtonGroup";
 import { CustomTooltip } from "../../parts/CustomTooltip";
+import { GrokTags } from "../../parts/GrokTags";
 
 /**
  * 価格タブ（列順・幅）フレキシブル版
@@ -79,10 +80,11 @@ const PriceRow = React.memo(({
             {r.code}
           </span>
         </div>
-        <div className="px-3 min-w-0 flex items-center" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+        <div className="px-3 min-w-0 flex flex-col justify-center gap-1" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
           <h3 className={`font-semibold ${densityStyles.fontSize.stockName} leading-snug hover:text-primary transition-colors line-clamp-1`}>
             {r.stock_name}
           </h3>
+          {isGrokStock && <GrokTags tags={r.tags} />}
         </div>
         <div className="px-3 flex items-center justify-center" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
           <span className={`${densityStyles.fontSize.date} font-sans tabular-nums text-muted-foreground`}>

@@ -31,6 +31,7 @@ import {
   type TechSortKey,
   type RealtimeSortKey,
 } from "./utils/sort";
+import { sortByGrokScore } from "@/lib/grok-utils";
 import { MobileSortToolbar } from "./parts/MobileSortToolbar";
 import { ChevronDown, HelpCircle, RefreshCw } from "lucide-react";
 import {
@@ -247,18 +248,27 @@ export default function StockLists(props: Props & { className?: string }) {
   }, [rows, selectedTag]);
 
   const rowsAfterPolicy = useMemo(() => {
-    if (selectedTag !== "policy" || selectedPolicies.length === 0) {
-      return rows;
+    let result = rows;
+
+    // Policy tag: フィルタリング
+    if (selectedTag === "policy" && selectedPolicies.length > 0) {
+      const policySet = new Set(selectedPolicies);
+      result = rows.filter((row) => {
+        // tags配列から政策タグを取得してフィルタリング
+        const tagsArray = Array.isArray(row.tags) ? row.tags : [];
+        const tags = tagsArray
+          .map((value) => value?.toString().trim())
+          .filter((value): value is string => Boolean(value));
+        return tags.some((tag) => policySet.has(tag));
+      });
     }
-    const policySet = new Set(selectedPolicies);
-    return rows.filter((row) => {
-      // tags配列から政策タグを取得してフィルタリング
-      const tagsArray = Array.isArray(row.tags) ? row.tags : [];
-      const tags = tagsArray
-        .map((value) => value?.toString().trim())
-        .filter((value): value is string => Boolean(value));
-      return tags.some((tag) => policySet.has(tag));
-    });
+
+    // GROK tag: 選定スコアでソート（降順）
+    if (selectedTag === "grok") {
+      result = sortByGrokScore(result);
+    }
+
+    return result;
   }, [rows, selectedPolicies, selectedTag]);
 
   useEffect(() => {

@@ -32,12 +32,19 @@ export function CodeNameHeader({
   name,
   date,
   className = "",
+  selectionScore,
+  selectionRank,
 }: {
   code: string;
   name: string;
   date: string | null;
   className?: string;
+  selectionScore?: number | null;
+  selectionRank?: number | null;
 }) {
+  const isTop5 = selectionRank != null && selectionRank <= 5;
+  const showScore = selectionScore != null;
+
   return (
     <div className={`min-w-0 ${className}`}>
       <div className="flex items-center gap-2">
@@ -45,6 +52,16 @@ export function CodeNameHeader({
           {code}
         </span>
         <span className="text-xs text-muted-foreground">{date ?? "—"}</span>
+        {isTop5 && (
+          <span className="inline-flex items-center gap-0.5 rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+            ⭐ Top5
+          </span>
+        )}
+        {showScore && (
+          <span className="text-[10px] font-mono text-muted-foreground/70">
+            Score: {selectionScore!.toFixed(1)}
+          </span>
+        )}
       </div>
       <h3 className="font-semibold text-sm leading-tight mt-0.5 line-clamp-2 text-card-foreground">
         {name}
