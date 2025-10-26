@@ -96,9 +96,9 @@ const DEFAULT_SORT_STATE: {
 
 export default function StockLists(props: Props & { className?: string }) {
   const { className, ...rest } = props;
-  const { initialTag: initialTagProp, ...restProps } = rest;
+  const { initialTag: initialTagProp, ...restProps} = rest;
   const initialTag =
-    normalizeSelectTag(initialTagProp as string | undefined) ?? "policy";
+    normalizeSelectTag(initialTagProp as string | undefined) ?? "grok";
   const [selectedTag, setSelectedTag] = useState<TagValue>(initialTag);
 
   // タグ選択時にsessionStorageに保存（個別銘柄から戻る時のため）
