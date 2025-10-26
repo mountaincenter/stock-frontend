@@ -9,7 +9,8 @@ export interface StockMeta {
   series?: string | null;
   topixnewindexseries?: string | null;
   categories?: string[] | null;
-  tags?: string[] | null;
+  tags?: string[] | string | null;  // GROK stocks have string format, others have array
+  selection_score?: number | null;   // GROK stocks only
 }
 
 export interface SnapshotRow {

@@ -18,13 +18,14 @@ export interface ParsedGrokTags {
  * - [2]: Top5バッジ (例: "⭐Top5") ※該当時のみ
  *
  * @param tagsString カンマ区切りのタグ文字列
+ * @param selectionScore 選定スコア（別フィールドで提供される場合）
  * @returns パース結果
  */
-export function parseGrokTags(tagsString: string): ParsedGrokTags {
+export function parseGrokTags(tagsString: string, selectionScore?: number | null): ParsedGrokTags {
   if (!tagsString) {
     return {
       category: '',
-      score: 0,
+      score: selectionScore ?? 0,
       isTop5: false,
       badges: [],
       rawTags: [],
@@ -35,7 +36,7 @@ export function parseGrokTags(tagsString: string): ParsedGrokTags {
 
   return {
     category: tags[0] || '',
-    score: tags[1] ? parseFloat(tags[1]) : 0,
+    score: selectionScore ?? (tags[1] ? parseFloat(tags[1]) : 0),
     isTop5: tags.includes('⭐Top5'),
     badges: tags.slice(2), // スコア以降のすべてのバッジ
     rawTags: tags,

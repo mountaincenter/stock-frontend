@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 
 interface GrokTagsProps {
   tags: string | string[] | null;
+  selectionScore?: number | null;  // GROK stocks have this as a separate field
   className?: string;
 }
 
@@ -16,12 +17,12 @@ interface GrokTagsProps {
  * - スコア (小さく表示)
  * - Top5バッジ (primary色で強調)
  */
-export function GrokTags({ tags, className }: GrokTagsProps) {
+export function GrokTags({ tags, selectionScore, className }: GrokTagsProps) {
   if (!tags) return null;
 
   // tagsが配列の場合は最初の要素、文字列の場合はそのまま使用
   const tagsString = Array.isArray(tags) ? tags[0] || "" : tags;
-  const parsed = parseGrokTags(tagsString);
+  const parsed = parseGrokTags(tagsString, selectionScore);
 
   if (!parsed.category && !parsed.score && !parsed.isTop5) {
     return null;

@@ -100,7 +100,7 @@ const RealtimeRow = React.memo(({
         <h3 className={`font-semibold ${densityStyles.fontSize.stockName} leading-snug hover:text-primary transition-colors line-clamp-1`}>
           {r.stock_name}
         </h3>
-        {isGrokStock && <GrokTags tags={r.tags} />}
+        {isGrokStock && <GrokTags tags={r.tags} selectionScore={r.selection_score} />}
       </div>
 
       {/* 時刻 */}

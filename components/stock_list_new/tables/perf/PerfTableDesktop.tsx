@@ -108,7 +108,7 @@ const PerfRow = React.memo(({
             <h3 className={`font-semibold text-card-foreground ${densityStyles.fontSize.stockName} leading-snug hover:text-primary transition-colors line-clamp-1`}>
               {r.stock_name}
             </h3>
-            {isGrokStock && <GrokTags tags={r.tags} />}
+            {isGrokStock && <GrokTags tags={r.tags} selectionScore={r.selection_score} />}
           </div>
           <div className="px-3 flex items-center justify-center" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
             <span className={`${densityStyles.fontSize.date} font-sans tabular-nums text-muted-foreground`}>
