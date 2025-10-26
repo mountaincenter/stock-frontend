@@ -39,6 +39,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { GrokBacktestBanner } from "@/app/components/GrokBacktestBanner";
 
 interface RealtimeQuote {
   ticker: string;
@@ -482,6 +483,9 @@ export default function StockLists(props: Props & { className?: string }) {
         className ?? ""
       }`}
     >
+      {/* Grok Backtest Banner - GROK タグの場合のみ表示 */}
+      {selectedTag === "grok" && <GrokBacktestBanner />}
+
       {/* Premium glassmorphism header */}
       <div className="hidden md:block">
         <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-card/95 via-card/90 to-card/95 p-4 shadow-xl shadow-black/5 backdrop-blur-xl">
