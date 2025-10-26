@@ -24,6 +24,9 @@ export function GrokTags({ tags, selectionScore, className }: GrokTagsProps) {
   const tagsString = Array.isArray(tags) ? tags[0] || "" : tags;
   const parsed = parseGrokTags(tagsString, selectionScore);
 
+  // デバッグ用ログ
+  console.log('[GrokTags]', { tags, selectionScore, tagsString, parsed });
+
   if (!parsed.category && !parsed.score && !parsed.isTop5) {
     return null;
   }
