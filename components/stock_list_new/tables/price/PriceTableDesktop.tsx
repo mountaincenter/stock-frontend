@@ -62,7 +62,7 @@ const PriceRow = React.memo(({
 
   // Grok銘柄の判定とtooltip用のreason取得
   const isGrokStock = r.categories?.includes("GROK") ?? false;
-  const grokReason = isGrokStock && r.tags && r.tags.length > 1 ? r.tags[1] : null;
+  const grokReason = isGrokStock ? r.reason : null;
 
   const rowContent = (
     <Link

@@ -79,7 +79,7 @@ export default function PriceSimpleMobile({ rows, nf0, nf2 }: Props) {
 
           // Grok銘柄の判定とreason取得
           const isGrokStock = r.categories?.includes("GROK") ?? false;
-          const grokReason = isGrokStock && r.tags && r.tags.length > 1 ? r.tags[1] : null;
+          const grokReason = isGrokStock ? r.reason : null;
 
           // marketTimeがあればそれを使用、なければdateを使用
           const displayDate = r.marketTime ? formatDateTime(r.marketTime) : (r.date ?? "—");
