@@ -11,6 +11,7 @@ export interface StockMeta {
   categories?: string[] | null;
   tags?: string[] | string | null;  // GROK stocks have string format, others have array
   selection_score?: number | null;   // GROK stocks only
+  reason?: string | null;            // GROK stocks: AI-generated selection reason
 }
 
 export interface SnapshotRow {
