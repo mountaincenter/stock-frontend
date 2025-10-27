@@ -49,10 +49,11 @@ export function parseGrokTags(tagsString: string, selectionScore?: number | null
  * @param rows StockMetaの配列
  * @returns スコア降順にソートされた配列
  */
-export function sortByGrokScore<T extends { tags?: string }>(rows: T[]): T[] {
+export function sortByGrokScore<T extends { tags?: string | string[] | null; selection_score?: number | null }>(rows: T[]): T[] {
   return [...rows].sort((a, b) => {
-    const scoreA = a.tags ? parseGrokTags(a.tags).score : 0;
-    const scoreB = b.tags ? parseGrokTags(b.tags).score : 0;
+    // selection_scoreフィールドがあればそれを使用、なければtagsから抽出
+    const scoreA = a.selection_score ?? (a.tags && typeof a.tags === 'string' ? parseGrokTags(a.tags).score : 0);
+    const scoreB = b.selection_score ?? (b.tags && typeof b.tags === 'string' ? parseGrokTags(b.tags).score : 0);
     return scoreB - scoreA; // 降順
   });
 }

@@ -6,7 +6,7 @@ import { parseGrokTags } from "@/lib/grok-utils";
 import { cn } from "@/lib/utils";
 
 interface GrokTagsProps {
-  tags: string | string[] | null;
+  tags?: string | string[] | null;  // Optional to match StockMeta type
   selectionScore?: number | null;  // GROK stocks have this as a separate field
   className?: string;
 }

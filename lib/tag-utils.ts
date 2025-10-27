@@ -82,7 +82,7 @@ export interface MetaLike {
   code?: string | null;
   stock_name?: string | null;
   categories?: string[] | null;
-  tags?: string[] | null;
+  tags?: string[] | string | null;  // Support both array and string format (for GROK stocks)
   tag?: string | null;
   tag_primary?: string | null;
 }
@@ -107,7 +107,11 @@ export function filterMetaByTag<T extends MetaLike>(
   const filtered = meta.filter((item) => {
     // categories と tags を配列として展開
     const categoriesArray = Array.isArray(item.categories) ? item.categories : [];
-    const tagsArray = Array.isArray(item.tags) ? item.tags : [];
+    const tagsArray = Array.isArray(item.tags)
+      ? item.tags
+      : typeof item.tags === 'string'
+        ? [item.tags]  // String format (GROK stocks) -> convert to array
+        : [];
 
     const tagCandidates = [
       ...categoriesArray,

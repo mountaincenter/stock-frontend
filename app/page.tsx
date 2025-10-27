@@ -153,7 +153,7 @@ async function fetchInitial(tag: string) {
           if (unfiltered.length > 0) {
             meta = filterMetaByTag(unfiltered, tagParam, {
               allowMissingTagInfo: isCore30,
-            });
+            }) as StockMeta[];
           }
         }
         return meta;
