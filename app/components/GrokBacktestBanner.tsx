@@ -32,6 +32,19 @@ export function GrokBacktestBanner() {
   const [showTop5List, setShowTop5List] = useState(false);
   const [showTop10List, setShowTop10List] = useState(false);
 
+  // バナーを開いた時にTop5リストも自動的に開く
+  const handleExpandToggle = () => {
+    const newExpandedState = !isExpanded;
+    setIsExpanded(newExpandedState);
+    // バナーを開く時はTop5も開く、閉じる時はTop5も閉じる
+    if (newExpandedState) {
+      setShowTop5List(true);
+    } else {
+      setShowTop5List(false);
+      setShowTop10List(false);
+    }
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -86,7 +99,7 @@ export function GrokBacktestBanner() {
       {/* ヘッダー（折りたたみ可能） */}
       <button
         type="button"
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={handleExpandToggle}
         className="flex w-full items-center justify-between text-left transition-colors hover:text-primary"
       >
         <div className="flex flex-col gap-0.5">

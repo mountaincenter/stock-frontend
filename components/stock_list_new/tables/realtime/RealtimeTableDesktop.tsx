@@ -14,13 +14,12 @@ import { CustomTooltip } from "../../parts/CustomTooltip";
 import { GrokTags } from "../../parts/GrokTags";
 
 /**
- * リアルタイムタブ（11カラム）
+ * リアルタイムタブ（10カラム）- 寄付買い前場引け売り戦略用
  * 1:コード(110固定) 2:銘柄名(min240,1fr) 3:時刻(90固定)
- * 4:現在値(min90) 5:前日終値(min90) 6:始値(min90)
- * 7:前日比(min100) 8:前日比%(min80)
- * 9:高値(min90) 10:安値(min90) 11:出来高(min100)
+ * 4:現在値(min90) 5:寄付比(min100) 6:寄付比%(min80)
+ * 7:前日比(min100) 8:高値(min90) 9:安値(min90) 10:出来高(min100)
  */
-const COLS_REALTIME = "110px minmax(240px, 1fr) 90px minmax(90px, 0.9fr) minmax(90px, 0.9fr) minmax(90px, 0.9fr) minmax(100px, 1fr) minmax(80px, 0.8fr) minmax(90px, 0.9fr) minmax(90px, 0.9fr) minmax(100px, 1fr)";
+const COLS_REALTIME = "110px minmax(240px, 1fr) 90px minmax(90px, 0.9fr) minmax(100px, 1fr) minmax(80px, 0.8fr) minmax(100px, 1fr) minmax(90px, 0.9fr) minmax(90px, 0.9fr) minmax(100px, 1fr)";
 
 type Props = {
   rows: Row[];
@@ -61,13 +60,23 @@ const RealtimeRow = React.memo(({
 }) => {
   const r = row;
 
-  const pct =
-    r.diff != null &&
-    r.prevClose != null &&
-    Number.isFinite(r.diff) &&
-    Number.isFinite(r.prevClose) &&
-    r.prevClose !== 0
-      ? (r.diff / r.prevClose) * 100
+  // 寄付比 = 現在値 - 始値
+  const openDiff =
+    r.close != null &&
+    r.open != null &&
+    Number.isFinite(r.close) &&
+    Number.isFinite(r.open)
+      ? r.close - r.open
+      : null;
+
+  // 寄付比% = (現在値 - 始値) / 始値 * 100
+  const openDiffPct =
+    r.close != null &&
+    r.open != null &&
+    Number.isFinite(r.close) &&
+    Number.isFinite(r.open) &&
+    r.open !== 0
+      ? ((r.close - r.open) / r.open) * 100
       : null;
 
   const densityValues = DENSITY_VALUES[density];
@@ -115,24 +124,19 @@ const RealtimeRow = React.memo(({
         <CloseCell v={r.close} nf0={nf0} />
       </div>
 
+      {/* 寄付比 */}
+      <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+        <DiffBadge diff={openDiff} nf0={nf0} />
+      </div>
+
+      {/* 寄付比% */}
+      <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+        <DiffBadge diff={openDiffPct} nf0={nf2} />
+      </div>
+
       {/* 前日比 */}
       <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
         <DiffBadge diff={r.diff} nf0={nf0} />
-      </div>
-
-      {/* 前日比% */}
-      <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
-        <DiffBadge diff={pct} nf0={nf2} />
-      </div>
-
-      {/* 前日終値 */}
-      <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
-        <NumCell v={r.prevClose} nf0={nf0} />
-      </div>
-
-      {/* 始値 */}
-      <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
-        <NumCell v={r.open ?? null} nf0={nf0} />
       </div>
 
       {/* 高値 */}

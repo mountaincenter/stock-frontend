@@ -49,10 +49,9 @@ export type RealtimeSortKey =
   | "stock_name"
   | "marketTime"
   | "close"
-  | "prevClose"
-  | "open"
+  | "open_diff"
+  | "open_diff_pct"
   | "diff"
-  | "pct_diff"
   | "high"
   | "low"
   | "volume";
@@ -473,10 +472,9 @@ export const REALTIME_SORT_COLUMNS: SortableColumn<RealtimeSortKey>[] = [
   { key: "stock_name", label: "銘柄名", align: "left" },
   { key: "marketTime", label: "時刻", align: "center" },
   { key: "close", label: "現在値", align: "right" },
+  { key: "open_diff", label: "寄付比", align: "right" },
+  { key: "open_diff_pct", label: "寄付比%", align: "right" },
   { key: "diff", label: "前日比", align: "right" },
-  { key: "pct_diff", label: "前日比%", align: "right" },
-  { key: "prevClose", label: "前日終値", align: "right" },
-  { key: "open", label: "始値", align: "right" },
   { key: "high", label: "高値", align: "right" },
   { key: "low", label: "安値", align: "right" },
   { key: "volume", label: "出来高", align: "right" },
@@ -492,20 +490,20 @@ const realtimeValue = (row: Row, key: RealtimeSortKey): number | string => {
       return row.marketTime ?? "";
     case "close":
       return typeof row.close === "number" ? row.close : Number.NaN;
-    case "prevClose":
-      return typeof row.prevClose === "number" ? row.prevClose : Number.NaN;
-    case "open":
-      return typeof row.open === "number" ? row.open : Number.NaN;
+    case "open_diff":
+      // 寄付比 = 現在値 - 始値
+      return typeof row.close === "number" && typeof row.open === "number"
+        ? row.close - row.open
+        : Number.NaN;
+    case "open_diff_pct":
+      // 寄付比% = (現在値 - 始値) / 始値 * 100
+      return typeof row.close === "number" &&
+        typeof row.open === "number" &&
+        row.open !== 0
+        ? ((row.close - row.open) / row.open) * 100
+        : Number.NaN;
     case "diff":
       return typeof row.diff === "number" ? row.diff : Number.NaN;
-    case "pct_diff":
-      return typeof row.pct_diff === "number"
-        ? row.pct_diff
-        : typeof row.diff === "number" &&
-          typeof row.prevClose === "number" &&
-          row.prevClose !== 0
-        ? (row.diff / row.prevClose) * 100
-        : Number.NaN;
     case "high":
       return typeof row.high === "number" ? row.high : Number.NaN;
     case "low":

@@ -109,9 +109,9 @@ export type RealtimeSortKey =
   | "stock_name"
   | "marketTime"
   | "close"
+  | "open_diff"
+  | "open_diff_pct"
   | "diff"
-  | "pct_diff"
-  | "open"
   | "high"
   | "low"
   | "volume";
