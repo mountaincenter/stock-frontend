@@ -45,7 +45,8 @@ export default function DailyDetailPage() {
   useEffect(() => {
     if (!date) return;
 
-    fetch(`https://ymnk.jp/api/dev/backtest/daily/${date}`)
+    const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+    fetch(`${API_BASE}/api/dev/backtest/daily/${date}`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch");
         return res.json();

@@ -60,7 +60,8 @@ export default function DevDashboard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("https://ymnk.jp/api/dev/backtest/summary")
+    const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+    fetch(`${API_BASE}/api/dev/backtest/summary`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch");
         return res.json();
