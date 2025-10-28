@@ -45,14 +45,17 @@ export default function PriceSimpleMobile({ rows, nf0, nf2 }: Props) {
       {/* ヘッダ（sticky） */}
       <div
         className="
-          grid grid-cols-12 gap-2 px-2 h-7 items-center
+          grid grid-cols-12 gap-2 px-2 py-1 items-center
           bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60
           sticky top-0 z-10
         "
       >
         <div className={`col-span-7 ${headerBase}`}>銘柄名 / コード</div>
         <div className={`col-span-3 text-right ${headerBase}`}>株価</div>
-        <div className={`col-span-2 text-right ${headerBase}`}>前日比</div>
+        <div className={`col-span-2 text-right ${headerBase} leading-tight`}>
+          <div>寄付比(%)</div>
+          <div>前日比</div>
+        </div>
       </div>
 
       <div className="max-h-[calc(100vh-168px)] md:max-h-[70vh] overflow-auto">
@@ -67,7 +70,21 @@ export default function PriceSimpleMobile({ rows, nf0, nf2 }: Props) {
               ? (r.diff / r.prevClose) * 100
               : null;
 
-          // 楽天証券スタイル: 高彩度・高明度の鮮やかな色
+          // 寄付比の計算（デスクトップ版と同じロジック）
+          const openDiff =
+            r.close != null &&
+            r.open != null &&
+            Number.isFinite(r.close) &&
+            Number.isFinite(r.open)
+              ? r.close - r.open
+              : null;
+
+          const openDiffPct =
+            openDiff != null && r.open != null && r.open !== 0
+              ? (openDiff / r.open) * 100
+              : null;
+
+          // 楽天証券スタイル: 高彩度・高明度の鮮やかな色（前日比用）
           const tone =
             diff == null || !Number.isFinite(diff)
               ? "text-muted-foreground"
@@ -75,6 +92,16 @@ export default function PriceSimpleMobile({ rows, nf0, nf2 }: Props) {
               ? "text-[rgb(76,175,80)]" // 楽天証券の鮮やかな緑
               : diff < 0
               ? "text-[rgb(244,67,54)]" // 楽天証券の鮮やかな赤
+              : "text-muted-foreground";
+
+          // 寄付比用の色
+          const openTone =
+            openDiff == null || !Number.isFinite(openDiff)
+              ? "text-muted-foreground"
+              : openDiff > 0
+              ? "text-[rgb(76,175,80)]"
+              : openDiff < 0
+              ? "text-[rgb(244,67,54)]"
               : "text-muted-foreground";
 
           // Grok銘柄の判定とreason取得
@@ -121,23 +148,39 @@ export default function PriceSimpleMobile({ rows, nf0, nf2 }: Props) {
                 )}
               </div>
 
-              {/* 前日差 2段: 値 / (率) */}
+              {/* 騰落 3段: 寄付比 / 寄付比% / 前日比 */}
               <div className="col-span-2 text-right leading-tight">
-                {diff == null || !Number.isFinite(diff) ? (
-                  <span className="text-muted-foreground">—</span>
-                ) : (
-                  <div className="inline-flex flex-col items-end gap-0.5">
-                    <span className={`font-bold font-sans tabular-nums text-[16px] leading-none ${tone}`}>
+                <div className="inline-flex flex-col items-end gap-0.5">
+                  {/* 寄付比 */}
+                  {openDiff == null || !Number.isFinite(openDiff) ? (
+                    <span className="text-muted-foreground text-[10px]">—</span>
+                  ) : (
+                    <span className={`font-bold font-sans tabular-nums text-[11px] leading-none ${openTone}`}>
+                      {openDiff > 0 ? "+" : ""}
+                      {nf0.format(openDiff)}
+                    </span>
+                  )}
+
+                  {/* 寄付比% */}
+                  {openDiffPct == null || !Number.isFinite(openDiffPct) ? (
+                    <span className="text-muted-foreground text-[9px]">—</span>
+                  ) : (
+                    <span className={`text-[9px] font-bold font-sans tabular-nums leading-none ${openTone}`}>
+                      {openDiffPct > 0 ? "+" : ""}
+                      {nf2.format(openDiffPct)}%
+                    </span>
+                  )}
+
+                  {/* 前日比 */}
+                  {diff == null || !Number.isFinite(diff) ? (
+                    <span className="text-muted-foreground text-[10px]">—</span>
+                  ) : (
+                    <span className={`font-bold font-sans tabular-nums text-[11px] leading-none ${tone}`}>
                       {diff > 0 ? "+" : ""}
                       {nf0.format(diff)}
                     </span>
-                    <span className={`${pctSmall} ${tone}`}>
-                      {pct == null || !Number.isFinite(pct)
-                        ? "—"
-                        : `${pct > 0 ? "+" : ""}${nf2.format(pct)}%`}
-                    </span>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </Link>
           );
