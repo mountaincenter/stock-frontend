@@ -359,13 +359,13 @@ export default function DailyDetailPage() {
                           ) : "—"}
                         </td>
                         <td className={`px-4 py-4 text-sm text-right font-bold font-mono ${
-                          result.profit_per_100 !== null && result.profit_per_100 > 0
+                          result.profit_per_100 !== null && result.profit_per_100 !== undefined && result.profit_per_100 > 0
                             ? "text-green-400"
-                            : result.profit_per_100 !== null && result.profit_per_100 < 0
+                            : result.profit_per_100 !== null && result.profit_per_100 !== undefined && result.profit_per_100 < 0
                             ? "text-red-400"
                             : "text-slate-500"
                         }`}>
-                          {result.profit_per_100 !== null ? (
+                          {result.profit_per_100 !== null && result.profit_per_100 !== undefined ? (
                             <>
                               {result.profit_per_100 >= 0 ? "+" : ""}
                               ¥{result.profit_per_100.toLocaleString()}

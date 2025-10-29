@@ -4,8 +4,6 @@ import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  LineChart,
-  Line,
   BarChart,
   Bar,
   AreaChart,
@@ -123,7 +121,7 @@ export default function DevDashboard() {
   const sortedStats = useMemo(() => {
     if (!data) return [];
 
-    let filtered = data.daily_stats.filter((stat) =>
+    const filtered = data.daily_stats.filter((stat) =>
       stat.date.includes(searchTerm)
     );
 
@@ -439,7 +437,7 @@ export default function DevDashboard() {
                           backdropFilter: 'blur(10px)',
                         }}
                         labelStyle={{ color: '#cbd5e1' }}
-                        formatter={(value: any) => [`${value.toFixed(2)}%`, '']}
+                        formatter={(value: number) => [`${value.toFixed(2)}%`, '']}
                       />
                       <Legend
                         wrapperStyle={{ paddingTop: '20px' }}
@@ -485,7 +483,7 @@ export default function DevDashboard() {
                           backdropFilter: 'blur(10px)',
                         }}
                         labelStyle={{ color: '#cbd5e1' }}
-                        formatter={(value: any) => [`${value.toFixed(1)}%`, '']}
+                        formatter={(value: number) => [`${value.toFixed(1)}%`, '']}
                       />
                       <Legend
                         wrapperStyle={{ paddingTop: '20px' }}
