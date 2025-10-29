@@ -17,6 +17,7 @@ interface BacktestRecord {
   sell_price: number | null;
   phase1_return: number | null;
   phase1_win: boolean | null;
+  profit_per_100?: number | null;
 }
 
 export async function GET(request: NextRequest) {
@@ -68,6 +69,13 @@ export async function GET(request: NextRequest) {
         { status: 404 }
       );
     }
+
+    // 100株あたりの利益額を計算
+    dailyData.forEach(record => {
+      if (record.buy_price !== null && record.sell_price !== null) {
+        record.profit_per_100 = (record.sell_price - record.buy_price) * 100;
+      }
+    });
 
     // grok_rankでソート（nullは最後）
     dailyData.sort((a, b) => {

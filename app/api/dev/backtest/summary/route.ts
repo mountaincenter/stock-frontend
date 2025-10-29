@@ -17,6 +17,7 @@ interface BacktestRecord {
   sell_price: number | null;
   phase1_return: number | null;
   phase1_win: boolean | null;
+  profit_per_100?: number | null;
 }
 
 interface OverallStats {
