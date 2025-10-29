@@ -145,9 +145,7 @@ export default function DailyDetailPage() {
                 </tr>
               </thead>
               <tbody>
-                {results
-                  .sort((a, b) => a.grok_rank - b.grok_rank)
-                  .map((result) => {
+                {results.map((result) => {
                     const isWin = result.phase1_win === true;
                     const isLoss = result.phase1_win === false;
                     const returnClass = isWin
