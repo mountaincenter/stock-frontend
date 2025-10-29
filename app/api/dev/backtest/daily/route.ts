@@ -77,11 +77,11 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // grok_rankでソート（nullは最後）
+    // selection_scoreでソート（降順、nullは最後）
     dailyData.sort((a, b) => {
-      if (a.grok_rank === null) return 1;
-      if (b.grok_rank === null) return -1;
-      return a.grok_rank - b.grok_rank;
+      if (a.selection_score === null) return 1;
+      if (b.selection_score === null) return -1;
+      return b.selection_score - a.selection_score; // 降順
     });
 
     return NextResponse.json({
