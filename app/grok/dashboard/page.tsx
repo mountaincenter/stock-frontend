@@ -135,9 +135,9 @@ export default function GrokDashboardPage() {
           <h2 className="text-xl font-bold mb-4">全体パフォーマンス</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatsCard
-              title="平均リターン"
-              value={`${data.overall_stats.avg_return >= 0 ? '+' : ''}${data.overall_stats.avg_return.toFixed(2)}%`}
-              subtitle={`中央値: ${data.overall_stats.median_return.toFixed(2)}%`}
+              title="平均利益/100株"
+              value={`${data.overall_stats.avg_profit_per_100_shares >= 0 ? '+' : ''}¥${Math.round(data.overall_stats.avg_profit_per_100_shares).toLocaleString()}`}
+              subtitle={`平均リターン: ${data.overall_stats.avg_return.toFixed(2)}%`}
               trend={data.trend_analysis.trend === 'improving' ? 'up' : data.trend_analysis.trend === 'declining' ? 'down' : 'neutral'}
               trendValue={data.trend_analysis.trend !== 'stable' ? `${data.trend_analysis.change.toFixed(1)}%` : undefined}
               icon={<TrendingUp className="w-16 h-16" />}
@@ -151,16 +151,16 @@ export default function GrokDashboardPage() {
             />
 
             <StatsCard
-              title="最高 / 最低リターン"
-              value={`+${data.overall_stats.best_return.toFixed(2)}%`}
-              subtitle={`最低: ${data.overall_stats.worst_return.toFixed(2)}%`}
+              title="累計利益/100株"
+              value={`${data.overall_stats.total_profit_per_100_shares >= 0 ? '+' : ''}¥${Math.round(data.overall_stats.total_profit_per_100_shares).toLocaleString()}`}
+              subtitle={`${data.overall_stats.valid_count}回の取引`}
               icon={<BarChart3 className="w-16 h-16" />}
             />
 
             <StatsCard
-              title="サンプル数"
-              value={data.overall_stats.valid_count}
-              subtitle={`全${data.overall_stats.total_count}件中`}
+              title="最高 / 最低利益"
+              value={`+¥${Math.round(data.overall_stats.best_profit_per_100_shares).toLocaleString()}`}
+              subtitle={`最低: ¥${Math.round(data.overall_stats.worst_profit_per_100_shares).toLocaleString()}`}
               icon={<Activity className="w-16 h-16" />}
             />
           </div>

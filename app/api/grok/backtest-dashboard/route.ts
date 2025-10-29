@@ -19,9 +19,16 @@ const CACHE_TTL = 5 * 60 * 1000; // 5分
  * バックテスト統計を計算
  */
 function calculateStats(records: BacktestRecord[]): BacktestStats {
-  const validRecords = records.filter(r => r.phase1_return !== null);
+  const validRecords = records.filter(r => r.phase1_return !== null && r.buy_price !== null);
   const returns = validRecords.map(r => r.phase1_return!);
   const winCount = validRecords.filter(r => r.phase1_win === true).length;
+
+  // 100株あたりの利益計算
+  const profitsPerShare = validRecords.map(r => {
+    const buyPrice = r.buy_price!;
+    const sellPrice = r.sell_price!;
+    return (sellPrice - buyPrice) * 100; // 100株分
+  });
 
   returns.sort((a, b) => a - b);
   const median = returns.length > 0
@@ -36,6 +43,12 @@ function calculateStats(records: BacktestRecord[]): BacktestStats {
     ? returns.reduce((sum, r) => sum + Math.pow(r - avg, 2), 0) / returns.length
     : 0;
 
+  const avgProfit = profitsPerShare.length > 0
+    ? profitsPerShare.reduce((a, b) => a + b, 0) / profitsPerShare.length
+    : 0;
+
+  const totalProfit = profitsPerShare.reduce((a, b) => a + b, 0);
+
   return {
     total_count: records.length,
     valid_count: validRecords.length,
@@ -47,6 +60,10 @@ function calculateStats(records: BacktestRecord[]): BacktestStats {
     std_return: Math.sqrt(variance) * 100,
     best_return: returns.length > 0 ? Math.max(...returns) * 100 : 0,
     worst_return: returns.length > 0 ? Math.min(...returns) * 100 : 0,
+    avg_profit_per_100_shares: avgProfit,
+    total_profit_per_100_shares: totalProfit,
+    best_profit_per_100_shares: profitsPerShare.length > 0 ? Math.max(...profitsPerShare) : 0,
+    worst_profit_per_100_shares: profitsPerShare.length > 0 ? Math.min(...profitsPerShare) : 0,
   };
 }
 
@@ -235,6 +252,10 @@ export async function GET() {
             std_return: 0,
             best_return: 0,
             worst_return: 0,
+            avg_profit_per_100_shares: 0,
+            total_profit_per_100_shares: 0,
+            best_profit_per_100_shares: 0,
+            worst_profit_per_100_shares: 0,
           },
           top5_stats: {
             total_count: 0,
@@ -247,7 +268,12 @@ export async function GET() {
             std_return: 0,
             best_return: 0,
             worst_return: 0,
+            avg_profit_per_100_shares: 0,
+            total_profit_per_100_shares: 0,
+            best_profit_per_100_shares: 0,
+            worst_profit_per_100_shares: 0,
             outperformance: 0,
+            outperformance_profit_per_100_shares: 0,
           },
           daily_stats: [],
           recent_records: [],
@@ -283,6 +309,7 @@ export async function GET() {
     const top5Stats: Top5Stats = {
       ...top5StatsBase,
       outperformance: top5StatsBase.avg_return - overallStats.avg_return,
+      outperformance_profit_per_100_shares: top5StatsBase.avg_profit_per_100_shares - overallStats.avg_profit_per_100_shares,
     };
 
     // 日次統計

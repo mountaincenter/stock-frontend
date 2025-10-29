@@ -28,10 +28,15 @@ export interface BacktestStats {
   std_return: number;
   best_return: number;
   worst_return: number;
+  avg_profit_per_100_shares: number; // 100株あたりの平均利益
+  total_profit_per_100_shares: number; // 100株あたりの累計利益
+  best_profit_per_100_shares: number; // 100株あたりの最高利益
+  worst_profit_per_100_shares: number; // 100株あたりの最低利益
 }
 
 export interface Top5Stats extends BacktestStats {
   outperformance: number; // Top5の平均リターン - 全体の平均リターン
+  outperformance_profit_per_100_shares: number; // Top5の100株あたり平均利益 - 全体の100株あたり平均利益
 }
 
 export interface DailyStats {

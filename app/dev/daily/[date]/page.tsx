@@ -322,11 +322,11 @@ export default function DailyDetailPage() {
                             className="group/link flex items-center gap-2 hover:text-blue-400 transition-colors"
                           >
                             <div>
-                              <div className="text-sm font-bold text-slate-200 group-hover/link:text-blue-400 transition-colors">
-                                {result.ticker}
-                              </div>
-                              <div className="text-xs text-slate-400 max-w-[200px] truncate">
+                              <div className="text-base font-bold text-slate-100 group-hover/link:text-blue-400 transition-colors">
                                 {result.stock_name}
+                              </div>
+                              <div className="text-xs text-slate-500 font-mono">
+                                {result.ticker}
                               </div>
                             </div>
                             <ExternalLink className="w-3 h-3 opacity-0 group-hover/link:opacity-100 transition-opacity" />

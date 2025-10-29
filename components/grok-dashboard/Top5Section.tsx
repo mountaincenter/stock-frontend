@@ -14,10 +14,6 @@ interface Top5SectionProps {
 }
 
 export function Top5Section({ top5Stats, overallStats, className }: Top5SectionProps) {
-  const outperformancePercent = overallStats.avg_return !== 0
-    ? (top5Stats.outperformance / overallStats.avg_return) * 100
-    : 0;
-
   const winRateDiff = top5Stats.win_rate - overallStats.win_rate;
 
   return (
@@ -38,11 +34,11 @@ export function Top5Section({ top5Stats, overallStats, className }: Top5SectionP
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
-          title="Top5 平均リターン"
-          value={`${top5Stats.avg_return >= 0 ? '+' : ''}${top5Stats.avg_return.toFixed(2)}%`}
-          subtitle={`全体: ${overallStats.avg_return >= 0 ? '+' : ''}${overallStats.avg_return.toFixed(2)}%`}
-          trend={top5Stats.outperformance > 0 ? 'up' : top5Stats.outperformance < 0 ? 'down' : 'neutral'}
-          trendValue={`${top5Stats.outperformance >= 0 ? '+' : ''}${top5Stats.outperformance.toFixed(2)}%`}
+          title="Top5 平均利益/100株"
+          value={`${top5Stats.avg_profit_per_100_shares >= 0 ? '+' : ''}¥${Math.round(top5Stats.avg_profit_per_100_shares).toLocaleString()}`}
+          subtitle={`全体: ${overallStats.avg_profit_per_100_shares >= 0 ? '+' : ''}¥${Math.round(overallStats.avg_profit_per_100_shares).toLocaleString()}`}
+          trend={top5Stats.outperformance_profit_per_100_shares > 0 ? 'up' : top5Stats.outperformance_profit_per_100_shares < 0 ? 'down' : 'neutral'}
+          trendValue={`${top5Stats.outperformance_profit_per_100_shares >= 0 ? '+' : ''}¥${Math.round(top5Stats.outperformance_profit_per_100_shares).toLocaleString()}`}
           icon={<TrendingUp className="w-16 h-16" />}
           highlight
         />
@@ -58,33 +54,40 @@ export function Top5Section({ top5Stats, overallStats, className }: Top5SectionP
         />
 
         <StatsCard
-          title="Top5 最高リターン"
-          value={`+${top5Stats.best_return.toFixed(2)}%`}
-          subtitle={`最低: ${top5Stats.worst_return.toFixed(2)}%`}
+          title="Top5 累計利益/100株"
+          value={`${top5Stats.total_profit_per_100_shares >= 0 ? '+' : ''}¥${Math.round(top5Stats.total_profit_per_100_shares).toLocaleString()}`}
+          subtitle={`${top5Stats.valid_count}回の取引`}
           icon={<Award className="w-16 h-16" />}
+          highlight
         />
 
         <StatsCard
-          title="アウトパフォーマンス"
-          value={`${outperformancePercent >= 0 ? '+' : ''}${outperformancePercent.toFixed(1)}%`}
-          subtitle={`vs 全体平均`}
-          trend={outperformancePercent > 0 ? 'up' : outperformancePercent < 0 ? 'down' : 'neutral'}
+          title="Top5 vs 全体の差"
+          value={`${top5Stats.outperformance_profit_per_100_shares >= 0 ? '+' : ''}¥${Math.round(top5Stats.outperformance_profit_per_100_shares).toLocaleString()}`}
+          subtitle={`1回あたりの差額`}
+          trend={top5Stats.outperformance_profit_per_100_shares > 0 ? 'up' : top5Stats.outperformance_profit_per_100_shares < 0 ? 'down' : 'neutral'}
           icon={<Star className="w-16 h-16" />}
+          highlight
         />
       </div>
 
       {/* Recommendation */}
-      {top5Stats.outperformance > 0.5 && (
+      {top5Stats.outperformance_profit_per_100_shares > 500 && (
         <div className="p-4 rounded-lg bg-primary/10 border border-primary/30">
           <div className="flex items-start gap-3">
             <Star className="w-5 h-5 text-primary mt-0.5" />
             <div>
               <h4 className="font-semibold text-primary mb-1">
-                推奨: Top5銘柄への絞り込み
+                💡 推奨: Top5銘柄への絞り込み
               </h4>
               <p className="text-sm text-primary/90">
-                Top5銘柄は全体より平均{top5Stats.outperformance.toFixed(2)}%高いリターンを記録しています。
-                GROKの選定精度が高く、上位銘柄への集中投資が有効です。
+                Top5銘柄は全体より1回あたり平均<strong>¥{Math.round(top5Stats.outperformance_profit_per_100_shares).toLocaleString()}/100株</strong>多く利益を出しています。
+                {top5Stats.valid_count > 0 && (
+                  <>
+                    <br />累計では<strong>¥{Math.round(top5Stats.total_profit_per_100_shares).toLocaleString()}/100株</strong>の利益（{top5Stats.valid_count}回の取引）。
+                    GROKの選定精度が高く、上位銘柄への集中投資が有効です。
+                  </>
+                )}
               </p>
             </div>
           </div>
@@ -103,6 +106,48 @@ export function Top5Section({ top5Stats, overallStats, className }: Top5SectionP
             </tr>
           </thead>
           <tbody className="divide-y">
+            <tr className="hover:bg-muted/20 bg-primary/5">
+              <td className="px-4 py-3 font-semibold">平均利益/100株</td>
+              <td className={cn(
+                "px-4 py-3 text-right font-semibold",
+                top5Stats.avg_profit_per_100_shares >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+              )}>
+                ¥{Math.round(top5Stats.avg_profit_per_100_shares).toLocaleString()}
+              </td>
+              <td className={cn(
+                "px-4 py-3 text-right font-semibold",
+                overallStats.avg_profit_per_100_shares >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+              )}>
+                ¥{Math.round(overallStats.avg_profit_per_100_shares).toLocaleString()}
+              </td>
+              <td className={cn(
+                "px-4 py-3 text-right font-bold",
+                top5Stats.outperformance_profit_per_100_shares >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+              )}>
+                {top5Stats.outperformance_profit_per_100_shares >= 0 ? '+' : ''}¥{Math.round(top5Stats.outperformance_profit_per_100_shares).toLocaleString()}
+              </td>
+            </tr>
+            <tr className="hover:bg-muted/20 bg-primary/5">
+              <td className="px-4 py-3 font-semibold">累計利益/100株</td>
+              <td className={cn(
+                "px-4 py-3 text-right font-semibold",
+                top5Stats.total_profit_per_100_shares >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+              )}>
+                ¥{Math.round(top5Stats.total_profit_per_100_shares).toLocaleString()}
+              </td>
+              <td className={cn(
+                "px-4 py-3 text-right font-semibold",
+                overallStats.total_profit_per_100_shares >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+              )}>
+                ¥{Math.round(overallStats.total_profit_per_100_shares).toLocaleString()}
+              </td>
+              <td className={cn(
+                "px-4 py-3 text-right font-bold",
+                (top5Stats.total_profit_per_100_shares - overallStats.total_profit_per_100_shares) >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+              )}>
+                {(top5Stats.total_profit_per_100_shares - overallStats.total_profit_per_100_shares) >= 0 ? '+' : ''}¥{Math.round(top5Stats.total_profit_per_100_shares - overallStats.total_profit_per_100_shares).toLocaleString()}
+              </td>
+            </tr>
             <tr className="hover:bg-muted/20">
               <td className="px-4 py-3">平均リターン</td>
               <td className={cn(
