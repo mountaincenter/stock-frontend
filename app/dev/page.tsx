@@ -188,33 +188,34 @@ export default function DevDashboard() {
           transition={{ duration: 0.6 }}
           className="mb-4"
         >
-          {/* タイトルセクション */}
-          <div className="flex items-center gap-2 mb-3">
-            <div className="p-1.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg shadow-lg">
-              <Activity className="w-4 h-4" />
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+            {/* タイトルセクション */}
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg shadow-lg">
+                <Activity className="w-4 h-4" />
+              </div>
+              <div>
+                <h1 className="text-xl font-black text-slate-100">
+                  GROK Backtest Dashboard
+                </h1>
+                <p className="text-slate-500 text-[10px]">
+                  Phase1戦略: 9:00寄付買い → 11:30前引け売り
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl font-black text-slate-100">
-                GROK Backtest Dashboard
-              </h1>
-              <p className="text-slate-500 text-[10px]">
-                Phase1戦略: 9:00寄付買い → 11:30前引け売り
-              </p>
-            </div>
-          </div>
 
-          {/* フィルターセクション */}
-          <div className="flex flex-col sm:flex-row gap-2">
+            {/* フィルターセクション */}
+            <div className="flex flex-col lg:flex-row gap-2">
             {/* プロンプトバージョン選択 */}
             {dashboardData?.available_versions && dashboardData.available_versions.length > 0 && (
-              <div className="flex-1">
-                <div className="text-[9px] text-slate-500 font-medium mb-1 uppercase tracking-wider">
+              <div className="lg:min-w-[300px]">
+                <div className="text-[9px] text-slate-500 font-medium mb-1 uppercase tracking-wider lg:hidden">
                   Prompt Version
                 </div>
-                <div className="flex flex-wrap gap-1 bg-slate-800/50 p-1.5 rounded-lg border border-slate-700/50">
+                <div className="flex flex-wrap gap-1 bg-slate-800/50 p-2 rounded-lg border border-slate-700/50">
                   <button
                     onClick={() => setSelectedVersion(null)}
-                    className={`px-2.5 py-1.5 rounded text-[10px] font-semibold transition-all ${
+                    className={`px-3 py-2 rounded text-xs font-semibold transition-all ${
                       !selectedVersion
                         ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/30"
                         : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/30"
@@ -226,7 +227,7 @@ export default function DevDashboard() {
                     <button
                       key={version}
                       onClick={() => setSelectedVersion(version)}
-                      className={`px-2.5 py-1.5 rounded text-[10px] font-semibold transition-all whitespace-nowrap ${
+                      className={`px-3 py-2 rounded text-xs font-semibold transition-all whitespace-nowrap ${
                         selectedVersion === version
                           ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/30"
                           : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/30"
@@ -240,14 +241,14 @@ export default function DevDashboard() {
             )}
 
             {/* 期間フィルター */}
-            <div className="flex-1">
-              <div className="text-[9px] text-slate-500 font-medium mb-1 uppercase tracking-wider">
+            <div className="lg:min-w-[200px]">
+              <div className="text-[9px] text-slate-500 font-medium mb-1 uppercase tracking-wider lg:hidden">
                 Period
               </div>
-              <div className="flex gap-1 bg-slate-800/50 p-1.5 rounded-lg border border-slate-700/50">
+              <div className="flex gap-1 bg-slate-800/50 p-2 rounded-lg border border-slate-700/50">
                 <button
                   onClick={() => setDateFilter("week")}
-                  className={`flex-1 px-2.5 py-1.5 rounded text-[10px] font-semibold transition-all ${
+                  className={`flex-1 px-4 py-2 rounded text-xs font-semibold transition-all ${
                     dateFilter === "week"
                       ? "bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg shadow-blue-500/30"
                       : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/30"
@@ -257,7 +258,7 @@ export default function DevDashboard() {
                 </button>
                 <button
                   onClick={() => setDateFilter("month")}
-                  className={`flex-1 px-2.5 py-1.5 rounded text-[10px] font-semibold transition-all ${
+                  className={`flex-1 px-4 py-2 rounded text-xs font-semibold transition-all ${
                     dateFilter === "month"
                       ? "bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg shadow-blue-500/30"
                       : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/30"
@@ -267,7 +268,7 @@ export default function DevDashboard() {
                 </button>
                 <button
                   onClick={() => setDateFilter("all")}
-                  className={`flex-1 px-2.5 py-1.5 rounded text-[10px] font-semibold transition-all ${
+                  className={`flex-1 px-4 py-2 rounded text-xs font-semibold transition-all ${
                     dateFilter === "all"
                       ? "bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg shadow-blue-500/30"
                       : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/30"
@@ -276,6 +277,7 @@ export default function DevDashboard() {
                   ALL
                 </button>
               </div>
+            </div>
             </div>
           </div>
         </motion.div>
