@@ -188,81 +188,92 @@ export default function DevDashboard() {
           transition={{ duration: 0.6 }}
           className="mb-4"
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
-                <Activity className="w-4 h-4" />
-              </div>
-              <div>
-                <h1 className="text-xl font-black text-slate-100">
-                  GROK Backtest Dashboard
-                </h1>
-                <p className="text-slate-500 text-[10px]">
-                  Phase1戦略: 9:00寄付買い → 11:30前引け売り
-                </p>
-              </div>
+          {/* タイトルセクション */}
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-1.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg shadow-lg">
+              <Activity className="w-4 h-4" />
             </div>
-            <div className="flex items-center gap-2">
-              {/* プロンプトバージョン選択 */}
-              {dashboardData?.available_versions && dashboardData.available_versions.length > 0 && (
-                <div className="flex gap-1 bg-slate-800/50 p-1 rounded-lg">
+            <div>
+              <h1 className="text-xl font-black text-slate-100">
+                GROK Backtest Dashboard
+              </h1>
+              <p className="text-slate-500 text-[10px]">
+                Phase1戦略: 9:00寄付買い → 11:30前引け売り
+              </p>
+            </div>
+          </div>
+
+          {/* フィルターセクション */}
+          <div className="flex flex-col sm:flex-row gap-2">
+            {/* プロンプトバージョン選択 */}
+            {dashboardData?.available_versions && dashboardData.available_versions.length > 0 && (
+              <div className="flex-1">
+                <div className="text-[9px] text-slate-500 font-medium mb-1 uppercase tracking-wider">
+                  Prompt Version
+                </div>
+                <div className="flex flex-wrap gap-1 bg-slate-800/50 p-1.5 rounded-lg border border-slate-700/50">
                   <button
                     onClick={() => setSelectedVersion(null)}
-                    className={`px-2 py-1 rounded text-[10px] font-medium transition-all ${
+                    className={`px-2.5 py-1.5 rounded text-[10px] font-semibold transition-all ${
                       !selectedVersion
-                        ? "bg-green-500/80 text-white"
-                        : "text-slate-400 hover:text-slate-200"
+                        ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/30"
+                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/30"
                     }`}
                   >
-                    全バージョン
+                    All
                   </button>
                   {dashboardData.available_versions.map((version) => (
                     <button
                       key={version}
                       onClick={() => setSelectedVersion(version)}
-                      className={`px-2 py-1 rounded text-[10px] font-medium transition-all ${
+                      className={`px-2.5 py-1.5 rounded text-[10px] font-semibold transition-all whitespace-nowrap ${
                         selectedVersion === version
-                          ? "bg-green-500/80 text-white"
-                          : "text-slate-400 hover:text-slate-200"
+                          ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/30"
+                          : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/30"
                       }`}
                     >
-                      {version.replace('_', ' ')}
+                      {version.replace(/_/g, ' ').toUpperCase()}
                     </button>
                   ))}
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* 期間フィルター */}
-              <div className="flex gap-1 bg-slate-800/50 p-1 rounded-lg">
+            {/* 期間フィルター */}
+            <div className="flex-1">
+              <div className="text-[9px] text-slate-500 font-medium mb-1 uppercase tracking-wider">
+                Period
+              </div>
+              <div className="flex gap-1 bg-slate-800/50 p-1.5 rounded-lg border border-slate-700/50">
                 <button
                   onClick={() => setDateFilter("week")}
-                  className={`px-2 py-1 rounded text-[10px] font-medium transition-all ${
+                  className={`flex-1 px-2.5 py-1.5 rounded text-[10px] font-semibold transition-all ${
                     dateFilter === "week"
-                      ? "bg-blue-500/80 text-white"
-                      : "text-slate-400 hover:text-slate-200"
+                      ? "bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg shadow-blue-500/30"
+                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/30"
                   }`}
                 >
-                  1週間
+                  7D
                 </button>
                 <button
                   onClick={() => setDateFilter("month")}
-                  className={`px-2 py-1 rounded text-[10px] font-medium transition-all ${
+                  className={`flex-1 px-2.5 py-1.5 rounded text-[10px] font-semibold transition-all ${
                     dateFilter === "month"
-                      ? "bg-blue-500/80 text-white"
-                      : "text-slate-400 hover:text-slate-200"
+                      ? "bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg shadow-blue-500/30"
+                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/30"
                   }`}
                 >
-                  1ヶ月
+                  30D
                 </button>
                 <button
                   onClick={() => setDateFilter("all")}
-                  className={`px-2 py-1 rounded text-[10px] font-medium transition-all ${
+                  className={`flex-1 px-2.5 py-1.5 rounded text-[10px] font-semibold transition-all ${
                     dateFilter === "all"
-                      ? "bg-blue-500/80 text-white"
-                      : "text-slate-400 hover:text-slate-200"
+                      ? "bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg shadow-blue-500/30"
+                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/30"
                   }`}
                 >
-                  全期間
+                  ALL
                 </button>
               </div>
             </div>
