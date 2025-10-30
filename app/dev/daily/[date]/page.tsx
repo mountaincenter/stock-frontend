@@ -349,7 +349,7 @@ export default function DailyDetailPage() {
                           // 勝ち案件: 売値 < 前場高値 なら前場高値を緑
                           isWin && result.sell_price !== null && result.morning_high !== null && result.sell_price < result.morning_high
                             ? "text-green-600 dark:text-green-400"
-                            : "text-cyan-300"
+                            : "text-slate-300"
                         }`}>
                           {result.morning_high !== null ? `${result.morning_high.toLocaleString()}円` : "—"}
                         </td>
@@ -357,7 +357,7 @@ export default function DailyDetailPage() {
                           // 負け案件: 売値 < 前場安値 なら前場安値を赤
                           isLoss && result.sell_price !== null && result.morning_low !== null && result.sell_price < result.morning_low
                             ? "text-red-600 dark:text-red-400"
-                            : "text-orange-300"
+                            : "text-slate-300"
                         }`}>
                           {result.morning_low !== null ? `${result.morning_low.toLocaleString()}円` : "—"}
                         </td>
