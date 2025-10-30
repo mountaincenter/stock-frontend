@@ -264,6 +264,7 @@ export default function DailyDetailPage() {
                   {results.map((result, index) => {
                     const isWin = result.phase1_win === true;
                     const isLoss = result.phase1_win === false;
+                    const isFlat = result.phase1_return !== null && result.phase1_return === 0;
 
                     return (
                       <motion.tr
@@ -274,7 +275,7 @@ export default function DailyDetailPage() {
                         className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors group"
                       >
                         <td className="px-3 py-3 text-sm">
-                          {isWin ? "✅" : isLoss ? "❌" : "⚠️"}
+                          {isWin ? "✅" : isLoss ? "❌" : isFlat ? "➖" : "⚠️"}
                         </td>
                         <td className="px-3 py-3">
                           <div className="text-sm font-bold text-slate-100">{result.stock_name}</div>
@@ -292,11 +293,11 @@ export default function DailyDetailPage() {
                           {result.sell_price !== null ? `${result.sell_price.toLocaleString()}円` : "—"}
                         </td>
                         <td className={`px-3 py-3 text-sm text-right font-bold ${
-                          isWin ? "text-green-600 dark:text-green-400" : isLoss ? "text-red-600 dark:text-red-400" : "text-slate-500"
+                          isWin ? "text-green-600 dark:text-green-400" : isLoss ? "text-red-600 dark:text-red-400" : isFlat ? "text-slate-400" : "text-slate-500"
                         }`}>
                           {result.phase1_return !== null ? (
                             <>
-                              {result.phase1_return >= 0 ? "+" : ""}
+                              {result.phase1_return > 0 ? "+" : ""}
                               {result.phase1_return.toFixed(2)}%
                             </>
                           ) : "—"}
@@ -306,11 +307,13 @@ export default function DailyDetailPage() {
                             ? "text-green-600 dark:text-green-400"
                             : result.profit_per_100 !== null && result.profit_per_100 !== undefined && result.profit_per_100 < 0
                             ? "text-red-600 dark:text-red-400"
+                            : result.profit_per_100 !== null && result.profit_per_100 !== undefined && result.profit_per_100 === 0
+                            ? "text-slate-400"
                             : "text-slate-500"
                         }`}>
                           {result.profit_per_100 !== null && result.profit_per_100 !== undefined ? (
                             <>
-                              {result.profit_per_100 >= 0 ? "+" : ""}
+                              {result.profit_per_100 > 0 ? "+" : ""}
                               {result.profit_per_100.toLocaleString()}円
                             </>
                           ) : "—"}
