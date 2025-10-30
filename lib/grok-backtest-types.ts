@@ -32,6 +32,7 @@ export interface BacktestStats {
   total_profit_per_100_shares: number; // 100株あたりの累計利益
   best_profit_per_100_shares: number; // 100株あたりの最高利益
   worst_profit_per_100_shares: number; // 100株あたりの最低利益
+  total_days: number; // 取引日数
 }
 
 export interface Top5Stats extends BacktestStats {
@@ -44,6 +45,12 @@ export interface DailyStats {
   win_rate: number;
   avg_return: number;
   count: number;
+  total_profit_per_100: number; // 100株あたりの日次損益
+  top5_total_profit_per_100: number; // Top5の100株あたりの日次損益
+  top5_avg_return: number; // Top5の平均リターン
+  top5_win_rate: number; // Top5の勝率
+  cumulative_profit_per_100: number; // 累積損益
+  cumulative_top5_profit_per_100: number; // Top5累積損益
 }
 
 export interface TrendAnalysis {

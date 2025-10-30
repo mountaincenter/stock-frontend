@@ -35,33 +35,7 @@ import {
 } from "lucide-react";
 import { DashboardData } from "@/lib/grok-backtest-types";
 
-interface OverallStats {
-  total_trades: number;
-  avg_return: number | null;
-  win_rate: number | null;
-  max_return: number | null;
-  min_return: number | null;
-  total_days: number;
-}
-
-interface DailyStats {
-  date: string;
-  total_stocks: number;
-  valid_results: number;
-  avg_return: number | null;
-  win_rate: number | null;
-  max_return: number | null;
-  min_return: number | null;
-  top5_avg_return: number | null;
-  top5_win_rate: number | null;
-}
-
-interface BacktestSummary {
-  overall: OverallStats;
-  daily_stats: DailyStats[];
-}
-
-type SortField = "date" | "avg_return" | "win_rate" | "top5_avg_return";
+type SortField = "date" | "win_rate" | "count";
 type SortDirection = "asc" | "desc";
 
 export default function DevDashboard() {
@@ -71,7 +45,8 @@ export default function DevDashboard() {
   const [sortField, setSortField] = useState<SortField>("date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedMetric, setSelectedMetric] = useState<"return" | "winrate">("return");
+  const [selectedMetric, setSelectedMetric] = useState<"return" | "winrate" | "cumulative">("return");
+  const [dateFilter, setDateFilter] = useState<"all" | "week" | "month">("all");
 
   useEffect(() => {
     const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "";
@@ -93,10 +68,21 @@ export default function DevDashboard() {
   const sortedStats = useMemo(() => {
     if (!dashboardData) return [];
 
-    const filtered = dashboardData.daily_stats.filter((stat) =>
+    // 期間フィルター適用
+    const sorted = dashboardData.daily_stats.slice().sort((a, b) => a.date.localeCompare(b.date));
+    let dateFiltered = sorted;
+    if (dateFilter === "week") {
+      dateFiltered = sorted.slice(-7);
+    } else if (dateFilter === "month") {
+      dateFiltered = sorted.slice(-30);
+    }
+
+    // 検索フィルター
+    const filtered = dateFiltered.filter((stat) =>
       stat.date.includes(searchTerm)
     );
 
+    // ソート
     filtered.sort((a, b) => {
       const aVal = a[sortField] ?? 0;
       const bVal = b[sortField] ?? 0;
@@ -113,7 +99,30 @@ export default function DevDashboard() {
     });
 
     return filtered;
-  }, [dashboardData, sortField, sortDirection, searchTerm]);
+  }, [dashboardData, sortField, sortDirection, searchTerm, dateFilter]);
+
+  // 期間フィルター処理
+  const filteredDailyStats = useMemo(() => {
+    if (!dashboardData) return [];
+    const sorted = dashboardData.daily_stats.slice().sort((a, b) => a.date.localeCompare(b.date));
+    if (dateFilter === "all") return sorted;
+
+    const filterDays = dateFilter === "week" ? 7 : 30;
+    return sorted.slice(-filterDays);
+  }, [dashboardData, dateFilter]);
+
+  // Chart data (最新が右側になるよう、古い順でソート)
+  const chartData = useMemo(() => {
+    return filteredDailyStats.map((s) => ({
+      date: new Date(s.date).toLocaleDateString("ja-JP", { month: "short", day: "numeric" }),
+      平均リターン: s.avg_return ?? 0,
+      Top5平均: s.top5_avg_return ?? 0,
+      勝率: s.win_rate ?? 0,
+      Top5勝率: s.top5_win_rate ?? 0,
+      累積損益: s.cumulative_profit_per_100 ?? 0,
+      Top5累積損益: s.cumulative_top5_profit_per_100 ?? 0,
+    }));
+  }, [filteredDailyStats]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -140,7 +149,7 @@ export default function DevDashboard() {
     );
   }
 
-  if (error || !data) {
+  if (error || !dashboardData) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 flex items-center justify-center">
         <motion.div
@@ -154,19 +163,7 @@ export default function DevDashboard() {
     );
   }
 
-  const { overall, daily_stats } = data;
-
-  // Chart data
-  const chartData = daily_stats
-    .slice(0, 20)
-    .reverse()
-    .map((s) => ({
-      date: new Date(s.date).toLocaleDateString("ja-JP", { month: "short", day: "numeric" }),
-      平均リターン: s.avg_return ?? 0,
-      勝率: s.win_rate ?? 0,
-      "Top5平均": s.top5_avg_return ?? 0,
-      "Top5勝率": s.top5_win_rate ?? 0,
-    }));
+  const { overall_stats, top5_stats, daily_stats, trend_analysis, alerts } = dashboardData;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 text-white overflow-hidden">
@@ -185,17 +182,52 @@ export default function DevDashboard() {
           transition={{ duration: 0.6 }}
           className="mb-4"
         >
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
-              <Activity className="w-4 h-4" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+                <Activity className="w-4 h-4" />
+              </div>
+              <div>
+                <h1 className="text-xl font-black text-slate-100">
+                  GROK Backtest Dashboard
+                </h1>
+                <p className="text-slate-500 text-[10px]">
+                  Phase1戦略: 9:00寄付買い → 11:30前引け売り
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl font-black text-slate-100">
-                GROK Backtest Dashboard
-              </h1>
-              <p className="text-slate-500 text-[10px]">
-                Phase1戦略: 9:00寄付買い → 11:30前引け売り
-              </p>
+            {/* 期間フィルター */}
+            <div className="flex gap-1 bg-slate-800/50 p-1 rounded-lg">
+              <button
+                onClick={() => setDateFilter("week")}
+                className={`px-2 py-1 rounded text-[10px] font-medium transition-all ${
+                  dateFilter === "week"
+                    ? "bg-blue-500/80 text-white"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                1週間
+              </button>
+              <button
+                onClick={() => setDateFilter("month")}
+                className={`px-2 py-1 rounded text-[10px] font-medium transition-all ${
+                  dateFilter === "month"
+                    ? "bg-blue-500/80 text-white"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                1ヶ月
+              </button>
+              <button
+                onClick={() => setDateFilter("all")}
+                className={`px-2 py-1 rounded text-[10px] font-medium transition-all ${
+                  dateFilter === "all"
+                    ? "bg-blue-500/80 text-white"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                全期間
+              </button>
             </div>
           </div>
         </motion.div>
@@ -274,86 +306,95 @@ export default function DevDashboard() {
               パフォーマンス指標
             </h2>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-2.5">
-              {/* Average Profit per 100 shares */}
+              {/* Win Rate */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.1 }}
                 whileHover={{ scale: 1.02, y: -5 }}
-                className="group relative bg-slate-800/40 backdrop-blur-xl rounded-xl p-3 border border-slate-700/50 overflow-hidden"
+                className="group relative bg-slate-800/40 backdrop-blur-xl rounded-xl p-2.5 border border-slate-700/50 overflow-hidden"
               >
-                <div className="relative">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-[11px] font-medium text-slate-400 leading-tight">平均利益/100株</span>
-                    <TrendingUp className={`w-3.5 h-3.5 flex-shrink-0 ${
-                      dashboardData.overall_stats.avg_profit_per_100_shares >= 0 ? "text-green-500" : "text-red-500"
-                    }`} />
+                <div className="relative h-full flex flex-col">
+                  <div className="h-[20px] flex items-center mb-2">
+                    <span className="text-xs font-semibold text-slate-300 leading-none">勝率</span>
                   </div>
 
                   {/* 全体 */}
-                  <div className="mb-3 pb-3 border-b border-slate-700/50">
-                    <div className="text-[10px] text-slate-500 mb-1">全体</div>
-                    <div className={`text-xl font-black leading-tight text-right ${
-                      dashboardData.overall_stats.avg_profit_per_100_shares >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
-                    }`}>
-                      {dashboardData.overall_stats.avg_profit_per_100_shares >= 0 ? '+' : ''}
-                      {Math.round(dashboardData.overall_stats.avg_profit_per_100_shares).toLocaleString()}円
+                  <div className="mb-2 pb-2 border-b border-slate-700/50">
+                    <div className="h-[16px] flex items-center mb-0.5">
+                      <span className="text-[11px] text-slate-400 leading-none">全体</span>
                     </div>
+                    <div className={`h-[24px] flex items-center justify-end text-lg font-black ${
+                      overall_stats.win_rate && overall_stats.win_rate >= 50 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                    }`}>
+                      {overall_stats.win_rate !== null ? `${overall_stats.win_rate.toFixed(1)}%` : "—"}
+                    </div>
+                    <div className="h-[12px]"></div>
                   </div>
 
                   {/* Top5 */}
                   <div>
-                    <div className="text-[10px] text-slate-500 mb-1">Top5</div>
-                    <div className={`text-xl font-black leading-tight text-right ${
-                      dashboardData.top5_stats.avg_profit_per_100_shares >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
-                    }`}>
-                      {dashboardData.top5_stats.avg_profit_per_100_shares >= 0 ? '+' : ''}
-                      {Math.round(dashboardData.top5_stats.avg_profit_per_100_shares).toLocaleString()}円
+                    <div className="h-[16px] flex items-center mb-0.5">
+                      <span className="text-[11px] text-slate-400 leading-none">Top5</span>
                     </div>
-                    <div className="text-[10px] text-slate-500 mt-1 text-right">
-                      差額: {dashboardData.top5_stats.outperformance_profit_per_100_shares >= 0 ? '+' : ''}
-                      {Math.round(dashboardData.top5_stats.outperformance_profit_per_100_shares).toLocaleString()}円
+                    <div className={`h-[24px] flex items-center justify-end text-lg font-black ${
+                      dashboardData.top5_stats.win_rate >= 50 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                    }`}>
+                      {dashboardData.top5_stats.win_rate.toFixed(1)}%
+                    </div>
+                    <div className="h-[16px] flex items-center justify-end mt-0.5">
+                      <span className="text-[11px] text-slate-400 leading-none">{overall_stats.valid_count}回の取引</span>
                     </div>
                   </div>
                 </div>
               </motion.div>
 
-              {/* Win Rate */}
+              {/* Average Profit per 100 shares */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.2 }}
                 whileHover={{ scale: 1.02, y: -5 }}
-                className="group relative bg-slate-800/40 backdrop-blur-xl rounded-xl p-3 border border-slate-700/50 overflow-hidden"
+                className="group relative bg-slate-800/40 backdrop-blur-xl rounded-xl p-2.5 border border-slate-700/50 overflow-hidden"
               >
-                <div className="relative">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-[11px] font-medium text-slate-400 leading-tight">勝率</span>
-                    <Award className={`w-3.5 h-3.5 flex-shrink-0 ${
-                      overall.win_rate && overall.win_rate >= 50 ? "text-green-500" : "text-red-500"
-                    }`} />
+                <div className="relative h-full flex flex-col">
+                  <div className="h-[20px] flex items-center mb-2">
+                    <span className="text-xs font-semibold text-slate-300 leading-none">平均損益/100株</span>
                   </div>
 
                   {/* 全体 */}
-                  <div className="mb-3 pb-3 border-b border-slate-700/50">
-                    <div className="text-[10px] text-slate-500 mb-1">全体</div>
-                    <div className={`text-xl font-black leading-tight text-right ${
-                      overall.win_rate && overall.win_rate >= 50 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                  <div className="mb-2 pb-2 border-b border-slate-700/50">
+                    <div className="h-[16px] flex items-center mb-0.5">
+                      <span className="text-[11px] text-slate-400 leading-none">全体</span>
+                    </div>
+                    <div className={`h-[24px] flex items-center justify-end text-lg font-black ${
+                      dashboardData.overall_stats.avg_profit_per_100_shares >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
                     }`}>
-                      {overall.win_rate !== null ? `${overall.win_rate.toFixed(1)}%` : "—"}
+                      {dashboardData.overall_stats.avg_profit_per_100_shares >= 0 ? '+' : ''}
+                      {Math.round(dashboardData.overall_stats.avg_profit_per_100_shares).toLocaleString()}円
+                    </div>
+                    <div className="h-[12px] flex items-center justify-between text-[10px] text-slate-500 mt-0.5">
+                      <span>中央値: {Math.round((dashboardData.overall_stats.median_return / 100) * ((dashboardData.overall_stats.avg_profit_per_100_shares / dashboardData.overall_stats.avg_return) * 100)).toLocaleString()}円</span>
+                      <span>σ: {Math.round((dashboardData.overall_stats.std_return / 100) * ((dashboardData.overall_stats.avg_profit_per_100_shares / dashboardData.overall_stats.avg_return) * 100)).toLocaleString()}円</span>
                     </div>
                   </div>
 
                   {/* Top5 */}
                   <div>
-                    <div className="text-[10px] text-slate-500 mb-1">Top5</div>
-                    <div className={`text-xl font-black leading-tight text-right ${
-                      dashboardData.top5_stats.win_rate >= 50 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
-                    }`}>
-                      {dashboardData.top5_stats.win_rate.toFixed(1)}%
+                    <div className="h-[16px] flex items-center mb-0.5">
+                      <span className="text-[11px] text-slate-400 leading-none">Top5</span>
                     </div>
-                    <div className="text-[10px] text-slate-500 mt-1 text-right">
-                      {overall.total_trades}回の取引
+                    <div className={`h-[24px] flex items-center justify-end text-lg font-black ${
+                      dashboardData.top5_stats.avg_profit_per_100_shares >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                    }`}>
+                      {dashboardData.top5_stats.avg_profit_per_100_shares >= 0 ? '+' : ''}
+                      {Math.round(dashboardData.top5_stats.avg_profit_per_100_shares).toLocaleString()}円
+                    </div>
+                    <div className="h-[16px] flex items-center justify-end mt-0.5">
+                      <span className="text-[11px] text-slate-400 leading-none">
+                        差額: {dashboardData.top5_stats.outperformance_profit_per_100_shares >= 0 ? '+' : ''}
+                        {Math.round(dashboardData.top5_stats.outperformance_profit_per_100_shares).toLocaleString()}円
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -365,38 +406,40 @@ export default function DevDashboard() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.3 }}
                 whileHover={{ scale: 1.02, y: -5 }}
-                className="group relative bg-slate-800/40 backdrop-blur-xl rounded-xl p-3 border border-slate-700/50 overflow-hidden"
+                className="group relative bg-slate-800/40 backdrop-blur-xl rounded-xl p-2.5 border border-slate-700/50 overflow-hidden"
               >
-                <div className="relative">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-[11px] font-medium text-slate-400 leading-tight">累計利益/100株</span>
-                    <Activity className={`w-3.5 h-3.5 flex-shrink-0 ${
-                      dashboardData.overall_stats.total_profit_per_100_shares >= 0 ? "text-green-500" : "text-red-500"
-                    }`} />
+                <div className="relative h-full flex flex-col">
+                  <div className="h-[20px] flex items-center mb-2">
+                    <span className="text-xs font-semibold text-slate-300 leading-none">累計損益/100株</span>
                   </div>
 
                   {/* 全体 */}
-                  <div className="mb-3 pb-3 border-b border-slate-700/50">
-                    <div className="text-[10px] text-slate-500 mb-1">全体</div>
-                    <div className={`text-xl font-black leading-tight text-right ${
+                  <div className="mb-2 pb-2 border-b border-slate-700/50">
+                    <div className="h-[16px] flex items-center mb-0.5">
+                      <span className="text-[11px] text-slate-400 leading-none">全体</span>
+                    </div>
+                    <div className={`h-[24px] flex items-center justify-end text-lg font-black ${
                       dashboardData.overall_stats.total_profit_per_100_shares >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
                     }`}>
                       {dashboardData.overall_stats.total_profit_per_100_shares >= 0 ? '+' : ''}
                       {Math.round(dashboardData.overall_stats.total_profit_per_100_shares).toLocaleString()}円
                     </div>
+                    <div className="h-[12px]"></div>
                   </div>
 
                   {/* Top5 */}
                   <div>
-                    <div className="text-[10px] text-slate-500 mb-1">Top5</div>
-                    <div className={`text-xl font-black leading-tight text-right ${
+                    <div className="h-[16px] flex items-center mb-0.5">
+                      <span className="text-[11px] text-slate-400 leading-none">Top5</span>
+                    </div>
+                    <div className={`h-[24px] flex items-center justify-end text-lg font-black ${
                       dashboardData.top5_stats.total_profit_per_100_shares >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
                     }`}>
                       {dashboardData.top5_stats.total_profit_per_100_shares >= 0 ? '+' : ''}
                       {Math.round(dashboardData.top5_stats.total_profit_per_100_shares).toLocaleString()}円
                     </div>
-                    <div className="text-[10px] text-slate-500 mt-1 text-right">
-                      {overall.total_days}営業日
+                    <div className="h-[16px] flex items-center justify-end mt-0.5">
+                      <span className="text-[11px] text-slate-400 leading-none">{overall_stats.total_days}営業日</span>
                     </div>
                   </div>
                 </div>
@@ -422,10 +465,10 @@ export default function DevDashboard() {
                 {/* Chart Toggle */}
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-bold text-slate-200">トレンド</h3>
-                  <div className="flex gap-2 bg-slate-800/50 p-1 rounded-xl">
+                  <div className="flex gap-1 bg-slate-800/50 p-0.5 rounded-lg">
                     <button
                       onClick={() => setSelectedMetric("return")}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      className={`px-2 py-1 rounded text-[10px] font-medium transition-all ${
                         selectedMetric === "return"
                           ? "bg-blue-500/80 text-white"
                           : "text-slate-400 hover:text-slate-200"
@@ -435,13 +478,23 @@ export default function DevDashboard() {
                     </button>
                     <button
                       onClick={() => setSelectedMetric("winrate")}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      className={`px-2 py-1 rounded text-[10px] font-medium transition-all ${
                         selectedMetric === "winrate"
                           ? "bg-blue-500/80 text-white"
                           : "text-slate-400 hover:text-slate-200"
                       }`}
                     >
                       勝率
+                    </button>
+                    <button
+                      onClick={() => setSelectedMetric("cumulative")}
+                      className={`px-2 py-1 rounded text-[10px] font-medium transition-all ${
+                        selectedMetric === "cumulative"
+                          ? "bg-blue-500/80 text-white"
+                          : "text-slate-400 hover:text-slate-200"
+                      }`}
+                    >
+                      累積損益
                     </button>
                   </div>
                 </div>
@@ -455,7 +508,7 @@ export default function DevDashboard() {
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.3 }}
                   >
-                    {selectedMetric === "return" ? (
+                    {selectedMetric === "return" && (
                       <ResponsiveContainer width="100%" height={280}>
                         <AreaChart data={chartData}>
                           <defs>
@@ -511,7 +564,8 @@ export default function DevDashboard() {
                           />
                         </AreaChart>
                       </ResponsiveContainer>
-                    ) : (
+                    )}
+                    {selectedMetric === "winrate" && (
                       <ResponsiveContainer width="100%" height={280}>
                         <BarChart data={chartData}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
@@ -558,6 +612,63 @@ export default function DevDashboard() {
                         </BarChart>
                       </ResponsiveContainer>
                     )}
+                    {selectedMetric === "cumulative" && (
+                      <ResponsiveContainer width="100%" height={280}>
+                        <AreaChart data={chartData}>
+                          <defs>
+                            <linearGradient id="colorCumulative" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                            </linearGradient>
+                            <linearGradient id="colorCumulativeTop5" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3}/>
+                              <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
+                          <XAxis
+                            dataKey="date"
+                            stroke="#64748b"
+                            style={{ fontSize: '10px' }}
+                          />
+                          <YAxis
+                            stroke="#64748b"
+                            style={{ fontSize: '10px' }}
+                            tickFormatter={(value) => `${(value / 1000).toFixed(0)}k円`}
+                          />
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                              border: '1px solid rgba(148, 163, 184, 0.2)',
+                              borderRadius: '12px',
+                              backdropFilter: 'blur(10px)',
+                            }}
+                            labelStyle={{ color: '#cbd5e1' }}
+                            formatter={(value: number) => [`${Math.round(value).toLocaleString()}円`, '']}
+                          />
+                          <Legend
+                            wrapperStyle={{ paddingTop: '10px' }}
+                            iconType="circle"
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="累積損益"
+                            stroke="#3b82f6"
+                            strokeWidth={3}
+                            fill="url(#colorCumulative)"
+                            animationDuration={1000}
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="Top5累積損益"
+                            stroke="#22c55e"
+                            strokeWidth={3}
+                            fill="url(#colorCumulativeTop5)"
+                            animationDuration={1000}
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    )}
                   </motion.div>
                 </AnimatePresence>
               </div>
@@ -602,17 +713,6 @@ export default function DevDashboard() {
                         </th>
                         <th
                           className="px-3 py-2 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-wider cursor-pointer hover:text-blue-400 transition-colors"
-                          onClick={() => handleSort("avg_return")}
-                        >
-                          <div className="flex items-center justify-end gap-1">
-                            平均
-                            {sortField === "avg_return" && (
-                              sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
-                            )}
-                          </div>
-                        </th>
-                        <th
-                          className="px-3 py-2 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-wider cursor-pointer hover:text-blue-400 transition-colors"
                           onClick={() => handleSort("win_rate")}
                         >
                           <div className="flex items-center justify-end gap-1">
@@ -622,16 +722,11 @@ export default function DevDashboard() {
                             )}
                           </div>
                         </th>
-                        <th
-                          className="px-3 py-2 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-wider cursor-pointer hover:text-blue-400 transition-colors"
-                          onClick={() => handleSort("top5_avg_return")}
-                        >
-                          <div className="flex items-center justify-end gap-1">
-                            Top5
-                            {sortField === "top5_avg_return" && (
-                              sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
-                            )}
-                          </div>
+                        <th className="px-3 py-2 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                          累計損益/100株
+                        </th>
+                        <th className="px-3 py-2 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                          Top5累計損益/100株
                         </th>
                         <th className="px-3 py-2 text-center text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
                           詳細
@@ -653,32 +748,20 @@ export default function DevDashboard() {
                               {stat.date}
                             </td>
                             <td className="px-3 py-2 text-xs text-right text-slate-300">
-                              {stat.valid_results}
-                            </td>
-                            <td className={`px-3 py-2 text-xs text-right font-bold ${
-                              stat.avg_return !== null
-                                ? stat.avg_return > 0
-                                  ? "text-green-600 dark:text-green-400"
-                                  : "text-red-600 dark:text-red-400"
-                                : "text-slate-500"
-                            }`}>
-                              {stat.avg_return !== null
-                                ? `${stat.avg_return >= 0 ? "+" : ""}${stat.avg_return.toFixed(2)}%`
-                                : "—"}
+                              {stat.count}
                             </td>
                             <td className="px-3 py-2 text-xs text-right text-slate-300">
                               {stat.win_rate !== null ? `${stat.win_rate.toFixed(1)}%` : "—"}
                             </td>
-                            <td className={`px-3 py-2 text-xs text-right font-bold ${
-                              stat.top5_avg_return !== null
-                                ? stat.top5_avg_return > 0
-                                  ? "text-green-600 dark:text-green-400"
-                                  : "text-red-600 dark:text-red-400"
-                                : "text-slate-500"
+                            <td className={`px-3 py-2 text-xs text-right font-mono font-bold ${
+                              stat.total_profit_per_100 >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
                             }`}>
-                              {stat.top5_avg_return !== null
-                                ? `${stat.top5_avg_return >= 0 ? "+" : ""}${stat.top5_avg_return.toFixed(2)}%`
-                                : "—"}
+                              {stat.total_profit_per_100 >= 0 ? '+' : ''}{Math.round(stat.total_profit_per_100).toLocaleString()}円
+                            </td>
+                            <td className={`px-3 py-2 text-xs text-right font-mono font-bold ${
+                              stat.top5_total_profit_per_100 >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                            }`}>
+                              {stat.top5_total_profit_per_100 >= 0 ? '+' : ''}{Math.round(stat.top5_total_profit_per_100).toLocaleString()}円
                             </td>
                             <td className="px-3 py-2 text-center">
                               <Link

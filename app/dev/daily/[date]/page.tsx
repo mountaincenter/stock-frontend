@@ -36,8 +36,10 @@ interface DailyStats {
   win_rate: number | null;
   max_return: number | null;
   min_return: number | null;
+  total_profit_per_100: number | null;
   top5_avg_return: number | null;
   top5_win_rate: number | null;
+  top5_total_profit_per_100: number | null;
 }
 
 interface DailyBacktest {
@@ -155,6 +157,7 @@ export default function DailyDetailPage() {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
+          {/* 取引数 */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -169,6 +172,7 @@ export default function DailyDetailPage() {
             </div>
           </motion.div>
 
+          {/* 勝率 */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -177,14 +181,23 @@ export default function DailyDetailPage() {
             className="group relative bg-slate-800/40 backdrop-blur-xl rounded-xl p-2 border border-slate-700/50 overflow-hidden"
           >
             <div className="relative">
-              <div className="text-[10px] text-slate-400 mb-1">平均リターン</div>
-              <div className={`text-xl font-black text-right ${stats.avg_return !== null && stats.avg_return > 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                {stats.avg_return !== null ? `${stats.avg_return >= 0 ? "+" : ""}${stats.avg_return.toFixed(2)}%` : "—"}
+              <div className="text-[10px] text-slate-400 mb-1">勝率</div>
+              <div className="flex justify-between items-baseline mb-1">
+                <div className="text-[9px] text-slate-500">全銘柄</div>
+                <div className={`text-base font-bold ${stats.win_rate && stats.win_rate >= 50 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                  {stats.win_rate !== null ? `${stats.win_rate.toFixed(1)}%` : "—"}
+                </div>
               </div>
-              <div className="text-slate-500 text-[9px]">全銘柄平均</div>
+              <div className="flex justify-between items-baseline">
+                <div className="text-[9px] text-slate-500">Top5</div>
+                <div className={`text-base font-bold ${stats.top5_win_rate !== null && stats.top5_win_rate >= 50 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                  {stats.top5_win_rate !== null ? `${stats.top5_win_rate.toFixed(1)}%` : "—"}
+                </div>
+              </div>
             </div>
           </motion.div>
 
+          {/* 累計損益 */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -193,14 +206,23 @@ export default function DailyDetailPage() {
             className="group relative bg-slate-800/40 backdrop-blur-xl rounded-xl p-2 border border-slate-700/50 overflow-hidden"
           >
             <div className="relative">
-              <div className="text-[10px] text-slate-400 mb-1">勝率</div>
-              <div className={`text-xl font-black text-right ${stats.win_rate && stats.win_rate >= 50 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                {stats.win_rate !== null ? `${stats.win_rate.toFixed(1)}%` : "—"}
+              <div className="text-[10px] text-slate-400 mb-1">累計損益/100株</div>
+              <div className="flex justify-between items-baseline mb-1">
+                <div className="text-[9px] text-slate-500">全銘柄</div>
+                <div className={`text-base font-bold font-mono ${stats.total_profit_per_100 !== null && stats.total_profit_per_100 >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                  {stats.total_profit_per_100 !== null ? `${stats.total_profit_per_100 >= 0 ? "+" : ""}${Math.round(stats.total_profit_per_100).toLocaleString()}円` : "—"}
+                </div>
               </div>
-              <div className="text-slate-500 text-[9px]">プラス決済</div>
+              <div className="flex justify-between items-baseline">
+                <div className="text-[9px] text-slate-500">Top5</div>
+                <div className={`text-base font-bold font-mono ${stats.top5_total_profit_per_100 !== null && stats.top5_total_profit_per_100 >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                  {stats.top5_total_profit_per_100 !== null ? `${stats.top5_total_profit_per_100 >= 0 ? "+" : ""}${Math.round(stats.top5_total_profit_per_100).toLocaleString()}円` : "—"}
+                </div>
+              </div>
             </div>
           </motion.div>
 
+          {/* 平均リターン */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -209,12 +231,18 @@ export default function DailyDetailPage() {
             className="group relative bg-slate-800/40 backdrop-blur-xl rounded-xl p-2 border border-slate-700/50 overflow-hidden"
           >
             <div className="relative">
-              <div className="text-[10px] text-slate-400 mb-1">Top5平均</div>
-              <div className={`text-xl font-black text-right ${stats.top5_avg_return !== null && stats.top5_avg_return > 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                {stats.top5_avg_return !== null ? `${stats.top5_avg_return >= 0 ? "+" : ""}${stats.top5_avg_return.toFixed(2)}%` : "—"}
+              <div className="text-[10px] text-slate-400 mb-1">平均リターン</div>
+              <div className="flex justify-between items-baseline mb-1">
+                <div className="text-[9px] text-slate-500">全銘柄</div>
+                <div className={`text-base font-bold ${stats.avg_return !== null && stats.avg_return >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                  {stats.avg_return !== null ? `${stats.avg_return >= 0 ? "+" : ""}${stats.avg_return.toFixed(2)}%` : "—"}
+                </div>
               </div>
-              <div className="text-slate-500 text-[9px]">
-                勝率: {stats.top5_win_rate !== null ? `${stats.top5_win_rate.toFixed(1)}%` : "—"}
+              <div className="flex justify-between items-baseline">
+                <div className="text-[9px] text-slate-500">Top5</div>
+                <div className={`text-base font-bold ${stats.top5_avg_return !== null && stats.top5_avg_return >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                  {stats.top5_avg_return !== null ? `${stats.top5_avg_return >= 0 ? "+" : ""}${stats.top5_avg_return.toFixed(2)}%` : "—"}
+                </div>
               </div>
             </div>
           </motion.div>
@@ -253,7 +281,7 @@ export default function DailyDetailPage() {
                       リターン
                     </th>
                     <th className="px-3 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                      100株利益
+                      100株損益
                     </th>
                     <th className="px-3 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">
                       理由
