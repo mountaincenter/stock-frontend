@@ -27,6 +27,11 @@ interface BacktestResult {
   phase1_return: number | null;
   phase1_win: boolean | null;
   profit_per_100?: number | null;
+  morning_high: number | null;
+  morning_low: number | null;
+  morning_volume: number | null;
+  max_gain_pct: number | null;
+  max_drawdown_pct: number | null;
 }
 
 interface DailyStats {
@@ -116,7 +121,7 @@ export default function DailyDetailPage() {
         <div className="absolute w-96 h-96 bg-blue-500/5 rounded-full blur-3xl -bottom-48 left-1/2 animate-pulse delay-2000"></div>
       </div>
 
-      <div className="relative container mx-auto px-4 py-3 max-w-7xl">
+      <div className="relative container mx-auto px-2 py-3 max-w-full">
         {/* Back Button */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
@@ -278,6 +283,18 @@ export default function DailyDetailPage() {
                       売値
                     </th>
                     <th className="px-3 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                      前場高値
+                    </th>
+                    <th className="px-3 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                      前場安値
+                    </th>
+                    <th className="px-3 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                      最大上昇率
+                    </th>
+                    <th className="px-3 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                      最大下落率
+                    </th>
+                    <th className="px-3 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">
                       リターン
                     </th>
                     <th className="px-3 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">
@@ -317,8 +334,42 @@ export default function DailyDetailPage() {
                         <td className="px-3 py-3 text-sm text-right text-slate-300 font-mono">
                           {result.buy_price !== null ? `${result.buy_price.toLocaleString()}円` : "—"}
                         </td>
-                        <td className="px-3 py-3 text-sm text-right text-slate-300 font-mono">
+                        <td className={`px-3 py-3 text-sm text-right font-mono font-bold ${
+                          // 勝ち案件: 売値 >= 前場高値 なら売値を緑
+                          isWin && result.sell_price !== null && result.morning_high !== null && result.sell_price >= result.morning_high
+                            ? "text-green-600 dark:text-green-400"
+                            // 負け案件: 売値 >= 前場安値 なら売値を赤
+                            : isLoss && result.sell_price !== null && result.morning_low !== null && result.sell_price >= result.morning_low
+                            ? "text-red-600 dark:text-red-400"
+                            : "text-slate-300"
+                        }`}>
                           {result.sell_price !== null ? `${result.sell_price.toLocaleString()}円` : "—"}
+                        </td>
+                        <td className={`px-3 py-3 text-sm text-right font-mono font-bold ${
+                          // 勝ち案件: 売値 < 前場高値 なら前場高値を緑
+                          isWin && result.sell_price !== null && result.morning_high !== null && result.sell_price < result.morning_high
+                            ? "text-green-600 dark:text-green-400"
+                            : "text-cyan-300"
+                        }`}>
+                          {result.morning_high !== null ? `${result.morning_high.toLocaleString()}円` : "—"}
+                        </td>
+                        <td className={`px-3 py-3 text-sm text-right font-mono font-bold ${
+                          // 負け案件: 売値 < 前場安値 なら前場安値を赤
+                          isLoss && result.sell_price !== null && result.morning_low !== null && result.sell_price < result.morning_low
+                            ? "text-red-600 dark:text-red-400"
+                            : "text-orange-300"
+                        }`}>
+                          {result.morning_low !== null ? `${result.morning_low.toLocaleString()}円` : "—"}
+                        </td>
+                        <td className={`px-3 py-3 text-sm text-right font-bold ${
+                          result.max_gain_pct !== null && result.max_gain_pct > 0 ? "text-green-600 dark:text-green-400" : "text-slate-500"
+                        }`}>
+                          {result.max_gain_pct !== null ? `+${result.max_gain_pct.toFixed(2)}%` : "—"}
+                        </td>
+                        <td className={`px-3 py-3 text-sm text-right font-bold ${
+                          result.max_drawdown_pct !== null && result.max_drawdown_pct < 0 ? "text-red-600 dark:text-red-400" : "text-slate-500"
+                        }`}>
+                          {result.max_drawdown_pct !== null ? `${result.max_drawdown_pct.toFixed(2)}%` : "—"}
                         </td>
                         <td className={`px-3 py-3 text-sm text-right font-bold ${
                           isWin ? "text-green-600 dark:text-green-400" : isLoss ? "text-red-600 dark:text-red-400" : isFlat ? "text-slate-400" : "text-slate-500"

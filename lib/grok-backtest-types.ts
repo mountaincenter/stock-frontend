@@ -15,6 +15,13 @@ export interface BacktestRecord {
   sell_price: number | null;
   phase1_return: number | null;
   phase1_win: boolean | null;
+  profit_per_100_shares: number | null; // 100株あたりの損益
+  morning_high: number | null; // 前場の最高値
+  morning_low: number | null; // 前場の最安値
+  morning_volume: number | null; // 前場の出来高
+  max_gain_pct: number | null; // 始値からの最大上昇率
+  max_drawdown_pct: number | null; // 始値からの最大下落率
+  prompt_version: string; // プロンプトバージョン (例: "v1_0_baseline")
 }
 
 export interface BacktestStats {
@@ -74,4 +81,6 @@ export interface DashboardData {
   recent_records: BacktestRecord[];
   trend_analysis: TrendAnalysis;
   alerts: Alert[];
+  available_versions?: string[]; // 利用可能なプロンプトバージョンのリスト
+  current_version?: string; // 現在表示中のバージョン
 }

@@ -47,10 +47,16 @@ export default function DevDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMetric, setSelectedMetric] = useState<"return" | "winrate" | "cumulative">("return");
   const [dateFilter, setDateFilter] = useState<"all" | "week" | "month">("all");
+  const [selectedVersion, setSelectedVersion] = useState<string | null>(null);
 
   useEffect(() => {
     const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "";
-    fetch(`${API_BASE}/api/dev/backtest/summary`)
+    const url = selectedVersion
+      ? `${API_BASE}/api/dev/backtest/summary?prompt_version=${selectedVersion}`
+      : `${API_BASE}/api/dev/backtest/summary`;
+
+    setLoading(true);
+    fetch(url)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch summary");
         return res.json();
@@ -63,7 +69,7 @@ export default function DevDashboard() {
         setError(err.message);
         setLoading(false);
       });
-  }, []);
+  }, [selectedVersion]);
 
   const sortedStats = useMemo(() => {
     if (!dashboardData) return [];
@@ -196,38 +202,69 @@ export default function DevDashboard() {
                 </p>
               </div>
             </div>
-            {/* 期間フィルター */}
-            <div className="flex gap-1 bg-slate-800/50 p-1 rounded-lg">
-              <button
-                onClick={() => setDateFilter("week")}
-                className={`px-2 py-1 rounded text-[10px] font-medium transition-all ${
-                  dateFilter === "week"
-                    ? "bg-blue-500/80 text-white"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                1週間
-              </button>
-              <button
-                onClick={() => setDateFilter("month")}
-                className={`px-2 py-1 rounded text-[10px] font-medium transition-all ${
-                  dateFilter === "month"
-                    ? "bg-blue-500/80 text-white"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                1ヶ月
-              </button>
-              <button
-                onClick={() => setDateFilter("all")}
-                className={`px-2 py-1 rounded text-[10px] font-medium transition-all ${
-                  dateFilter === "all"
-                    ? "bg-blue-500/80 text-white"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                全期間
-              </button>
+            <div className="flex items-center gap-2">
+              {/* プロンプトバージョン選択 */}
+              {dashboardData?.available_versions && dashboardData.available_versions.length > 0 && (
+                <div className="flex gap-1 bg-slate-800/50 p-1 rounded-lg">
+                  <button
+                    onClick={() => setSelectedVersion(null)}
+                    className={`px-2 py-1 rounded text-[10px] font-medium transition-all ${
+                      !selectedVersion
+                        ? "bg-green-500/80 text-white"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    全バージョン
+                  </button>
+                  {dashboardData.available_versions.map((version) => (
+                    <button
+                      key={version}
+                      onClick={() => setSelectedVersion(version)}
+                      className={`px-2 py-1 rounded text-[10px] font-medium transition-all ${
+                        selectedVersion === version
+                          ? "bg-green-500/80 text-white"
+                          : "text-slate-400 hover:text-slate-200"
+                      }`}
+                    >
+                      {version.replace('_', ' ')}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* 期間フィルター */}
+              <div className="flex gap-1 bg-slate-800/50 p-1 rounded-lg">
+                <button
+                  onClick={() => setDateFilter("week")}
+                  className={`px-2 py-1 rounded text-[10px] font-medium transition-all ${
+                    dateFilter === "week"
+                      ? "bg-blue-500/80 text-white"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  1週間
+                </button>
+                <button
+                  onClick={() => setDateFilter("month")}
+                  className={`px-2 py-1 rounded text-[10px] font-medium transition-all ${
+                    dateFilter === "month"
+                      ? "bg-blue-500/80 text-white"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  1ヶ月
+                </button>
+                <button
+                  onClick={() => setDateFilter("all")}
+                  className={`px-2 py-1 rounded text-[10px] font-medium transition-all ${
+                    dateFilter === "all"
+                      ? "bg-blue-500/80 text-white"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  全期間
+                </button>
+              </div>
             </div>
           </div>
         </motion.div>
