@@ -65,7 +65,6 @@ type SortField = "date" | "avg_return" | "win_rate" | "top5_avg_return";
 type SortDirection = "asc" | "desc";
 
 export default function DevDashboard() {
-  const [data, setData] = useState<BacktestSummary | null>(null);
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -76,18 +75,12 @@ export default function DevDashboard() {
 
   useEffect(() => {
     const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "";
-    Promise.all([
-      fetch(`${API_BASE}/api/dev/backtest/summary`).then((res) => {
+    fetch(`${API_BASE}/api/dev/backtest/summary`)
+      .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch summary");
         return res.json();
-      }),
-      fetch('/api/grok/backtest-dashboard').then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch dashboard");
-        return res.json();
       })
-    ])
-      .then(([summaryData, dashData]) => {
-        setData(summaryData);
+      .then((dashData) => {
         setDashboardData(dashData);
         setLoading(false);
       })
@@ -98,9 +91,9 @@ export default function DevDashboard() {
   }, []);
 
   const sortedStats = useMemo(() => {
-    if (!data) return [];
+    if (!dashboardData) return [];
 
-    const filtered = data.daily_stats.filter((stat) =>
+    const filtered = dashboardData.daily_stats.filter((stat) =>
       stat.date.includes(searchTerm)
     );
 
@@ -120,7 +113,7 @@ export default function DevDashboard() {
     });
 
     return filtered;
-  }, [data, sortField, sortDirection, searchTerm]);
+  }, [dashboardData, sortField, sortDirection, searchTerm]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
