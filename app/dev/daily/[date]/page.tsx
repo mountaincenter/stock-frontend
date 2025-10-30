@@ -262,9 +262,9 @@ export default function DailyDetailPage() {
                 </thead>
                 <tbody>
                   {results.map((result, index) => {
-                    const isWin = result.phase1_win === true;
-                    const isLoss = result.phase1_win === false;
                     const isFlat = result.phase1_return !== null && result.phase1_return === 0;
+                    const isWin = !isFlat && result.phase1_win === true;
+                    const isLoss = !isFlat && result.phase1_win === false;
 
                     return (
                       <motion.tr
@@ -275,7 +275,7 @@ export default function DailyDetailPage() {
                         className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors group"
                       >
                         <td className="px-3 py-3 text-sm">
-                          {isWin ? "✅" : isLoss ? "❌" : isFlat ? "➖" : "⚠️"}
+                          {isFlat ? "➖" : isWin ? "✅" : isLoss ? "❌" : "⚠️"}
                         </td>
                         <td className="px-3 py-3">
                           <div className="text-sm font-bold text-slate-100">{result.stock_name}</div>
