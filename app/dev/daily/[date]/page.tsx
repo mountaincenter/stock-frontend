@@ -227,35 +227,35 @@ export default function DailyDetailPage() {
           transition={{ duration: 0.6, delay: 0.5 }}
           className="mb-4"
         >
-          <div className="bg-slate-900/50 backdrop-blur-xl rounded-xl p-2.5 border border-slate-700/50 shadow-2xl">
-            <h2 className="text-sm font-bold text-slate-100 mb-2">銘柄別パフォーマンス</h2>
+          <div className="bg-slate-900/50 backdrop-blur-xl rounded-xl p-4 border border-slate-700/50 shadow-2xl">
+            <h2 className="text-base font-bold text-slate-100 mb-3">銘柄別パフォーマンス</h2>
 
-            <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
-              <table className="w-full text-xs">
+            <div className="overflow-x-auto max-h-[700px] overflow-y-auto">
+              <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-slate-900/90 backdrop-blur-sm z-10">
                   <tr className="border-b border-slate-700/50">
-                    <th className="px-2.5 py-2 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                    <th className="px-3 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">
                       結果
                     </th>
-                    <th className="px-2.5 py-2 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                    <th className="px-3 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">
                       銘柄
                     </th>
-                    <th className="px-2.5 py-2 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                    <th className="px-3 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">
                       スコア
                     </th>
-                    <th className="px-2.5 py-2 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                    <th className="px-3 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">
                       買値
                     </th>
-                    <th className="px-2.5 py-2 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                    <th className="px-3 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">
                       売値
                     </th>
-                    <th className="px-2.5 py-2 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                    <th className="px-3 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">
                       リターン
                     </th>
-                    <th className="px-2.5 py-2 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                    <th className="px-3 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">
                       100株利益
                     </th>
-                    <th className="px-2.5 py-2 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                    <th className="px-3 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">
                       理由
                     </th>
                   </tr>
@@ -273,25 +273,25 @@ export default function DailyDetailPage() {
                         transition={{ duration: 0.3, delay: index * 0.01 }}
                         className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors group"
                       >
-                        <td className="px-2.5 py-2 text-xs">
+                        <td className="px-3 py-3 text-sm">
                           {isWin ? "✅" : isLoss ? "❌" : "⚠️"}
                         </td>
-                        <td className="px-2.5 py-2">
-                          <div className="text-xs font-bold text-slate-100">{result.stock_name}</div>
-                          <div className="text-[10px] text-slate-500 font-mono">{result.ticker}</div>
+                        <td className="px-3 py-3">
+                          <div className="text-sm font-bold text-slate-100">{result.stock_name}</div>
+                          <div className="text-xs text-slate-500 font-mono">{result.ticker}</div>
                         </td>
-                        <td className="px-2.5 py-2 text-xs text-right">
+                        <td className="px-3 py-3 text-sm text-right">
                           <span className="text-blue-300 font-medium">
                             {result.selection_score !== null ? result.selection_score.toFixed(1) : "—"}
                           </span>
                         </td>
-                        <td className="px-2.5 py-2 text-xs text-right text-slate-300 font-mono">
+                        <td className="px-3 py-3 text-sm text-right text-slate-300 font-mono">
                           {result.buy_price !== null ? `${result.buy_price.toLocaleString()}円` : "—"}
                         </td>
-                        <td className="px-2.5 py-2 text-xs text-right text-slate-300 font-mono">
+                        <td className="px-3 py-3 text-sm text-right text-slate-300 font-mono">
                           {result.sell_price !== null ? `${result.sell_price.toLocaleString()}円` : "—"}
                         </td>
-                        <td className={`px-2.5 py-2 text-xs text-right font-bold ${
+                        <td className={`px-3 py-3 text-sm text-right font-bold ${
                           isWin ? "text-green-600 dark:text-green-400" : isLoss ? "text-red-600 dark:text-red-400" : "text-slate-500"
                         }`}>
                           {result.phase1_return !== null ? (
@@ -301,7 +301,7 @@ export default function DailyDetailPage() {
                             </>
                           ) : "—"}
                         </td>
-                        <td className={`px-2.5 py-2 text-xs text-right font-bold font-mono ${
+                        <td className={`px-3 py-3 text-sm text-right font-bold font-mono ${
                           result.profit_per_100 !== null && result.profit_per_100 !== undefined && result.profit_per_100 > 0
                             ? "text-green-600 dark:text-green-400"
                             : result.profit_per_100 !== null && result.profit_per_100 !== undefined && result.profit_per_100 < 0
@@ -315,14 +315,14 @@ export default function DailyDetailPage() {
                             </>
                           ) : "—"}
                         </td>
-                        <td className="px-2.5 py-2 text-xs text-right">
+                        <td className="px-3 py-3 text-sm text-right">
                           {result.reason ? (
                             <div className="group/reason relative inline-block">
                               <button className="text-slate-400 hover:text-blue-400 transition-colors">
-                                <ChevronRight className="w-3 h-3" />
+                                <ChevronRight className="w-4 h-4" />
                               </button>
                               <div className="absolute right-0 bottom-full mb-2 hidden group-hover/reason:block w-80 p-3 bg-slate-800/95 backdrop-blur-xl border border-slate-700 rounded-lg shadow-2xl z-10">
-                                <p className="text-xs text-slate-300 leading-relaxed">
+                                <p className="text-sm text-slate-300 leading-relaxed">
                                   {result.reason}
                                 </p>
                               </div>
