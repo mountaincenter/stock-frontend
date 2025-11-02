@@ -34,6 +34,7 @@ import {
   Info,
 } from "lucide-react";
 import { DashboardData } from "@/lib/grok-backtest-types";
+import MarketSummary from "@/components/MarketSummary";
 
 type SortField = "date" | "win_rate" | "count";
 type SortDirection = "asc" | "desc";
@@ -498,7 +499,7 @@ export default function DevDashboard() {
           </div>
         )}
 
-        {/* L-Shaped Layout: Chart + Data Table */}
+        {/* Performance Analysis Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -830,6 +831,16 @@ export default function DevDashboard() {
               </div>
             </div>
           </div>
+        </motion.div>
+
+        {/* Market Summary Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 1.0 }}
+          className="mb-4"
+        >
+          <MarketSummary />
         </motion.div>
 
         {/* Footer */}
