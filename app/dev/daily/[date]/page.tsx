@@ -45,16 +45,18 @@ interface BacktestResult {
   selected_time: string | null;
   buy_price: number | null;
   sell_price: number | null;
-  phase1_return: number | null;
-  phase1_win: boolean | null;
+  phase_return: number | null;
+  phase_win: boolean | null;
   profit_per_100?: number | null;
   morning_high: number | null;
   morning_low: number | null;
+  morning_max_gain_pct: number | null;
+  morning_max_drawdown_pct: number | null;
   high: number | null;
   low: number | null;
+  daily_max_gain_pct: number | null;
+  daily_max_drawdown_pct: number | null;
   morning_volume: number | null;
-  max_gain_pct: number | null;
-  max_drawdown_pct: number | null;
 }
 
 interface DailyStats {
@@ -88,8 +90,9 @@ export default function DailyDetailPage() {
   useEffect(() => {
     if (!date) return;
 
+    setLoading(true);
     const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "";
-    fetch(`${API_BASE}/api/dev/backtest/daily/${date}`)
+    fetch(`${API_BASE}/api/dev/backtest/daily/${date}?phase=${selectedPhase}`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch");
         return res.json();
@@ -102,7 +105,7 @@ export default function DailyDetailPage() {
         setError(err.message);
         setLoading(false);
       });
-  }, [date]);
+  }, [date, selectedPhase]);
 
   if (loading) {
     return (
@@ -352,9 +355,9 @@ export default function DailyDetailPage() {
                 </thead>
                 <tbody>
                   {results.map((result, index) => {
-                    const isFlat = result.phase1_return !== null && result.phase1_return === 0;
-                    const isWin = !isFlat && result.phase1_win === true;
-                    const isLoss = !isFlat && result.phase1_win === false;
+                    const isFlat = result.phase_return !== null && result.phase_return === 0;
+                    const isWin = !isFlat && result.phase_win === true;
+                    const isLoss = !isFlat && result.phase_win === false;
 
                     return (
                       <motion.tr
@@ -421,22 +424,34 @@ export default function DailyDetailPage() {
                           }
                         </td>
                         <td className={`px-3 py-3 text-sm text-right font-bold ${
-                          result.max_gain_pct !== null && result.max_gain_pct > 0 ? "text-green-600 dark:text-green-400" : "text-slate-500"
+                          (selectedPhase === "phase1"
+                            ? (result.morning_max_gain_pct !== null && result.morning_max_gain_pct > 0)
+                            : (result.daily_max_gain_pct !== null && result.daily_max_gain_pct > 0)
+                          ) ? "text-green-600 dark:text-green-400" : "text-slate-500"
                         }`}>
-                          {result.max_gain_pct !== null ? `+${result.max_gain_pct.toFixed(2)}%` : "—"}
+                          {selectedPhase === "phase1"
+                            ? (result.morning_max_gain_pct !== null ? `+${result.morning_max_gain_pct.toFixed(2)}%` : "—")
+                            : (result.daily_max_gain_pct !== null ? `+${result.daily_max_gain_pct.toFixed(2)}%` : "—")
+                          }
                         </td>
                         <td className={`px-3 py-3 text-sm text-right font-bold ${
-                          result.max_drawdown_pct !== null && result.max_drawdown_pct < 0 ? "text-red-600 dark:text-red-400" : "text-slate-500"
+                          (selectedPhase === "phase1"
+                            ? (result.morning_max_drawdown_pct !== null && result.morning_max_drawdown_pct < 0)
+                            : (result.daily_max_drawdown_pct !== null && result.daily_max_drawdown_pct < 0)
+                          ) ? "text-red-600 dark:text-red-400" : "text-slate-500"
                         }`}>
-                          {result.max_drawdown_pct !== null ? `${result.max_drawdown_pct.toFixed(2)}%` : "—"}
+                          {selectedPhase === "phase1"
+                            ? (result.morning_max_drawdown_pct !== null ? `${result.morning_max_drawdown_pct.toFixed(2)}%` : "—")
+                            : (result.daily_max_drawdown_pct !== null ? `${result.daily_max_drawdown_pct.toFixed(2)}%` : "—")
+                          }
                         </td>
                         <td className={`px-3 py-3 text-sm text-right font-bold ${
                           isWin ? "text-green-600 dark:text-green-400" : isLoss ? "text-red-600 dark:text-red-400" : isFlat ? "text-slate-400" : "text-slate-500"
                         }`}>
-                          {result.phase1_return !== null ? (
+                          {result.phase_return !== null ? (
                             <>
-                              {result.phase1_return > 0 ? "+" : ""}
-                              {result.phase1_return.toFixed(2)}%
+                              {result.phase_return > 0 ? "+" : ""}
+                              {result.phase_return.toFixed(2)}%
                             </>
                           ) : "—"}
                         </td>
