@@ -27,7 +27,7 @@ const PHASE_INFO = {
   phase2: {
     label: "Phase 2",
     title: "大引け売り",
-    description: "9:00寄付買い → 15:00大引け売り"
+    description: "9:00寄付買い → 15:30大引け売り"
   },
   phase3: {
     label: "Phase 3",
