@@ -11,17 +11,38 @@ import { TrendingUp, Target, BarChart3, Activity, ArrowLeft, RefreshCw } from 'l
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
+type Phase = 'phase1' | 'phase2' | 'phase3';
+
+const PHASE_INFO = {
+  phase1: {
+    label: 'Phase 1',
+    title: '前場引け売り',
+    description: '9:00寄付買い → 11:30以降売却'
+  },
+  phase2: {
+    label: 'Phase 2',
+    title: '大引け売り',
+    description: '9:00寄付買い → 15:00大引け売却'
+  },
+  phase3: {
+    label: 'Phase 3',
+    title: '利確損切戦略',
+    description: '9:00寄付買い → +3%利確 または -3%損切り'
+  }
+} as const;
+
 export default function GrokDashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [selectedPhase, setSelectedPhase] = useState<Phase>('phase1');
 
-  const fetchData = async () => {
+  const fetchData = async (phase: Phase) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch('/api/grok/backtest-dashboard');
+      const response = await fetch(`/api/grok/backtest-dashboard?phase=${phase}`);
 
       if (!response.ok) {
         throw new Error(`Failed to fetch: ${response.status}`);
@@ -39,11 +60,11 @@ export default function GrokDashboardPage() {
   };
 
   useEffect(() => {
-    fetchData();
+    fetchData(selectedPhase);
     // 5分ごとに自動更新
-    const interval = setInterval(fetchData, 5 * 60 * 1000);
+    const interval = setInterval(() => fetchData(selectedPhase), 5 * 60 * 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [selectedPhase]);
 
   if (loading && !data) {
     return (
@@ -102,7 +123,7 @@ export default function GrokDashboardPage() {
               <div>
                 <h1 className="text-2xl font-bold">GROK バックテスト ダッシュボード</h1>
                 <p className="text-sm text-muted-foreground">
-                  Phase1戦略（9:00寄付買い → 11:30以降売却）のパフォーマンス分析
+                  GROKによる銘柄選定のバックテストパフォーマンス分析
                 </p>
               </div>
             </div>
@@ -113,7 +134,7 @@ export default function GrokDashboardPage() {
                 </div>
               )}
               <button
-                onClick={fetchData}
+                onClick={() => fetchData(selectedPhase)}
                 disabled={loading}
                 className="p-2 hover:bg-muted rounded-lg transition-colors disabled:opacity-50"
               >
@@ -125,6 +146,36 @@ export default function GrokDashboardPage() {
       </div>
 
       <div className="container mx-auto px-4 py-8 space-y-8">
+        {/* Phase Tabs */}
+        <section>
+          <div className="flex gap-2 mb-4 flex-wrap">
+            {(Object.keys(PHASE_INFO) as Phase[]).map((phase) => {
+              const info = PHASE_INFO[phase];
+              const isActive = selectedPhase === phase;
+              return (
+                <button
+                  key={phase}
+                  onClick={() => setSelectedPhase(phase)}
+                  className={cn(
+                    "px-4 py-2 rounded-lg font-medium transition-all",
+                    isActive
+                      ? "bg-primary text-primary-foreground shadow-lg"
+                      : "bg-muted hover:bg-muted/80 text-muted-foreground"
+                  )}
+                >
+                  <div className="text-sm font-semibold">{info.label}</div>
+                  <div className="text-xs mt-0.5">{info.title}</div>
+                </button>
+              );
+            })}
+          </div>
+          <div className="p-4 rounded-lg border bg-card">
+            <p className="text-sm text-muted-foreground">
+              <span className="font-semibold">{PHASE_INFO[selectedPhase].title}戦略:</span> {PHASE_INFO[selectedPhase].description}
+            </p>
+          </div>
+        </section>
+
         {/* Alerts */}
         {data.alerts && data.alerts.length > 0 && (
           <AlertBanner alerts={data.alerts} />

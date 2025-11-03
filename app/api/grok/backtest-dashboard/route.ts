@@ -2,19 +2,24 @@
 import { NextResponse } from 'next/server';
 import type { DashboardData } from '@/lib/grok-backtest-types';
 
-// キャッシュ
-let cachedData: DashboardData | null = null;
+// キャッシュ（Phaseごと）
+let cachedData: Record<string, DashboardData> = {};
 let cacheTimestamp = 0;
 const CACHE_TTL = 5 * 60 * 1000; // 5分
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const now = Date.now();
 
-    // キャッシュが有効ならそれを返す
-    if (cachedData && (now - cacheTimestamp < CACHE_TTL)) {
-      console.log('[backtest-dashboard] Returning cached data');
-      return NextResponse.json(cachedData);
+    // URLからphaseパラメータを取得
+    const { searchParams } = new URL(request.url);
+    const phase = searchParams.get('phase') || 'phase1';
+
+    // Phaseごとにキャッシュを分ける
+    const cacheKey = phase;
+    if (cachedData && cachedData[cacheKey] && (now - cacheTimestamp < CACHE_TTL)) {
+      console.log(`[backtest-dashboard] Returning cached data for ${phase}`);
+      return NextResponse.json(cachedData[cacheKey]);
     }
 
     const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -28,7 +33,7 @@ export async function GET() {
     }
 
     // バックエンドの包括的なサマリーエンドポイントを使用
-    const url = `${API_BASE}/api/dev/backtest/summary`;
+    const url = `${API_BASE}/api/dev/backtest/summary?phase=${phase}`;
     console.log(`[backtest-dashboard] Fetching from: ${url}`);
 
     const response = await fetch(url, {
@@ -101,10 +106,10 @@ export async function GET() {
 
     // バックエンドが既に全てのデータを計算済みなので、そのまま返す
     const dashboardData: DashboardData = await response.json();
-    console.log(`[backtest-dashboard] Fetched dashboard data successfully`);
+    console.log(`[backtest-dashboard] Fetched dashboard data successfully for ${phase}`);
 
-    // キャッシュに保存
-    cachedData = dashboardData;
+    // キャッシュに保存（Phaseごと）
+    cachedData[cacheKey] = dashboardData;
     cacheTimestamp = now;
 
     return NextResponse.json(dashboardData);
