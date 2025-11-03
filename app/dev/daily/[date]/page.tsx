@@ -16,6 +16,26 @@ import {
 } from "lucide-react";
 import MarketSummary from "@/components/MarketSummary";
 
+type Phase = "phase1" | "phase2" | "phase3";
+
+const PHASE_INFO = {
+  phase1: {
+    label: "Phase 1",
+    title: "前場引け売り",
+    description: "9:00寄付買い → 11:30前引け売り"
+  },
+  phase2: {
+    label: "Phase 2",
+    title: "大引け売り",
+    description: "9:00寄付買い → 15:00大引け売り"
+  },
+  phase3: {
+    label: "Phase 3",
+    title: "利確損切戦略",
+    description: "9:00寄付買い → +3%利確 または -3%損切り"
+  }
+} as const;
+
 interface BacktestResult {
   ticker: string;
   stock_name: string;
@@ -30,6 +50,8 @@ interface BacktestResult {
   profit_per_100?: number | null;
   morning_high: number | null;
   morning_low: number | null;
+  high: number | null;
+  low: number | null;
   morning_volume: number | null;
   max_gain_pct: number | null;
   max_drawdown_pct: number | null;
@@ -61,6 +83,7 @@ export default function DailyDetailPage() {
   const [data, setData] = useState<DailyBacktest | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedPhase, setSelectedPhase] = useState<Phase>("phase2"); // デフォルトはPhase 2
 
   useEffect(() => {
     if (!date) return;
@@ -146,17 +169,38 @@ export default function DailyDetailPage() {
           transition={{ duration: 0.6 }}
           className="mb-4"
         >
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
-              <Calendar className="w-4 h-4" />
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+                <Calendar className="w-4 h-4" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-black text-slate-100">
+                  {date}
+                </h1>
+                <p className="text-slate-500 text-[10px]">
+                  {PHASE_INFO[selectedPhase].title}戦略: {PHASE_INFO[selectedPhase].description}
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-black text-slate-100">
-                {date}
-              </h1>
-              <p className="text-slate-500 text-[10px]">
-                Phase1戦略: 9:00寄付買い → 11:30前引け売り
-              </p>
+
+            {/* Phase選択 */}
+            <div className="lg:min-w-[300px]">
+              <div className="flex flex-wrap gap-1 bg-slate-800/50 p-2 rounded-lg border border-slate-700/50">
+                {(Object.keys(PHASE_INFO) as Phase[]).map((phase) => (
+                  <button
+                    key={phase}
+                    onClick={() => setSelectedPhase(phase)}
+                    className={`px-3 py-2 rounded text-xs font-semibold transition-all whitespace-nowrap ${
+                      selectedPhase === phase
+                        ? "bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-lg shadow-purple-500/30"
+                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/30"
+                    }`}
+                  >
+                    {PHASE_INFO[phase].label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </motion.div>
@@ -284,10 +328,10 @@ export default function DailyDetailPage() {
                       売値
                     </th>
                     <th className="px-3 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                      前場高値
+                      {selectedPhase === "phase1" ? "前場高値" : "高値"}
                     </th>
                     <th className="px-3 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                      前場安値
+                      {selectedPhase === "phase1" ? "前場安値" : "安値"}
                     </th>
                     <th className="px-3 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">
                       最大上昇率
@@ -336,31 +380,45 @@ export default function DailyDetailPage() {
                           {result.buy_price !== null ? `${result.buy_price.toLocaleString()}円` : "—"}
                         </td>
                         <td className={`px-3 py-3 text-sm text-right font-mono font-bold ${
-                          // 勝ち案件: 売値 >= 前場高値 なら売値を緑
-                          isWin && result.sell_price !== null && result.morning_high !== null && result.sell_price >= result.morning_high
+                          // 勝ち案件: 売値 >= 高値 なら売値を緑
+                          isWin && result.sell_price !== null &&
+                          (selectedPhase === "phase1" ? result.morning_high : result.high) !== null &&
+                          result.sell_price >= (selectedPhase === "phase1" ? result.morning_high! : result.high!)
                             ? "text-green-600 dark:text-green-400"
-                            // 負け案件: 売値 >= 前場安値 なら売値を赤
-                            : isLoss && result.sell_price !== null && result.morning_low !== null && result.sell_price >= result.morning_low
+                            // 負け案件: 売値 >= 安値 なら売値を赤
+                            : isLoss && result.sell_price !== null &&
+                            (selectedPhase === "phase1" ? result.morning_low : result.low) !== null &&
+                            result.sell_price >= (selectedPhase === "phase1" ? result.morning_low! : result.low!)
                             ? "text-red-600 dark:text-red-400"
                             : "text-slate-300"
                         }`}>
                           {result.sell_price !== null ? `${result.sell_price.toLocaleString()}円` : "—"}
                         </td>
                         <td className={`px-3 py-3 text-sm text-right font-mono font-bold ${
-                          // 勝ち案件: 売値 < 前場高値 なら前場高値を緑
-                          isWin && result.sell_price !== null && result.morning_high !== null && result.sell_price < result.morning_high
+                          // 勝ち案件: 売値 < 高値 なら高値を緑
+                          isWin && result.sell_price !== null &&
+                          (selectedPhase === "phase1" ? result.morning_high : result.high) !== null &&
+                          result.sell_price < (selectedPhase === "phase1" ? result.morning_high! : result.high!)
                             ? "text-green-600 dark:text-green-400"
                             : "text-slate-300"
                         }`}>
-                          {result.morning_high !== null ? `${result.morning_high.toLocaleString()}円` : "—"}
+                          {selectedPhase === "phase1"
+                            ? (result.morning_high !== null ? `${result.morning_high.toLocaleString()}円` : "—")
+                            : (result.high !== null ? `${result.high.toLocaleString()}円` : "—")
+                          }
                         </td>
                         <td className={`px-3 py-3 text-sm text-right font-mono font-bold ${
-                          // 負け案件: 売値 < 前場安値 なら前場安値を赤
-                          isLoss && result.sell_price !== null && result.morning_low !== null && result.sell_price < result.morning_low
+                          // 負け案件: 売値 < 安値 なら安値を赤
+                          isLoss && result.sell_price !== null &&
+                          (selectedPhase === "phase1" ? result.morning_low : result.low) !== null &&
+                          result.sell_price < (selectedPhase === "phase1" ? result.morning_low! : result.low!)
                             ? "text-red-600 dark:text-red-400"
                             : "text-slate-300"
                         }`}>
-                          {result.morning_low !== null ? `${result.morning_low.toLocaleString()}円` : "—"}
+                          {selectedPhase === "phase1"
+                            ? (result.morning_low !== null ? `${result.morning_low.toLocaleString()}円` : "—")
+                            : (result.low !== null ? `${result.low.toLocaleString()}円` : "—")
+                          }
                         </td>
                         <td className={`px-3 py-3 text-sm text-right font-bold ${
                           result.max_gain_pct !== null && result.max_gain_pct > 0 ? "text-green-600 dark:text-green-400" : "text-slate-500"
