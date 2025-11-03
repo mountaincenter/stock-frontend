@@ -111,7 +111,7 @@ export default function GrokDashboardPage() {
     <main className="min-h-screen bg-background">
       {/* Header */}
       <div className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4">
+        <div className="container max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link
@@ -121,15 +121,15 @@ export default function GrokDashboardPage() {
                 <ArrowLeft className="w-5 h-5" />
               </Link>
               <div>
-                <h1 className="text-2xl font-bold">GROK バックテスト ダッシュボード</h1>
-                <p className="text-sm text-muted-foreground">
+                <h1 className="text-3xl font-bold">GROK バックテスト ダッシュボード</h1>
+                <p className="text-base text-muted-foreground">
                   GROKによる銘柄選定のバックテストパフォーマンス分析
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-4">
               {lastUpdate && (
-                <div className="text-sm text-muted-foreground">
+                <div className="text-base text-muted-foreground">
                   最終更新: {lastUpdate.toLocaleTimeString('ja-JP')}
                 </div>
               )}
@@ -145,10 +145,10 @@ export default function GrokDashboardPage() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8 space-y-8">
+      <div className="container max-w-6xl mx-auto px-4 py-6 space-y-6">
         {/* Phase Tabs */}
         <section>
-          <div className="flex gap-2 mb-4 flex-wrap">
+          <div className="flex gap-2 mb-3 flex-wrap">
             {(Object.keys(PHASE_INFO) as Phase[]).map((phase) => {
               const info = PHASE_INFO[phase];
               const isActive = selectedPhase === phase;
@@ -163,14 +163,14 @@ export default function GrokDashboardPage() {
                       : "bg-muted hover:bg-muted/80 text-muted-foreground"
                   )}
                 >
-                  <div className="text-sm font-semibold">{info.label}</div>
-                  <div className="text-xs mt-0.5">{info.title}</div>
+                  <div className="text-base font-semibold">{info.label}</div>
+                  <div className="text-sm mt-0.5">{info.title}</div>
                 </button>
               );
             })}
           </div>
-          <div className="p-4 rounded-lg border bg-card">
-            <p className="text-sm text-muted-foreground">
+          <div className="p-3 rounded-lg border bg-card">
+            <p className="text-base text-muted-foreground">
               <span className="font-semibold">{PHASE_INFO[selectedPhase].title}戦略:</span> {PHASE_INFO[selectedPhase].description}
             </p>
           </div>
@@ -183,8 +183,8 @@ export default function GrokDashboardPage() {
 
         {/* Overall Stats */}
         <section>
-          <h2 className="text-xl font-bold mb-4">全体パフォーマンス</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <h2 className="text-2xl font-bold mb-3">全体パフォーマンス</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
             <StatsCard
               title="平均利益/100株"
               value={`${data.overall_stats.avg_profit_per_100_shares >= 0 ? '+' : ''}¥${Math.round(data.overall_stats.avg_profit_per_100_shares).toLocaleString()}`}
@@ -220,20 +220,20 @@ export default function GrokDashboardPage() {
         {/* Trend */}
         {data.trend_analysis.trend !== 'stable' && (
           <section className={cn(
-            "p-4 rounded-lg border",
+            "p-3 rounded-lg border",
             data.trend_analysis.trend === 'improving' ? "bg-green-500/10 border-green-500/30" : "bg-red-500/10 border-red-500/30"
           )}>
             <div className="flex items-start gap-3">
               {trendIcon}
               <div>
                 <h3 className={cn(
-                  "font-semibold mb-1",
+                  "font-semibold mb-1 text-lg",
                   data.trend_analysis.trend === 'improving' ? "text-green-900 dark:text-green-100" : "text-red-900 dark:text-red-100"
                 )}>
                   {data.trend_analysis.trend === 'improving' ? '📈 パフォーマンス改善中' : '📉 パフォーマンス低下傾向'}
                 </h3>
                 <p className={cn(
-                  "text-sm",
+                  "text-base",
                   data.trend_analysis.trend === 'improving' ? "text-green-800 dark:text-green-200" : "text-red-800 dark:text-red-200"
                 )}>
                   直近5日の平均リターン: {data.trend_analysis.recent_avg.toFixed(2)}%
@@ -246,8 +246,8 @@ export default function GrokDashboardPage() {
 
         {/* Performance Chart */}
         <section>
-          <h2 className="text-xl font-bold mb-4">日次パフォーマンス推移</h2>
-          <div className="p-6 rounded-lg border bg-card">
+          <h2 className="text-2xl font-bold mb-3">日次パフォーマンス推移</h2>
+          <div className="p-4 rounded-lg border bg-card">
             <PerformanceChart data={data.daily_stats} type="line" />
           </div>
         </section>
@@ -263,31 +263,31 @@ export default function GrokDashboardPage() {
         {/* Recent Records */}
         {data.recent_records && data.recent_records.length > 0 && (
           <section>
-            <h2 className="text-xl font-bold mb-4">直近のバックテスト結果</h2>
+            <h2 className="text-2xl font-bold mb-3">直近のバックテスト結果</h2>
             <div className="overflow-x-auto rounded-lg border">
-              <table className="w-full text-sm">
+              <table className="w-full text-base">
                 <thead className="bg-muted/50">
                   <tr>
-                    <th className="px-4 py-3 text-left font-medium">日付</th>
-                    <th className="px-4 py-3 text-left font-medium">銘柄</th>
-                    <th className="px-4 py-3 text-right font-medium">ランク</th>
-                    <th className="px-4 py-3 text-right font-medium">買値</th>
-                    <th className="px-4 py-3 text-right font-medium">売値</th>
-                    <th className="px-4 py-3 text-right font-medium">リターン</th>
-                    <th className="px-4 py-3 text-center font-medium">結果</th>
+                    <th className="px-4 py-2.5 text-left font-medium">日付</th>
+                    <th className="px-4 py-2.5 text-left font-medium">銘柄</th>
+                    <th className="px-4 py-2.5 text-right font-medium">ランク</th>
+                    <th className="px-4 py-2.5 text-right font-medium">買値</th>
+                    <th className="px-4 py-2.5 text-right font-medium">売値</th>
+                    <th className="px-4 py-2.5 text-right font-medium">リターン</th>
+                    <th className="px-4 py-2.5 text-center font-medium">結果</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {data.recent_records.map((record, index) => (
                     <tr key={index} className="hover:bg-muted/20">
-                      <td className="px-4 py-3">{record.backtest_date}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-2.5">{record.backtest_date}</td>
+                      <td className="px-4 py-2.5">
                         <div className="font-medium">{record.ticker}</div>
-                        <div className="text-xs text-muted-foreground">{record.stock_name}</div>
+                        <div className="text-sm text-muted-foreground">{record.stock_name}</div>
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-2.5 text-right">
                         {record.grok_rank !== null && record.grok_rank <= 5 && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-primary/10 text-primary">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-sm font-semibold bg-primary/10 text-primary">
                             #{record.grok_rank}
                           </span>
                         )}
@@ -295,14 +295,14 @@ export default function GrokDashboardPage() {
                           <span className="text-muted-foreground">#{record.grok_rank}</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-right font-mono">
+                      <td className="px-4 py-2.5 text-right font-mono">
                         {record.buy_price !== null ? `¥${record.buy_price.toLocaleString()}` : '-'}
                       </td>
-                      <td className="px-4 py-3 text-right font-mono">
+                      <td className="px-4 py-2.5 text-right font-mono">
                         {record.sell_price !== null ? `¥${record.sell_price.toLocaleString()}` : '-'}
                       </td>
                       <td className={cn(
-                        "px-4 py-3 text-right font-semibold",
+                        "px-4 py-2.5 text-right font-semibold",
                         record.phase1_return !== null && record.phase1_return >= 0
                           ? "text-green-600 dark:text-green-400"
                           : "text-red-600 dark:text-red-400"
@@ -311,7 +311,7 @@ export default function GrokDashboardPage() {
                           ? `${record.phase1_return >= 0 ? '+' : ''}${(record.phase1_return * 100).toFixed(2)}%`
                           : '-'}
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-2.5 text-center">
                         {record.phase1_win === true && <span className="text-green-600 dark:text-green-400">✓</span>}
                         {record.phase1_win === false && <span className="text-red-600 dark:text-red-400">✗</span>}
                         {record.phase1_win === null && <span className="text-muted-foreground">-</span>}
@@ -325,7 +325,7 @@ export default function GrokDashboardPage() {
         )}
 
         {/* Footer Note */}
-        <div className="text-xs text-muted-foreground text-center p-4 border-t">
+        <div className="text-sm text-muted-foreground text-center p-3 border-t">
           <p>このダッシュボードは過去のバックテスト結果に基づいており、将来の投資成果を保証するものではありません。</p>
           <p>投資判断は自己責任で行ってください。</p>
         </div>
