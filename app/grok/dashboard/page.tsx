@@ -87,7 +87,7 @@ export default function GrokDashboardPage() {
           <h2 className="text-xl font-semibold">エラーが発生しました</h2>
           <p className="text-muted-foreground">{error}</p>
           <button
-            onClick={fetchData}
+            onClick={() => fetchData(selectedPhase)}
             className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
           >
             再試行

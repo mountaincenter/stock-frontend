@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import type { DashboardData } from '@/lib/grok-backtest-types';
 
 // キャッシュ（Phaseごと）
-let cachedData: Record<string, DashboardData> = {};
+const cachedData: Record<string, DashboardData> = {};
 let cacheTimestamp = 0;
 const CACHE_TTL = 5 * 60 * 1000; // 5分
 
