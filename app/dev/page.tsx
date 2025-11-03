@@ -38,6 +38,25 @@ import MarketSummary from "@/components/MarketSummary";
 
 type SortField = "date" | "win_rate" | "count";
 type SortDirection = "asc" | "desc";
+type Phase = "phase1" | "phase2" | "phase3";
+
+const PHASE_INFO = {
+  phase1: {
+    label: "Phase 1",
+    title: "前場引け売り",
+    description: "9:00寄付買い → 11:30前引け売り"
+  },
+  phase2: {
+    label: "Phase 2",
+    title: "大引け売り",
+    description: "9:00寄付買い → 15:00大引け売り"
+  },
+  phase3: {
+    label: "Phase 3",
+    title: "利確損切戦略",
+    description: "9:00寄付買い → +3%利確 または -3%損切り"
+  }
+} as const;
 
 export default function DevDashboard() {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
@@ -49,12 +68,16 @@ export default function DevDashboard() {
   const [selectedMetric, setSelectedMetric] = useState<"return" | "winrate" | "cumulative">("return");
   const [dateFilter, setDateFilter] = useState<"all" | "week" | "month">("all");
   const [selectedVersion, setSelectedVersion] = useState<string | null>(null);
+  const [selectedPhase, setSelectedPhase] = useState<Phase>("phase2"); // デフォルトはPhase 2
 
   useEffect(() => {
     const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "";
-    const url = selectedVersion
-      ? `${API_BASE}/api/dev/backtest/summary?prompt_version=${selectedVersion}`
-      : `${API_BASE}/api/dev/backtest/summary`;
+    const params = new URLSearchParams();
+    params.append("phase", selectedPhase);
+    if (selectedVersion) {
+      params.append("prompt_version", selectedVersion);
+    }
+    const url = `${API_BASE}/api/dev/backtest/summary?${params.toString()}`;
 
     setLoading(true);
     fetch(url)
@@ -70,7 +93,7 @@ export default function DevDashboard() {
         setError(err.message);
         setLoading(false);
       });
-  }, [selectedVersion]);
+  }, [selectedVersion, selectedPhase]);
 
   const sortedStats = useMemo(() => {
     if (!dashboardData) return [];
@@ -200,13 +223,35 @@ export default function DevDashboard() {
                   GROK Backtest Dashboard
                 </h1>
                 <p className="text-slate-500 text-[10px]">
-                  Phase1戦略: 9:00寄付買い → 11:30前引け売り
+                  {PHASE_INFO[selectedPhase].title}戦略: {PHASE_INFO[selectedPhase].description}
                 </p>
               </div>
             </div>
 
             {/* フィルターセクション */}
             <div className="flex flex-col lg:flex-row gap-2">
+            {/* Phase選択 */}
+            <div className="lg:min-w-[300px]">
+              <div className="text-[9px] text-slate-500 font-medium mb-1 uppercase tracking-wider lg:hidden">
+                Phase Strategy
+              </div>
+              <div className="flex flex-wrap gap-1 bg-slate-800/50 p-2 rounded-lg border border-slate-700/50">
+                {(Object.keys(PHASE_INFO) as Phase[]).map((phase) => (
+                  <button
+                    key={phase}
+                    onClick={() => setSelectedPhase(phase)}
+                    className={`px-3 py-2 rounded text-xs font-semibold transition-all whitespace-nowrap ${
+                      selectedPhase === phase
+                        ? "bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-lg shadow-purple-500/30"
+                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/30"
+                    }`}
+                  >
+                    {PHASE_INFO[phase].label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* プロンプトバージョン選択 */}
             {dashboardData?.available_versions && dashboardData.available_versions.length > 0 && (
               <div className="lg:min-w-[300px]">
