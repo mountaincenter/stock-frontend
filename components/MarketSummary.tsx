@@ -98,25 +98,28 @@ export default function MarketSummary({ date, className = "" }: MarketSummaryPro
   };
 
   // Simple markdown-to-HTML converter for basic formatting
-  const renderMarkdown = (text: string, citationOffset: number = 0) => {
-    if (!text) return { html: "", urls: [] };
+  const renderMarkdown = (text: string, citationMap: { url: string; numbers: string }[]) => {
+    if (!text) return "";
 
-    // Collect URLs for document-wide citation numbering
-    const urls: string[] = [];
-    let citationCounter = citationOffset;
-
-    // Extract all URLs and replace with numbered citations
-    text = text.replace(/[（(]出典:\s*(https?:\/\/[^\s\)）]+)[）)]/g, (match, url) => {
-      urls.push(url);
-      citationCounter++;
-      return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 text-xs ml-1 no-underline font-semibold">[出典${citationCounter}]</a>`;
+    // Build URL lookup by citation number
+    const citationToUrl: Record<string, string> = {};
+    citationMap.forEach(({ url, numbers }) => {
+      numbers.split(',').forEach(num => {
+        citationToUrl[num.trim()] = url;
+      });
     });
 
-    // Also catch bare URLs (not in parentheses)
-    text = text.replace(/(?<!href=")(https?:\/\/[^\s<>"]+)/g, (url) => {
-      urls.push(url);
-      citationCounter++;
-      return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 text-xs no-underline font-semibold">[出典${citationCounter}]</a>`;
+    // Replace [出典N] or [出典N,M,...] with clickable links
+    text = text.replace(/\[出典([\d,]+)\]/g, (match, numbers) => {
+      const nums = numbers.split(',').map((n: string) => n.trim());
+      const links = nums.map((num: string) => {
+        const url = citationToUrl[num];
+        if (url) {
+          return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 text-xs no-underline font-semibold">[出典${num}]</a>`;
+        }
+        return `[出典${num}]`;
+      });
+      return links.join('');
     });
 
     // Convert markdown tables to HTML tables
@@ -202,7 +205,7 @@ export default function MarketSummary({ date, className = "" }: MarketSummaryPro
     // Single line breaks within paragraphs
     text = text.replace(/\n/g, '<br/>');
 
-    return { html: text, urls };
+    return text;
   };
 
   if (loading) {
@@ -228,21 +231,28 @@ export default function MarketSummary({ date, className = "" }: MarketSummaryPro
 
   const { report_metadata, content } = summary;
 
-  // Collect all URLs across all sections for document-wide citation numbering
-  const allUrls: string[] = [];
-  let citationOffset = 0;
+  // Extract URLs and their citation numbers from markdown_full's ## 出典 section
+  const citationMap: { url: string; numbers: string }[] = [];
 
-  // Pre-render all sections to collect URLs
+  const citationSectionMatch = content.markdown_full.match(/## 出典\n\n([\s\S]+)$/);
+  if (citationSectionMatch) {
+    const citationSection = citationSectionMatch[1];
+    // Extract [出典N,M,...] URL patterns
+    const urlMatches = citationSection.matchAll(/\[出典([\d,]+)\]\s+(https?:\/\/[^\s]+)/g);
+    for (const match of urlMatches) {
+      citationMap.push({ url: match[2], numbers: match[1] });
+    }
+  }
+
+  // Pre-render all sections
   const renderedSections: Record<string, string> = {};
   const sectionOrder = ['indices', 'trends', 'sectors', 'news', 'indicators'] as const;
 
   sectionOrder.forEach(section => {
     const sectionContent = content.sections[section as keyof typeof content.sections];
     if (sectionContent) {
-      const { html, urls } = renderMarkdown(sectionContent, citationOffset);
+      const html = renderMarkdown(sectionContent, citationMap);
       renderedSections[section] = html;
-      allUrls.push(...urls);
-      citationOffset += urls.length;
     }
   });
 
@@ -341,24 +351,46 @@ export default function MarketSummary({ date, className = "" }: MarketSummaryPro
       </div>
 
       {/* Citation URLs List */}
-      {allUrls.length > 0 && (
+      {citationMap.length > 0 && (
         <div className="mt-6 pt-4 border-t border-slate-700/30">
           <h4 className="text-sm font-bold text-slate-300 mb-3">出典URL一覧</h4>
           <div className="space-y-1.5">
-            {allUrls.map((url, idx) => (
-              <div key={idx} className="text-xs text-slate-400 break-all">
-                <span className="text-blue-400 font-semibold">[出典{idx + 1}]</span>
-                {' '}
-                <a
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-blue-300 underline"
-                >
-                  {url}
-                </a>
-              </div>
-            ))}
+            {(() => {
+              // Group by URL: { url: [2, 3, 7, 12], ... }
+              const urlToNumbers: Record<string, number[]> = {};
+              citationMap.forEach(({ url, numbers }) => {
+                const nums = numbers.split(',').map(n => parseInt(n.trim()));
+                if (!urlToNumbers[url]) {
+                  urlToNumbers[url] = [];
+                }
+                urlToNumbers[url].push(...nums);
+              });
+
+              // Sort numbers and remove duplicates for each URL
+              Object.keys(urlToNumbers).forEach(url => {
+                urlToNumbers[url] = Array.from(new Set(urlToNumbers[url])).sort((a, b) => a - b);
+              });
+
+              // Sort entries by first citation number
+              const entries = Object.entries(urlToNumbers).sort((a, b) => a[1][0] - b[1][0]);
+
+              return entries.map(([url, numbers]) => (
+                <div key={url} className="text-xs text-slate-400 break-all">
+                  <span className="text-blue-400 font-semibold">
+                    [出典{numbers.join(',')}]
+                  </span>
+                  {' '}
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-blue-300 underline"
+                  >
+                    {url}
+                  </a>
+                </div>
+              ));
+            })()}
           </div>
         </div>
       )}
