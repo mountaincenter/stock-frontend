@@ -196,13 +196,8 @@ export default function MarketSummary({ date, className = "" }: MarketSummaryPro
               colorClass = 'text-slate-200';
             }
           } else {
-            // Text content - left-aligned (except for indicators table's "市場への影響" column)
-            const headerName = headers[cidx];
-            if (isIndicatorTable && headerName === '市場への影響') {
-              align = 'text-left';
-            } else {
-              align = 'text-left';
-            }
+            // Text content - left-aligned
+            align = 'text-left';
             colorClass = 'text-slate-200';
           }
 
