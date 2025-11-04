@@ -136,12 +136,25 @@ export default function MarketSummary({ date, className = "" }: MarketSummaryPro
       let html = '<div class="overflow-x-auto my-3 flex justify-start"><table class="text-sm border-collapse" style="width: auto; max-width: 100%;">';
 
       // Header
-      const headers = headerRow.split('|').map(h => h.trim()).filter(h => h);
+      let headers = headerRow.split('|').map(h => h.trim()).filter(h => h);
+
+      // Detect table type and translate headers
+      const isIndicatorTable = headers.some(h => h === '時刻(JST)' || h === '日時');
+      const hasTickerColumn = headers.includes('ticker');
+
+      // Translate headers
+      headers = headers.map(h => {
+        if (h === 'name' && hasTickerColumn) return '指数名';
+        if (h === 'name') return 'セクター名';
+        if (h === 'close') return '終値';
+        if (h === 'change_pct') return '前日比';
+        return h;
+      });
+
       html += '<thead class="bg-slate-800/60"><tr>';
       headers.forEach((h, hidx) => {
-        // First column left-aligned, numeric columns right-aligned
-        const align = hidx === 0 ? 'text-left' : 'text-right';
-        html += `<th class="px-4 py-2 ${align} text-xs font-bold text-slate-300 border-b border-slate-600 whitespace-nowrap">${h}</th>`;
+        // All headers center-aligned
+        html += `<th class="px-4 py-2 text-center text-xs font-bold text-slate-300 border-b border-slate-600 whitespace-nowrap">${h}</th>`;
       });
       html += '</tr></thead>';
 
@@ -165,15 +178,31 @@ export default function MarketSummary({ date, className = "" }: MarketSummaryPro
           } else if (cidx > 0 && (cell.includes('円') || cell.includes('%') || /^[+\-±]?[0-9,\.]+$/.test(cell))) {
             // Format and right-align numbers
             formattedCell = formatNumber(cell);
+
+            // Add % if missing for change_pct column
+            const headerName = headers[cidx];
+            if (headerName === '前日比' && !formattedCell.includes('%') && !formattedCell.includes('円')) {
+              formattedCell = formattedCell + '%';
+            }
+
             align = 'text-right';
 
             // Color code percentage and currency changes
-            colorClass = formattedCell.includes('+') ? 'text-green-400 font-bold' :
-                        (formattedCell.includes('-') && (formattedCell.includes('%') || formattedCell.includes('円'))) ? 'text-red-400 font-bold' :
-                        'text-slate-200';
+            if (headerName === '前日比' || formattedCell.includes('%') || formattedCell.includes('円')) {
+              colorClass = formattedCell.includes('+') || (parseFloat(formattedCell) > 0 && !formattedCell.includes('-')) ? 'text-green-400 font-bold' :
+                          formattedCell.includes('-') ? 'text-red-400 font-bold' :
+                          'text-slate-200';
+            } else {
+              colorClass = 'text-slate-200';
+            }
           } else {
-            // Text content - left-aligned
-            align = 'text-left';
+            // Text content - left-aligned (except for indicators table's "市場への影響" column)
+            const headerName = headers[cidx];
+            if (isIndicatorTable && headerName === '市場への影響') {
+              align = 'text-left';
+            } else {
+              align = 'text-left';
+            }
             colorClass = 'text-slate-200';
           }
 
