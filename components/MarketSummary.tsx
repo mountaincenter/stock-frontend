@@ -201,7 +201,13 @@ export default function MarketSummary({ date, className = "" }: MarketSummaryPro
             colorClass = 'text-slate-200';
           }
 
-          html += `<td class="px-4 py-2 ${colorClass} ${align} whitespace-nowrap">${formattedCell}</td>`;
+          // Check if this is the "市場への影響" column
+          const headerName = headers[cidx];
+          const isImpactColumn = headerName === '市場への影響';
+          const whiteSpace = isImpactColumn ? '' : 'whitespace-nowrap';
+          const minWidth = isImpactColumn ? 'min-w-[300px]' : '';
+
+          html += `<td class="px-4 py-2 ${colorClass} ${align} ${whiteSpace} ${minWidth}">${formattedCell}</td>`;
         });
         html += '</tr>';
       });
