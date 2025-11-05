@@ -267,9 +267,10 @@ export default function MarketSummary({ date, className = "" }: MarketSummaryPro
   const citationSectionMatch = content.markdown_full.match(/## 出典\n\n([\s\S]+)$/);
   if (citationSectionMatch) {
     const citationSection = citationSectionMatch[1];
-    // Extract [出典N,M,...] URL patterns
-    const urlMatches = citationSection.matchAll(/\[出典([\d,]+)\]\s+(https?:\/\/[^\s]+)/g);
-    for (const match of urlMatches) {
+    // Extract [出典N,M,...] URL patterns using exec() for better compatibility
+    const urlPattern = /\[出典([\d,]+)\]\s+(https?:\/\/[^\s]+)/g;
+    let match;
+    while ((match = urlPattern.exec(citationSection)) !== null) {
       citationMap.push({ url: match[2], numbers: match[1] });
     }
   }
