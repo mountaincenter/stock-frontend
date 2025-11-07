@@ -218,13 +218,23 @@ export default function DevDashboard() {
               <div className="p-1.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg shadow-lg">
                 <Activity className="w-4 h-4" />
               </div>
-              <div>
-                <h1 className="text-xl font-black text-slate-100">
-                  GROK Backtest Dashboard
-                </h1>
-                <p className="text-slate-500 text-[10px]">
-                  {PHASE_INFO[selectedPhase].title}戦略: {PHASE_INFO[selectedPhase].description}
-                </p>
+              <div className="flex items-center gap-3">
+                <div>
+                  <h1 className="text-xl font-black text-slate-100">
+                    GROK Backtest Dashboard
+                  </h1>
+                  <p className="text-slate-500 text-[10px]">
+                    {PHASE_INFO[selectedPhase].title}戦略: {PHASE_INFO[selectedPhase].description}
+                  </p>
+                </div>
+                <Link
+                  href="/dev/analyze"
+                  className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-[#667eea] to-[#764ba2] text-white rounded-lg hover:opacity-90 transition-opacity text-sm font-semibold"
+                  title="マーケット要因分析"
+                >
+                  <Activity className="w-4 h-4" />
+                  分析
+                </Link>
               </div>
             </div>
 
