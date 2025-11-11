@@ -210,34 +210,53 @@ export default function DevAnalyzePage() {
   useEffect(() => {
     const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
+    // Phase 1: 軽量データを先に取得して画面を表示
     Promise.all([
       fetch(`${API_BASE}/api/dev/analyze/summary`).then((res) => res.json()),
       fetch(`${API_BASE}/api/dev/analyze/market_segments`).then((res) => res.json()),
-      fetch(`${API_BASE}/api/dev/analyze/robust_stats`).then((res) => res.json()),
-      fetch(`${API_BASE}/api/dev/analyze/asymmetric_thresholds`).then((res) => res.json()),
-      fetch(`${API_BASE}/api/dev/analyze/grok-selection-analysis`).then((res) => res.json()),
     ])
-      .then(([summaryData, segmentsData, robustData, asymmetricData, grokData]) => {
+      .then(([summaryData, segmentsData]) => {
         setSummary(summaryData);
         setMarketSegments(segmentsData);
-        setRobustStats(robustData);
-        setAsymmetricThresholds(asymmetricData.results);
-        setGrokAnalysis(grokData);
-        setLoading(false);
+        setLoading(false); // ここで画面を表示
       })
       .catch((err) => {
         setError(err.message);
         setLoading(false);
+      });
+
+    // Phase 2: 重いデータをバックグラウンドで取得
+    Promise.all([
+      fetch(`${API_BASE}/api/dev/analyze/robust_stats`).then((res) => res.json()),
+      fetch(`${API_BASE}/api/dev/analyze/asymmetric_thresholds`).then((res) => res.json()),
+      fetch(`${API_BASE}/api/dev/analyze/grok-selection-analysis`).then((res) => res.json()),
+    ])
+      .then(([robustData, asymmetricData, grokData]) => {
+        setRobustStats(robustData);
+        setAsymmetricThresholds(asymmetricData.results);
+        setGrokAnalysis(grokData);
+      })
+      .catch((err) => {
+        console.error("Phase 2 data loading error:", err);
       });
   }, []);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0a0e27] via-[#1a1f3a] to-[#0f1419] flex items-center justify-center">
-        <div className="text-center">
-          <Activity className="w-16 h-16 text-[#667eea] animate-pulse mx-auto mb-4" />
-          <p className="text-gray-400 text-lg">データ読み込み中...</p>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center max-w-md"
+        >
+          <div className="flex items-center justify-center gap-3 mb-8">
+            <div className="w-4 h-4 bg-[#667eea] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+            <div className="w-4 h-4 bg-[#764ba2] rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+            <div className="w-4 h-4 bg-[#667eea] rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-2">データ読み込み中</h2>
+          <p className="text-gray-400">しばらくお待ちください...</p>
+        </motion.div>
       </div>
     );
   }
