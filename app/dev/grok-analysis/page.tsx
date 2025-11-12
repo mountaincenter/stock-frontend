@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   BarChart,
@@ -22,6 +23,8 @@ import {
   Activity,
   Award,
   AlertTriangle,
+  ArrowLeft,
+  ExternalLink,
 } from "lucide-react";
 import type { GrokAnalysisResponse } from "@/types/grok-analysis";
 import {
@@ -92,10 +95,34 @@ export default function GrokAnalysisPage() {
       </div>
 
       <div className="relative z-10 px-4 py-8 max-w-7xl mx-auto">
+        {/* ナビゲーション */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 flex gap-4"
+        >
+          <Link
+            href="/dev"
+            className="inline-flex items-center text-slate-400 hover:text-white transition-colors group"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+            ダッシュボードへ戻る
+          </Link>
+          <Link
+            href="/dev/recommendations"
+            className="inline-flex items-center text-blue-400 hover:text-blue-300 transition-colors group"
+          >
+            <Target className="w-4 h-4 mr-2" />
+            売買推奨レポート
+            <ExternalLink className="w-3 h-3 ml-1 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          </Link>
+        </motion.div>
+
         {/* ヘッダー */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
           className="mb-8"
         >
           <h1 className="text-4xl font-bold text-slate-100 mb-2">

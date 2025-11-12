@@ -111,11 +111,11 @@ export default function RecommendationsPage() {
           className="mb-4"
         >
           <Link
-            href="/dev"
-            className="inline-flex items-center text-slate-400 hover:text-white mb-4 transition-colors"
+            href="/dev/grok-analysis"
+            className="inline-flex items-center text-slate-400 hover:text-white mb-4 transition-colors group"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            戻る
+            <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+            Grok分析レポートへ戻る
           </Link>
           <div className="flex items-center gap-2 mb-2">
             <div className="p-1.5 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg shadow-lg">
