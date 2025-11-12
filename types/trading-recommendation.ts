@@ -11,9 +11,9 @@ export interface TradingRecommendationResponse {
   generatedAt: string; // ISO 8601 format
   dataSource: DataSource;
   summary: Summary;
-  warnings: string[];
+  warnings?: string[];
   stocks: Stock[];
-  scoringRules: ScoringRules;
+  scoringRules?: ScoringRules;
 }
 
 /**
@@ -55,10 +55,10 @@ export interface Stock {
  * テクニカルデータ
  */
 export interface TechnicalData {
-  prevClose: number | null;
+  prevClose?: number | null;
   prevDayChangePct: number | null;
   atr: ATR;
-  volume: number | null;
+  volume?: number | null;
   volatilityLevel: '低ボラ' | '中ボラ' | '高ボラ';
 }
 
@@ -284,8 +284,8 @@ export function formatPercent(value: number | null, decimals = 2): string {
   return `${value.toFixed(decimals)}%`;
 }
 
-export function formatPrice(value: number | null): string {
-  if (value === null) return 'N/A';
+export function formatPrice(value: number | null | undefined): string {
+  if (value === null || value === undefined) return 'N/A';
   return `¥${value.toLocaleString('ja-JP')}`;
 }
 

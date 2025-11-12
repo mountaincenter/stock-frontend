@@ -185,24 +185,26 @@ export default function RecommendationsPage() {
         </motion.div>
 
         {/* 警告 */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-3 mb-4 backdrop-blur-xl"
-        >
-          <div className="flex items-start gap-2">
-            <AlertCircle className="w-5 h-5 text-orange-400 mt-0.5 flex-shrink-0" />
-            <div>
-              <h4 className="font-semibold text-orange-100 mb-1">⚠️ 重要な注意事項</h4>
-              <ul className="list-disc list-inside space-y-0.5 text-sm text-orange-200/80">
-                {data.warnings.map((warning, index) => (
-                  <li key={index}>{warning}</li>
-                ))}
-              </ul>
+        {data.warnings && data.warnings.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-3 mb-4 backdrop-blur-xl"
+          >
+            <div className="flex items-start gap-2">
+              <AlertCircle className="w-5 h-5 text-orange-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <h4 className="font-semibold text-orange-100 mb-1">⚠️ 重要な注意事項</h4>
+                <ul className="list-disc list-inside space-y-0.5 text-sm text-orange-200/80">
+                  {data.warnings.map((warning, index) => (
+                    <li key={index}>{warning}</li>
+                  ))}
+                </ul>
+              </div>
             </div>
-          </div>
-        </motion.div>
+          </motion.div>
+        )}
 
         {/* フィルター */}
         <motion.div
