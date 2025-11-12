@@ -40,8 +40,7 @@ export default function GrokAnalysisPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "";
-    fetch(`${API_BASE}/api/dev/grok-analysis`)
+    fetch("/api/dev/grok-analysis")
       .then((res) => {
         if (!res.ok) throw new Error("データ取得に失敗しました");
         return res.json();

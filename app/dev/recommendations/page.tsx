@@ -38,8 +38,7 @@ export default function RecommendationsPage() {
   const [filter, setFilter] = useState<ActionType | "all">("all");
 
   useEffect(() => {
-    const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "";
-    fetch(`${API_BASE}/api/trading-recommendations`)
+    fetch("/api/trading-recommendations")
       .then((res) => {
         if (!res.ok) throw new Error("データ取得に失敗しました");
         return res.json();
