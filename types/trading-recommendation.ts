@@ -286,7 +286,7 @@ export function formatPercent(value: number | null, decimals = 2): string {
 
 export function formatPrice(value: number | null | undefined): string {
   if (value === null || value === undefined) return 'N/A';
-  return `¥${value.toLocaleString('ja-JP')}`;
+  return `${value.toLocaleString('ja-JP')}円`;
 }
 
 export function getActionColor(action: ActionType): string {
