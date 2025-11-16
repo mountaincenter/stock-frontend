@@ -434,18 +434,18 @@ function StockRow({ stock, index }: { stock: Stock; index: number }) {
           rel="noopener noreferrer"
           className="hover:text-blue-400 hover:underline transition-colors"
         >
-          {stock.stockName}
+          {stock.stockName || stock.ticker}
         </a>
       </td>
-      <td className="px-4 py-3 text-sm text-center text-slate-300">{stock.grokRank}</td>
+      <td className="px-4 py-3 text-sm text-center text-slate-300">{stock.grokRank || 'N/A'}</td>
       <td className="px-4 py-3 text-sm text-right text-slate-300 font-mono">
-        {formatPrice(stock.technicalData.prevClose)}
+        {stock.technicalData?.prevClose ? formatPrice(stock.technicalData.prevClose) : 'N/A'}
       </td>
       <td className="px-4 py-3 text-sm text-right text-slate-300">
-        {formatPercent(stock.technicalData.prevDayChangePct)}
+        {stock.technicalData?.prevDayChangePct ? formatPercent(stock.technicalData.prevDayChangePct) : 'N/A'}
       </td>
       <td className="px-4 py-3 text-sm text-right text-slate-300">
-        {formatPercent(stock.technicalData.atr.value)}
+        {stock.technicalData?.atr?.value ? formatPercent(stock.technicalData.atr.value) : 'N/A'}
       </td>
       <td className="px-4 py-3 text-center">{getActionBadge(stock.recommendation.action)}</td>
       <td className="px-4 py-3 text-sm text-right font-mono font-bold">
@@ -461,7 +461,7 @@ function StockRow({ stock, index }: { stock: Stock; index: number }) {
         {getConfidenceBadge(stock.recommendation.confidence)}
       </td>
       <td className="px-4 py-3 text-sm text-right font-mono text-slate-300">
-        {formatStopLoss(stock.recommendation.stopLoss)}
+        {stock.recommendation.stopLoss ? formatStopLoss(stock.recommendation.stopLoss) : 'N/A'}
       </td>
     </motion.tr>
   );

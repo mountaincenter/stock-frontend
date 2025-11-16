@@ -1,44 +1,28 @@
 import { NextResponse } from 'next/server';
-import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-const s3Client = new S3Client({
-  region: process.env.AWS_REGION || 'ap-northeast-1',
-});
-
 export async function GET() {
   try {
-    const bucket = process.env.S3_BUCKET || 'stock-api-data';
-    const key = 'parquet/timing_analysis/timing_analysis_report.html';
-
-    const command = new GetObjectCommand({
-      Bucket: bucket,
-      Key: key,
+    const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+    const response = await fetch(`${API_BASE}/api/dev/timing-analysis`, {
+      cache: 'no-store',
     });
 
-    const response = await s3Client.send(command);
-
-    if (!response.Body) {
+    if (!response.ok) {
       return NextResponse.json(
-        { error: 'No data found' },
-        { status: 404 }
+        { error: 'Failed to fetch timing analysis' },
+        { status: response.status }
       );
     }
 
-    const html = await response.Body.transformToString();
-
-    return new NextResponse(html, {
-      headers: {
-        'Content-Type': 'text/html; charset=utf-8',
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-      },
-    });
+    const data = await response.json();
+    return NextResponse.json(data);
   } catch (error) {
-    console.error('Error fetching timing analysis report:', error);
+    console.error('Error fetching timing analysis:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch timing analysis report' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
