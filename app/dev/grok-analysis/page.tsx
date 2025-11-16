@@ -144,6 +144,25 @@ export default function GrokAnalysisPage() {
           </div>
         </motion.div>
 
+        {/* データ除外の注意書き */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="mb-6 bg-red-900/20 backdrop-blur-xl border border-red-700/50 rounded-xl p-4"
+        >
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
+            <div className="text-sm text-red-200">
+              <p className="font-semibold mb-1">データ除外に関する注意</p>
+              <p className="text-red-300/90">
+                2025-11-13のデータは、無許可でのスクリプト実行により不正なデータが混入したため、完全に削除されています。
+                詳細は <code className="text-red-200 bg-red-950/50 px-1.5 py-0.5 rounded">README_DATA_CORRUPTION_20251113.md</code> を参照してください。
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
         {/* Phase別勝率 */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
