@@ -263,6 +263,22 @@ export default function DevDashboard() {
               </Link>
             </div>
 
+            {/* タイミング分析リンク */}
+            <div>
+              <div className="text-[9px] text-slate-500 font-medium mb-1 uppercase tracking-wider lg:hidden">
+                Timing Analysis
+              </div>
+              <Link
+                href="/dev/timing-analysis"
+                className="group relative flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-br from-amber-500 via-orange-500 to-red-600 text-white rounded-lg font-semibold text-sm whitespace-nowrap overflow-hidden transition-all duration-300 hover:shadow-2xl hover:shadow-orange-500/50 hover:scale-105"
+                title="売買タイミング最適化分析"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <Activity className="w-4 h-4 relative z-10 group-hover:rotate-12 transition-transform duration-300" />
+                <span className="relative z-10">タイミング分析</span>
+              </Link>
+            </div>
+
             {/* Phase選択 */}
             <div>
               <div className="text-[9px] text-slate-500 font-medium mb-1 uppercase tracking-wider lg:hidden">
