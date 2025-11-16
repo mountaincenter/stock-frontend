@@ -116,6 +116,14 @@ export default function GrokAnalysisPage() {
             売買推奨レポート
             <ExternalLink className="w-3 h-3 ml-1 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
           </Link>
+          <Link
+            href="/dev/timing-analysis"
+            className="inline-flex items-center text-amber-400 hover:text-amber-300 transition-colors group"
+          >
+            <Activity className="w-4 h-4 mr-2" />
+            タイミング分析
+            <ExternalLink className="w-3 h-3 ml-1 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          </Link>
         </motion.div>
 
         {/* ヘッダー */}
