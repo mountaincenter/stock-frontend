@@ -102,6 +102,20 @@ export interface Reason {
  * 深掘り分析
  */
 export interface DeepAnalysis {
+  v2Score?: number;
+  finalScore?: number;
+  scoreAdjustment?: number;
+  recommendation?: string;
+  confidence?: string;
+  verdict?: string;
+  adjustmentReasons?: string[];
+  risks?: string[];
+  opportunities?: string[];
+  latestNews?: string[];
+  sectorTrend?: string;
+  marketSentiment?: 'positive' | 'neutral' | 'negative' | 'very_negative';
+  newsHeadline?: string;
+  // 旧フィールド（互換性維持）
   fundamentals?: Fundamentals;
   riskFactors?: string[];
   specialNotes?: string[];

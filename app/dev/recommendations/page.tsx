@@ -14,6 +14,12 @@ import {
   ShoppingCart,
   XCircle,
   Minus,
+  ChevronDown,
+  ChevronUp,
+  Newspaper,
+  TrendingUpIcon,
+  AlertTriangle,
+  Lightbulb,
 } from "lucide-react";
 import type {
   TradingRecommendationResponse,
@@ -374,6 +380,8 @@ export default function RecommendationsPage() {
 }
 
 function StockRow({ stock, index }: { stock: Stock; index: number }) {
+  const [expanded, setExpanded] = useState(false);
+
   const getActionBadge = (action: Stock["recommendation"]["action"]) => {
     switch (action) {
       case "buy":
@@ -411,6 +419,20 @@ function StockRow({ stock, index }: { stock: Stock; index: number }) {
     }
   };
 
+  const getSentimentBadge = (sentiment?: string) => {
+    if (!sentiment) return null;
+    switch (sentiment) {
+      case "positive":
+        return <span className="px-2 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-bold">ポジティブ</span>;
+      case "negative":
+        return <span className="px-2 py-1 rounded-full bg-red-500/20 text-red-400 text-xs font-bold">ネガティブ</span>;
+      case "very_negative":
+        return <span className="px-2 py-1 rounded-full bg-red-600/30 text-red-300 text-xs font-bold">強ネガティブ</span>;
+      default:
+        return <span className="px-2 py-1 rounded-full bg-slate-500/20 text-slate-400 text-xs font-bold">中立</span>;
+    }
+  };
+
   const bgColor =
     stock.recommendation.action === "buy"
       ? "bg-green-500/5 hover:bg-green-500/10"
@@ -418,51 +440,186 @@ function StockRow({ stock, index }: { stock: Stock; index: number }) {
         ? "bg-red-500/5 hover:bg-red-500/10"
         : "bg-orange-500/5 hover:bg-orange-500/10";
 
+  const hasDeepAnalysis = stock.deepAnalysis && (
+    stock.deepAnalysis.latestNews ||
+    stock.deepAnalysis.sectorTrend ||
+    stock.deepAnalysis.risks ||
+    stock.deepAnalysis.opportunities
+  );
+
   return (
-    <motion.tr
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 20 }}
-      transition={{ duration: 0.3, delay: index * 0.02 }}
-      className={`border-b border-slate-800/50 transition-colors ${bgColor}`}
-    >
-      <td className="px-4 py-3 text-sm font-medium text-slate-200">{stock.ticker}</td>
-      <td className="px-4 py-3 text-sm text-slate-300">
-        <a
-          href={`https://finance.yahoo.co.jp/quote/${stock.ticker}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="hover:text-blue-400 hover:underline transition-colors"
+    <>
+      <motion.tr
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: 20 }}
+        transition={{ duration: 0.3, delay: index * 0.02 }}
+        className={`border-b border-slate-800/50 transition-colors ${bgColor} ${hasDeepAnalysis ? 'cursor-pointer' : ''}`}
+        onClick={() => hasDeepAnalysis && setExpanded(!expanded)}
+      >
+        <td className="px-4 py-3 text-sm font-medium text-slate-200">
+          <div className="flex items-center gap-2">
+            {hasDeepAnalysis && (
+              expanded ? <ChevronUp className="w-4 h-4 text-blue-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />
+            )}
+            {stock.ticker}
+          </div>
+        </td>
+        <td className="px-4 py-3 text-sm text-slate-300">
+          <a
+            href={`https://finance.yahoo.co.jp/quote/${stock.ticker}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-blue-400 hover:underline transition-colors"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {stock.stockName || stock.ticker}
+          </a>
+        </td>
+        <td className="px-4 py-3 text-sm text-center text-slate-300">{stock.grokRank || 'N/A'}</td>
+        <td className="px-4 py-3 text-sm text-right text-slate-300 font-mono">
+          {stock.technicalData?.prevClose ? formatPrice(stock.technicalData.prevClose) : 'N/A'}
+        </td>
+        <td className="px-4 py-3 text-sm text-right text-slate-300">
+          {stock.technicalData?.prevDayChangePct ? formatPercent(stock.technicalData.prevDayChangePct) : 'N/A'}
+        </td>
+        <td className="px-4 py-3 text-sm text-right text-slate-300">
+          {stock.technicalData?.atr?.value ? formatPercent(stock.technicalData.atr.value) : 'N/A'}
+        </td>
+        <td className="px-4 py-3 text-center">{getActionBadge(stock.recommendation.action)}</td>
+        <td className="px-4 py-3 text-sm text-right font-mono font-bold">
+          <div className="flex flex-col items-end gap-1">
+            <span
+              className={
+                stock.recommendation.score >= 0 ? "text-green-400" : "text-red-400"
+              }
+            >
+              {formatScore(stock.recommendation.score)}
+            </span>
+            {stock.deepAnalysis?.finalScore && (
+              <span className="text-xs text-blue-400">
+                Final: {formatScore(stock.deepAnalysis.finalScore)}
+              </span>
+            )}
+          </div>
+        </td>
+        <td className="px-4 py-3 text-sm text-center">
+          {getConfidenceBadge(stock.recommendation.confidence)}
+        </td>
+        <td className="px-4 py-3 text-sm text-right font-mono text-slate-300">
+          {stock.recommendation.stopLoss ? formatStopLoss(stock.recommendation.stopLoss) : 'N/A'}
+        </td>
+      </motion.tr>
+
+      {/* Deep Analysis Expanded Section */}
+      {expanded && hasDeepAnalysis && (
+        <motion.tr
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          className={bgColor}
         >
-          {stock.stockName || stock.ticker}
-        </a>
-      </td>
-      <td className="px-4 py-3 text-sm text-center text-slate-300">{stock.grokRank || 'N/A'}</td>
-      <td className="px-4 py-3 text-sm text-right text-slate-300 font-mono">
-        {stock.technicalData?.prevClose ? formatPrice(stock.technicalData.prevClose) : 'N/A'}
-      </td>
-      <td className="px-4 py-3 text-sm text-right text-slate-300">
-        {stock.technicalData?.prevDayChangePct ? formatPercent(stock.technicalData.prevDayChangePct) : 'N/A'}
-      </td>
-      <td className="px-4 py-3 text-sm text-right text-slate-300">
-        {stock.technicalData?.atr?.value ? formatPercent(stock.technicalData.atr.value) : 'N/A'}
-      </td>
-      <td className="px-4 py-3 text-center">{getActionBadge(stock.recommendation.action)}</td>
-      <td className="px-4 py-3 text-sm text-right font-mono font-bold">
-        <span
-          className={
-            stock.recommendation.score >= 0 ? "text-green-400" : "text-red-400"
-          }
-        >
-          {formatScore(stock.recommendation.score)}
-        </span>
-      </td>
-      <td className="px-4 py-3 text-sm text-center">
-        {getConfidenceBadge(stock.recommendation.confidence)}
-      </td>
-      <td className="px-4 py-3 text-sm text-right font-mono text-slate-300">
-        {stock.recommendation.stopLoss ? formatStopLoss(stock.recommendation.stopLoss) : 'N/A'}
-      </td>
-    </motion.tr>
+          <td colSpan={10} className="px-6 py-4">
+            <div className="bg-slate-800/50 rounded-lg p-4 space-y-4">
+              {/* Header */}
+              <div className="flex items-center gap-2 border-b border-slate-700 pb-2">
+                <Newspaper className="w-5 h-5 text-blue-400" />
+                <h3 className="text-lg font-bold text-slate-200">深掘り分析</h3>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Left Column */}
+                <div className="space-y-3">
+                  {/* Latest News */}
+                  {stock.deepAnalysis?.latestNews && stock.deepAnalysis.latestNews.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-300 mb-2 flex items-center gap-2">
+                        <Newspaper className="w-4 h-4 text-blue-400" />
+                        最新ニュース
+                      </h4>
+                      <ul className="space-y-1.5">
+                        {stock.deepAnalysis.latestNews.map((news, i) => (
+                          <li key={i} className="text-sm text-slate-300 pl-4 border-l-2 border-blue-500/30">
+                            {news}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Sector Trend */}
+                  {stock.deepAnalysis?.sectorTrend && (
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-300 mb-2 flex items-center gap-2">
+                        <TrendingUpIcon className="w-4 h-4 text-purple-400" />
+                        セクター動向
+                      </h4>
+                      <p className="text-sm text-slate-300 pl-4 border-l-2 border-purple-500/30">
+                        {stock.deepAnalysis.sectorTrend}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Market Sentiment */}
+                  {stock.deepAnalysis?.marketSentiment && (
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-300 mb-2">市場センチメント</h4>
+                      {getSentimentBadge(stock.deepAnalysis.marketSentiment)}
+                    </div>
+                  )}
+                </div>
+
+                {/* Right Column */}
+                <div className="space-y-3">
+                  {/* Risks */}
+                  {stock.deepAnalysis?.risks && stock.deepAnalysis.risks.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-300 mb-2 flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 text-red-400" />
+                        リスク
+                      </h4>
+                      <ul className="space-y-1.5">
+                        {stock.deepAnalysis.risks.map((risk, i) => (
+                          <li key={i} className="text-sm text-red-300 pl-4 border-l-2 border-red-500/30">
+                            {risk}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Opportunities */}
+                  {stock.deepAnalysis?.opportunities && stock.deepAnalysis.opportunities.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-300 mb-2 flex items-center gap-2">
+                        <Lightbulb className="w-4 h-4 text-green-400" />
+                        機会
+                      </h4>
+                      <ul className="space-y-1.5">
+                        {stock.deepAnalysis.opportunities.map((opp, i) => (
+                          <li key={i} className="text-sm text-green-300 pl-4 border-l-2 border-green-500/30">
+                            {opp}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Verdict */}
+                  {stock.deepAnalysis?.verdict && (
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-300 mb-2">総合判断</h4>
+                      <p className="text-sm text-slate-300 pl-4 border-l-2 border-yellow-500/30 italic">
+                        {stock.deepAnalysis.verdict}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </td>
+        </motion.tr>
+      )}
+    </>
   );
 }
