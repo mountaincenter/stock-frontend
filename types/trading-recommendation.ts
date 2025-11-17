@@ -75,7 +75,8 @@ export interface ATR {
  */
 export interface Recommendation {
   action: 'buy' | 'sell' | 'hold';
-  score: number; // -100 ~ +100
+  score: number; // -100 ~ +100 (finalScore または v2Score)
+  v2Score?: number; // 元のv2スコア
   confidence: 'high' | 'medium' | 'low';
   stopLoss: StopLoss;
   reasons: Reason[];

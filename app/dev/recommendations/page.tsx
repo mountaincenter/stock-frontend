@@ -496,9 +496,9 @@ function StockRow({ stock, index }: { stock: Stock; index: number }) {
             >
               {formatScore(stock.recommendation.score)}
             </span>
-            {stock.deepAnalysis?.finalScore && (
-              <span className="text-xs text-blue-400">
-                Final: {formatScore(stock.deepAnalysis.finalScore)}
+            {stock.recommendation.v2Score !== undefined && stock.recommendation.v2Score !== stock.recommendation.score && (
+              <span className="text-xs text-slate-400">
+                v2: {formatScore(stock.recommendation.v2Score)}
               </span>
             )}
           </div>
