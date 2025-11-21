@@ -546,6 +546,206 @@ export default function GrokAnalysisPage() {
           </motion.section>
         )}
 
+        {/* V2 Action別分析 */}
+        {data.v2ActionStats && (
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8 }}
+            className="mb-8"
+          >
+            <h2 className="text-2xl font-bold text-slate-100 mb-4 flex items-center gap-2">
+              <TrendingUp className="w-6 h-6 text-blue-400" />
+              V2 売買判断分析（買い/売り/静観）
+            </h2>
+
+            {/* 全期間サマリー */}
+            <div className="bg-gradient-to-br from-blue-900/20 via-purple-900/20 to-pink-900/20 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 mb-6">
+              <h3 className="text-xl font-bold text-slate-100 mb-4">
+                📊 全期間サマリー（{data.v2ActionStats.summary.total}銘柄）
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {data.v2ActionStats.actionStats.map((action) => (
+                  <div
+                    key={action.action}
+                    className={`p-6 rounded-xl border-2 ${
+                      action.actionJp === '買い'
+                        ? 'bg-green-500/10 border-green-500/50'
+                        : action.actionJp === '売り'
+                        ? 'bg-red-500/10 border-red-500/50'
+                        : 'bg-yellow-500/10 border-yellow-500/50'
+                    }`}
+                  >
+                    <div className="text-lg font-bold text-slate-100 mb-4 flex items-center gap-2">
+                      {action.actionJp === '買い' && '🟢'}
+                      {action.actionJp === '売り' && '🔴'}
+                      {action.actionJp === '静観' && '🟡'}
+                      <span>{action.actionJp}判定 ({action.total}銘柄)</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <div className="text-xs text-slate-400 mb-1">勝率 (全体)</div>
+                        <div className="text-xl font-bold" style={{ color: getWinRateColor(action.winRate || 0) }}>
+                          {formatPercent(action.winRate || 0, 1)}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-slate-400 mb-1">勝率 (引分除外)</div>
+                        <div className="text-xl font-bold" style={{ color: getWinRateColor(action.winRateExclDraw || 0) }}>
+                          {formatPercent(action.winRateExclDraw || 0, 1)}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-slate-400 mb-1">平均利益率</div>
+                        <div className="text-xl font-bold" style={{ color: getReturnColor(action.avgReturn || 0) }}>
+                          {formatPercent(action.avgReturn || 0, 2)}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-slate-400 mb-1">100株利益合計</div>
+                        <div className="text-xl font-bold font-mono" style={{ color: getReturnColor(action.totalProfit || 0) }}>
+                          {(action.totalProfit || 0) >= 0 ? '+' : ''}{Math.round(action.totalProfit || 0).toLocaleString()}円
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-xs text-slate-400 pt-2 border-t border-slate-700">
+                      {action.winCount}勝 / {action.loseCount}敗
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* V2スコア統計 */}
+              <div className="mt-4 bg-slate-800/30 rounded-xl p-4">
+                <div className="text-sm font-semibold text-slate-300 mb-2">📈 V2スコア統計</div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                  <div>
+                    <div className="text-slate-400">平均</div>
+                    <div className="text-lg font-bold text-blue-400">
+                      {formatNumber(data.v2ActionStats.v2ScoreStats.mean, 1)}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-slate-400">中央値</div>
+                    <div className="text-lg font-bold text-blue-400">
+                      {formatNumber(data.v2ActionStats.v2ScoreStats.median, 1)}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-slate-400">最小</div>
+                    <div className="text-lg font-bold text-slate-300">
+                      {formatNumber(data.v2ActionStats.v2ScoreStats.min, 0)}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-slate-400">最大</div>
+                    <div className="text-lg font-bold text-slate-300">
+                      {formatNumber(data.v2ActionStats.v2ScoreStats.max, 0)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 日別詳細データ */}
+            <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6">
+              <h3 className="text-lg font-bold text-slate-100 mb-4">📅 日別詳細データ</h3>
+              <div className="space-y-6">
+                {data.v2ActionStats.dateStats.slice(0, 5).map((dateData) => (
+                  <div key={dateData.date} className="border border-slate-700/50 rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-base font-bold text-slate-100">{dateData.date}</h4>
+                      <span className="text-sm text-slate-400">{dateData.total}銘柄</span>
+                    </div>
+
+                    {dateData.actions.map((actionData) => (
+                      <div key={actionData.action} className="mb-4 last:mb-0">
+                        <div
+                          className={`inline-block px-3 py-1 rounded-lg text-sm font-semibold mb-3 ${
+                            actionData.actionJp === '買い'
+                              ? 'bg-green-500/20 text-green-300'
+                              : actionData.actionJp === '売り'
+                              ? 'bg-red-500/20 text-red-300'
+                              : 'bg-yellow-500/20 text-yellow-300'
+                          }`}
+                        >
+                          {actionData.actionJp} ({actionData.total}銘柄)
+                        </div>
+
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="border-b border-slate-700/50">
+                                <th className="text-left py-2 px-2 text-slate-400">銘柄</th>
+                                <th className="text-right py-2 px-2 text-slate-400">Rank</th>
+                                <th className="text-right py-2 px-2 text-slate-400">V2スコア</th>
+                                <th className="text-right py-2 px-2 text-slate-400">前日終値</th>
+                                <th className="text-right py-2 px-2 text-slate-400">始値</th>
+                                <th className="text-right py-2 px-2 text-slate-400">終値</th>
+                                <th className="text-right py-2 px-2 text-slate-400">高値</th>
+                                <th className="text-right py-2 px-2 text-slate-400">安値</th>
+                                <th className="text-right py-2 px-2 text-slate-400">利益率</th>
+                                <th className="text-right py-2 px-2 text-slate-400">100株損益</th>
+                                <th className="text-center py-2 px-2 text-slate-400">結果</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {actionData.stocks.map((stock) => (
+                                <tr key={stock.ticker} className="border-b border-slate-800/50 hover:bg-slate-800/30">
+                                  <td className="py-2 px-2">
+                                    <div className="font-semibold text-slate-200">{stock.companyName}</div>
+                                    <div className="text-[10px] text-slate-500">{stock.ticker}</div>
+                                  </td>
+                                  <td className="text-right py-2 px-2 text-slate-300">{stock.grokRank}</td>
+                                  <td className="text-right py-2 px-2 font-semibold text-blue-400">
+                                    {stock.v2Score}
+                                  </td>
+                                  <td className="text-right py-2 px-2 text-slate-300">
+                                    {stock.prevDayClose?.toLocaleString()}円
+                                  </td>
+                                  <td className="text-right py-2 px-2 text-slate-300">
+                                    {stock.buyPrice?.toLocaleString()}円
+                                  </td>
+                                  <td className="text-right py-2 px-2 text-slate-300">
+                                    {stock.sellPrice?.toLocaleString()}円
+                                  </td>
+                                  <td className="text-right py-2 px-2 text-slate-300">
+                                    {stock.high?.toLocaleString()}円
+                                  </td>
+                                  <td className="text-right py-2 px-2 text-slate-300">
+                                    {stock.low?.toLocaleString()}円
+                                  </td>
+                                  <td className="text-right py-2 px-2 font-bold" style={{ color: getReturnColor(stock.returnPct || 0) }}>
+                                    {formatPercent(stock.returnPct || 0, 2)}
+                                  </td>
+                                  <td className="text-right py-2 px-2 font-bold font-mono" style={{ color: getReturnColor(stock.profitPer100 || 0) }}>
+                                    {(stock.profitPer100 || 0) >= 0 ? '+' : ''}{Math.round(stock.profitPer100 || 0).toLocaleString()}円
+                                  </td>
+                                  <td className="text-center py-2 px-2">
+                                    {stock.isWin === true ? (
+                                      <span className="text-green-400 font-bold">✅</span>
+                                    ) : stock.isWin === false ? (
+                                      <span className="text-red-400 font-bold">❌</span>
+                                    ) : (
+                                      <span className="text-slate-500">-</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.section>
+        )}
+
         {/* 売買判断の振り返り */}
         {data.recommendationStats && (
           <motion.section

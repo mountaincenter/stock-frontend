@@ -138,6 +138,65 @@ export interface RecommendationStats {
   } | null;
 }
 
+export interface V2ActionActionStats {
+  action: 'buy' | 'sell' | 'hold';
+  actionJp: '買い' | '売り' | '静観';
+  total: number;
+  winCount: number;
+  loseCount: number;
+  winRate: number;
+  winRateExclDraw: number;
+  totalProfit: number;
+  avgProfit: number;
+  avgReturn: number;
+}
+
+export interface V2StockDetail {
+  ticker: string;
+  companyName: string;
+  grokRank: number;
+  prevDayClose: number;
+  v2Score: number;
+  v2Action: '買い' | '売り' | '静観';
+  buyPrice: number;
+  sellPrice: number;
+  high: number;
+  low: number;
+  profitPer100: number;
+  returnPct: number;
+  isWin: boolean | null;
+}
+
+export interface V2DateActionStats {
+  action: 'buy' | 'sell' | 'hold';
+  actionJp: '買い' | '売り' | '静観';
+  total: number;
+  stocks: V2StockDetail[];
+}
+
+export interface V2DateStats {
+  date: string;
+  total: number;
+  actions: V2DateActionStats[];
+}
+
+export interface V2ActionStats {
+  summary: {
+    total: number;
+    buy: number;
+    sell: number;
+    hold: number;
+  };
+  actionStats: V2ActionActionStats[];
+  dateStats: V2DateStats[];
+  v2ScoreStats: {
+    mean: number;
+    median: number;
+    min: number;
+    max: number;
+  };
+}
+
 export interface GrokAnalysisResponse {
   metadata: Metadata;
   phaseStats: PhaseStats[];
@@ -147,6 +206,7 @@ export interface GrokAnalysisResponse {
   volatilityStats: VolatilityStats;
   prevDayStats: PrevDayStats[] | null;
   dailyStats: DailyStats[];
+  v2ActionStats: V2ActionStats | null;
   recommendationStats: RecommendationStats | null;
 }
 
