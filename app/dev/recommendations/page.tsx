@@ -90,9 +90,17 @@ export default function RecommendationsPage() {
     );
   }
 
+  // グループ化ソート: 買い→静観→売り の順で、各グループ内はスコア順
+  const sortByActionAndScore = (stocks: Stock[]) => {
+    const buyStocks = sortByScore(getBuyStocks(stocks));
+    const holdStocks = sortByScore(getHoldStocks(stocks));
+    const sellStocks = sortByScore(getSellStocks(stocks));
+    return [...buyStocks, ...holdStocks, ...sellStocks];
+  };
+
   const filteredStocks =
     filter === "all"
-      ? sortByScore(data.stocks)
+      ? sortByActionAndScore(data.stocks)
       : filter === "buy"
         ? sortByScore(getBuyStocks(data.stocks))
         : filter === "sell"
