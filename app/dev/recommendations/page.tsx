@@ -296,10 +296,16 @@ export default function RecommendationsPage() {
                     ATR(%)
                   </th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    推奨
+                    v2.0.3判断
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    スコア
+                    v2.0.3スコア
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    v2.1判断
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    v2.1スコア
                   </th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">
                     信頼度
@@ -486,22 +492,25 @@ function StockRow({ stock, index }: { stock: Stock; index: number }) {
         <td className="px-4 py-3 text-sm text-right text-slate-300">
           {stock.technicalData?.atr?.value ? formatPercent(stock.technicalData.atr.value) : 'N/A'}
         </td>
+        <td className="px-4 py-3 text-center">
+          {stock.recommendation.v2_0_3_action && getActionBadge(stock.recommendation.v2_0_3_action)}
+        </td>
+        <td className="px-4 py-3 text-sm text-right font-mono">
+          {stock.recommendation.v2_0_3_score !== undefined && (
+            <span className={stock.recommendation.v2_0_3_score >= 0 ? "text-green-400" : "text-red-400"}>
+              {formatScore(stock.recommendation.v2_0_3_score)}
+            </span>
+          )}
+        </td>
         <td className="px-4 py-3 text-center">{getActionBadge(stock.recommendation.action)}</td>
         <td className="px-4 py-3 text-sm text-right font-mono font-bold">
-          <div className="flex flex-col items-end gap-1">
-            <span
-              className={
-                stock.recommendation.score >= 0 ? "text-green-400" : "text-red-400"
-              }
-            >
-              {formatScore(stock.recommendation.score)}
-            </span>
-            {stock.recommendation.v2Score !== undefined && stock.recommendation.v2Score !== stock.recommendation.score && (
-              <span className="text-xs text-slate-400">
-                v2: {formatScore(stock.recommendation.v2Score)}
-              </span>
-            )}
-          </div>
+          <span
+            className={
+              stock.recommendation.score >= 0 ? "text-green-400" : "text-red-400"
+            }
+          >
+            {formatScore(stock.recommendation.score)}
+          </span>
         </td>
         <td className="px-4 py-3 text-sm text-center">
           {getConfidenceBadge(stock.recommendation.confidence)}
@@ -519,7 +528,7 @@ function StockRow({ stock, index }: { stock: Stock; index: number }) {
           exit={{ opacity: 0, height: 0 }}
           className={bgColor}
         >
-          <td colSpan={10} className="px-6 py-4">
+          <td colSpan={12} className="px-6 py-4">
             <div className="bg-slate-800/50 rounded-lg p-4 space-y-4">
               {/* Header */}
               <div className="flex items-center gap-2 border-b border-slate-700 pb-2">

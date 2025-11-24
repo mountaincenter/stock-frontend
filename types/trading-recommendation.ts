@@ -75,11 +75,14 @@ export interface ATR {
  */
 export interface Recommendation {
   action: 'buy' | 'sell' | 'hold';
-  score: number; // -100 ~ +100 (finalScore または v2Score)
-  v2Score?: number; // 元のv2スコア
+  score: number; // -100 ~ +100 (v2_1_score)
   confidence: 'high' | 'medium' | 'low';
   stopLoss: StopLoss;
   reasons: Reason[];
+  // v2_0_3 情報（比較用）
+  v2_0_3_action?: 'buy' | 'sell' | 'hold';
+  v2_0_3_score?: number;
+  v2_0_3_reasons?: string;
 }
 
 /**
