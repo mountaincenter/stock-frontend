@@ -279,6 +279,38 @@ export default function DevDashboard() {
               </Link>
             </div>
 
+            {/* Grok v2比較リンク */}
+            <div>
+              <div className="text-[9px] text-slate-500 font-medium mb-1 uppercase tracking-wider lg:hidden">
+                Grok v2 Compare
+              </div>
+              <Link
+                href="/dev/grok-analysis-v2"
+                className="group relative flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-600 text-white rounded-lg font-semibold text-sm whitespace-nowrap overflow-hidden transition-all duration-300 hover:shadow-2xl hover:shadow-violet-500/50 hover:scale-105"
+                title="v2.0.3 vs v2.1 比較分析"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <BarChart3 className="w-4 h-4 relative z-10 group-hover:rotate-12 transition-transform duration-300" />
+                <span className="relative z-10">v2比較</span>
+              </Link>
+            </div>
+
+            {/* 売買推奨リンク */}
+            <div>
+              <div className="text-[9px] text-slate-500 font-medium mb-1 uppercase tracking-wider lg:hidden">
+                Recommendations
+              </div>
+              <Link
+                href="/dev/recommendations"
+                className="group relative flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600 text-white rounded-lg font-semibold text-sm whitespace-nowrap overflow-hidden transition-all duration-300 hover:shadow-2xl hover:shadow-green-500/50 hover:scale-105"
+                title="今日の売買推奨"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <Target className="w-4 h-4 relative z-10 group-hover:rotate-12 transition-transform duration-300" />
+                <span className="relative z-10">売買推奨</span>
+              </Link>
+            </div>
+
             {/* Phase選択 */}
             <div>
               <div className="text-[9px] text-slate-500 font-medium mb-1 uppercase tracking-wider lg:hidden">
