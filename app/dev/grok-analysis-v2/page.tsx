@@ -383,32 +383,48 @@ export default function GrokAnalysisV2Page() {
             <div className="border-t border-gray-700 pt-4 space-y-2">
               <div className="flex justify-between">
                 <span className="text-gray-400">買い勝率</span>
-                <span className="text-green-400 font-medium">
+                <span className={`font-medium ${
+                  (data.performanceStats?.v2_0_3.buy.winRate ?? 0) >= 75 && (data.performanceStats?.v2_0_3.buy.totalProfit ?? 0) > 0 ? 'text-green-400' :
+                  (data.performanceStats?.v2_0_3.buy.winRate ?? 0) <= 50 && (data.performanceStats?.v2_0_3.buy.totalProfit ?? 0) < 0 ? 'text-red-400' :
+                  'text-gray-300'
+                }`}>
                   {data.performanceStats?.v2_0_3.buy.winRate?.toFixed(1) ?? '-'}%
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">買い利益</span>
-                <span className={`font-medium ${(data.performanceStats?.v2_0_3.buy.totalProfit ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  ¥{(data.performanceStats?.v2_0_3.buy.totalProfit ?? 0).toLocaleString()}
+                <span className={`font-medium ${
+                  (data.performanceStats?.v2_0_3.buy.winRate ?? 0) >= 75 && (data.performanceStats?.v2_0_3.buy.totalProfit ?? 0) > 0 ? 'text-green-400' :
+                  (data.performanceStats?.v2_0_3.buy.winRate ?? 0) <= 50 && (data.performanceStats?.v2_0_3.buy.totalProfit ?? 0) < 0 ? 'text-red-400' :
+                  'text-gray-300'
+                }`}>
+                  {(data.performanceStats?.v2_0_3.buy.totalProfit ?? 0).toLocaleString()}円
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">売り勝率</span>
-                <span className="text-red-400 font-medium">
+                <span className={`font-medium ${
+                  (data.performanceStats?.v2_0_3.sell.winRate ?? 0) >= 75 && (data.performanceStats?.v2_0_3.sell.totalProfit ?? 0) > 0 ? 'text-green-400' :
+                  (data.performanceStats?.v2_0_3.sell.winRate ?? 0) <= 50 && (data.performanceStats?.v2_0_3.sell.totalProfit ?? 0) < 0 ? 'text-red-400' :
+                  'text-gray-300'
+                }`}>
                   {data.performanceStats?.v2_0_3.sell.winRate?.toFixed(1) ?? '-'}%
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">売り利益</span>
-                <span className={`font-medium ${(data.performanceStats?.v2_0_3.sell.totalProfit ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  ¥{(data.performanceStats?.v2_0_3.sell.totalProfit ?? 0).toLocaleString()}
+                <span className={`font-medium ${
+                  (data.performanceStats?.v2_0_3.sell.winRate ?? 0) >= 75 && (data.performanceStats?.v2_0_3.sell.totalProfit ?? 0) > 0 ? 'text-green-400' :
+                  (data.performanceStats?.v2_0_3.sell.winRate ?? 0) <= 50 && (data.performanceStats?.v2_0_3.sell.totalProfit ?? 0) < 0 ? 'text-red-400' :
+                  'text-gray-300'
+                }`}>
+                  {(data.performanceStats?.v2_0_3.sell.totalProfit ?? 0).toLocaleString()}円
                 </span>
               </div>
               <div className="flex justify-between border-t border-gray-700 pt-2 mt-2">
                 <span className="text-gray-300 font-medium">総合利益</span>
                 <span className={`text-xl font-bold ${(data.performanceStats?.v2_0_3.totalProfit ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  ¥{(data.performanceStats?.v2_0_3.totalProfit ?? 0).toLocaleString()}
+                  {(data.performanceStats?.v2_0_3.totalProfit ?? 0).toLocaleString()}円
                 </span>
               </div>
             </div>
@@ -438,32 +454,48 @@ export default function GrokAnalysisV2Page() {
             <div className="border-t border-gray-700 pt-4 space-y-2">
               <div className="flex justify-between">
                 <span className="text-gray-400">買い勝率</span>
-                <span className="text-green-400 font-medium">
+                <span className={`font-medium ${
+                  (data.performanceStats?.v2_1.buy.winRate ?? 0) >= 75 && (data.performanceStats?.v2_1.buy.totalProfit ?? 0) > 0 ? 'text-green-400' :
+                  (data.performanceStats?.v2_1.buy.winRate ?? 0) <= 50 && (data.performanceStats?.v2_1.buy.totalProfit ?? 0) < 0 ? 'text-red-400' :
+                  'text-gray-300'
+                }`}>
                   {data.performanceStats?.v2_1.buy.winRate?.toFixed(1) ?? '-'}%
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">買い利益</span>
-                <span className={`font-medium ${(data.performanceStats?.v2_1.buy.totalProfit ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  ¥{(data.performanceStats?.v2_1.buy.totalProfit ?? 0).toLocaleString()}
+                <span className={`font-medium ${
+                  (data.performanceStats?.v2_1.buy.winRate ?? 0) >= 75 && (data.performanceStats?.v2_1.buy.totalProfit ?? 0) > 0 ? 'text-green-400' :
+                  (data.performanceStats?.v2_1.buy.winRate ?? 0) <= 50 && (data.performanceStats?.v2_1.buy.totalProfit ?? 0) < 0 ? 'text-red-400' :
+                  'text-gray-300'
+                }`}>
+                  {(data.performanceStats?.v2_1.buy.totalProfit ?? 0).toLocaleString()}円
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">売り勝率</span>
-                <span className="text-red-400 font-medium">
+                <span className={`font-medium ${
+                  (data.performanceStats?.v2_1.sell.winRate ?? 0) >= 75 && (data.performanceStats?.v2_1.sell.totalProfit ?? 0) > 0 ? 'text-green-400' :
+                  (data.performanceStats?.v2_1.sell.winRate ?? 0) <= 50 && (data.performanceStats?.v2_1.sell.totalProfit ?? 0) < 0 ? 'text-red-400' :
+                  'text-gray-300'
+                }`}>
                   {data.performanceStats?.v2_1.sell.winRate?.toFixed(1) ?? '-'}%
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">売り利益</span>
-                <span className={`font-medium ${(data.performanceStats?.v2_1.sell.totalProfit ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  ¥{(data.performanceStats?.v2_1.sell.totalProfit ?? 0).toLocaleString()}
+                <span className={`font-medium ${
+                  (data.performanceStats?.v2_1.sell.winRate ?? 0) >= 75 && (data.performanceStats?.v2_1.sell.totalProfit ?? 0) > 0 ? 'text-green-400' :
+                  (data.performanceStats?.v2_1.sell.winRate ?? 0) <= 50 && (data.performanceStats?.v2_1.sell.totalProfit ?? 0) < 0 ? 'text-red-400' :
+                  'text-gray-300'
+                }`}>
+                  {(data.performanceStats?.v2_1.sell.totalProfit ?? 0).toLocaleString()}円
                 </span>
               </div>
               <div className="flex justify-between border-t border-gray-700 pt-2 mt-2">
                 <span className="text-gray-300 font-medium">総合利益</span>
                 <span className={`text-xl font-bold ${(data.performanceStats?.v2_1.totalProfit ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  ¥{(data.performanceStats?.v2_1.totalProfit ?? 0).toLocaleString()}
+                  {(data.performanceStats?.v2_1.totalProfit ?? 0).toLocaleString()}円
                 </span>
               </div>
             </div>
