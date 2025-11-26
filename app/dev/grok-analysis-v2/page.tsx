@@ -398,7 +398,7 @@ export default function GrokAnalysisV2Page() {
                   (data.performanceStats?.v2_0_3.buy.winRate ?? 0) <= 50 && (data.performanceStats?.v2_0_3.buy.totalProfit ?? 0) < 0 ? 'text-red-400' :
                   'text-gray-300'
                 }`}>
-                  {(data.performanceStats?.v2_0_3.buy.totalProfit ?? 0).toLocaleString()}円
+                  {Math.round(data.performanceStats?.v2_0_3.buy.totalProfit ?? 0).toLocaleString()}円
                 </span>
               </div>
               <div className="flex justify-between">
@@ -418,13 +418,13 @@ export default function GrokAnalysisV2Page() {
                   (data.performanceStats?.v2_0_3.sell.winRate ?? 0) <= 50 && (data.performanceStats?.v2_0_3.sell.totalProfit ?? 0) < 0 ? 'text-red-400' :
                   'text-gray-300'
                 }`}>
-                  {(data.performanceStats?.v2_0_3.sell.totalProfit ?? 0).toLocaleString()}円
+                  {Math.round(data.performanceStats?.v2_0_3.sell.totalProfit ?? 0).toLocaleString()}円
                 </span>
               </div>
               <div className="flex justify-between border-t border-gray-700 pt-2 mt-2">
                 <span className="text-gray-300 font-medium">総合利益</span>
                 <span className={`text-xl font-bold ${(data.performanceStats?.v2_0_3.totalProfit ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {(data.performanceStats?.v2_0_3.totalProfit ?? 0).toLocaleString()}円
+                  {Math.round(data.performanceStats?.v2_0_3.totalProfit ?? 0).toLocaleString()}円
                 </span>
               </div>
             </div>
@@ -469,7 +469,7 @@ export default function GrokAnalysisV2Page() {
                   (data.performanceStats?.v2_1.buy.winRate ?? 0) <= 50 && (data.performanceStats?.v2_1.buy.totalProfit ?? 0) < 0 ? 'text-red-400' :
                   'text-gray-300'
                 }`}>
-                  {(data.performanceStats?.v2_1.buy.totalProfit ?? 0).toLocaleString()}円
+                  {Math.round(data.performanceStats?.v2_1.buy.totalProfit ?? 0).toLocaleString()}円
                 </span>
               </div>
               <div className="flex justify-between">
@@ -489,13 +489,13 @@ export default function GrokAnalysisV2Page() {
                   (data.performanceStats?.v2_1.sell.winRate ?? 0) <= 50 && (data.performanceStats?.v2_1.sell.totalProfit ?? 0) < 0 ? 'text-red-400' :
                   'text-gray-300'
                 }`}>
-                  {(data.performanceStats?.v2_1.sell.totalProfit ?? 0).toLocaleString()}円
+                  {Math.round(data.performanceStats?.v2_1.sell.totalProfit ?? 0).toLocaleString()}円
                 </span>
               </div>
               <div className="flex justify-between border-t border-gray-700 pt-2 mt-2">
                 <span className="text-gray-300 font-medium">総合利益</span>
                 <span className={`text-xl font-bold ${(data.performanceStats?.v2_1.totalProfit ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {(data.performanceStats?.v2_1.totalProfit ?? 0).toLocaleString()}円
+                  {Math.round(data.performanceStats?.v2_1.totalProfit ?? 0).toLocaleString()}円
                 </span>
               </div>
             </div>
@@ -576,7 +576,7 @@ export default function GrokAnalysisV2Page() {
                         (stat.winRate ?? 0) <= 50 && (stat.avgProfit ?? 0) < 0 ? 'text-red-400' :
                         'text-gray-300'
                       }`}>
-                        {stat.avgProfit !== null ? `${stat.avgProfit.toLocaleString()}円` : '-'}
+                        {stat.avgProfit !== null ? `${Math.round(stat.avgProfit).toLocaleString()}円` : '-'}
                       </td>
                     </tr>
                   ))}
@@ -627,7 +627,7 @@ export default function GrokAnalysisV2Page() {
                         (stat.winRate ?? 0) <= 50 && (stat.avgProfit ?? 0) < 0 ? 'text-red-400' :
                         'text-gray-300'
                       }`}>
-                        {stat.avgProfit !== null ? `${stat.avgProfit.toLocaleString()}円` : '-'}
+                        {stat.avgProfit !== null ? `${Math.round(stat.avgProfit).toLocaleString()}円` : '-'}
                       </td>
                     </tr>
                   ))}
@@ -697,7 +697,7 @@ export default function GrokAnalysisV2Page() {
                       (tier.buyWinRate ?? 0) <= 50 && (tier.buyAvgProfit ?? 0) < 0 ? 'text-red-400' :
                       'text-gray-300'
                     }`}>
-                      {tier.buyAvgProfit !== null ? `${tier.buyAvgProfit.toLocaleString()}円` : '-'}
+                      {tier.buyAvgProfit !== null ? `${Math.round(tier.buyAvgProfit).toLocaleString()}円` : '-'}
                     </td>
                   </tr>
                 ))}
@@ -904,7 +904,7 @@ export default function GrokAnalysisV2Page() {
                           'text-gray-400'
                         }`}>
                           {stock.profitPer100 !== null
-                            ? `${stock.profitPer100 >= 0 ? '+' : ''}${stock.profitPer100.toLocaleString()}`
+                            ? `${stock.profitPer100 >= 0 ? '+' : ''}${Math.round(stock.profitPer100).toLocaleString()}`
                             : '-'}
                         </td>
                       </tr>
