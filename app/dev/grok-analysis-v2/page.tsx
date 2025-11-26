@@ -133,6 +133,50 @@ interface DateStats {
   buyAvgReturn: number | null;
 }
 
+// 成績サマリー（サマリーカード用）
+interface ModelPerformance {
+  buy: {
+    total: number;
+    wins: number;
+    winRate: number | null;
+    totalProfit: number | null;
+  };
+  sell: {
+    total: number;
+    wins: number;
+    winRate: number | null;
+    totalProfit: number | null;
+  };
+  totalProfit: number | null;
+}
+
+interface PerformanceStats {
+  v2_0_3: ModelPerformance;
+  v2_1: ModelPerformance;
+}
+
+// 日別詳細データ
+interface StockDetail {
+  ticker: string;
+  companyName: string;
+  grokRank: number | null;
+  prevDayClose: number | null;
+  v2_0_3Score: number | null;
+  v2_0_3Action: string;
+  v2_1Score: number | null;
+  v2_1Action: string;
+  buyPrice: number | null;
+  sellPrice: number | null;
+  result: 'win' | 'lose' | 'draw' | null;
+  profitPer100: number | null;
+}
+
+interface DailyDetail {
+  date: string;
+  total: number;
+  stocks: StockDetail[];
+}
+
 interface AnalysisData {
   metadata: Metadata;
   comparisonStats: ComparisonStats;
@@ -141,6 +185,8 @@ interface AnalysisData {
   phaseStats: PhaseStats[];
   riskStats: RiskStats;
   dateStats: DateStats[];
+  performanceStats: PerformanceStats;
+  dailyDetails: DailyDetail[];
 }
 
 // カラーパレット
@@ -308,6 +354,119 @@ export default function GrokAnalysisV2Page() {
             <p className="text-sm font-bold text-violet-400">
               {data.metadata.dateRange.start} ～ {data.metadata.dateRange.end}
             </p>
+          </motion.div>
+        </div>
+
+        {/* 成績サマリーカード */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* v2.0.3 成績 */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="bg-gray-900 rounded-lg p-6 border border-gray-800"
+          >
+            <h2 className="text-xl font-bold mb-4 text-blue-400">v2.0.3 成績</h2>
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="text-center">
+                <p className="text-xs text-gray-500">買い</p>
+                <p className="text-lg font-bold text-green-400">{data.comparisonStats.v2_0_3Actions.buy}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-gray-500">売り</p>
+                <p className="text-lg font-bold text-red-400">{data.comparisonStats.v2_0_3Actions.sell}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-gray-500">静観</p>
+                <p className="text-lg font-bold text-amber-400">{data.comparisonStats.v2_0_3Actions.hold}</p>
+              </div>
+            </div>
+            <div className="border-t border-gray-700 pt-4 space-y-2">
+              <div className="flex justify-between">
+                <span className="text-gray-400">買い勝率</span>
+                <span className="text-green-400 font-medium">
+                  {data.performanceStats?.v2_0_3.buy.winRate?.toFixed(1) ?? '-'}%
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">買い利益</span>
+                <span className={`font-medium ${(data.performanceStats?.v2_0_3.buy.totalProfit ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  ¥{(data.performanceStats?.v2_0_3.buy.totalProfit ?? 0).toLocaleString()}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">売り勝率</span>
+                <span className="text-red-400 font-medium">
+                  {data.performanceStats?.v2_0_3.sell.winRate?.toFixed(1) ?? '-'}%
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">売り利益</span>
+                <span className={`font-medium ${(data.performanceStats?.v2_0_3.sell.totalProfit ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  ¥{(data.performanceStats?.v2_0_3.sell.totalProfit ?? 0).toLocaleString()}
+                </span>
+              </div>
+              <div className="flex justify-between border-t border-gray-700 pt-2 mt-2">
+                <span className="text-gray-300 font-medium">総合利益</span>
+                <span className={`text-xl font-bold ${(data.performanceStats?.v2_0_3.totalProfit ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  ¥{(data.performanceStats?.v2_0_3.totalProfit ?? 0).toLocaleString()}
+                </span>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* v2.1 成績 */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="bg-gray-900 rounded-lg p-6 border border-gray-800"
+          >
+            <h2 className="text-xl font-bold mb-4 text-violet-400">v2.1 成績</h2>
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="text-center">
+                <p className="text-xs text-gray-500">買い</p>
+                <p className="text-lg font-bold text-green-400">{data.comparisonStats.v2_1Actions.buy}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-gray-500">売り</p>
+                <p className="text-lg font-bold text-red-400">{data.comparisonStats.v2_1Actions.sell}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-gray-500">静観</p>
+                <p className="text-lg font-bold text-amber-400">{data.comparisonStats.v2_1Actions.hold}</p>
+              </div>
+            </div>
+            <div className="border-t border-gray-700 pt-4 space-y-2">
+              <div className="flex justify-between">
+                <span className="text-gray-400">買い勝率</span>
+                <span className="text-green-400 font-medium">
+                  {data.performanceStats?.v2_1.buy.winRate?.toFixed(1) ?? '-'}%
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">買い利益</span>
+                <span className={`font-medium ${(data.performanceStats?.v2_1.buy.totalProfit ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  ¥{(data.performanceStats?.v2_1.buy.totalProfit ?? 0).toLocaleString()}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">売り勝率</span>
+                <span className="text-red-400 font-medium">
+                  {data.performanceStats?.v2_1.sell.winRate?.toFixed(1) ?? '-'}%
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">売り利益</span>
+                <span className={`font-medium ${(data.performanceStats?.v2_1.sell.totalProfit ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  ¥{(data.performanceStats?.v2_1.sell.totalProfit ?? 0).toLocaleString()}
+                </span>
+              </div>
+              <div className="flex justify-between border-t border-gray-700 pt-2 mt-2">
+                <span className="text-gray-300 font-medium">総合利益</span>
+                <span className={`text-xl font-bold ${(data.performanceStats?.v2_1.totalProfit ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  ¥{(data.performanceStats?.v2_1.totalProfit ?? 0).toLocaleString()}
+                </span>
+              </div>
+            </div>
           </motion.div>
         </div>
 
@@ -602,6 +761,111 @@ export default function GrokAnalysisV2Page() {
                     <td className="text-right py-2 px-3 text-green-400">{phase.winCount}</td>
                     <td className="text-right py-2 px-3 text-red-400">{phase.loseCount}</td>
                   </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </motion.div>
+
+        {/* 日別詳細テーブル */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gray-900 rounded-lg p-6 border border-gray-800"
+        >
+          <h2 className="text-2xl font-bold mb-6 flex items-center">
+            <span className="bg-cyan-500 w-1 h-6 mr-3 rounded"></span>
+            日別詳細（全{data.metadata.totalStocks}件）
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-gray-900">
+                <tr className="border-b border-gray-700">
+                  <th className="text-left py-2 px-2">ティッカー</th>
+                  <th className="text-left py-2 px-2">銘柄名</th>
+                  <th className="text-center py-2 px-2">Rank</th>
+                  <th className="text-right py-2 px-2">前日終値</th>
+                  <th className="text-right py-2 px-2">v2.0.3</th>
+                  <th className="text-center py-2 px-2">判定</th>
+                  <th className="text-right py-2 px-2">v2.1</th>
+                  <th className="text-center py-2 px-2">判定</th>
+                  <th className="text-right py-2 px-2">始値</th>
+                  <th className="text-right py-2 px-2">終値</th>
+                  <th className="text-center py-2 px-2">結果</th>
+                  <th className="text-right py-2 px-2">100株利益</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.dailyDetails?.map((day) => (
+                  <>
+                    {/* 日付セパレータ */}
+                    <tr key={`date-${day.date}`} className="bg-gray-800">
+                      <td colSpan={12} className="py-2 px-4 font-bold text-cyan-400">
+                        {day.date}（{day.total}件）
+                      </td>
+                    </tr>
+                    {/* 銘柄データ */}
+                    {day.stocks.map((stock, idx) => (
+                      <tr
+                        key={`${day.date}-${stock.ticker}-${idx}`}
+                        className={`border-b border-gray-800 ${
+                          stock.v2_1Action === '買い' ? 'bg-green-900/10' :
+                          stock.v2_1Action === '売り' ? 'bg-red-900/10' : ''
+                        }`}
+                      >
+                        <td className="py-2 px-2 text-gray-300 font-mono text-xs">{stock.ticker}</td>
+                        <td className="py-2 px-2 text-gray-200 truncate max-w-[120px]">{stock.companyName}</td>
+                        <td className="text-center py-2 px-2 text-gray-400">{stock.grokRank ?? '-'}</td>
+                        <td className="text-right py-2 px-2 text-gray-400">
+                          {stock.prevDayClose?.toLocaleString() ?? '-'}
+                        </td>
+                        <td className="text-right py-2 px-2 text-gray-300">{stock.v2_0_3Score ?? '-'}</td>
+                        <td className="text-center py-2 px-2">
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                            stock.v2_0_3Action === '買い' ? 'bg-green-900/50 text-green-300' :
+                            stock.v2_0_3Action === '売り' ? 'bg-red-900/50 text-red-300' :
+                            'bg-amber-900/50 text-amber-300'
+                          }`}>
+                            {stock.v2_0_3Action}
+                          </span>
+                        </td>
+                        <td className="text-right py-2 px-2 text-gray-300">{stock.v2_1Score ?? '-'}</td>
+                        <td className="text-center py-2 px-2">
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                            stock.v2_1Action === '買い' ? 'bg-green-900/50 text-green-300' :
+                            stock.v2_1Action === '売り' ? 'bg-red-900/50 text-red-300' :
+                            'bg-amber-900/50 text-amber-300'
+                          }`}>
+                            {stock.v2_1Action}
+                          </span>
+                        </td>
+                        <td className="text-right py-2 px-2 text-gray-400">
+                          {stock.buyPrice?.toLocaleString() ?? '-'}
+                        </td>
+                        <td className="text-right py-2 px-2 text-gray-400">
+                          {stock.sellPrice?.toLocaleString() ?? '-'}
+                        </td>
+                        <td className="text-center py-2 px-2">
+                          <span className={`font-bold ${
+                            stock.result === 'win' ? 'text-green-400' :
+                            stock.result === 'lose' ? 'text-red-400' :
+                            'text-gray-400'
+                          }`}>
+                            {stock.result === 'win' ? '勝' : stock.result === 'lose' ? '負' : stock.result === 'draw' ? '分' : '-'}
+                          </span>
+                        </td>
+                        <td className={`text-right py-2 px-2 font-bold ${
+                          (stock.profitPer100 ?? 0) > 0 ? 'text-green-400' :
+                          (stock.profitPer100 ?? 0) < 0 ? 'text-red-400' :
+                          'text-gray-400'
+                        }`}>
+                          {stock.profitPer100 !== null
+                            ? `${stock.profitPer100 >= 0 ? '+' : ''}${stock.profitPer100.toLocaleString()}`
+                            : '-'}
+                        </td>
+                      </tr>
+                    ))}
+                  </>
                 ))}
               </tbody>
             </table>
