@@ -571,8 +571,12 @@ export default function GrokAnalysisV2Page() {
                       <td className="text-right py-2 px-3 text-gray-300">
                         {stat.winRate !== null ? `${stat.winRate.toFixed(1)}%` : '-'}
                       </td>
-                      <td className="text-right py-2 px-3 text-gray-300">
-                        {stat.avgProfit !== null ? `¥${stat.avgProfit.toFixed(0)}` : '-'}
+                      <td className={`text-right py-2 px-3 ${
+                        (stat.winRate ?? 0) >= 75 && (stat.avgProfit ?? 0) > 0 ? 'text-green-400' :
+                        (stat.winRate ?? 0) <= 50 && (stat.avgProfit ?? 0) < 0 ? 'text-red-400' :
+                        'text-gray-300'
+                      }`}>
+                        {stat.avgProfit !== null ? `${stat.avgProfit.toLocaleString()}円` : '-'}
                       </td>
                     </tr>
                   ))}
@@ -618,8 +622,12 @@ export default function GrokAnalysisV2Page() {
                       <td className="text-right py-2 px-3 text-gray-300">
                         {stat.winRate !== null ? `${stat.winRate.toFixed(1)}%` : '-'}
                       </td>
-                      <td className="text-right py-2 px-3 text-gray-300">
-                        {stat.avgProfit !== null ? `¥${stat.avgProfit.toFixed(0)}` : '-'}
+                      <td className={`text-right py-2 px-3 ${
+                        (stat.winRate ?? 0) >= 75 && (stat.avgProfit ?? 0) > 0 ? 'text-green-400' :
+                        (stat.winRate ?? 0) <= 50 && (stat.avgProfit ?? 0) < 0 ? 'text-red-400' :
+                        'text-gray-300'
+                      }`}>
+                        {stat.avgProfit !== null ? `${stat.avgProfit.toLocaleString()}円` : '-'}
                       </td>
                     </tr>
                   ))}
@@ -684,8 +692,12 @@ export default function GrokAnalysisV2Page() {
                     <td className="text-right py-2 px-3 text-gray-300">
                       {tier.buyAvgReturn !== null ? `${tier.buyAvgReturn.toFixed(2)}%` : '-'}
                     </td>
-                    <td className="text-right py-2 px-3 text-gray-300">
-                      {tier.buyAvgProfit !== null ? `¥${tier.buyAvgProfit.toFixed(0)}` : '-'}
+                    <td className={`text-right py-2 px-3 ${
+                      (tier.buyWinRate ?? 0) >= 75 && (tier.buyAvgProfit ?? 0) > 0 ? 'text-green-400' :
+                      (tier.buyWinRate ?? 0) <= 50 && (tier.buyAvgProfit ?? 0) < 0 ? 'text-red-400' :
+                      'text-gray-300'
+                    }`}>
+                      {tier.buyAvgProfit !== null ? `${tier.buyAvgProfit.toLocaleString()}円` : '-'}
                     </td>
                   </tr>
                 ))}
