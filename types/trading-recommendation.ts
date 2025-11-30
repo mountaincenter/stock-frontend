@@ -36,6 +36,7 @@ export interface Summary {
   buy: number;
   sell: number;
   hold: number;
+  restricted?: number;
 }
 
 /**
@@ -49,6 +50,19 @@ export interface Stock {
   recommendation: Recommendation;
   deepAnalysis?: DeepAnalysis;
   categories: string[];
+  tradingRestriction?: TradingRestriction;
+}
+
+/**
+ * 取引制限情報
+ */
+export interface TradingRestriction {
+  isRestricted: boolean;
+  reason?: string | null;
+  marginCode?: string;
+  marginCodeName?: string;
+  jsfRestricted?: boolean;
+  isShortable?: boolean;
 }
 
 /**
@@ -283,6 +297,14 @@ export function getHoldStocks(stocks: Stock[]): Stock[] {
 
 export function getHighConfidenceStocks(stocks: Stock[]): Stock[] {
   return filterByConfidence(stocks, 'high');
+}
+
+export function getRestrictedStocks(stocks: Stock[]): Stock[] {
+  return stocks.filter((s) => s.tradingRestriction?.isRestricted === true);
+}
+
+export function getNonRestrictedStocks(stocks: Stock[]): Stock[] {
+  return stocks.filter((s) => s.tradingRestriction?.isRestricted !== true);
 }
 
 /**

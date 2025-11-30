@@ -30,6 +30,8 @@ import {
   getBuyStocks,
   getSellStocks,
   getHoldStocks,
+  getRestrictedStocks,
+  getNonRestrictedStocks,
   sortByScore,
   formatPercent,
   formatScore,
@@ -37,11 +39,14 @@ import {
   formatPrice,
 } from "@/types/trading-recommendation";
 
+// Filter type extended with "restricted"
+type FilterType = ActionType | "all" | "restricted";
+
 export default function RecommendationsPage() {
   const [data, setData] = useState<TradingRecommendationResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<ActionType | "all">("all");
+  const [filter, setFilter] = useState<FilterType>("all");
 
   useEffect(() => {
     fetch("/api/trading-recommendations")
@@ -90,22 +95,29 @@ export default function RecommendationsPage() {
     );
   }
 
-  // グループ化ソート: 買い→静観→売り の順で、各グループ内はスコア順
+  // グループ化ソート: 買い→売り→静観→取引制限 の順で、各グループ内はスコア順
   const sortByActionAndScore = (stocks: Stock[]) => {
-    const buyStocks = sortByScore(getBuyStocks(stocks));
-    const holdStocks = sortByScore(getHoldStocks(stocks));
-    const sellStocks = sortByScore(getSellStocks(stocks));
-    return [...buyStocks, ...holdStocks, ...sellStocks];
+    const nonRestricted = getNonRestrictedStocks(stocks);
+    const restricted = getRestrictedStocks(stocks);
+
+    const buyStocks = sortByScore(getBuyStocks(nonRestricted));
+    const sellStocks = sortByScore(getSellStocks(nonRestricted));
+    const holdStocks = sortByScore(getHoldStocks(nonRestricted));
+    const restrictedStocks = sortByScore(restricted);
+
+    return [...buyStocks, ...sellStocks, ...holdStocks, ...restrictedStocks];
   };
 
   const filteredStocks =
     filter === "all"
       ? sortByActionAndScore(data.stocks)
       : filter === "buy"
-        ? sortByScore(getBuyStocks(data.stocks))
+        ? sortByScore(getBuyStocks(getNonRestrictedStocks(data.stocks)))
         : filter === "sell"
-          ? sortByScore(getSellStocks(data.stocks))
-          : sortByScore(getHoldStocks(data.stocks));
+          ? sortByScore(getSellStocks(getNonRestrictedStocks(data.stocks)))
+          : filter === "hold"
+            ? sortByScore(getHoldStocks(getNonRestrictedStocks(data.stocks)))
+            : sortByScore(getRestrictedStocks(data.stocks));
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 text-white overflow-hidden">
@@ -178,7 +190,7 @@ export default function RecommendationsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4"
+          className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4"
         >
           <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border-2 border-green-500/30 rounded-xl p-4 text-center backdrop-blur-xl">
             <ShoppingCart className="w-6 h-6 text-green-400 mx-auto mb-2" />
@@ -194,6 +206,11 @@ export default function RecommendationsPage() {
             <Minus className="w-6 h-6 text-orange-400 mx-auto mb-2" />
             <h3 className="text-3xl font-bold text-orange-400">{data.summary.hold}</h3>
             <p className="text-slate-300 text-sm mt-1">静観</p>
+          </div>
+          <div className="bg-gradient-to-br from-slate-500/10 to-gray-500/10 border-2 border-slate-500/30 rounded-xl p-4 text-center backdrop-blur-xl">
+            <AlertCircle className="w-6 h-6 text-slate-400 mx-auto mb-2" />
+            <h3 className="text-3xl font-bold text-slate-400">{data.summary.restricted || 0}</h3>
+            <p className="text-slate-300 text-sm mt-1">取引制限</p>
           </div>
         </motion.div>
 
@@ -267,6 +284,16 @@ export default function RecommendationsPage() {
             >
               静観
             </button>
+            <button
+              onClick={() => setFilter("restricted")}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                filter === "restricted"
+                  ? "bg-gradient-to-r from-slate-500 to-gray-600 text-white shadow-lg shadow-slate-500/30"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/30"
+              }`}
+            >
+              取引制限
+            </button>
           </div>
         </motion.div>
 
@@ -320,6 +347,9 @@ export default function RecommendationsPage() {
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">
                     損切り
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    制限
                   </th>
                 </tr>
               </thead>
@@ -447,12 +477,31 @@ function StockRow({ stock, index }: { stock: Stock; index: number }) {
     }
   };
 
-  const bgColor =
-    stock.recommendation.action === "buy"
+  const isRestricted = stock.tradingRestriction?.isRestricted === true;
+
+  const bgColor = isRestricted
+    ? "bg-slate-500/10 hover:bg-slate-500/15"
+    : stock.recommendation.action === "buy"
       ? "bg-green-500/5 hover:bg-green-500/10"
       : stock.recommendation.action === "sell"
         ? "bg-red-500/5 hover:bg-red-500/10"
         : "bg-orange-500/5 hover:bg-orange-500/10";
+
+  const getRestrictionBadge = () => {
+    if (!isRestricted) {
+      return <span className="text-green-400 text-xs font-bold">○</span>;
+    }
+    const reason = stock.tradingRestriction?.reason || "制限あり";
+    return (
+      <span
+        className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-red-500/20 border border-red-500/40 text-red-300 text-[10px] font-bold cursor-help animate-pulse"
+        title={reason}
+      >
+        <AlertCircle className="w-3 h-3" />
+        停止
+      </span>
+    );
+  };
 
   const hasDeepAnalysis = stock.deepAnalysis && (
     stock.deepAnalysis.latestNews ||
@@ -526,6 +575,9 @@ function StockRow({ stock, index }: { stock: Stock; index: number }) {
         <td className="px-4 py-3 text-sm text-right font-mono text-slate-300">
           {stock.recommendation.stopLoss ? formatStopLoss(stock.recommendation.stopLoss) : 'N/A'}
         </td>
+        <td className="px-4 py-3 text-sm text-center">
+          {getRestrictionBadge()}
+        </td>
       </motion.tr>
 
       {/* Deep Analysis Expanded Section */}
@@ -536,7 +588,7 @@ function StockRow({ stock, index }: { stock: Stock; index: number }) {
           exit={{ opacity: 0, height: 0 }}
           className={bgColor}
         >
-          <td colSpan={12} className="px-6 py-4">
+          <td colSpan={13} className="px-6 py-4">
             <div className="bg-slate-800/50 rounded-lg p-4 space-y-4">
               {/* Header */}
               <div className="flex items-center gap-2 border-b border-slate-700 pb-2">
