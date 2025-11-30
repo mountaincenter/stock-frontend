@@ -97,6 +97,11 @@ export interface Recommendation {
   v2_0_3_action?: 'buy' | 'sell' | 'hold';
   v2_0_3_score?: number;
   v2_0_3_reasons?: string;
+  // v3 情報
+  v3_action?: 'buy' | 'sell' | 'hold';
+  v3_holding_days?: number;
+  v3_label?: string;
+  v3_reason?: string;
 }
 
 /**

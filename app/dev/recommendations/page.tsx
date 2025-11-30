@@ -27,15 +27,8 @@ import type {
   ActionType,
 } from "@/types/trading-recommendation";
 import {
-  getBuyStocks,
-  getSellStocks,
-  getHoldStocks,
-  getRestrictedStocks,
-  getNonRestrictedStocks,
-  sortByScore,
   formatPercent,
   formatScore,
-  formatStopLoss,
   formatPrice,
 } from "@/types/trading-recommendation";
 
@@ -95,29 +88,17 @@ export default function RecommendationsPage() {
     );
   }
 
-  // グループ化ソート: 買い→売り→静観→取引制限 の順で、各グループ内はスコア順
-  const sortByActionAndScore = (stocks: Stock[]) => {
-    const nonRestricted = getNonRestrictedStocks(stocks);
-    const restricted = getRestrictedStocks(stocks);
-
-    const buyStocks = sortByScore(getBuyStocks(nonRestricted));
-    const sellStocks = sortByScore(getSellStocks(nonRestricted));
-    const holdStocks = sortByScore(getHoldStocks(nonRestricted));
-    const restrictedStocks = sortByScore(restricted);
-
-    return [...buyStocks, ...sellStocks, ...holdStocks, ...restrictedStocks];
-  };
-
+  // APIからのソート順をそのまま使用（v3ラベル順→v2.1スコア順でソート済み）
   const filteredStocks =
     filter === "all"
-      ? sortByActionAndScore(data.stocks)
+      ? data.stocks
       : filter === "buy"
-        ? sortByScore(getBuyStocks(getNonRestrictedStocks(data.stocks)))
+        ? data.stocks.filter(s => s.recommendation.action === "buy" && !s.tradingRestriction?.isRestricted)
         : filter === "sell"
-          ? sortByScore(getSellStocks(getNonRestrictedStocks(data.stocks)))
+          ? data.stocks.filter(s => s.recommendation.action === "sell" && !s.tradingRestriction?.isRestricted)
           : filter === "hold"
-            ? sortByScore(getHoldStocks(getNonRestrictedStocks(data.stocks)))
-            : sortByScore(getRestrictedStocks(data.stocks));
+            ? data.stocks.filter(s => s.recommendation.action === "hold" && !s.tradingRestriction?.isRestricted)
+            : data.stocks.filter(s => s.tradingRestriction?.isRestricted);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 text-white overflow-hidden">
@@ -343,10 +324,7 @@ export default function RecommendationsPage() {
                     v2.1スコア
                   </th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    信頼度
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    損切り
+                    v3判断
                   </th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">
                     制限
@@ -449,17 +427,6 @@ function StockRow({ stock, index }: { stock: Stock; index: number }) {
             静観
           </span>
         );
-    }
-  };
-
-  const getConfidenceBadge = (confidence: Stock["recommendation"]["confidence"]) => {
-    switch (confidence) {
-      case "high":
-        return <span className="text-green-400 font-bold">高</span>;
-      case "medium":
-        return <span className="text-yellow-400 font-bold">中</span>;
-      case "low":
-        return <span className="text-red-400 font-bold">低</span>;
     }
   };
 
@@ -569,11 +536,23 @@ function StockRow({ stock, index }: { stock: Stock; index: number }) {
             {formatScore(stock.recommendation.score)}
           </span>
         </td>
-        <td className="px-4 py-3 text-sm text-center">
-          {getConfidenceBadge(stock.recommendation.confidence)}
-        </td>
-        <td className="px-4 py-3 text-sm text-right font-mono text-slate-300">
-          {stock.recommendation.stopLoss ? formatStopLoss(stock.recommendation.stopLoss) : 'N/A'}
+        <td className="px-4 py-3 text-center">
+          {stock.recommendation.v3_label ? (
+            <span
+              className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold ${
+                stock.recommendation.v3_action === "buy"
+                  ? "bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/40 text-green-300"
+                  : stock.recommendation.v3_action === "sell"
+                    ? "bg-gradient-to-r from-red-500/20 to-pink-500/20 border border-red-500/40 text-red-300"
+                    : "bg-gradient-to-r from-orange-500/20 to-amber-500/20 border border-orange-500/40 text-orange-300"
+              }`}
+              title={stock.recommendation.v3_reason || ""}
+            >
+              {stock.recommendation.v3_label}
+            </span>
+          ) : (
+            <span className="text-slate-500 text-xs">-</span>
+          )}
         </td>
         <td className="px-4 py-3 text-sm text-center">
           {getRestrictionBadge()}
@@ -588,7 +567,7 @@ function StockRow({ stock, index }: { stock: Stock; index: number }) {
           exit={{ opacity: 0, height: 0 }}
           className={bgColor}
         >
-          <td colSpan={13} className="px-6 py-4">
+          <td colSpan={12} className="px-6 py-4">
             <div className="bg-slate-800/50 rounded-lg p-4 space-y-4">
               {/* Header */}
               <div className="flex items-center gap-2 border-b border-slate-700 pb-2">
