@@ -695,7 +695,7 @@ export default function GrokAnalysisPage() {
                               {actionData.stocks.map((stock) => (
                                 <tr key={stock.ticker} className="border-b border-slate-800/50 hover:bg-slate-800/30">
                                   <td className="py-2 px-2">
-                                    <div className="font-semibold text-slate-200">{stock.companyName}</div>
+                                    <div className="font-semibold text-slate-200">{stock.stockName}</div>
                                     <div className="text-[10px] text-slate-500">{stock.ticker}</div>
                                   </td>
                                   <td className="text-right py-2 px-2 text-slate-300">{stock.grokRank}</td>
@@ -861,7 +861,7 @@ export default function GrokAnalysisPage() {
                           .map((stock, idx) => (
                             <tr key={stock.ticker} className="border-b border-slate-800 hover:bg-slate-800/30 transition-colors">
                               <td className="py-2 px-3">
-                                <div className="font-semibold text-slate-200">{stock.companyName}</div>
+                                <div className="font-semibold text-slate-200">{stock.stockName}</div>
                                 <div className="text-xs text-slate-400">{stock.ticker}</div>
                               </td>
                               <td className="text-center py-2 px-3">

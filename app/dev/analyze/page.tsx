@@ -113,18 +113,18 @@ type GrokDailyAnalysis = {
   count: number;
   worst3: Array<{
     ticker: string;
-    company_name: string;
+    stock_name: string;
     profit_per_100_shares_phase2: number;
     return_pct: number;
-    category: string;
+    categories: string;
     reason: string;
   }>;
   best3: Array<{
     ticker: string;
-    company_name: string;
+    stock_name: string;
     profit_per_100_shares_phase2: number;
     return_pct: number;
-    category: string;
+    categories: string;
     reason: string;
   }>;
   category_stats: Array<{
@@ -504,8 +504,8 @@ export default function DevAnalyzePage() {
                     <div className="text-red-300 font-bold mb-1">▼ ワースト3:</div>
                     {day.worst3.map((stock, sidx) => (
                       <div key={sidx} className="text-gray-400 mb-1 pl-2">
-                        • {stock.ticker} ({stock.company_name}): {stock.profit_per_100_shares_phase2.toLocaleString()}円 ({stock.return_pct >= 0 ? '+' : ''}{stock.return_pct.toFixed(2)}%)
-                        {stock.category && <span className="text-gray-500 ml-2">[{stock.category}]</span>}
+                        • {stock.ticker} ({stock.stock_name}): {stock.profit_per_100_shares_phase2.toLocaleString()}円 ({stock.return_pct >= 0 ? '+' : ''}{stock.return_pct.toFixed(2)}%)
+                        {stock.categories && <span className="text-gray-500 ml-2">[{stock.categories}]</span>}
                       </div>
                     ))}
                   </div>

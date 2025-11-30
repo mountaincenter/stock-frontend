@@ -112,7 +112,7 @@ export interface RecommendationLatestActionStats {
 
 export interface RecommendationStockDetail {
   ticker: string;
-  companyName: string;
+  stockName: string;
   action: 'buy' | 'sell' | 'hold';
   grokRank: number;
   isWin: boolean;
@@ -153,7 +153,7 @@ export interface V2ActionActionStats {
 
 export interface V2StockDetail {
   ticker: string;
-  companyName: string;
+  stockName: string;
   grokRank: number;
   prevDayClose: number;
   v2Score: number;

@@ -15,7 +15,7 @@ import {
 
 interface TimingStock {
   ticker: string;
-  companyName: string;
+  stockName: string;
   backtestDate: string;
   recommendationAction: string;
   grokRank: number | null;
@@ -530,7 +530,7 @@ export default function TimingAnalysisPage() {
                   <tr key={`${stock.ticker}-${idx}`} className="border-b border-slate-800 hover:bg-slate-800/30 transition-colors">
                     <td className="px-4 py-3 text-slate-300">{stock.backtestDate}</td>
                     <td className="px-4 py-3 font-mono font-bold text-slate-200">{stock.ticker}</td>
-                    <td className="px-4 py-3 text-slate-300 max-w-xs truncate">{stock.companyName}</td>
+                    <td className="px-4 py-3 text-slate-300 max-w-xs truncate">{stock.stockName}</td>
                     <td className="px-4 py-3 text-center">
                       <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
                         stock.recommendationAction === 'buy' ? 'bg-green-500/20 text-green-300'

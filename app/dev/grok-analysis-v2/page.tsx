@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
@@ -89,7 +89,7 @@ interface ActionChangePattern {
   avgReturn: number | null;
   stocks: Array<{
     ticker: string;
-    companyName: string;
+    stockName: string;
     grokRank: number;
     date: string;
     v2_0_3Score: number | null;
@@ -158,7 +158,7 @@ interface PerformanceStats {
 // 日別詳細データ
 interface StockDetail {
   ticker: string;
-  companyName: string;
+  stockName: string;
   grokRank: number | null;
   prevDayClose: number | null;
   v2_0_3Score: number | null;
@@ -841,9 +841,9 @@ export default function GrokAnalysisV2Page() {
               </thead>
               <tbody>
                 {data.dailyDetails?.map((day) => (
-                  <>
+                  <Fragment key={`day-${day.date}`}>
                     {/* 日付セパレータ */}
-                    <tr key={`date-${day.date}`} className="bg-gray-800">
+                    <tr className="bg-gray-800">
                       <td colSpan={12} className="py-2 px-4 font-bold text-cyan-400">
                         {day.date}（{day.total}件）
                       </td>
@@ -858,7 +858,7 @@ export default function GrokAnalysisV2Page() {
                         }`}
                       >
                         <td className="py-2 px-2 text-gray-300 font-mono text-xs">{stock.ticker}</td>
-                        <td className="py-2 px-2 text-gray-200 truncate max-w-[120px]">{stock.companyName}</td>
+                        <td className="py-2 px-2 text-gray-200 truncate max-w-[120px]">{stock.stockName}</td>
                         <td className="text-center py-2 px-2 text-gray-400">{stock.grokRank ?? '-'}</td>
                         <td className="text-right py-2 px-2 text-gray-400">
                           {stock.prevDayClose?.toLocaleString() ?? '-'}
@@ -909,7 +909,7 @@ export default function GrokAnalysisV2Page() {
                         </td>
                       </tr>
                     ))}
-                  </>
+                  </Fragment>
                 ))}
               </tbody>
             </table>
@@ -970,7 +970,7 @@ export default function GrokAnalysisV2Page() {
                     <tr key={idx} className="border-b border-gray-800">
                       <td className="py-2 px-3">
                         <div>
-                          <p className="font-medium text-gray-200">{stock.companyName}</p>
+                          <p className="font-medium text-gray-200">{stock.stockName}</p>
                           <p className="text-xs text-gray-500">{stock.ticker}</p>
                         </div>
                       </td>

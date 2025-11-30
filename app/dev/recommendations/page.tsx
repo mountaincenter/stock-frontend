@@ -146,22 +146,16 @@ export default function RecommendationsPage() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-3 mb-4 backdrop-blur-xl"
         >
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
             <div>
               <span className="text-slate-400">生成日時: </span>
               <span className="text-slate-200 font-semibold">
-                {new Date(data.generatedAt).toLocaleString("ja-JP")}
+                {new Date(data.generatedAt).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}
               </span>
             </div>
             <div>
               <span className="text-slate-400">対象銘柄数: </span>
               <span className="text-slate-200 font-semibold">{data.summary.total}銘柄</span>
-            </div>
-            <div>
-              <span className="text-slate-400">バックテスト期間: </span>
-              <span className="text-slate-200 font-semibold">
-                {data.dataSource.backtestPeriod.start} 〜 {data.dataSource.backtestPeriod.end}
-              </span>
             </div>
           </div>
         </motion.div>
@@ -308,25 +302,19 @@ export default function RecommendationsPage() {
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">
                     前日変化率
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    ATR(%)
+                  <th className="px-2 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    ATR
                   </th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    v2.0.3判断
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    v2.0.3スコア
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    v2.1判断
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    v2.1スコア
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  <th className="px-3 py-3 text-center text-sm font-bold text-blue-300 uppercase tracking-wider">
                     v3判断
                   </th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  <th className="px-2 py-3 text-center text-[10px] font-medium text-slate-500 tracking-wider">
+                    v2.0.3
+                  </th>
+                  <th className="px-2 py-3 text-center text-[10px] font-medium text-slate-500 tracking-wider">
+                    v2.1
+                  </th>
+                  <th className="px-2 py-3 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">
                     制限
                   </th>
                 </tr>
@@ -351,34 +339,36 @@ export default function RecommendationsPage() {
         >
           <h2 className="text-lg font-bold mb-3 flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-blue-400" />
-            📋 判断基準（複合スコアリング）
+            📋 v3戦略（価格帯ベース判断）
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <h3 className="font-bold mb-2 text-slate-200">スコア計算ルール</h3>
+              <h3 className="font-bold mb-2 text-green-400">買いシグナル</h3>
               <ul className="list-disc list-inside text-sm space-y-1 text-slate-300">
-                <li>Grokランク: 上位25%=40点、上位50%=20点、下位25%=-10点 + バックテスト勝率調整</li>
-                <li>ROE: 15%以上=+20点、マイナス=-15点</li>
-                <li>営業利益成長: 50%以上=+25点、-30%以下=-20点</li>
-                <li>前日変動: -3%以下=+15点（反発期待）、+10%以上=-10点</li>
-                <li>ボラティリティ: 3%未満=+10点、8%超=-15点</li>
-                <li>移動平均: 25日線から±5%以上乖離=±10点</li>
+                <li><span className="text-green-300">7,500〜10,000円</span> → 買い5日（スイング）</li>
+                <li><span className="text-green-300">5,000〜7,500円</span> → 買い（当日決済）</li>
+                <li><span className="text-green-300">その他</span> → 買い（当日決済）</li>
+              </ul>
+
+              <h3 className="font-bold mt-3 mb-2 text-orange-400">静観シグナル</h3>
+              <ul className="list-disc list-inside text-sm space-y-1 text-slate-300">
+                <li><span className="text-orange-300">1,500〜3,000円</span> → 買い5日（転換）</li>
+                <li><span className="text-orange-300">その他</span> → 静観</li>
               </ul>
             </div>
 
             <div>
-              <h3 className="font-bold mb-2 text-slate-200">行動判定</h3>
+              <h3 className="font-bold mb-2 text-red-400">売りシグナル</h3>
               <ul className="list-disc list-inside text-sm space-y-1 text-slate-300">
-                <li>スコア +30以上: 買い候補</li>
-                <li>スコア -30以下: 売り候補</li>
-                <li>スコア -29 ~ +29: 静観</li>
+                <li><span className="text-red-300">2,000〜10,000円</span> → 売り5日（スイング）</li>
+                <li><span className="text-red-300">その他</span> → 売り（当日決済）</li>
               </ul>
 
-              <h3 className="font-bold mt-3 mb-2 text-slate-200">推奨損切りライン</h3>
+              <h3 className="font-bold mt-3 mb-2 text-slate-400">注意事項</h3>
               <ul className="list-disc list-inside text-sm space-y-1 text-slate-300">
-                <li>買い: ATRの80%、最小2%、最大5%</li>
-                <li>売り: ATRの120%、最小5%、最大10%</li>
+                <li>v2.1判断をベースに価格帯で保有期間を決定</li>
+                <li>取引制限銘柄は実行不可（空売り制限等）</li>
               </ul>
             </div>
           </div>
@@ -391,7 +381,7 @@ export default function RecommendationsPage() {
           transition={{ duration: 0.6, delay: 0.7 }}
           className="text-center text-slate-500 text-sm mt-8 pt-6 border-t border-slate-800/50"
         >
-          <p>生成日時: {new Date(data.generatedAt).toLocaleString("ja-JP")}</p>
+          <p>生成日時: {new Date(data.generatedAt).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}</p>
           <p className="text-red-400 font-bold mt-2">
             投資は自己責任で行ってください。このレポートは投資助言ではありません。
           </p>
@@ -426,6 +416,23 @@ function StockRow({ stock, index }: { stock: Stock; index: number }) {
             <Minus className="w-3 h-3" />
             静観
           </span>
+        );
+    }
+  };
+
+  const getActionBadgeSmall = (action: Stock["recommendation"]["action"]) => {
+    switch (action) {
+      case "buy":
+        return (
+          <span className="text-[10px] font-bold text-green-400/80">買い</span>
+        );
+      case "sell":
+        return (
+          <span className="text-[10px] font-bold text-red-400/80">売り</span>
+        );
+      case "hold":
+        return (
+          <span className="text-[10px] font-bold text-orange-400/80">静観</span>
         );
     }
   };
@@ -513,38 +520,19 @@ function StockRow({ stock, index }: { stock: Stock; index: number }) {
         <td className="px-4 py-3 text-sm text-right text-slate-300">
           {stock.technicalData?.prevDayChangePct ? formatPercent(stock.technicalData.prevDayChangePct) : 'N/A'}
         </td>
-        <td className="px-4 py-3 text-sm text-right text-slate-300">
-          {stock.technicalData?.atr?.value ? formatPercent(stock.technicalData.atr.value) : 'N/A'}
+        <td className="px-2 py-3 text-sm text-right text-slate-300">
+          {stock.technicalData?.atr?.value ? formatPercent(stock.technicalData.atr.value, 1) : 'N/A'}
         </td>
-        <td className="px-4 py-3 text-center">
-          {stock.recommendation.v2_0_3_action && getActionBadge(stock.recommendation.v2_0_3_action)}
-        </td>
-        <td className="px-4 py-3 text-sm text-right font-mono">
-          {stock.recommendation.v2_0_3_score !== undefined && (
-            <span className={stock.recommendation.v2_0_3_score >= 0 ? "text-green-400" : "text-red-400"}>
-              {formatScore(stock.recommendation.v2_0_3_score)}
-            </span>
-          )}
-        </td>
-        <td className="px-4 py-3 text-center">{getActionBadge(stock.recommendation.action)}</td>
-        <td className="px-4 py-3 text-sm text-right font-mono font-bold">
-          <span
-            className={
-              stock.recommendation.score >= 0 ? "text-green-400" : "text-red-400"
-            }
-          >
-            {formatScore(stock.recommendation.score)}
-          </span>
-        </td>
-        <td className="px-4 py-3 text-center">
+        {/* v3判断 - メイン表示 */}
+        <td className="px-3 py-3 text-center">
           {stock.recommendation.v3_label ? (
             <span
-              className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold ${
+              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold shadow-lg ${
                 stock.recommendation.v3_action === "buy"
-                  ? "bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/40 text-green-300"
+                  ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white"
                   : stock.recommendation.v3_action === "sell"
-                    ? "bg-gradient-to-r from-red-500/20 to-pink-500/20 border border-red-500/40 text-red-300"
-                    : "bg-gradient-to-r from-orange-500/20 to-amber-500/20 border border-orange-500/40 text-orange-300"
+                    ? "bg-gradient-to-r from-red-500 to-pink-600 text-white"
+                    : "bg-gradient-to-r from-orange-500 to-amber-600 text-white"
               }`}
               title={stock.recommendation.v3_reason || ""}
             >
@@ -554,7 +542,27 @@ function StockRow({ stock, index }: { stock: Stock; index: number }) {
             <span className="text-slate-500 text-xs">-</span>
           )}
         </td>
-        <td className="px-4 py-3 text-sm text-center">
+        {/* v2.0.3 - コンパクト表示 */}
+        <td className="px-2 py-3 text-center">
+          <div className="flex flex-col items-center gap-0.5">
+            {stock.recommendation.v2_0_3_action && getActionBadgeSmall(stock.recommendation.v2_0_3_action)}
+            {stock.recommendation.v2_0_3_score !== undefined && (
+              <span className={`text-[10px] font-mono ${stock.recommendation.v2_0_3_score >= 0 ? "text-green-400/70" : "text-red-400/70"}`}>
+                {formatScore(stock.recommendation.v2_0_3_score)}
+              </span>
+            )}
+          </div>
+        </td>
+        {/* v2.1 - コンパクト表示 */}
+        <td className="px-2 py-3 text-center">
+          <div className="flex flex-col items-center gap-0.5">
+            {getActionBadgeSmall(stock.recommendation.action)}
+            <span className={`text-[10px] font-mono ${stock.recommendation.score >= 0 ? "text-green-400/70" : "text-red-400/70"}`}>
+              {formatScore(stock.recommendation.score)}
+            </span>
+          </div>
+        </td>
+        <td className="px-2 py-3 text-sm text-center">
           {getRestrictionBadge()}
         </td>
       </motion.tr>
@@ -567,7 +575,7 @@ function StockRow({ stock, index }: { stock: Stock; index: number }) {
           exit={{ opacity: 0, height: 0 }}
           className={bgColor}
         >
-          <td colSpan={12} className="px-6 py-4">
+          <td colSpan={10} className="px-6 py-4">
             <div className="bg-slate-800/50 rounded-lg p-4 space-y-4">
               {/* Header */}
               <div className="flex items-center gap-2 border-b border-slate-700 pb-2">

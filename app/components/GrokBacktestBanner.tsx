@@ -12,10 +12,10 @@ interface BacktestMeta {
 interface TopStock {
   target_date: string;
   ticker: string;
-  company_name: string;
+  stock_name: string;
   selection_score: number;
   rank: number;
-  category: string;
+  categories: string;
   sentiment_score?: number;
   policy_link?: string;
   has_mention?: boolean;
@@ -211,7 +211,7 @@ export function GrokBacktestBanner() {
                           {stock.ticker}
                         </span>
                         <span className="text-muted-foreground/70">
-                          {stock.company_name}
+                          {stock.stock_name}
                         </span>
                       </div>
                       <span className="font-mono text-[10px] text-primary">
@@ -257,7 +257,7 @@ export function GrokBacktestBanner() {
                           {stock.ticker}
                         </span>
                         <span className="text-muted-foreground/70">
-                          {stock.company_name}
+                          {stock.stock_name}
                         </span>
                       </div>
                       <span className="font-mono text-[10px] text-muted-foreground/70">
