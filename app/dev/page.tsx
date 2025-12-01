@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import Link from "next/link";
+import Link from "next/link"; // daily詳細リンク用
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart,
@@ -17,25 +17,19 @@ import {
   Cell,
 } from "recharts";
 import {
-  TrendingUp,
-  TrendingDown,
   Target,
   Activity,
-  Calendar,
-  Award,
   ArrowUpRight,
-  ArrowDownRight,
   ChevronDown,
   ChevronUp,
   Search,
-  Star,
   AlertTriangle,
   CheckCircle,
   Info,
-  BarChart3,
 } from "lucide-react";
 import { DashboardData } from "@/lib/grok-backtest-types";
 import MarketSummary from "@/components/MarketSummary";
+import { DevNavLinks, FilterButtonGroup } from "@/components/dev";
 
 type SortField = "date" | "win_rate" | "count";
 type SortDirection = "asc" | "desc";
@@ -206,14 +200,14 @@ export default function DevDashboard() {
       </div>
 
       <div className="relative container mx-auto px-6 py-3 max-w-[1600px]">
-        {/* Header */}
+        {/* Header - Container Query対応 */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="mb-4"
+          className="@container mb-4"
         >
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+          <div className="flex flex-col @4xl:flex-row @4xl:items-center @4xl:justify-between gap-3">
             {/* タイトルセクション */}
             <div className="flex items-center gap-2">
               <div className="p-1.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg shadow-lg">
@@ -229,182 +223,55 @@ export default function DevDashboard() {
               </div>
             </div>
 
-            {/* フィルターセクション */}
-            <div className="flex flex-col lg:flex-row gap-2">
-            {/* 分析リンク */}
-            <div>
-              <div className="text-[9px] text-slate-500 font-medium mb-1 uppercase tracking-wider lg:hidden">
-                Analysis
-              </div>
-              <Link
-                href="/dev/analyze"
-                className="group relative flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-white rounded-lg font-semibold text-sm whitespace-nowrap overflow-hidden transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/50 hover:scale-105"
-                title="マーケット要因分析"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <TrendingUp className="w-4 h-4 relative z-10 group-hover:rotate-12 transition-transform duration-300" />
-                <span className="relative z-10">分析</span>
-              </Link>
-            </div>
+            {/* フィルターセクション - ナビゲーションリンクとフィルターを分離 */}
+            <div className="flex flex-col gap-2">
+              {/* ナビゲーションリンク行 */}
+              <DevNavLinks
+                links={["analyze", "grokAnalysis", "timing", "grokV2", "recommendations"]}
+              />
 
-            {/* Grok分析リンク */}
-            <div>
-              <div className="text-[9px] text-slate-500 font-medium mb-1 uppercase tracking-wider lg:hidden">
-                Grok Analysis
-              </div>
-              <Link
-                href="/dev/grok-analysis"
-                className="group relative flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-br from-cyan-500 via-blue-500 to-indigo-600 text-white rounded-lg font-semibold text-sm whitespace-nowrap overflow-hidden transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/50 hover:scale-105"
-                title="Grok推奨銘柄詳細分析"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <BarChart3 className="w-4 h-4 relative z-10 group-hover:rotate-12 transition-transform duration-300" />
-                <span className="relative z-10">Grok分析</span>
-              </Link>
-            </div>
+              {/* フィルター行 */}
+              <div className="flex flex-wrap @2xl:flex-nowrap gap-2">
+                {/* Phase選択 */}
+                <FilterButtonGroup
+                  options={[
+                    { value: "phase1" as Phase, label: "Phase 1" },
+                    { value: "phase2" as Phase, label: "Phase 2" },
+                    { value: "phase3" as Phase, label: "Phase 3" },
+                  ]}
+                  value={selectedPhase}
+                  onChange={setSelectedPhase}
+                  variant="purple"
+                />
 
-            {/* タイミング分析リンク */}
-            <div>
-              <div className="text-[9px] text-slate-500 font-medium mb-1 uppercase tracking-wider lg:hidden">
-                Timing Analysis
-              </div>
-              <Link
-                href="/dev/timing-analysis"
-                className="group relative flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-br from-amber-500 via-orange-500 to-red-600 text-white rounded-lg font-semibold text-sm whitespace-nowrap overflow-hidden transition-all duration-300 hover:shadow-2xl hover:shadow-orange-500/50 hover:scale-105"
-                title="売買タイミング最適化分析"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <Activity className="w-4 h-4 relative z-10 group-hover:rotate-12 transition-transform duration-300" />
-                <span className="relative z-10">タイミング分析</span>
-              </Link>
-            </div>
+                {/* プロンプトバージョン選択 */}
+                {dashboardData?.available_versions && dashboardData.available_versions.length > 0 && (
+                  <FilterButtonGroup
+                    options={[
+                      { value: "", label: "All" },
+                      ...dashboardData.available_versions.map((v) => ({
+                        value: v,
+                        label: v.replace(/_/g, " ").toUpperCase(),
+                      })),
+                    ]}
+                    value={selectedVersion || ""}
+                    onChange={(v) => setSelectedVersion(v || null)}
+                    variant="green"
+                  />
+                )}
 
-            {/* Grok v2比較リンク */}
-            <div>
-              <div className="text-[9px] text-slate-500 font-medium mb-1 uppercase tracking-wider lg:hidden">
-                Grok v2 Compare
+                {/* 期間フィルター */}
+                <FilterButtonGroup
+                  options={[
+                    { value: "week" as const, label: "7D" },
+                    { value: "month" as const, label: "30D" },
+                    { value: "all" as const, label: "ALL" },
+                  ]}
+                  value={dateFilter}
+                  onChange={setDateFilter}
+                  variant="blue"
+                />
               </div>
-              <Link
-                href="/dev/grok-analysis-v2"
-                className="group relative flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-600 text-white rounded-lg font-semibold text-sm whitespace-nowrap overflow-hidden transition-all duration-300 hover:shadow-2xl hover:shadow-violet-500/50 hover:scale-105"
-                title="v2.0.3 vs v2.1 比較分析"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <BarChart3 className="w-4 h-4 relative z-10 group-hover:rotate-12 transition-transform duration-300" />
-                <span className="relative z-10">v2比較</span>
-              </Link>
-            </div>
-
-            {/* 売買推奨リンク */}
-            <div>
-              <div className="text-[9px] text-slate-500 font-medium mb-1 uppercase tracking-wider lg:hidden">
-                Recommendations
-              </div>
-              <Link
-                href="/dev/recommendations"
-                className="group relative flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600 text-white rounded-lg font-semibold text-sm whitespace-nowrap overflow-hidden transition-all duration-300 hover:shadow-2xl hover:shadow-green-500/50 hover:scale-105"
-                title="今日の売買推奨"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <Target className="w-4 h-4 relative z-10 group-hover:rotate-12 transition-transform duration-300" />
-                <span className="relative z-10">売買推奨</span>
-              </Link>
-            </div>
-
-            {/* Phase選択 */}
-            <div>
-              <div className="text-[9px] text-slate-500 font-medium mb-1 uppercase tracking-wider lg:hidden">
-                Phase Strategy
-              </div>
-              <div className="flex gap-1 bg-slate-800/50 p-2 rounded-lg border border-slate-700/50">
-                {(Object.keys(PHASE_INFO) as Phase[]).map((phase) => (
-                  <button
-                    key={phase}
-                    onClick={() => setSelectedPhase(phase)}
-                    className={`px-3 py-2 rounded text-xs font-semibold transition-all whitespace-nowrap ${
-                      selectedPhase === phase
-                        ? "bg-gradient-to-r from-purple-500 to-pink-600 text-white shadow-lg shadow-purple-500/30"
-                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/30"
-                    }`}
-                  >
-                    {PHASE_INFO[phase].label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* プロンプトバージョン選択 */}
-            {dashboardData?.available_versions && dashboardData.available_versions.length > 0 && (
-              <div>
-                <div className="text-[9px] text-slate-500 font-medium mb-1 uppercase tracking-wider lg:hidden">
-                  Prompt Version
-                </div>
-                <div className="flex gap-1 bg-slate-800/50 p-2 rounded-lg border border-slate-700/50">
-                  <button
-                    onClick={() => setSelectedVersion(null)}
-                    className={`px-3 py-2 rounded text-xs font-semibold transition-all ${
-                      !selectedVersion
-                        ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/30"
-                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/30"
-                    }`}
-                  >
-                    All
-                  </button>
-                  {dashboardData.available_versions.map((version) => (
-                    <button
-                      key={version}
-                      onClick={() => setSelectedVersion(version)}
-                      className={`px-3 py-2 rounded text-xs font-semibold transition-all whitespace-nowrap ${
-                        selectedVersion === version
-                          ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/30"
-                          : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/30"
-                      }`}
-                    >
-                      {version.replace(/_/g, ' ').toUpperCase()}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* 期間フィルター */}
-            <div>
-              <div className="text-[9px] text-slate-500 font-medium mb-1 uppercase tracking-wider lg:hidden">
-                Period
-              </div>
-              <div className="flex gap-1 bg-slate-800/50 p-2 rounded-lg border border-slate-700/50">
-                <button
-                  onClick={() => setDateFilter("week")}
-                  className={`px-4 py-2 rounded text-xs font-semibold transition-all ${
-                    dateFilter === "week"
-                      ? "bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg shadow-blue-500/30"
-                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/30"
-                  }`}
-                >
-                  7D
-                </button>
-                <button
-                  onClick={() => setDateFilter("month")}
-                  className={`px-4 py-2 rounded text-xs font-semibold transition-all ${
-                    dateFilter === "month"
-                      ? "bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg shadow-blue-500/30"
-                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/30"
-                  }`}
-                >
-                  30D
-                </button>
-                <button
-                  onClick={() => setDateFilter("all")}
-                  className={`px-4 py-2 rounded text-xs font-semibold transition-all ${
-                    dateFilter === "all"
-                      ? "bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg shadow-blue-500/30"
-                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/30"
-                  }`}
-                >
-                  ALL
-                </button>
-              </div>
-            </div>
             </div>
           </div>
         </motion.div>
@@ -475,14 +342,14 @@ export default function DevDashboard() {
           </motion.div>
         )}
 
-        {/* KPI Cards - 統合レイアウト */}
+        {/* KPI Cards - 統合レイアウト - Container Query対応 */}
         {dashboardData && (
-          <div className="mb-4">
+          <div className="@container mb-4">
             <h2 className="text-base font-bold text-slate-100 mb-2 flex items-center gap-2">
               <Target className="w-3.5 h-3.5 text-blue-400" />
               パフォーマンス指標
             </h2>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-1 @lg:grid-cols-2 @2xl:grid-cols-3 gap-2.5">
               {/* Win Rate */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -625,17 +492,17 @@ export default function DevDashboard() {
           </div>
         )}
 
-        {/* Performance Analysis Section */}
+        {/* Performance Analysis Section - Container Query対応 */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.9 }}
-          className="mb-4"
+          className="@container mb-4"
         >
           <h2 className="text-base font-bold text-slate-100 mb-2">パフォーマンス分析</h2>
 
           {/* Grid Layout: Chart on left, Table on right (Desktop) or stacked (Mobile) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 @2xl:grid-cols-2 gap-3">
             {/* Chart Section */}
             <div>
               <div className="bg-slate-900/50 backdrop-blur-xl rounded-xl p-3 border border-slate-700/50 shadow-2xl h-full">

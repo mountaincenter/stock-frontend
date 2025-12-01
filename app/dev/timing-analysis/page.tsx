@@ -1,17 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { motion } from "framer-motion";
 import {
-  ArrowLeft,
   Clock,
   TrendingUp,
-  TrendingDown,
   Activity,
-  Target,
-  BarChart3,
 } from "lucide-react";
+import { DevNavLinks, SummaryCard } from "@/components/dev";
 
 interface TimingStock {
   ticker: string;
@@ -148,61 +144,45 @@ export default function TimingAnalysisPage() {
       </div>
 
       <div className="relative z-10 px-4 py-8 max-w-7xl mx-auto">
-        {/* ナビゲーション */}
+        {/* ナビゲーション - Container Query対応 */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6 flex gap-4"
+          className="@container mb-6"
         >
-          <Link
-            href="/dev"
-            className="inline-flex items-center text-slate-400 hover:text-white transition-colors group"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
-            ダッシュボードへ戻る
-          </Link>
-          <Link
-            href="/dev/grok-analysis"
-            className="inline-flex items-center text-blue-400 hover:text-blue-300 transition-colors group"
-          >
-            <BarChart3 className="w-4 h-4 mr-2" />
-            Grok分析レポート
-          </Link>
-          <Link
-            href="/dev/recommendations"
-            className="inline-flex items-center text-green-400 hover:text-green-300 transition-colors group"
-          >
-            <Target className="w-4 h-4 mr-2" />
-            売買推奨レポート
-          </Link>
+          <DevNavLinks
+            variant="simple"
+            links={["dashboard", "grokAnalysis", "recommendations"]}
+          />
         </motion.div>
 
-        {/* ヘッダー */}
+        {/* ヘッダー - Container Query対応 */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="mb-8"
+          className="@container mb-8"
         >
-          <h1 className="text-4xl font-bold text-slate-100 mb-2 flex items-center gap-3">
-            <Clock className="w-10 h-10 text-amber-400" />
+          <h1 className="text-2xl @sm:text-3xl @md:text-4xl font-bold text-slate-100 mb-2 flex items-center gap-2 @sm:gap-3">
+            <Clock className="w-7 h-7 @sm:w-8 @sm:h-8 @md:w-10 @md:h-10 text-amber-400" />
             売買タイミング最適化分析
           </h1>
-          <p className="text-slate-400 text-lg">
+          <p className="text-slate-400 text-sm @sm:text-base @md:text-lg">
             前場終値(11:30) vs 大引値(15:30) の比較分析（2025-11-14以降）
           </p>
-          <div className="mt-4 text-sm text-slate-300">
+          <div className="mt-3 @sm:mt-4 text-xs @sm:text-sm text-slate-300">
             分析期間: <span className="font-bold text-amber-400">{data.metadata.dateRange.start} ~ {data.metadata.dateRange.end}</span>
           </div>
         </motion.div>
 
-        {/* サマリーカード (2段 x 5列 = 10枚) */}
+        {/* サマリーカード - Container Query対応 */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8"
+          className="@container mb-8"
         >
+          <div className="grid grid-cols-2 @md:grid-cols-3 @xl:grid-cols-5 gap-3 @sm:gap-4">
           {/* 1段目 */}
           <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6">
             <div className="text-slate-400 text-sm mb-2">分析銘柄数</div>
@@ -296,25 +276,26 @@ export default function TimingAnalysisPage() {
               {data.summary.lossTiming.dayBetter}件
             </div>
           </div>
+          </div>
         </motion.div>
 
-        {/* 要因別分析セクション */}
+        {/* 要因別分析セクション - Container Query対応 */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="space-y-8 mb-8"
+          className="@container space-y-8 mb-8"
         >
-          <h2 className="text-3xl font-bold text-slate-100 mb-6 flex items-center gap-3">
-            <Activity className="w-8 h-8 text-amber-400" />
+          <h2 className="text-2xl @sm:text-3xl font-bold text-slate-100 mb-6 flex items-center gap-2 @sm:gap-3">
+            <Activity className="w-6 h-6 @sm:w-8 @sm:h-8 text-amber-400" />
             要因別タイミング分析
           </h2>
 
           {/* ボラティリティ別 */}
           {data.byVolatility && data.byVolatility.length > 0 && (
-            <div className="bg-slate-900/30 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6">
-              <h3 className="text-xl font-bold text-slate-100 mb-4">📈 ボラティリティ別</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-slate-900/30 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-4 @sm:p-6">
+              <h3 className="text-lg @sm:text-xl font-bold text-slate-100 mb-4">📈 ボラティリティ別</h3>
+              <div className="grid grid-cols-1 @md:grid-cols-2 @xl:grid-cols-3 gap-3 @sm:gap-4">
                 {data.byVolatility.map((item) => (
                   <div key={item.group} className="bg-slate-800/50 rounded-xl p-4">
                     <div className="text-lg font-bold text-slate-200 mb-2">{item.group}ボラティリティ</div>
@@ -340,9 +321,9 @@ export default function TimingAnalysisPage() {
 
           {/* 時価総額別 */}
           {data.byMarketCap && data.byMarketCap.length > 0 && (
-            <div className="bg-slate-900/30 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6">
-              <h3 className="text-xl font-bold text-slate-100 mb-4">💼 時価総額別</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-slate-900/30 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-4 @sm:p-6">
+              <h3 className="text-lg @sm:text-xl font-bold text-slate-100 mb-4">💼 時価総額別</h3>
+              <div className="grid grid-cols-1 @md:grid-cols-2 @xl:grid-cols-3 gap-3 @sm:gap-4">
                 {data.byMarketCap.map((item) => (
                   <div key={item.group} className="bg-slate-800/50 rounded-xl p-4">
                     <div className="text-lg font-bold text-slate-200 mb-2">{item.group}</div>
@@ -380,9 +361,9 @@ export default function TimingAnalysisPage() {
 
           {/* 株価水準別 */}
           {data.byPriceLevel && data.byPriceLevel.length > 0 && (
-            <div className="bg-slate-900/30 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6">
-              <h3 className="text-xl font-bold text-slate-100 mb-4">💰 株価水準別</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-slate-900/30 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-4 @sm:p-6">
+              <h3 className="text-lg @sm:text-xl font-bold text-slate-100 mb-4">💰 株価水準別</h3>
+              <div className="grid grid-cols-1 @md:grid-cols-2 @xl:grid-cols-3 gap-3 @sm:gap-4">
                 {data.byPriceLevel.map((item) => (
                   <div key={item.group} className="bg-slate-800/50 rounded-xl p-4">
                     <div className="text-lg font-bold text-slate-200 mb-2">{item.group}</div>
@@ -412,9 +393,9 @@ export default function TimingAnalysisPage() {
 
           {/* 出来高別 */}
           {data.byVolume && data.byVolume.length > 0 && (
-            <div className="bg-slate-900/30 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6">
-              <h3 className="text-xl font-bold text-slate-100 mb-4">📊 出来高別</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-slate-900/30 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-4 @sm:p-6">
+              <h3 className="text-lg @sm:text-xl font-bold text-slate-100 mb-4">📊 出来高別</h3>
+              <div className="grid grid-cols-1 @md:grid-cols-2 @xl:grid-cols-3 gap-3 @sm:gap-4">
                 {data.byVolume.map((item) => (
                   <div key={item.group} className="bg-slate-800/50 rounded-xl p-4">
                     <div className="text-lg font-bold text-slate-200 mb-2">{item.group}</div>
@@ -440,9 +421,9 @@ export default function TimingAnalysisPage() {
 
           {/* 売買推奨別 */}
           {data.byRecommendation && data.byRecommendation.length > 0 && (
-            <div className="bg-slate-900/30 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6">
-              <h3 className="text-xl font-bold text-slate-100 mb-4">🎯 売買推奨別</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-slate-900/30 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-4 @sm:p-6">
+              <h3 className="text-lg @sm:text-xl font-bold text-slate-100 mb-4">🎯 売買推奨別</h3>
+              <div className="grid grid-cols-1 @md:grid-cols-2 @xl:grid-cols-3 gap-3 @sm:gap-4">
                 {data.byRecommendation.map((item) => (
                   <div key={item.group} className="bg-slate-800/50 rounded-xl p-4">
                     <div className="text-lg font-bold text-slate-200 mb-2">
@@ -470,9 +451,9 @@ export default function TimingAnalysisPage() {
 
           {/* スコア別 */}
           {data.byScore && data.byScore.length > 0 && (
-            <div className="bg-slate-900/30 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6">
-              <h3 className="text-xl font-bold text-slate-100 mb-4">⭐ スコア別</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-slate-900/30 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-4 @sm:p-6">
+              <h3 className="text-lg @sm:text-xl font-bold text-slate-100 mb-4">⭐ スコア別</h3>
+              <div className="grid grid-cols-1 @md:grid-cols-2 @xl:grid-cols-3 gap-3 @sm:gap-4">
                 {data.byScore.map((item) => (
                   <div key={item.group} className="bg-slate-800/50 rounded-xl p-4">
                     <div className="text-lg font-bold text-slate-200 mb-2">{item.group}</div>

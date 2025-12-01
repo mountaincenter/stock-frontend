@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   BarChart,
@@ -19,13 +18,12 @@ import {
 import {
   TrendingUp,
   TrendingDown,
-  Target,
-  Activity,
   Award,
   AlertTriangle,
-  ArrowLeft,
-  ExternalLink,
+  Target,
+  Activity,
 } from "lucide-react";
+import { DevNavLinks } from "@/components/dev";
 import type { GrokAnalysisResponse } from "@/types/grok-analysis";
 import {
   formatPercent,
@@ -95,51 +93,32 @@ export default function GrokAnalysisPage() {
       </div>
 
       <div className="relative z-10 px-4 py-8 max-w-7xl mx-auto">
-        {/* ナビゲーション */}
+        {/* ナビゲーション - Container Query対応 */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6 flex gap-4"
+          className="@container mb-6"
         >
-          <Link
-            href="/dev"
-            className="inline-flex items-center text-slate-400 hover:text-white transition-colors group"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
-            ダッシュボードへ戻る
-          </Link>
-          <Link
-            href="/dev/recommendations"
-            className="inline-flex items-center text-blue-400 hover:text-blue-300 transition-colors group"
-          >
-            <Target className="w-4 h-4 mr-2" />
-            売買推奨レポート
-            <ExternalLink className="w-3 h-3 ml-1 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-          </Link>
-          <Link
-            href="/dev/timing-analysis"
-            className="inline-flex items-center text-amber-400 hover:text-amber-300 transition-colors group"
-          >
-            <Activity className="w-4 h-4 mr-2" />
-            タイミング分析
-            <ExternalLink className="w-3 h-3 ml-1 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-          </Link>
+          <DevNavLinks
+            variant="simple"
+            links={["dashboard", "recommendations", "timing"]}
+          />
         </motion.div>
 
-        {/* ヘッダー */}
+        {/* ヘッダー - Container Query対応 */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="mb-8"
+          className="@container mb-8"
         >
-          <h1 className="text-4xl font-bold text-slate-100 mb-2">
+          <h1 className="text-2xl @sm:text-3xl @md:text-4xl font-bold text-slate-100 mb-2">
             📊 Grok推奨銘柄 詳細分析
           </h1>
-          <p className="text-slate-400">
+          <p className="text-slate-400 text-sm @sm:text-base">
             バックテスト結果の多角的分析レポート
           </p>
-          <div className="mt-4 flex gap-4 text-sm text-slate-300">
+          <div className="mt-3 @sm:mt-4 flex flex-wrap gap-2 @sm:gap-4 text-xs @sm:text-sm text-slate-300">
             <div>
               分析銘柄数: <span className="font-bold text-blue-400">{data.metadata.totalStocks}</span>
             </div>
@@ -449,8 +428,8 @@ export default function GrokAnalysisPage() {
                 </tr>
               </thead>
               <tbody>
-                {data.categoryStats.slice(0, 10).map((cat) => (
-                  <tr key={cat.category} className="border-b border-slate-800 hover:bg-slate-800/50">
+                {data.categoryStats.slice(0, 10).map((cat, idx) => (
+                  <tr key={`${cat.category}-${idx}`} className="border-b border-slate-800 hover:bg-slate-800/50">
                     <td className="p-2 text-slate-300">{cat.category}</td>
                     <td className="p-2 text-right text-slate-300">{cat.total}</td>
                     <td className="p-2 text-right font-bold" style={{ color: getWinRateColor(cat.winRate || 0) }}>

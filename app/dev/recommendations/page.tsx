@@ -1,12 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   TrendingUp,
   TrendingDown,
-  ArrowLeft,
   Activity,
   AlertCircle,
   CheckCircle,
@@ -21,6 +19,7 @@ import {
   AlertTriangle,
   Lightbulb,
 } from "lucide-react";
+import { DevNavLinks } from "@/components/dev";
 import type {
   TradingRecommendationResponse,
   Stock,
@@ -115,15 +114,13 @@ export default function RecommendationsPage() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="mb-4"
+          className="@container mb-4"
         >
-          <Link
-            href="/dev/grok-analysis"
-            className="inline-flex items-center text-slate-400 hover:text-white mb-4 transition-colors group"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
-            Grok分析レポートへ戻る
-          </Link>
+          <DevNavLinks
+            variant="simple"
+            links={["grokAnalysis"]}
+            className="mb-4"
+          />
           <div className="flex items-center gap-2 mb-2">
             <div className="p-1.5 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg shadow-lg">
               <Target className="w-4 h-4" />
@@ -139,18 +136,18 @@ export default function RecommendationsPage() {
           </div>
         </motion.div>
 
-        {/* Meta情報 */}
+        {/* Meta情報 - Container Query対応 */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
-          className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-3 mb-4 backdrop-blur-xl"
+          className="@container bg-blue-500/10 border border-blue-500/30 rounded-xl p-3 mb-4 backdrop-blur-xl"
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+          <div className="grid grid-cols-1 @md:grid-cols-2 gap-3 text-sm">
             <div>
               <span className="text-slate-400">生成日時: </span>
               <span className="text-slate-200 font-semibold">
-                {new Date(data.generatedAt).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}
+                {new Date(data.generatedAt + "+09:00").toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}
               </span>
             </div>
             <div>
@@ -160,32 +157,34 @@ export default function RecommendationsPage() {
           </div>
         </motion.div>
 
-        {/* サマリーカード */}
+        {/* サマリーカード - Container Query対応 */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4"
+          className="@container mb-4"
         >
-          <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border-2 border-green-500/30 rounded-xl p-4 text-center backdrop-blur-xl">
-            <ShoppingCart className="w-6 h-6 text-green-400 mx-auto mb-2" />
-            <h3 className="text-3xl font-bold text-green-400">{data.summary.buy}</h3>
-            <p className="text-slate-300 text-sm mt-1">買い候補</p>
-          </div>
-          <div className="bg-gradient-to-br from-red-500/10 to-pink-500/10 border-2 border-red-500/30 rounded-xl p-4 text-center backdrop-blur-xl">
-            <XCircle className="w-6 h-6 text-red-400 mx-auto mb-2" />
-            <h3 className="text-3xl font-bold text-red-400">{data.summary.sell}</h3>
-            <p className="text-slate-300 text-sm mt-1">売り候補</p>
-          </div>
-          <div className="bg-gradient-to-br from-orange-500/10 to-amber-500/10 border-2 border-orange-500/30 rounded-xl p-4 text-center backdrop-blur-xl">
-            <Minus className="w-6 h-6 text-orange-400 mx-auto mb-2" />
-            <h3 className="text-3xl font-bold text-orange-400">{data.summary.hold}</h3>
-            <p className="text-slate-300 text-sm mt-1">静観</p>
-          </div>
-          <div className="bg-gradient-to-br from-slate-500/10 to-gray-500/10 border-2 border-slate-500/30 rounded-xl p-4 text-center backdrop-blur-xl">
-            <AlertCircle className="w-6 h-6 text-slate-400 mx-auto mb-2" />
-            <h3 className="text-3xl font-bold text-slate-400">{data.summary.restricted || 0}</h3>
-            <p className="text-slate-300 text-sm mt-1">取引制限</p>
+          <div className="grid grid-cols-2 @lg:grid-cols-4 gap-3">
+            <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border-2 border-green-500/30 rounded-xl p-3 @sm:p-4 text-center backdrop-blur-xl">
+              <ShoppingCart className="w-5 h-5 @sm:w-6 @sm:h-6 text-green-400 mx-auto mb-1.5 @sm:mb-2" />
+              <h3 className="text-2xl @sm:text-3xl font-bold text-green-400">{data.summary.buy}</h3>
+              <p className="text-slate-300 text-xs @sm:text-sm mt-1">買い候補</p>
+            </div>
+            <div className="bg-gradient-to-br from-red-500/10 to-pink-500/10 border-2 border-red-500/30 rounded-xl p-3 @sm:p-4 text-center backdrop-blur-xl">
+              <XCircle className="w-5 h-5 @sm:w-6 @sm:h-6 text-red-400 mx-auto mb-1.5 @sm:mb-2" />
+              <h3 className="text-2xl @sm:text-3xl font-bold text-red-400">{data.summary.sell}</h3>
+              <p className="text-slate-300 text-xs @sm:text-sm mt-1">売り候補</p>
+            </div>
+            <div className="bg-gradient-to-br from-orange-500/10 to-amber-500/10 border-2 border-orange-500/30 rounded-xl p-3 @sm:p-4 text-center backdrop-blur-xl">
+              <Minus className="w-5 h-5 @sm:w-6 @sm:h-6 text-orange-400 mx-auto mb-1.5 @sm:mb-2" />
+              <h3 className="text-2xl @sm:text-3xl font-bold text-orange-400">{data.summary.hold}</h3>
+              <p className="text-slate-300 text-xs @sm:text-sm mt-1">静観</p>
+            </div>
+            <div className="bg-gradient-to-br from-slate-500/10 to-gray-500/10 border-2 border-slate-500/30 rounded-xl p-3 @sm:p-4 text-center backdrop-blur-xl">
+              <AlertCircle className="w-5 h-5 @sm:w-6 @sm:h-6 text-slate-400 mx-auto mb-1.5 @sm:mb-2" />
+              <h3 className="text-2xl @sm:text-3xl font-bold text-slate-400">{data.summary.restricted || 0}</h3>
+              <p className="text-slate-300 text-xs @sm:text-sm mt-1">取引制限</p>
+            </div>
           </div>
         </motion.div>
 
@@ -211,17 +210,17 @@ export default function RecommendationsPage() {
           </motion.div>
         )}
 
-        {/* フィルター */}
+        {/* フィルター - Container Query対応 */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.4 }}
-          className="mb-4"
+          className="@container mb-4"
         >
-          <div className="flex gap-2 bg-slate-800/50 p-2 rounded-lg border border-slate-700/50">
+          <div className="flex flex-wrap @md:flex-nowrap gap-1.5 @sm:gap-2 bg-slate-800/50 p-1.5 @sm:p-2 rounded-lg border border-slate-700/50">
             <button
               onClick={() => setFilter("all")}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+              className={`px-3 @sm:px-4 py-1.5 @sm:py-2 rounded-lg text-xs @sm:text-sm font-semibold transition-all ${
                 filter === "all"
                   ? "bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg shadow-blue-500/30"
                   : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/30"
@@ -231,7 +230,7 @@ export default function RecommendationsPage() {
             </button>
             <button
               onClick={() => setFilter("buy")}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+              className={`px-3 @sm:px-4 py-1.5 @sm:py-2 rounded-lg text-xs @sm:text-sm font-semibold transition-all ${
                 filter === "buy"
                   ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/30"
                   : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/30"
@@ -241,7 +240,7 @@ export default function RecommendationsPage() {
             </button>
             <button
               onClick={() => setFilter("sell")}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+              className={`px-3 @sm:px-4 py-1.5 @sm:py-2 rounded-lg text-xs @sm:text-sm font-semibold transition-all ${
                 filter === "sell"
                   ? "bg-gradient-to-r from-red-500 to-pink-600 text-white shadow-lg shadow-red-500/30"
                   : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/30"
@@ -251,7 +250,7 @@ export default function RecommendationsPage() {
             </button>
             <button
               onClick={() => setFilter("hold")}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+              className={`px-3 @sm:px-4 py-1.5 @sm:py-2 rounded-lg text-xs @sm:text-sm font-semibold transition-all ${
                 filter === "hold"
                   ? "bg-gradient-to-r from-orange-500 to-amber-600 text-white shadow-lg shadow-orange-500/30"
                   : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/30"
@@ -261,7 +260,7 @@ export default function RecommendationsPage() {
             </button>
             <button
               onClick={() => setFilter("restricted")}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+              className={`px-3 @sm:px-4 py-1.5 @sm:py-2 rounded-lg text-xs @sm:text-sm font-semibold transition-all ${
                 filter === "restricted"
                   ? "bg-gradient-to-r from-slate-500 to-gray-600 text-white shadow-lg shadow-slate-500/30"
                   : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/30"
@@ -330,43 +329,43 @@ export default function RecommendationsPage() {
           </div>
         </motion.div>
 
-        {/* スコアリングルール */}
+        {/* スコアリングルール - Container Query対応 */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.6 }}
-          className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 backdrop-blur-xl mb-4"
+          className="@container bg-blue-500/10 border border-blue-500/30 rounded-xl p-3 @sm:p-4 backdrop-blur-xl mb-4"
         >
-          <h2 className="text-lg font-bold mb-3 flex items-center gap-2">
-            <CheckCircle className="w-5 h-5 text-blue-400" />
+          <h2 className="text-base @sm:text-lg font-bold mb-2 @sm:mb-3 flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 @sm:w-5 @sm:h-5 text-blue-400" />
             📋 v3戦略（価格帯ベース判断）
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 @md:grid-cols-2 gap-3 @sm:gap-4">
             <div>
-              <h3 className="font-bold mb-2 text-green-400">買いシグナル</h3>
-              <ul className="list-disc list-inside text-sm space-y-1 text-slate-300">
+              <h3 className="font-bold mb-1.5 @sm:mb-2 text-green-400 text-sm @sm:text-base">買いシグナル</h3>
+              <ul className="list-disc list-inside text-xs @sm:text-sm space-y-0.5 @sm:space-y-1 text-slate-300">
                 <li><span className="text-green-300">7,500〜10,000円</span> → 買い5日（スイング）</li>
                 <li><span className="text-green-300">5,000〜7,500円</span> → 買い（当日決済）</li>
                 <li><span className="text-green-300">その他</span> → 買い（当日決済）</li>
               </ul>
 
-              <h3 className="font-bold mt-3 mb-2 text-orange-400">静観シグナル</h3>
-              <ul className="list-disc list-inside text-sm space-y-1 text-slate-300">
+              <h3 className="font-bold mt-2 @sm:mt-3 mb-1.5 @sm:mb-2 text-orange-400 text-sm @sm:text-base">静観シグナル</h3>
+              <ul className="list-disc list-inside text-xs @sm:text-sm space-y-0.5 @sm:space-y-1 text-slate-300">
                 <li><span className="text-orange-300">1,500〜3,000円</span> → 買い5日（転換）</li>
                 <li><span className="text-orange-300">その他</span> → 静観</li>
               </ul>
             </div>
 
             <div>
-              <h3 className="font-bold mb-2 text-red-400">売りシグナル</h3>
-              <ul className="list-disc list-inside text-sm space-y-1 text-slate-300">
+              <h3 className="font-bold mb-1.5 @sm:mb-2 text-red-400 text-sm @sm:text-base">売りシグナル</h3>
+              <ul className="list-disc list-inside text-xs @sm:text-sm space-y-0.5 @sm:space-y-1 text-slate-300">
                 <li><span className="text-red-300">2,000〜10,000円</span> → 売り5日（スイング）</li>
                 <li><span className="text-red-300">その他</span> → 売り（当日決済）</li>
               </ul>
 
-              <h3 className="font-bold mt-3 mb-2 text-slate-400">注意事項</h3>
-              <ul className="list-disc list-inside text-sm space-y-1 text-slate-300">
+              <h3 className="font-bold mt-2 @sm:mt-3 mb-1.5 @sm:mb-2 text-slate-400 text-sm @sm:text-base">注意事項</h3>
+              <ul className="list-disc list-inside text-xs @sm:text-sm space-y-0.5 @sm:space-y-1 text-slate-300">
                 <li>v2.1判断をベースに価格帯で保有期間を決定</li>
                 <li>取引制限銘柄は実行不可（空売り制限等）</li>
               </ul>
@@ -381,7 +380,7 @@ export default function RecommendationsPage() {
           transition={{ duration: 0.6, delay: 0.7 }}
           className="text-center text-slate-500 text-sm mt-8 pt-6 border-t border-slate-800/50"
         >
-          <p>生成日時: {new Date(data.generatedAt).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}</p>
+          <p>生成日時: {new Date(data.generatedAt + "+09:00").toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}</p>
           <p className="text-red-400 font-bold mt-2">
             投資は自己責任で行ってください。このレポートは投資助言ではありません。
           </p>

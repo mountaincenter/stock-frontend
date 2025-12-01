@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, Fragment } from 'react';
-import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
   BarChart,
@@ -18,7 +17,7 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { ArrowLeft, Target } from 'lucide-react';
+import { DevNavLinks } from '@/components/dev';
 
 // 型定義
 interface Metadata {
@@ -286,29 +285,22 @@ export default function GrokAnalysisV2Page() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
-      {/* ヘッダー */}
-      <div className="bg-gradient-to-r from-blue-900 to-violet-900 py-8 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-4">
-            <Link
-              href="/dev"
-              className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="text-sm">ダッシュボードに戻る</span>
-            </Link>
-            <Link
-              href="/dev/recommendations"
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-lg font-semibold text-sm hover:shadow-xl hover:shadow-green-500/50 hover:scale-105 transition-all"
-            >
-              <Target className="w-4 h-4" />
-              <span>今日の売買推奨</span>
-            </Link>
+      {/* ヘッダー - Container Query対応 */}
+      <div className="bg-gradient-to-r from-blue-900 to-violet-900 py-6 sm:py-8 px-4 sm:px-6">
+        <div className="@container max-w-7xl mx-auto">
+          <div className="flex flex-wrap @sm:flex-nowrap items-center justify-between gap-3 mb-4">
+            <DevNavLinks
+              variant="simple"
+              links={["dashboard"]}
+            />
+            <DevNavLinks
+              links={["recommendations"]}
+            />
           </div>
           <motion.h1
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-4xl font-bold mb-2"
+            className="text-2xl @sm:text-3xl @md:text-4xl font-bold mb-2"
           >
             Grok銘柄分析 v2.0.3 vs v2.1 比較
           </motion.h1>
@@ -316,7 +308,7 @@ export default function GrokAnalysisV2Page() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="text-gray-300"
+            className="text-gray-300 text-sm @sm:text-base"
           >
             {data.metadata.dateRange.start} ～ {data.metadata.dateRange.end}（全{data.metadata.totalStocks}件、
             {data.metadata.uniqueStocks}銘柄）
