@@ -16,6 +16,7 @@ interface MarketSummaryResponse {
     markdown_full: string;
     sections: {
       indices?: string;
+      volatility?: string;
       sectors?: string;
       news?: string;
       trends?: string;
@@ -277,7 +278,7 @@ export default function MarketSummary({ date, className = "" }: MarketSummaryPro
 
   // Pre-render all sections
   const renderedSections: Record<string, string> = {};
-  const sectionOrder = ['indices', 'trends', 'sectors', 'news', 'indicators'] as const;
+  const sectionOrder = ['indices', 'volatility', 'trends', 'sectors', 'news', 'indicators'] as const;
 
   sectionOrder.forEach(section => {
     const sectionContent = content.sections[section as keyof typeof content.sections];
@@ -323,6 +324,20 @@ export default function MarketSummary({ date, className = "" }: MarketSummaryPro
             <div
               className="text-sm text-slate-200 leading-relaxed"
               dangerouslySetInnerHTML={{ __html: renderedSections.indices }}
+            />
+          </div>
+        )}
+
+        {/* Volatility Section (日経VI) */}
+        {renderedSections.volatility && (
+          <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 rounded-lg p-4 border border-amber-500/20">
+            <div className="flex items-center gap-2 mb-3">
+              <AlertCircle className="w-4 h-4 text-amber-400" />
+              <h4 className="text-base font-bold text-slate-100">ボラティリティ</h4>
+            </div>
+            <div
+              className="text-sm text-slate-200 leading-relaxed"
+              dangerouslySetInnerHTML={{ __html: renderedSections.volatility }}
             />
           </div>
         )}
