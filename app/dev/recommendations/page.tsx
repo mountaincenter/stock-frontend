@@ -114,28 +114,28 @@ export default function RecommendationsPage() {
             <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-transparent pointer-events-none" />
             <div className="relative">
               <div className="text-2xl tabular-nums font-bold text-emerald-400">{data.summary.buy}</div>
-              <div className="text-xs text-muted-foreground mt-1">買い候補</div>
+              <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap">買い候補</div>
             </div>
           </div>
           <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl text-center">
             <div className="absolute inset-0 bg-gradient-to-br from-rose-500/5 via-transparent to-transparent pointer-events-none" />
             <div className="relative">
               <div className="text-2xl tabular-nums font-bold text-rose-400">{data.summary.sell}</div>
-              <div className="text-xs text-muted-foreground mt-1">売り候補</div>
+              <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap">売り候補</div>
             </div>
           </div>
           <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl text-center">
             <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 via-transparent to-transparent pointer-events-none" />
             <div className="relative">
               <div className="text-2xl tabular-nums font-bold text-amber-400">{data.summary.hold}</div>
-              <div className="text-xs text-muted-foreground mt-1">静観</div>
+              <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap">静観</div>
             </div>
           </div>
           <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl text-center">
             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
             <div className="relative">
               <div className="text-2xl tabular-nums font-bold text-muted-foreground">{data.summary.restricted || 0}</div>
-              <div className="text-xs text-muted-foreground mt-1">取引制限</div>
+              <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap">取引制限</div>
             </div>
           </div>
         </div>
@@ -300,7 +300,7 @@ function StockRow({ stock }: { stock: Stock }) {
             {stock.ticker}
           </div>
         </td>
-        <td className="px-3 py-2 text-muted-foreground">
+        <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
           <a
             href={`https://finance.yahoo.co.jp/quote/${stock.ticker}`}
             target="_blank"
