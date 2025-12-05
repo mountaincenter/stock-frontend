@@ -118,7 +118,7 @@ export default function MarketSummary({ date, className = "" }: MarketSummaryPro
         return h;
       });
 
-      let html = '<div class="overflow-x-auto my-2"><table class="text-sm leading-[1.4]">';
+      let html = '<div class="overflow-x-auto my-2"><table class="text-sm leading-[1.4] min-w-max">';
 
       html += '<thead><tr class="border-b border-border/40">';
       headers.forEach((h, i) => {
