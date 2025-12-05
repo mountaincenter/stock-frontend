@@ -172,16 +172,16 @@ export default function RecommendationsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border/40 bg-muted/30">
-                  <th className="px-3 py-2.5 text-left text-muted-foreground font-medium text-xs">銘柄</th>
-                  <th className="px-3 py-2.5 text-left text-muted-foreground font-medium text-xs">名称</th>
-                  <th className="px-2 py-2.5 text-center text-muted-foreground font-medium text-xs">Rank</th>
-                  <th className="px-2 py-2.5 text-right text-muted-foreground font-medium text-xs">終値</th>
-                  <th className="px-2 py-2.5 text-right text-muted-foreground font-medium text-xs">変化率</th>
-                  <th className="px-2 py-2.5 text-right text-muted-foreground font-medium text-xs">ATR</th>
-                  <th className="px-3 py-2.5 text-center text-primary font-medium text-xs">v3判断</th>
-                  <th className="px-2 py-2.5 text-center text-muted-foreground font-medium text-xs">v2.0.3</th>
-                  <th className="px-2 py-2.5 text-center text-muted-foreground font-medium text-xs">v2.1</th>
-                  <th className="px-2 py-2.5 text-center text-muted-foreground font-medium text-xs">制限</th>
+                  <th className="px-3 py-2.5 text-left text-muted-foreground font-medium text-xs whitespace-nowrap">銘柄</th>
+                  <th className="px-3 py-2.5 text-left text-muted-foreground font-medium text-xs whitespace-nowrap">名称</th>
+                  <th className="px-2 py-2.5 text-center text-muted-foreground font-medium text-xs whitespace-nowrap">Rank</th>
+                  <th className="px-2 py-2.5 text-right text-muted-foreground font-medium text-xs whitespace-nowrap">終値</th>
+                  <th className="px-2 py-2.5 text-right text-muted-foreground font-medium text-xs whitespace-nowrap">変化率</th>
+                  <th className="px-2 py-2.5 text-right text-muted-foreground font-medium text-xs whitespace-nowrap">ATR</th>
+                  <th className="px-3 py-2.5 text-center text-primary font-medium text-xs whitespace-nowrap">v3判断</th>
+                  <th className="px-2 py-2.5 text-center text-muted-foreground font-medium text-xs whitespace-nowrap">v2.0.3</th>
+                  <th className="px-2 py-2.5 text-center text-muted-foreground font-medium text-xs whitespace-nowrap">v2.1</th>
+                  <th className="px-2 py-2.5 text-center text-muted-foreground font-medium text-xs whitespace-nowrap">制限</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/30">
@@ -289,7 +289,7 @@ function StockRow({ stock }: { stock: Stock }) {
         }`}
         onClick={() => hasDeepAnalysis && setExpanded(!expanded)}
       >
-        <td className="px-3 py-2 tabular-nums text-foreground">
+        <td className="px-3 py-2 tabular-nums text-foreground whitespace-nowrap">
           <div className="flex items-center gap-1">
             {hasDeepAnalysis &&
               (expanded ? (
@@ -325,10 +325,10 @@ function StockRow({ stock }: { stock: Stock }) {
         <td className="px-2 py-2 text-right tabular-nums text-muted-foreground">
           {stock.technicalData?.atr?.value ? formatPercent(stock.technicalData.atr.value, 1) : "-"}
         </td>
-        <td className="px-3 py-2 text-center">
+        <td className="px-3 py-2 text-center whitespace-nowrap">
           {getV3Badge(stock.recommendation.v3_label, stock.recommendation.v3_action)}
         </td>
-        <td className="px-2 py-2 text-center">
+        <td className="px-2 py-2 text-center whitespace-nowrap">
           <div className="flex flex-col items-center">
             {stock.recommendation.v2_0_3_action && (
               <span className="text-sm">{getActionText(stock.recommendation.v2_0_3_action)}</span>
@@ -346,7 +346,7 @@ function StockRow({ stock }: { stock: Stock }) {
             )}
           </div>
         </td>
-        <td className="px-2 py-2 text-center">
+        <td className="px-2 py-2 text-center whitespace-nowrap">
           <div className="flex flex-col items-center">
             <span className="text-sm">{getActionText(stock.recommendation.action)}</span>
             <span
@@ -358,7 +358,7 @@ function StockRow({ stock }: { stock: Stock }) {
             </span>
           </div>
         </td>
-        <td className="px-2 py-2 text-center">
+        <td className="px-2 py-2 text-center whitespace-nowrap">
           {isRestricted ? (
             <span
               className="text-xs px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400"
