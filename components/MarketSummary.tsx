@@ -123,7 +123,7 @@ export default function MarketSummary({ date, className = "" }: MarketSummaryPro
       html += '<thead><tr class="border-b border-border/40">';
       headers.forEach((h, i) => {
         const align = i === 0 ? "text-left" : "text-right";
-        html += `<th class="px-2 py-1.5 text-sm ${align} font-medium text-muted-foreground">${h}</th>`;
+        html += `<th class="px-2 py-1.5 text-sm ${align} font-medium text-muted-foreground whitespace-nowrap">${h}</th>`;
       });
       html += "</tr></thead>";
 
@@ -170,8 +170,8 @@ export default function MarketSummary({ date, className = "" }: MarketSummaryPro
     text = text.replace(/^## (.+)$/gm, '<h3 class="text-sm font-bold text-primary mt-5 mb-2 pb-1 border-b border-border/40">$1</h3>');
     text = text.replace(/^# (.+)$/gm, '<h2 class="text-sm font-bold text-foreground mt-5 mb-2">$1</h2>');
 
-    // 強調
-    text = text.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold text-foreground">$1</strong>');
+    // 強調（白を抑えめに）
+    text = text.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-medium text-foreground/80">$1</strong>');
     text = text.replace(/\*([^*]+)\*/g, '<em class="italic">$1</em>');
 
     // リスト
