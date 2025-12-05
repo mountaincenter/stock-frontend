@@ -1,25 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  TrendingUp,
-  TrendingDown,
-  Activity,
-  AlertCircle,
-  CheckCircle,
-  Target,
-  ShoppingCart,
-  XCircle,
-  Minus,
-  ChevronDown,
-  ChevronUp,
-  Newspaper,
-  TrendingUpIcon,
-  AlertTriangle,
-  Lightbulb,
-} from "lucide-react";
-import { DevNavLinks } from "@/components/dev";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { DevNavLinks, FilterButtonGroup } from "@/components/dev";
+import MarketSummary from "@/components/MarketSummary";
 import type {
   TradingRecommendationResponse,
   Stock,
@@ -31,8 +15,15 @@ import {
   formatPrice,
 } from "@/types/trading-recommendation";
 
-// Filter type extended with "restricted"
 type FilterType = ActionType | "all" | "restricted";
+
+const FILTER_OPTIONS = [
+  { value: "all", label: "すべて" },
+  { value: "buy", label: "買い" },
+  { value: "sell", label: "売り" },
+  { value: "hold", label: "静観" },
+  { value: "restricted", label: "制限" },
+];
 
 export default function RecommendationsPage() {
   const [data, setData] = useState<TradingRecommendationResponse | null>(null);
@@ -58,622 +49,393 @@ export default function RecommendationsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 flex items-center justify-center">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.5 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="text-center"
-        >
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-blue-200 text-lg">読み込み中...</p>
-        </motion.div>
-      </div>
+      <main className="relative min-h-screen flex items-center justify-center">
+        <div className="fixed inset-0 -z-10 bg-gradient-to-br from-background via-background to-muted/20" />
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+          <p className="text-muted-foreground text-sm">読み込み中...</p>
+        </div>
+      </main>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 flex items-center justify-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-red-500/10 border border-red-500/50 rounded-2xl p-8 backdrop-blur-xl"
-        >
-          <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-          <p className="text-red-400 text-lg">エラー: {error || "データがありません"}</p>
-        </motion.div>
-      </div>
+      <main className="relative min-h-screen flex items-center justify-center">
+        <div className="fixed inset-0 -z-10 bg-gradient-to-br from-background via-background to-muted/20" />
+        <div className="text-rose-400 text-sm">エラー: {error || "データがありません"}</div>
+      </main>
     );
   }
 
-  // APIからのソート順をそのまま使用（v3ラベル順→v2.1スコア順でソート済み）
   const filteredStocks =
     filter === "all"
       ? data.stocks
       : filter === "buy"
-        ? data.stocks.filter(s => s.recommendation.action === "buy" && !s.tradingRestriction?.isRestricted)
+        ? data.stocks.filter((s) => s.recommendation.action === "buy" && !s.tradingRestriction?.isRestricted)
         : filter === "sell"
-          ? data.stocks.filter(s => s.recommendation.action === "sell" && !s.tradingRestriction?.isRestricted)
+          ? data.stocks.filter((s) => s.recommendation.action === "sell" && !s.tradingRestriction?.isRestricted)
           : filter === "hold"
-            ? data.stocks.filter(s => s.recommendation.action === "hold" && !s.tradingRestriction?.isRestricted)
-            : data.stocks.filter(s => s.tradingRestriction?.isRestricted);
+            ? data.stocks.filter((s) => s.recommendation.action === "hold" && !s.tradingRestriction?.isRestricted)
+            : data.stocks.filter((s) => s.tradingRestriction?.isRestricted);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 text-white overflow-hidden">
-      {/* Animated background */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute w-96 h-96 bg-blue-500/5 rounded-full blur-3xl -top-48 -left-48 animate-pulse"></div>
-        <div className="absolute w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl top-1/2 -right-48 animate-pulse delay-1000"></div>
-        <div className="absolute w-96 h-96 bg-blue-500/5 rounded-full blur-3xl -bottom-48 left-1/2 animate-pulse delay-2000"></div>
+    <main className="relative min-h-screen">
+      {/* Premium background */}
+      <div className="fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20" />
+        <div className="absolute -top-1/2 -right-1/4 w-[800px] h-[800px] rounded-full bg-gradient-to-br from-primary/8 via-primary/3 to-transparent blur-3xl animate-pulse-slow" />
+        <div className="absolute -bottom-1/3 -left-1/4 w-[600px] h-[600px] rounded-full bg-gradient-to-tr from-accent/10 via-accent/4 to-transparent blur-3xl animate-pulse-slower" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.03)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.03)_1px,transparent_1px)] bg-[size:4rem_4rem]" />
       </div>
 
-      <div className="relative container mx-auto px-6 py-3 max-w-[1600px]">
+      <div className="max-w-7xl mx-auto px-4 py-4 leading-[1.8] tracking-[0.02em] font-sans">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="@container mb-4"
-        >
-          <DevNavLinks
-            variant="simple"
-            links={["grokAnalysis"]}
-            className="mb-4"
-          />
-          <div className="flex items-center gap-2 mb-2">
-            <div className="p-1.5 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg shadow-lg">
-              <Target className="w-4 h-4" />
-            </div>
+        <div className="mb-6">
+          <DevNavLinks links={["dashboard"]} className="mb-3" />
+          <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-black text-slate-100">
-                Grok推奨銘柄 売買判断レポート
+              <h1 className="text-xl font-bold text-foreground">
+                Grok推奨銘柄 売買判断
               </h1>
-              <p className="text-slate-500 text-[10px]">
+              <p className="text-sm text-muted-foreground">
                 過去{data.dataSource.backtestCount}件のバックテスト + テクニカル分析
               </p>
             </div>
-          </div>
-        </motion.div>
-
-        {/* Meta情報 - Container Query対応 */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="@container bg-blue-500/10 border border-blue-500/30 rounded-xl p-3 mb-4 backdrop-blur-xl"
-        >
-          <div className="grid grid-cols-1 @md:grid-cols-2 gap-3 text-sm">
-            <div>
-              <span className="text-slate-400">生成日時: </span>
-              <span className="text-slate-200 font-semibold">
-                {new Date(data.generatedAt + "+09:00").toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}
-              </span>
-            </div>
-            <div>
-              <span className="text-slate-400">対象銘柄数: </span>
-              <span className="text-slate-200 font-semibold">{data.summary.total}銘柄</span>
+            <div className="text-sm text-muted-foreground">
+              {new Date(data.generatedAt + "+09:00").toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}
             </div>
           </div>
-        </motion.div>
+        </div>
 
-        {/* サマリーカード - Container Query対応 */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="@container mb-4"
-        >
-          <div className="grid grid-cols-2 @lg:grid-cols-4 gap-3">
-            <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border-2 border-green-500/30 rounded-xl p-3 @sm:p-4 text-center backdrop-blur-xl">
-              <ShoppingCart className="w-5 h-5 @sm:w-6 @sm:h-6 text-green-400 mx-auto mb-1.5 @sm:mb-2" />
-              <h3 className="text-2xl @sm:text-3xl font-bold text-green-400">{data.summary.buy}</h3>
-              <p className="text-slate-300 text-xs @sm:text-sm mt-1">買い候補</p>
-            </div>
-            <div className="bg-gradient-to-br from-red-500/10 to-pink-500/10 border-2 border-red-500/30 rounded-xl p-3 @sm:p-4 text-center backdrop-blur-xl">
-              <XCircle className="w-5 h-5 @sm:w-6 @sm:h-6 text-red-400 mx-auto mb-1.5 @sm:mb-2" />
-              <h3 className="text-2xl @sm:text-3xl font-bold text-red-400">{data.summary.sell}</h3>
-              <p className="text-slate-300 text-xs @sm:text-sm mt-1">売り候補</p>
-            </div>
-            <div className="bg-gradient-to-br from-orange-500/10 to-amber-500/10 border-2 border-orange-500/30 rounded-xl p-3 @sm:p-4 text-center backdrop-blur-xl">
-              <Minus className="w-5 h-5 @sm:w-6 @sm:h-6 text-orange-400 mx-auto mb-1.5 @sm:mb-2" />
-              <h3 className="text-2xl @sm:text-3xl font-bold text-orange-400">{data.summary.hold}</h3>
-              <p className="text-slate-300 text-xs @sm:text-sm mt-1">静観</p>
-            </div>
-            <div className="bg-gradient-to-br from-slate-500/10 to-gray-500/10 border-2 border-slate-500/30 rounded-xl p-3 @sm:p-4 text-center backdrop-blur-xl">
-              <AlertCircle className="w-5 h-5 @sm:w-6 @sm:h-6 text-slate-400 mx-auto mb-1.5 @sm:mb-2" />
-              <h3 className="text-2xl @sm:text-3xl font-bold text-slate-400">{data.summary.restricted || 0}</h3>
-              <p className="text-slate-300 text-xs @sm:text-sm mt-1">取引制限</p>
+        {/* Summary Grid */}
+        <div className="grid grid-cols-4 gap-3 mb-6">
+          <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl text-center">
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-transparent pointer-events-none" />
+            <div className="relative">
+              <div className="text-2xl tabular-nums font-bold text-emerald-400">{data.summary.buy}</div>
+              <div className="text-xs text-muted-foreground mt-1">買い候補</div>
             </div>
           </div>
-        </motion.div>
+          <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl text-center">
+            <div className="absolute inset-0 bg-gradient-to-br from-rose-500/5 via-transparent to-transparent pointer-events-none" />
+            <div className="relative">
+              <div className="text-2xl tabular-nums font-bold text-rose-400">{data.summary.sell}</div>
+              <div className="text-xs text-muted-foreground mt-1">売り候補</div>
+            </div>
+          </div>
+          <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl text-center">
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 via-transparent to-transparent pointer-events-none" />
+            <div className="relative">
+              <div className="text-2xl tabular-nums font-bold text-amber-400">{data.summary.hold}</div>
+              <div className="text-xs text-muted-foreground mt-1">静観</div>
+            </div>
+          </div>
+          <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl text-center">
+            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+            <div className="relative">
+              <div className="text-2xl tabular-nums font-bold text-muted-foreground">{data.summary.restricted || 0}</div>
+              <div className="text-xs text-muted-foreground mt-1">取引制限</div>
+            </div>
+          </div>
+        </div>
 
-        {/* 警告 */}
+        {/* Warnings */}
         {data.warnings && data.warnings.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-3 mb-4 backdrop-blur-xl"
-          >
-            <div className="flex items-start gap-2">
-              <AlertCircle className="w-5 h-5 text-orange-400 mt-0.5 flex-shrink-0" />
-              <div>
-                <h4 className="font-semibold text-orange-100 mb-1">⚠️ 重要な注意事項</h4>
-                <ul className="list-disc list-inside space-y-0.5 text-sm text-orange-200/80">
-                  {data.warnings.map((warning, index) => (
-                    <li key={index}>{warning}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </motion.div>
+          <div className="relative overflow-hidden rounded-xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-card/80 to-card/50 px-4 py-3 mb-4 backdrop-blur-xl">
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 via-transparent to-transparent pointer-events-none" />
+            <ul className="relative text-sm text-amber-400 space-y-1">
+              {data.warnings.map((warning, index) => (
+                <li key={index}>{warning}</li>
+              ))}
+            </ul>
+          </div>
         )}
 
-        {/* フィルター - Container Query対応 */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-          className="@container mb-4"
-        >
-          <div className="flex flex-wrap @md:flex-nowrap gap-1.5 @sm:gap-2 bg-slate-800/50 p-1.5 @sm:p-2 rounded-lg border border-slate-700/50">
-            <button
-              onClick={() => setFilter("all")}
-              className={`px-3 @sm:px-4 py-1.5 @sm:py-2 rounded-lg text-xs @sm:text-sm font-semibold transition-all ${
-                filter === "all"
-                  ? "bg-gradient-to-r from-blue-500 to-cyan-600 text-white shadow-lg shadow-blue-500/30"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/30"
-              }`}
-            >
-              すべて
-            </button>
-            <button
-              onClick={() => setFilter("buy")}
-              className={`px-3 @sm:px-4 py-1.5 @sm:py-2 rounded-lg text-xs @sm:text-sm font-semibold transition-all ${
-                filter === "buy"
-                  ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/30"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/30"
-              }`}
-            >
-              買い候補
-            </button>
-            <button
-              onClick={() => setFilter("sell")}
-              className={`px-3 @sm:px-4 py-1.5 @sm:py-2 rounded-lg text-xs @sm:text-sm font-semibold transition-all ${
-                filter === "sell"
-                  ? "bg-gradient-to-r from-red-500 to-pink-600 text-white shadow-lg shadow-red-500/30"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/30"
-              }`}
-            >
-              売り候補
-            </button>
-            <button
-              onClick={() => setFilter("hold")}
-              className={`px-3 @sm:px-4 py-1.5 @sm:py-2 rounded-lg text-xs @sm:text-sm font-semibold transition-all ${
-                filter === "hold"
-                  ? "bg-gradient-to-r from-orange-500 to-amber-600 text-white shadow-lg shadow-orange-500/30"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/30"
-              }`}
-            >
-              静観
-            </button>
-            <button
-              onClick={() => setFilter("restricted")}
-              className={`px-3 @sm:px-4 py-1.5 @sm:py-2 rounded-lg text-xs @sm:text-sm font-semibold transition-all ${
-                filter === "restricted"
-                  ? "bg-gradient-to-r from-slate-500 to-gray-600 text-white shadow-lg shadow-slate-500/30"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-700/30"
-              }`}
-            >
-              取引制限
-            </button>
-          </div>
-        </motion.div>
+        {/* Filter */}
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-sm text-muted-foreground">フィルター</span>
+          <FilterButtonGroup
+            options={FILTER_OPTIONS}
+            value={filter}
+            onChange={(v) => setFilter(v as FilterType)}
+          />
+          <span className="text-sm tabular-nums text-muted-foreground ml-auto">
+            {filteredStocks.length}件
+          </span>
+        </div>
 
-        {/* テーブル */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.5 }}
-          className="bg-slate-900/50 backdrop-blur-xl rounded-xl p-3 border border-slate-700/50 shadow-2xl mb-4"
-        >
-          <h2 className="text-sm font-bold text-slate-200 mb-3 flex items-center gap-2">
-            <Activity className="w-4 h-4 text-blue-400" />
-            推奨銘柄一覧 ({filteredStocks.length}件)
-          </h2>
-          <div className="overflow-x-auto">
+        {/* Table */}
+        <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 shadow-xl shadow-black/5 backdrop-blur-xl">
+          <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+          <div className="relative overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-slate-900/90 backdrop-blur-sm sticky top-0 z-10">
-                <tr className="border-b border-slate-700/50">
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    ティッカー
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    銘柄名
-                  </th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    ランク
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    前日終値
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    前日変化率
-                  </th>
-                  <th className="px-2 py-3 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    ATR
-                  </th>
-                  <th className="px-3 py-3 text-center text-sm font-bold text-blue-300 uppercase tracking-wider">
-                    v3判断
-                  </th>
-                  <th className="px-2 py-3 text-center text-[10px] font-medium text-slate-500 tracking-wider">
-                    v2.0.3
-                  </th>
-                  <th className="px-2 py-3 text-center text-[10px] font-medium text-slate-500 tracking-wider">
-                    v2.1
-                  </th>
-                  <th className="px-2 py-3 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    制限
-                  </th>
+              <thead>
+                <tr className="border-b border-border/40 bg-muted/30">
+                  <th className="px-3 py-2.5 text-left text-muted-foreground font-medium text-xs">銘柄</th>
+                  <th className="px-3 py-2.5 text-left text-muted-foreground font-medium text-xs">名称</th>
+                  <th className="px-2 py-2.5 text-center text-muted-foreground font-medium text-xs">Rank</th>
+                  <th className="px-2 py-2.5 text-right text-muted-foreground font-medium text-xs">終値</th>
+                  <th className="px-2 py-2.5 text-right text-muted-foreground font-medium text-xs">変化率</th>
+                  <th className="px-2 py-2.5 text-right text-muted-foreground font-medium text-xs">ATR</th>
+                  <th className="px-3 py-2.5 text-center text-primary font-medium text-xs">v3判断</th>
+                  <th className="px-2 py-2.5 text-center text-muted-foreground font-medium text-xs">v2.0.3</th>
+                  <th className="px-2 py-2.5 text-center text-muted-foreground font-medium text-xs">v2.1</th>
+                  <th className="px-2 py-2.5 text-center text-muted-foreground font-medium text-xs">制限</th>
                 </tr>
               </thead>
-              <tbody>
-                <AnimatePresence>
-                  {filteredStocks.map((stock, index) => (
-                    <StockRow key={stock.ticker} stock={stock} index={index} />
-                  ))}
-                </AnimatePresence>
+              <tbody className="divide-y divide-border/30">
+                {filteredStocks.map((stock) => (
+                  <StockRow key={stock.ticker} stock={stock} />
+                ))}
               </tbody>
             </table>
           </div>
-        </motion.div>
+        </div>
 
-        {/* スコアリングルール - Container Query対応 */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.6 }}
-          className="@container bg-blue-500/10 border border-blue-500/30 rounded-xl p-3 @sm:p-4 backdrop-blur-xl mb-4"
-        >
-          <h2 className="text-base @sm:text-lg font-bold mb-2 @sm:mb-3 flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 @sm:w-5 @sm:h-5 text-blue-400" />
-            📋 v3戦略（価格帯ベース判断）
-          </h2>
-
-          <div className="grid grid-cols-1 @md:grid-cols-2 gap-3 @sm:gap-4">
-            <div>
-              <h3 className="font-bold mb-1.5 @sm:mb-2 text-green-400 text-sm @sm:text-base">買いシグナル</h3>
-              <ul className="list-disc list-inside text-xs @sm:text-sm space-y-0.5 @sm:space-y-1 text-slate-300">
-                <li><span className="text-green-300">7,500〜10,000円</span> → 買い5日（スイング）</li>
-                <li><span className="text-green-300">5,000〜7,500円</span> → 買い（当日決済）</li>
-                <li><span className="text-green-300">その他</span> → 買い（当日決済）</li>
-              </ul>
-
-              <h3 className="font-bold mt-2 @sm:mt-3 mb-1.5 @sm:mb-2 text-orange-400 text-sm @sm:text-base">静観シグナル</h3>
-              <ul className="list-disc list-inside text-xs @sm:text-sm space-y-0.5 @sm:space-y-1 text-slate-300">
-                <li><span className="text-orange-300">1,500〜3,000円</span> → 買い5日（転換）</li>
-                <li><span className="text-orange-300">その他</span> → 静観</li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="font-bold mb-1.5 @sm:mb-2 text-red-400 text-sm @sm:text-base">売りシグナル</h3>
-              <ul className="list-disc list-inside text-xs @sm:text-sm space-y-0.5 @sm:space-y-1 text-slate-300">
-                <li><span className="text-red-300">2,000〜10,000円</span> → 売り5日（スイング）</li>
-                <li><span className="text-red-300">その他</span> → 売り（当日決済）</li>
-              </ul>
-
-              <h3 className="font-bold mt-2 @sm:mt-3 mb-1.5 @sm:mb-2 text-slate-400 text-sm @sm:text-base">注意事項</h3>
-              <ul className="list-disc list-inside text-xs @sm:text-sm space-y-0.5 @sm:space-y-1 text-slate-300">
-                <li>v2.1判断をベースに価格帯で保有期間を決定</li>
-                <li>取引制限銘柄は実行不可（空売り制限等）</li>
-              </ul>
+        {/* Strategy Info */}
+        <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 mt-4 px-4 py-3 shadow-lg shadow-black/5 backdrop-blur-xl">
+          <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+          <div className="relative">
+            <h2 className="text-sm font-medium text-foreground mb-3">
+              v3戦略（価格帯ベース判断）
+            </h2>
+            <div className="grid md:grid-cols-3 gap-4 text-sm">
+              <div>
+                <h3 className="text-emerald-400 font-medium mb-1.5">買いシグナル</h3>
+                <ul className="text-muted-foreground space-y-0.5 tabular-nums text-xs">
+                  <li>7,500〜10,000円 → 買い5日</li>
+                  <li>5,000〜7,500円 → 買い（当日）</li>
+                  <li>その他 → 買い（当日）</li>
+                </ul>
+              </div>
+              <div>
+                <h3 className="text-amber-400 font-medium mb-1.5">静観シグナル</h3>
+                <ul className="text-muted-foreground space-y-0.5 tabular-nums text-xs">
+                  <li>1,500〜3,000円 → 買い5日（転換）</li>
+                  <li>その他 → 静観</li>
+                </ul>
+              </div>
+              <div>
+                <h3 className="text-rose-400 font-medium mb-1.5">売りシグナル</h3>
+                <ul className="text-muted-foreground space-y-0.5 tabular-nums text-xs">
+                  <li>2,000〜10,000円 → 売り5日</li>
+                  <li>その他 → 売り（当日）</li>
+                </ul>
+              </div>
             </div>
           </div>
-        </motion.div>
+        </div>
 
-        {/* フッター */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.7 }}
-          className="text-center text-slate-500 text-sm mt-8 pt-6 border-t border-slate-800/50"
-        >
-          <p>生成日時: {new Date(data.generatedAt + "+09:00").toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}</p>
-          <p className="text-red-400 font-bold mt-2">
-            投資は自己責任で行ってください。このレポートは投資助言ではありません。
-          </p>
-        </motion.div>
+        {/* Market Summary */}
+        <MarketSummary className="mt-4" />
+
+        {/* Footer */}
+        <div className="mt-6 text-center text-xs text-muted-foreground/70">
+          投資は自己責任で行ってください。このレポートは投資助言ではありません。
+        </div>
       </div>
-    </div>
+    </main>
   );
 }
 
-function StockRow({ stock, index }: { stock: Stock; index: number }) {
+function StockRow({ stock }: { stock: Stock }) {
   const [expanded, setExpanded] = useState(false);
 
-  const getActionBadge = (action: Stock["recommendation"]["action"]) => {
-    switch (action) {
-      case "buy":
-        return (
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold text-xs">
-            <TrendingUp className="w-3 h-3" />
-            買い
-          </span>
-        );
-      case "sell":
-        return (
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-red-500 to-pink-600 text-white font-bold text-xs">
-            <TrendingDown className="w-3 h-3" />
-            売り
-          </span>
-        );
-      case "hold":
-        return (
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-orange-500 to-amber-600 text-white font-bold text-xs">
-            <Minus className="w-3 h-3" />
-            静観
-          </span>
-        );
-    }
+  const getV3Badge = (label: string | undefined, action: string | undefined) => {
+    if (!label) return <span className="text-muted-foreground">-</span>;
+    const color =
+      action === "buy"
+        ? "bg-emerald-500/20 text-emerald-400"
+        : action === "sell"
+        ? "bg-rose-500/20 text-rose-400"
+        : "bg-amber-500/20 text-amber-400";
+    return <span className={`px-2 py-0.5 rounded text-sm font-medium ${color}`}>{label}</span>;
   };
 
-  const getActionBadgeSmall = (action: Stock["recommendation"]["action"]) => {
+  const getActionText = (action: Stock["recommendation"]["action"]) => {
     switch (action) {
       case "buy":
-        return (
-          <span className="text-[10px] font-bold text-green-400/80">買い</span>
-        );
+        return <span className="text-emerald-400">買い</span>;
       case "sell":
-        return (
-          <span className="text-[10px] font-bold text-red-400/80">売り</span>
-        );
+        return <span className="text-rose-400">売り</span>;
       case "hold":
-        return (
-          <span className="text-[10px] font-bold text-orange-400/80">静観</span>
-        );
-    }
-  };
-
-  const getSentimentBadge = (sentiment?: string) => {
-    if (!sentiment) return null;
-    switch (sentiment) {
-      case "positive":
-        return <span className="px-2 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-bold">ポジティブ</span>;
-      case "negative":
-        return <span className="px-2 py-1 rounded-full bg-red-500/20 text-red-400 text-xs font-bold">ネガティブ</span>;
-      case "very_negative":
-        return <span className="px-2 py-1 rounded-full bg-red-600/30 text-red-300 text-xs font-bold">強ネガティブ</span>;
-      default:
-        return <span className="px-2 py-1 rounded-full bg-slate-500/20 text-slate-400 text-xs font-bold">中立</span>;
+        return <span className="text-amber-400">静観</span>;
     }
   };
 
   const isRestricted = stock.tradingRestriction?.isRestricted === true;
 
-  const bgColor = isRestricted
-    ? "bg-slate-500/10 hover:bg-slate-500/15"
+  const hasDeepAnalysis =
+    stock.deepAnalysis &&
+    (stock.deepAnalysis.latestNews ||
+      stock.deepAnalysis.sectorTrend ||
+      stock.deepAnalysis.risks ||
+      stock.deepAnalysis.opportunities);
+
+  const rowBg = isRestricted
+    ? "bg-muted/30"
     : stock.recommendation.action === "buy"
-      ? "bg-green-500/5 hover:bg-green-500/10"
-      : stock.recommendation.action === "sell"
-        ? "bg-red-500/5 hover:bg-red-500/10"
-        : "bg-orange-500/5 hover:bg-orange-500/10";
-
-  const getRestrictionBadge = () => {
-    if (!isRestricted) {
-      return <span className="text-green-400 text-xs font-bold">○</span>;
-    }
-    const reason = stock.tradingRestriction?.reason || "制限あり";
-    return (
-      <span
-        className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-red-500/20 border border-red-500/40 text-red-300 text-[10px] font-bold cursor-help animate-pulse"
-        title={reason}
-      >
-        <AlertCircle className="w-3 h-3" />
-        停止
-      </span>
-    );
-  };
-
-  const hasDeepAnalysis = stock.deepAnalysis && (
-    stock.deepAnalysis.latestNews ||
-    stock.deepAnalysis.sectorTrend ||
-    stock.deepAnalysis.risks ||
-    stock.deepAnalysis.opportunities
-  );
+    ? "bg-emerald-500/5"
+    : stock.recommendation.action === "sell"
+    ? "bg-rose-500/5"
+    : "";
 
   return (
     <>
-      <motion.tr
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: 20 }}
-        transition={{ duration: 0.3, delay: index * 0.02 }}
-        className={`border-b border-slate-800/50 transition-colors ${bgColor} ${hasDeepAnalysis ? 'cursor-pointer' : ''}`}
+      <tr
+        className={`hover:bg-primary/5 transition-colors ${rowBg} ${
+          hasDeepAnalysis ? "cursor-pointer" : ""
+        }`}
         onClick={() => hasDeepAnalysis && setExpanded(!expanded)}
       >
-        <td className="px-4 py-3 text-sm font-medium text-slate-200">
-          <div className="flex items-center gap-2">
-            {hasDeepAnalysis && (
-              expanded ? <ChevronUp className="w-4 h-4 text-blue-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />
-            )}
+        <td className="px-3 py-2 tabular-nums text-foreground">
+          <div className="flex items-center gap-1">
+            {hasDeepAnalysis &&
+              (expanded ? (
+                <ChevronUp className="w-3 h-3 text-primary" />
+              ) : (
+                <ChevronDown className="w-3 h-3 text-muted-foreground" />
+              ))}
             {stock.ticker}
           </div>
         </td>
-        <td className="px-4 py-3 text-sm text-slate-300">
+        <td className="px-3 py-2 text-muted-foreground">
           <a
             href={`https://finance.yahoo.co.jp/quote/${stock.ticker}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-blue-400 hover:underline transition-colors"
+            className="hover:text-primary transition-colors"
             onClick={(e) => e.stopPropagation()}
           >
             {stock.stockName || stock.ticker}
           </a>
         </td>
-        <td className="px-4 py-3 text-sm text-center text-slate-300">{stock.grokRank || 'N/A'}</td>
-        <td className="px-4 py-3 text-sm text-right text-slate-300 font-mono">
-          {stock.technicalData?.prevClose ? formatPrice(stock.technicalData.prevClose) : 'N/A'}
+        <td className="px-2 py-2 text-center tabular-nums text-muted-foreground">
+          {stock.grokRank || "-"}
         </td>
-        <td className="px-4 py-3 text-sm text-right text-slate-300">
-          {stock.technicalData?.prevDayChangePct ? formatPercent(stock.technicalData.prevDayChangePct) : 'N/A'}
+        <td className="px-2 py-2 text-right tabular-nums text-muted-foreground">
+          {stock.technicalData?.prevClose ? formatPrice(stock.technicalData.prevClose) : "-"}
         </td>
-        <td className="px-2 py-3 text-sm text-right text-slate-300">
-          {stock.technicalData?.atr?.value ? formatPercent(stock.technicalData.atr.value, 1) : 'N/A'}
+        <td className="px-2 py-2 text-right tabular-nums text-muted-foreground">
+          {stock.technicalData?.prevDayChangePct
+            ? formatPercent(stock.technicalData.prevDayChangePct)
+            : "-"}
         </td>
-        {/* v3判断 - メイン表示 */}
-        <td className="px-3 py-3 text-center">
-          {stock.recommendation.v3_label ? (
-            <span
-              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold shadow-lg ${
-                stock.recommendation.v3_action === "buy"
-                  ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white"
-                  : stock.recommendation.v3_action === "sell"
-                    ? "bg-gradient-to-r from-red-500 to-pink-600 text-white"
-                    : "bg-gradient-to-r from-orange-500 to-amber-600 text-white"
-              }`}
-              title={stock.recommendation.v3_reason || ""}
-            >
-              {stock.recommendation.v3_label}
-            </span>
-          ) : (
-            <span className="text-slate-500 text-xs">-</span>
-          )}
+        <td className="px-2 py-2 text-right tabular-nums text-muted-foreground">
+          {stock.technicalData?.atr?.value ? formatPercent(stock.technicalData.atr.value, 1) : "-"}
         </td>
-        {/* v2.0.3 - コンパクト表示 */}
-        <td className="px-2 py-3 text-center">
-          <div className="flex flex-col items-center gap-0.5">
-            {stock.recommendation.v2_0_3_action && getActionBadgeSmall(stock.recommendation.v2_0_3_action)}
+        <td className="px-3 py-2 text-center">
+          {getV3Badge(stock.recommendation.v3_label, stock.recommendation.v3_action)}
+        </td>
+        <td className="px-2 py-2 text-center">
+          <div className="flex flex-col items-center">
+            {stock.recommendation.v2_0_3_action && (
+              <span className="text-sm">{getActionText(stock.recommendation.v2_0_3_action)}</span>
+            )}
             {stock.recommendation.v2_0_3_score !== undefined && (
-              <span className={`text-[10px] font-mono ${stock.recommendation.v2_0_3_score >= 0 ? "text-green-400/70" : "text-red-400/70"}`}>
+              <span
+                className={`text-xs tabular-nums ${
+                  stock.recommendation.v2_0_3_score >= 0
+                    ? "text-emerald-400/70"
+                    : "text-rose-400/70"
+                }`}
+              >
                 {formatScore(stock.recommendation.v2_0_3_score)}
               </span>
             )}
           </div>
         </td>
-        {/* v2.1 - コンパクト表示 */}
-        <td className="px-2 py-3 text-center">
-          <div className="flex flex-col items-center gap-0.5">
-            {getActionBadgeSmall(stock.recommendation.action)}
-            <span className={`text-[10px] font-mono ${stock.recommendation.score >= 0 ? "text-green-400/70" : "text-red-400/70"}`}>
+        <td className="px-2 py-2 text-center">
+          <div className="flex flex-col items-center">
+            <span className="text-sm">{getActionText(stock.recommendation.action)}</span>
+            <span
+              className={`text-xs tabular-nums ${
+                stock.recommendation.score >= 0 ? "text-emerald-400/70" : "text-rose-400/70"
+              }`}
+            >
               {formatScore(stock.recommendation.score)}
             </span>
           </div>
         </td>
-        <td className="px-2 py-3 text-sm text-center">
-          {getRestrictionBadge()}
+        <td className="px-2 py-2 text-center">
+          {isRestricted ? (
+            <span
+              className="text-xs px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400"
+              title={stock.tradingRestriction?.reason ?? undefined}
+            >
+              停止
+            </span>
+          ) : (
+            <span className="tabular-nums text-emerald-400">○</span>
+          )}
         </td>
-      </motion.tr>
+      </tr>
 
-      {/* Deep Analysis Expanded Section */}
+      {/* Expanded Deep Analysis */}
       {expanded && hasDeepAnalysis && (
-        <motion.tr
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          exit={{ opacity: 0, height: 0 }}
-          className={bgColor}
-        >
-          <td colSpan={10} className="px-6 py-4">
-            <div className="bg-slate-800/50 rounded-lg p-4 space-y-4">
-              {/* Header */}
-              <div className="flex items-center gap-2 border-b border-slate-700 pb-2">
-                <Newspaper className="w-5 h-5 text-blue-400" />
-                <h3 className="text-lg font-bold text-slate-200">深掘り分析</h3>
+        <tr className={rowBg}>
+          <td colSpan={10} className="px-4 py-3 bg-muted/20">
+            <div className="grid md:grid-cols-2 gap-4 text-sm">
+              <div className="space-y-3">
+                {stock.deepAnalysis?.latestNews && stock.deepAnalysis.latestNews.length > 0 && (
+                  <div>
+                    <h4 className="text-primary font-medium mb-1.5">最新ニュース</h4>
+                    <ul className="text-muted-foreground space-y-1">
+                      {stock.deepAnalysis.latestNews.map((news, i) => (
+                        <li key={i} className="pl-2 border-l-2 border-border/50">
+                          {news}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {stock.deepAnalysis?.sectorTrend && (
+                  <div>
+                    <h4 className="text-primary font-medium mb-1.5">セクター動向</h4>
+                    <p className="text-muted-foreground pl-2 border-l-2 border-border/50">
+                      {stock.deepAnalysis.sectorTrend}
+                    </p>
+                  </div>
+                )}
               </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {/* Left Column */}
-                <div className="space-y-3">
-                  {/* Latest News */}
-                  {stock.deepAnalysis?.latestNews && stock.deepAnalysis.latestNews.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-300 mb-2 flex items-center gap-2">
-                        <Newspaper className="w-4 h-4 text-blue-400" />
-                        最新ニュース
-                      </h4>
-                      <ul className="space-y-1.5">
-                        {stock.deepAnalysis.latestNews.map((news, i) => (
-                          <li key={i} className="text-sm text-slate-300 pl-4 border-l-2 border-blue-500/30">
-                            {news}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Sector Trend */}
-                  {stock.deepAnalysis?.sectorTrend && (
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-300 mb-2 flex items-center gap-2">
-                        <TrendingUpIcon className="w-4 h-4 text-purple-400" />
-                        セクター動向
-                      </h4>
-                      <p className="text-sm text-slate-300 pl-4 border-l-2 border-purple-500/30">
-                        {stock.deepAnalysis.sectorTrend}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Market Sentiment */}
-                  {stock.deepAnalysis?.marketSentiment && (
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-300 mb-2">市場センチメント</h4>
-                      {getSentimentBadge(stock.deepAnalysis.marketSentiment)}
-                    </div>
-                  )}
-                </div>
-
-                {/* Right Column */}
-                <div className="space-y-3">
-                  {/* Risks */}
-                  {stock.deepAnalysis?.risks && stock.deepAnalysis.risks.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-300 mb-2 flex items-center gap-2">
-                        <AlertTriangle className="w-4 h-4 text-red-400" />
-                        リスク
-                      </h4>
-                      <ul className="space-y-1.5">
-                        {stock.deepAnalysis.risks.map((risk, i) => (
-                          <li key={i} className="text-sm text-red-300 pl-4 border-l-2 border-red-500/30">
-                            {risk}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Opportunities */}
-                  {stock.deepAnalysis?.opportunities && stock.deepAnalysis.opportunities.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-300 mb-2 flex items-center gap-2">
-                        <Lightbulb className="w-4 h-4 text-green-400" />
-                        機会
-                      </h4>
-                      <ul className="space-y-1.5">
-                        {stock.deepAnalysis.opportunities.map((opp, i) => (
-                          <li key={i} className="text-sm text-green-300 pl-4 border-l-2 border-green-500/30">
-                            {opp}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Verdict */}
-                  {stock.deepAnalysis?.verdict && (
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-300 mb-2">総合判断</h4>
-                      <p className="text-sm text-slate-300 pl-4 border-l-2 border-yellow-500/30 italic">
-                        {stock.deepAnalysis.verdict}
-                      </p>
-                    </div>
-                  )}
-                </div>
+              <div className="space-y-3">
+                {stock.deepAnalysis?.risks && stock.deepAnalysis.risks.length > 0 && (
+                  <div>
+                    <h4 className="text-rose-400 font-medium mb-1.5">リスク</h4>
+                    <ul className="text-muted-foreground space-y-1">
+                      {stock.deepAnalysis.risks.map((risk, i) => (
+                        <li key={i} className="pl-2 border-l-2 border-rose-500/30">
+                          {risk}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {stock.deepAnalysis?.opportunities && stock.deepAnalysis.opportunities.length > 0 && (
+                  <div>
+                    <h4 className="text-emerald-400 font-medium mb-1.5">機会</h4>
+                    <ul className="text-muted-foreground space-y-1">
+                      {stock.deepAnalysis.opportunities.map((opp, i) => (
+                        <li key={i} className="pl-2 border-l-2 border-emerald-500/30">
+                          {opp}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {stock.deepAnalysis?.verdict && (
+                  <div>
+                    <h4 className="text-foreground font-medium mb-1.5">総合判断</h4>
+                    <p className="text-muted-foreground pl-2 border-l-2 border-amber-500/30 italic">
+                      {stock.deepAnalysis.verdict}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </td>
-        </motion.tr>
+        </tr>
       )}
     </>
   );

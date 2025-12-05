@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@plugin "@tailwindcss/container-queries";
 
 /* ダークモード用 */
 @custom-variant dark (&:is(.dark *));
@@ -9,9 +10,10 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
-  /* ★ メイン本文フォント：Noto Sans JP → Geist Sans → システム */
-  --font-sans: var(--font-noto-jp), var(--font-geist-sans), ui-sans-serif,
-    system-ui, -apple-system, "Segoe UI", "Helvetica Neue", Arial, "Noto Sans",
+  /* ★ 金融UI向け：欧文/数字は Helvetica系、和文は Noto Sans JP */
+  --font-sans: "Helvetica Neue", "SF Pro Text", "Inter", "Roboto", ui-sans-serif,
+    var(--font-noto-jp), "Yu Gothic", "Hiragino Kaku Gothic ProN", "Hiragino Sans",
+    "Meiryo", system-ui, -apple-system, "Segoe UI", Arial, "Noto Sans",
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
   /* 等幅フォント：Geist Mono（従来のまま） */
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo,
@@ -177,10 +179,38 @@
 }
 
 html {
-  font-family: var(--font-noto-jp), var(--font-geist-sans), ui-sans-serif,
-    system-ui, -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN",
-    "Hiragino Sans", "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji",
-    "Segoe UI Emoji", "Segoe UI Symbol";
+  font-family: "Helvetica Neue", "SF Pro Text", "Inter", "Roboto", ui-sans-serif,
+    var(--font-noto-jp), "Yu Gothic", "Hiragino Kaku Gothic ProN", "Hiragino Sans",
+    "Meiryo", system-ui, -apple-system, "Segoe UI", Arial, "Noto Sans",
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+}
+
+/* TradingView-style Dev Dashboard Theme
+   Contrast ratios optimized per Digital Agency guidelines:
+   - Text: 4.5:1 minimum
+   - Borders/UI elements: 3:1 minimum
+*/
+.tv-dark {
+  /* Backgrounds */
+  --tv-bg-primary: #131722;
+  --tv-bg-secondary: #1e222d;
+  --tv-bg-tertiary: #2a2e39;
+  --tv-border: #404551;
+
+  /* Text - optimized for readability (WCAG AA compliant) */
+  --tv-text-primary: #e4e6eb;    /* ~11:1 contrast - main text */
+  --tv-text-secondary: #a1a7b4;  /* ~5.5:1 contrast - secondary text */
+  --tv-text-tertiary: #787d8a;   /* ~3.5:1 contrast - labels, hints (14px+ only) */
+
+  /* Accent & Actions */
+  --tv-accent: #4d8bff;          /* brighter blue for better visibility */
+  --tv-accent-hover: #3d7ae8;
+
+  /* Semantic colors - slightly brighter for dark bg */
+  --tv-up: #2ecc94;              /* success green - more visible */
+  --tv-down: #f06563;            /* error red - softer but visible */
+  --tv-warning: #f5a623;         /* warning orange */
+  --tv-neutral: #8b919e;
 }
 
 /* 株式投資UI専用カラー utility classes */
@@ -247,3 +277,4 @@ html {
     @apply font-sans tabular-nums;
   }
 }
+

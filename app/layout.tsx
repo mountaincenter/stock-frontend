@@ -58,7 +58,6 @@ export default function RootLayout({
     <html
       lang="ja"
       suppressHydrationWarning
-      className={[notoJP.className].join(" ")} // ← html に本文フォントを直指定
     >
       <body
         className={[
