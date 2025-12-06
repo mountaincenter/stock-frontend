@@ -169,11 +169,11 @@ export default function RecommendationsPage() {
         <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 shadow-xl shadow-black/5 backdrop-blur-xl">
           <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
           <div className="relative overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm table-auto">
               <thead>
                 <tr className="border-b border-border/40 bg-muted/30">
-                  <th className="px-3 py-2.5 text-left text-muted-foreground font-medium text-xs whitespace-nowrap">銘柄</th>
-                  <th className="px-3 py-2.5 text-left text-muted-foreground font-medium text-xs whitespace-nowrap">名称</th>
+                  <th className="px-3 py-2.5 text-left text-muted-foreground font-medium text-xs whitespace-nowrap w-16">銘柄</th>
+                  <th className="px-3 py-2.5 text-left text-muted-foreground font-medium text-xs whitespace-nowrap w-32">名称</th>
                   <th className="px-2 py-2.5 text-center text-muted-foreground font-medium text-xs whitespace-nowrap">Rank</th>
                   <th className="px-2 py-2.5 text-right text-muted-foreground font-medium text-xs whitespace-nowrap">終値</th>
                   <th className="px-2 py-2.5 text-right text-muted-foreground font-medium text-xs whitespace-nowrap">変化率</th>
