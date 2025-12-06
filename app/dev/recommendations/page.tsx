@@ -273,18 +273,10 @@ function StockRow({ stock }: { stock: Stock }) {
       stock.deepAnalysis.risks ||
       stock.deepAnalysis.opportunities);
 
-  const rowBg = isRestricted
-    ? "bg-muted/30"
-    : stock.recommendation.action === "buy"
-    ? "bg-emerald-500/5"
-    : stock.recommendation.action === "sell"
-    ? "bg-rose-500/5"
-    : "";
-
   return (
     <>
       <tr
-        className={`hover:bg-primary/5 transition-colors ${rowBg} ${
+        className={`hover:bg-primary/5 transition-colors ${
           hasDeepAnalysis ? "cursor-pointer" : ""
         }`}
         onClick={() => hasDeepAnalysis && setExpanded(!expanded)}
@@ -391,7 +383,7 @@ function StockRow({ stock }: { stock: Stock }) {
 
       {/* Expanded Deep Analysis */}
       {expanded && hasDeepAnalysis && (
-        <tr className={rowBg}>
+        <tr>
           <td colSpan={10} className="px-4 py-3 bg-muted/20">
             <div className="grid md:grid-cols-2 gap-4 text-sm">
               <div className="space-y-3">
