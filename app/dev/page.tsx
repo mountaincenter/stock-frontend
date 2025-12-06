@@ -102,6 +102,45 @@ export default function DevDashboard() {
     }));
   }, [filteredDailyStats]);
 
+  // 期間フィルターに合わせた統計を計算
+  const filteredStats = useMemo(() => {
+    if (filteredDailyStats.length === 0) return null;
+
+    // 全体統計
+    const totalCount = filteredDailyStats.reduce((sum, s) => sum + (s.count ?? 0), 0);
+    // win_countはないのでwin_rateとcountから計算
+    const winCount = filteredDailyStats.reduce((sum, s) => {
+      const count = s.count ?? 0;
+      const winRate = s.win_rate ?? 0;
+      return sum + Math.round(count * winRate / 100);
+    }, 0);
+    const totalProfit = filteredDailyStats.reduce((sum, s) => sum + (s.total_profit_per_100 ?? 0), 0);
+
+    // Top5統計
+    const top5TotalProfit = filteredDailyStats.reduce((sum, s) => sum + (s.top5_total_profit_per_100 ?? 0), 0);
+    // top5_win_countはないのでtop5_win_rateから計算（各日5銘柄）
+    const top5WinCount = filteredDailyStats.reduce((sum, s) => {
+      const top5WinRate = s.top5_win_rate ?? 0;
+      return sum + Math.round(5 * top5WinRate / 100);
+    }, 0);
+    const top5Count = filteredDailyStats.length * 5; // 各日5銘柄
+
+    return {
+      overall: {
+        win_rate: totalCount > 0 ? (winCount / totalCount) * 100 : 0,
+        valid_count: totalCount,
+        avg_profit_per_100_shares: totalCount > 0 ? totalProfit / totalCount : 0,
+        total_profit_per_100_shares: totalProfit,
+        total_days: filteredDailyStats.length,
+      },
+      top5: {
+        win_rate: top5Count > 0 ? (top5WinCount / top5Count) * 100 : 0,
+        avg_profit_per_100_shares: top5Count > 0 ? top5TotalProfit / top5Count : 0,
+        total_profit_per_100_shares: top5TotalProfit,
+      },
+    };
+  }, [filteredDailyStats]);
+
   const handleSort = (field: SortField) => {
     if (sortField === field) setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     else {
@@ -129,7 +168,10 @@ export default function DevDashboard() {
     );
   }
 
-  const { overall_stats, top5_stats } = dashboardData;
+  // dateFilter が "all" の場合は元データ、それ以外はフィルター済みデータを使用
+  const displayStats = dateFilter === "all"
+    ? { overall: dashboardData.overall_stats, top5: dashboardData.top5_stats }
+    : filteredStats ?? { overall: dashboardData.overall_stats, top5: dashboardData.top5_stats };
 
   return (
     <main className="relative min-h-screen">
@@ -185,10 +227,10 @@ export default function DevDashboard() {
             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
             <div className="relative">
               <div className="text-muted-foreground text-xs mb-2">勝率</div>
-              <div className={`text-2xl tabular-nums font-bold text-right ${overall_stats.win_rate >= 50 ? "text-emerald-400" : "text-rose-400"}`}>
-                {overall_stats.win_rate?.toFixed(1) ?? "—"}%
+              <div className={`text-2xl tabular-nums font-bold text-right ${displayStats.overall.win_rate >= 50 ? "text-emerald-400" : "text-rose-400"}`}>
+                {displayStats.overall.win_rate?.toFixed(1) ?? "—"}%
               </div>
-              <div className="text-muted-foreground/70 text-xs mt-1 text-right">{overall_stats.valid_count}件</div>
+              <div className="text-muted-foreground/70 text-xs mt-1 text-right">{displayStats.overall.valid_count}件</div>
             </div>
           </div>
 
@@ -197,8 +239,8 @@ export default function DevDashboard() {
             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
             <div className="relative">
               <div className="text-muted-foreground text-xs mb-2">Top5勝率</div>
-              <div className={`text-2xl tabular-nums font-bold text-right ${top5_stats.win_rate >= 50 ? "text-emerald-400" : "text-rose-400"}`}>
-                {top5_stats.win_rate.toFixed(1)}%
+              <div className={`text-2xl tabular-nums font-bold text-right ${displayStats.top5.win_rate >= 50 ? "text-emerald-400" : "text-rose-400"}`}>
+                {displayStats.top5.win_rate.toFixed(1)}%
               </div>
             </div>
           </div>
@@ -208,8 +250,8 @@ export default function DevDashboard() {
             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
             <div className="relative">
               <div className="text-muted-foreground text-xs mb-2">平均損益</div>
-              <div className={`text-2xl tabular-nums font-bold text-right ${overall_stats.avg_profit_per_100_shares >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                {overall_stats.avg_profit_per_100_shares >= 0 ? "+" : ""}{Math.round(overall_stats.avg_profit_per_100_shares).toLocaleString()}円
+              <div className={`text-2xl tabular-nums font-bold text-right ${displayStats.overall.avg_profit_per_100_shares >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                {displayStats.overall.avg_profit_per_100_shares >= 0 ? "+" : ""}{Math.round(displayStats.overall.avg_profit_per_100_shares).toLocaleString()}円
               </div>
               <div className="text-muted-foreground/70 text-xs mt-1 text-right">100株あたり</div>
             </div>
@@ -220,8 +262,8 @@ export default function DevDashboard() {
             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
             <div className="relative">
               <div className="text-muted-foreground text-xs mb-2">Top5平均</div>
-              <div className={`text-2xl tabular-nums font-bold text-right ${top5_stats.avg_profit_per_100_shares >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                {top5_stats.avg_profit_per_100_shares >= 0 ? "+" : ""}{Math.round(top5_stats.avg_profit_per_100_shares).toLocaleString()}円
+              <div className={`text-2xl tabular-nums font-bold text-right ${displayStats.top5.avg_profit_per_100_shares >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                {displayStats.top5.avg_profit_per_100_shares >= 0 ? "+" : ""}{Math.round(displayStats.top5.avg_profit_per_100_shares).toLocaleString()}円
               </div>
             </div>
           </div>
@@ -231,10 +273,10 @@ export default function DevDashboard() {
             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
             <div className="relative">
               <div className="text-muted-foreground text-xs mb-2">累計損益</div>
-              <div className={`text-2xl tabular-nums font-bold text-right ${overall_stats.total_profit_per_100_shares >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                {overall_stats.total_profit_per_100_shares >= 0 ? "+" : ""}{Math.round(overall_stats.total_profit_per_100_shares).toLocaleString()}円
+              <div className={`text-2xl tabular-nums font-bold text-right ${displayStats.overall.total_profit_per_100_shares >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                {displayStats.overall.total_profit_per_100_shares >= 0 ? "+" : ""}{Math.round(displayStats.overall.total_profit_per_100_shares).toLocaleString()}円
               </div>
-              <div className="text-muted-foreground/70 text-xs mt-1 text-right">{overall_stats.total_days}日</div>
+              <div className="text-muted-foreground/70 text-xs mt-1 text-right">{displayStats.overall.total_days}日</div>
             </div>
           </div>
 
@@ -243,8 +285,8 @@ export default function DevDashboard() {
             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
             <div className="relative">
               <div className="text-muted-foreground text-xs mb-2">Top5累計</div>
-              <div className={`text-2xl tabular-nums font-bold text-right ${top5_stats.total_profit_per_100_shares >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                {top5_stats.total_profit_per_100_shares >= 0 ? "+" : ""}{Math.round(top5_stats.total_profit_per_100_shares).toLocaleString()}円
+              <div className={`text-2xl tabular-nums font-bold text-right ${displayStats.top5.total_profit_per_100_shares >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                {displayStats.top5.total_profit_per_100_shares >= 0 ? "+" : ""}{Math.round(displayStats.top5.total_profit_per_100_shares).toLocaleString()}円
               </div>
             </div>
           </div>
