@@ -315,10 +315,26 @@ function StockRow({ stock }: { stock: Stock }) {
         <td className="px-2 py-2 text-center tabular-nums text-muted-foreground">
           {stock.grokRank || "-"}
         </td>
-        <td className="px-2 py-2 text-right tabular-nums text-muted-foreground">
+        <td className={`px-2 py-2 text-right tabular-nums ${
+          stock.technicalData?.prevDayChangePct
+            ? stock.technicalData.prevDayChangePct > 0
+              ? "text-emerald-400"
+              : stock.technicalData.prevDayChangePct < 0
+              ? "text-rose-400"
+              : "text-muted-foreground"
+            : "text-muted-foreground"
+        }`}>
           {stock.technicalData?.prevClose ? formatPrice(stock.technicalData.prevClose) : "-"}
         </td>
-        <td className="px-2 py-2 text-right tabular-nums text-muted-foreground">
+        <td className={`px-2 py-2 text-right tabular-nums ${
+          stock.technicalData?.prevDayChangePct
+            ? stock.technicalData.prevDayChangePct > 0
+              ? "text-emerald-400"
+              : stock.technicalData.prevDayChangePct < 0
+              ? "text-rose-400"
+              : "text-muted-foreground"
+            : "text-muted-foreground"
+        }`}>
           {stock.technicalData?.prevDayChangePct
             ? formatPercent(stock.technicalData.prevDayChangePct)
             : "-"}
