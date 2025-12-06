@@ -300,12 +300,13 @@ function StockRow({ stock }: { stock: Stock }) {
             {stock.ticker}
           </div>
         </td>
-        <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
+        <td className="px-3 py-2 text-muted-foreground">
           <a
             href={`https://finance.yahoo.co.jp/quote/${stock.ticker}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-primary transition-colors"
+            className="hover:text-primary transition-colors block max-w-[10em] truncate"
+            title={stock.stockName || stock.ticker}
             onClick={(e) => e.stopPropagation()}
           >
             {stock.stockName || stock.ticker}
