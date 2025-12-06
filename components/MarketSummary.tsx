@@ -187,10 +187,21 @@ export default function MarketSummary({ date, className = "" }: MarketSummaryPro
 
   if (loading) {
     return (
-      <div className={`relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl ${className}`}>
+      <div className={`relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 shadow-lg shadow-black/5 backdrop-blur-xl ${className}`}>
         <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
-        <div className="relative flex items-center justify-center h-20">
-          <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        {/* Skeleton matching actual content height */}
+        <div className="px-4 py-3 border-b border-border/40 flex justify-between">
+          <div className="h-4 w-24 bg-muted/50 rounded animate-pulse" />
+          <div className="h-4 w-32 bg-muted/50 rounded animate-pulse" />
+        </div>
+        <div className="p-4 space-y-4 min-h-[350px]">
+          <div className="h-4 w-3/4 bg-muted/50 rounded animate-pulse" />
+          <div className="h-4 w-full bg-muted/50 rounded animate-pulse" />
+          <div className="h-4 w-5/6 bg-muted/50 rounded animate-pulse" />
+          <div className="h-20 bg-muted/30 rounded animate-pulse" />
+          <div className="h-4 w-2/3 bg-muted/50 rounded animate-pulse" />
+          <div className="h-4 w-full bg-muted/50 rounded animate-pulse" />
+          <div className="h-4 w-4/5 bg-muted/50 rounded animate-pulse" />
         </div>
       </div>
     );

@@ -49,11 +49,36 @@ export default function RecommendationsPage() {
 
   if (loading) {
     return (
-      <main className="relative min-h-screen flex items-center justify-center">
-        <div className="fixed inset-0 -z-10 bg-gradient-to-br from-background via-background to-muted/20" />
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-          <p className="text-muted-foreground text-sm">読み込み中...</p>
+      <main className="relative min-h-screen">
+        <div className="fixed inset-0 -z-10 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20" />
+        </div>
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          {/* Header skeleton */}
+          <div className="mb-6">
+            <div className="h-4 w-24 bg-muted/50 rounded mb-3 animate-pulse" />
+            <div className="h-6 w-64 bg-muted/50 rounded mb-2 animate-pulse" />
+            <div className="h-4 w-48 bg-muted/50 rounded animate-pulse" />
+          </div>
+          {/* Summary Grid skeleton */}
+          <div className="grid grid-cols-4 gap-3 mb-6">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="rounded-xl border border-border/40 bg-card/50 p-4 h-20 animate-pulse" />
+            ))}
+          </div>
+          {/* Filter skeleton */}
+          <div className="flex items-center gap-2 mb-4">
+            <div className="h-8 w-64 bg-muted/50 rounded animate-pulse" />
+          </div>
+          {/* Table skeleton */}
+          <div className="rounded-2xl border border-border/40 bg-card/50 overflow-hidden">
+            <div className="h-10 bg-muted/30 border-b border-border/40" />
+            {[...Array(10)].map((_, i) => (
+              <div key={i} className="h-12 border-b border-border/20 animate-pulse" />
+            ))}
+          </div>
+          {/* MarketSummary skeleton */}
+          <div className="mt-4 rounded-xl border border-border/40 bg-card/50 h-[400px] animate-pulse" />
         </div>
       </main>
     );
