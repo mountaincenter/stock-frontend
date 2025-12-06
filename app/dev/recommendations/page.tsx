@@ -281,7 +281,7 @@ function StockRow({ stock }: { stock: Stock }) {
         }`}
         onClick={() => hasDeepAnalysis && setExpanded(!expanded)}
       >
-        <td className="px-3 py-2 tabular-nums text-foreground whitespace-nowrap">
+        <td className="px-3 py-2 tabular-nums text-muted-foreground whitespace-nowrap">
           <div className="flex items-center gap-1">
             {hasDeepAnalysis &&
               (expanded ? (
