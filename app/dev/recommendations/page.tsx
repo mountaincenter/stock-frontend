@@ -293,16 +293,17 @@ function StockRow({ stock }: { stock: Stock }) {
           </div>
         </td>
         <td className="px-3 py-2 text-muted-foreground">
-          <a
-            href={`/${stock.ticker}`}
-            target="stock-detail"
-            rel="noopener noreferrer"
-            className="hover:text-primary transition-colors block max-w-[10em] truncate"
+          <button
+            type="button"
+            className="hover:text-primary transition-colors block max-w-[10em] truncate text-left"
             title={stock.stockName || stock.ticker}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              window.open(`/${stock.ticker}`, 'stock-detail');
+            }}
           >
             {stock.stockName || stock.ticker}
-          </a>
+          </button>
         </td>
         <td className="px-2 py-2 text-center tabular-nums text-muted-foreground">
           {stock.grokRank || "-"}
