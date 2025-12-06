@@ -7,19 +7,18 @@ import { ThemeProvider } from "../components/theme-provider";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
-  display: "swap",
+  display: "optional",
 });
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
-  display: "swap",
+  display: "optional",
 });
 const notoJP = Noto_Sans_JP({
   variable: "--font-noto-jp",
   weight: ["400", "500", "700"],
-  display: "swap",
-  preload: true, // ← 先読み
-  // ※ subsets は指定しない（Noto_Sans_JP は内部で CJK を含む）
+  display: "optional",
+  preload: true,
 });
 
 export const metadata: Metadata = {
