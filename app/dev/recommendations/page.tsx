@@ -294,8 +294,8 @@ function StockRow({ stock }: { stock: Stock }) {
         </td>
         <td className="px-3 py-2 text-muted-foreground">
           <a
-            href={`https://finance.yahoo.co.jp/quote/${stock.ticker}`}
-            target="_blank"
+            href={`/${stock.ticker}`}
+            target="stock-detail"
             rel="noopener noreferrer"
             className="hover:text-primary transition-colors block max-w-[10em] truncate"
             title={stock.stockName || stock.ticker}
