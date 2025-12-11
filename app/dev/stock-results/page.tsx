@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { ProtectedRoute } from '../../../src/components/auth/ProtectedRoute';
 import { useAuth } from '../../../src/components/auth/AuthProvider';
 import { DevNavLinks, FilterButtonGroup } from '../../../components/dev';
-import { LogOut, ChevronDown, ChevronRight } from 'lucide-react';
+import { LogOut, ChevronDown, ChevronRight, Fingerprint, Check } from 'lucide-react';
+// WebAuthn APIは動的importで使用（HMR問題回避）
 
 // Types
 interface Summary {
@@ -89,7 +90,37 @@ function StockResultsContent() {
   const [view, setView] = useState<ViewType>('daily');
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
 
+  // パスキー関連（自動チェックなし - 登録時のみ確認）
+  const [hasPasskey, setHasPasskey] = useState<boolean | null>(null);
+  const [isRegisteringPasskey, setIsRegisteringPasskey] = useState(false);
+  const [passkeyMessage, setPasskeyMessage] = useState<string | null>(null);
+
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+
+  // パスキー登録（クリック時のみ実行）
+  async function handleRegisterPasskey() {
+    setIsRegisteringPasskey(true);
+    setPasskeyMessage(null);
+    try {
+      const { associateWebAuthnCredential } = await import('aws-amplify/auth');
+      await associateWebAuthnCredential();
+      setHasPasskey(true);
+      setPasskeyMessage('パスキーを登録しました！次回から生体認証でログインできます。');
+    } catch (err: unknown) {
+      console.error('Passkey registration error:', err);
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      if (errorMessage.includes('required scopes') || errorMessage.includes('NotAuthorizedException')) {
+        setPasskeyMessage('パスキー登録には「パスキー対応ログイン」での再ログインが必要です。ログアウトして再ログインしてください。');
+      } else if (errorMessage.includes('already registered') || errorMessage.includes('already exists')) {
+        setHasPasskey(true);
+        setPasskeyMessage('パスキーは既に登録されています。');
+      } else {
+        setPasskeyMessage(`パスキーの登録に失敗しました: ${errorMessage}`);
+      }
+    } finally {
+      setIsRegisteringPasskey(false);
+    }
+  }
 
   useEffect(() => {
     setLoading(true);
@@ -177,6 +208,23 @@ function StockResultsContent() {
           <div className="flex flex-wrap items-center gap-3">
             <DevNavLinks links={["dashboard", "recommendations"]} />
 
+            {/* パスキー関連 */}
+            {hasPasskey === true ? (
+              <span className="flex items-center gap-1 px-2 py-1 text-xs text-emerald-400 bg-emerald-400/10 rounded-lg">
+                <Check className="w-3.5 h-3.5" />
+                パスキー登録済
+              </span>
+            ) : (
+              <button
+                onClick={handleRegisterPasskey}
+                disabled={isRegisteringPasskey}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg hover:from-emerald-500 hover:to-teal-500 transition-colors disabled:opacity-50"
+              >
+                <Fingerprint className="w-3.5 h-3.5" />
+                {isRegisteringPasskey ? '登録中...' : 'パスキー登録'}
+              </button>
+            )}
+
             <button
               onClick={signOut}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground border border-border/50 rounded-lg hover:bg-muted/50 transition-colors"
@@ -185,6 +233,13 @@ function StockResultsContent() {
               ログアウト
             </button>
           </div>
+
+          {/* パスキーメッセージ */}
+          {passkeyMessage && (
+            <div className={`w-full px-3 py-2 text-sm rounded-lg ${passkeyMessage.includes('失敗') || passkeyMessage.includes('再ログイン') ? 'bg-amber-500/10 text-amber-400' : 'bg-emerald-500/10 text-emerald-400'}`}>
+              {passkeyMessage}
+            </div>
+          )}
         </header>
 
         {/* Summary Cards */}
