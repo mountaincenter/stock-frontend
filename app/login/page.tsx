@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { signIn } from 'aws-amplify/auth';
+import { signIn, confirmSignIn } from 'aws-amplify/auth';
 import { useAuth } from '../../src/components/auth/AuthProvider';
-import { Fingerprint, ChevronDown, ChevronUp } from 'lucide-react';
+import { Fingerprint, Key } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,21 +13,20 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showSimpleLogin, setShowSimpleLogin] = useState(false);
+  const [isPasskeyLoading, setIsPasskeyLoading] = useState(false);
 
-  // 認証済みならリダイレクト（useEffectで副作用として実行）
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
       router.push('/dev/stock-results');
     }
   }, [isLoading, isAuthenticated, router]);
 
-  // 認証済みの場合はnullを返す（リダイレクト中）
   if (!isLoading && isAuthenticated) {
     return null;
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  // パスワードログイン
+  async function handlePasswordLogin(e: React.FormEvent) {
     e.preventDefault();
     setError('');
     setIsSubmitting(true);
@@ -42,8 +41,7 @@ export default function LoginPage() {
         router.push('/dev/stock-results');
         router.refresh();
       } else if (nextStep?.signInStep === 'CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED') {
-        // パスワード変更が必要な場合
-        setError('パスワードの変更が必要です。「パスキー対応ログイン」を使用してください。');
+        setError('パスワードの変更が必要です。管理者に連絡してください。');
       }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'ログインに失敗しました';
@@ -53,21 +51,42 @@ export default function LoginPage() {
     }
   }
 
-  function handleHostedUILogin() {
-    // Amplifyのバリデーションバグを回避するため、手動でHosted UI URLを構築
-    const domain = process.env.NEXT_PUBLIC_COGNITO_DOMAIN;
-    const clientId = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID;
-    const redirectUri = process.env.NEXT_PUBLIC_COGNITO_REDIRECT_SIGN_IN;
-    const scopes = ['email', 'openid', 'profile', 'aws.cognito.signin.user.admin'];
+  // パスキーログイン（登録済みの場合）
+  async function handlePasskeyLogin() {
+    if (!email) {
+      setError('メールアドレスを入力してください');
+      return;
+    }
+    setError('');
+    setIsPasskeyLoading(true);
 
-    const url = `https://${domain}/oauth2/authorize?` + new URLSearchParams({
-      client_id: clientId || '',
-      response_type: 'code',
-      scope: scopes.join(' '),
-      redirect_uri: redirectUri || '',
-    }).toString();
+    try {
+      const { isSignedIn, nextStep } = await signIn({
+        username: email,
+        options: {
+          authFlowType: 'USER_AUTH',
+          preferredChallenge: 'WEB_AUTHN',
+        },
+      });
 
-    window.location.href = url;
+      if (isSignedIn) {
+        router.push('/dev/stock-results');
+        router.refresh();
+      } else if (nextStep?.signInStep === 'CONTINUE_SIGN_IN_WITH_FIRST_FACTOR_SELECTION') {
+        // パスキーが登録されていない場合
+        setError('パスキーが登録されていません。パスワードでログイン後、パスキーを登録してください。');
+      }
+    } catch (err: unknown) {
+      console.error('Passkey login error:', err);
+      const errorMessage = err instanceof Error ? err.message : 'パスキーログインに失敗しました';
+      if (errorMessage.includes('not found') || errorMessage.includes('No credentials')) {
+        setError('パスキーが登録されていません。パスワードでログイン後、パスキーを登録してください。');
+      } else {
+        setError(errorMessage);
+      }
+    } finally {
+      setIsPasskeyLoading(false);
+    }
   }
 
   if (isLoading) {
@@ -91,77 +110,63 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* メイン: Hosted UI ログイン（パスキー対応） */}
-        <div className="space-y-3">
-          <button
-            onClick={handleHostedUILogin}
-            className="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-md hover:from-emerald-500 hover:to-teal-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 flex items-center justify-center gap-2 font-medium"
-          >
-            <Fingerprint className="w-5 h-5" />
-            パスキー対応ログイン
-          </button>
-          <p className="text-xs text-muted-foreground text-center">
-            Touch ID / 指紋認証 / パスワード に対応
-          </p>
-        </div>
+        <form onSubmit={handlePasswordLogin} className="space-y-4">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1">
+              メールアドレス
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              placeholder="your@email.com"
+            />
+          </div>
 
-        {/* シンプルログイン（展開式） */}
-        <div className="pt-2">
-          <button
-            onClick={() => setShowSimpleLogin(!showSimpleLogin)}
-            className="w-full flex items-center justify-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            {showSimpleLogin ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            シンプルログイン（パスワードのみ）
-          </button>
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-foreground mb-1">
+              パスワード
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              placeholder="••••••••••••"
+            />
+          </div>
 
-          {showSimpleLogin && (
-            <div className="mt-4 p-4 border border-border rounded-md bg-muted/30">
-              <p className="text-xs text-amber-500 mb-3">
-                ※ このログイン方式ではパスキー登録・使用ができません
-              </p>
-              <form onSubmit={handleSubmit} className="space-y-3">
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1">
-                    メールアドレス
-                  </label>
-                  <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm"
-                    placeholder="your@email.com"
-                  />
-                </div>
+          <div className="flex gap-3">
+            {/* パスワードログイン */}
+            <button
+              type="submit"
+              disabled={isSubmitting || !password}
+              className="flex-1 py-2.5 px-4 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              <Key className="w-4 h-4" />
+              {isSubmitting ? 'ログイン中...' : 'パスワード'}
+            </button>
 
-                <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-foreground mb-1">
-                    パスワード
-                  </label>
-                  <input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring text-sm"
-                    placeholder="••••••••••••"
-                  />
-                </div>
+            {/* パスキーログイン */}
+            <button
+              type="button"
+              onClick={handlePasskeyLogin}
+              disabled={isPasskeyLoading || !email}
+              className="flex-1 py-2.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-md hover:from-emerald-500 hover:to-teal-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              <Fingerprint className="w-4 h-4" />
+              {isPasskeyLoading ? '認証中...' : 'パスキー'}
+            </button>
+          </div>
+        </form>
 
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full py-2 px-4 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                >
-                  {isSubmitting ? 'ログイン中...' : 'ログイン'}
-                </button>
-              </form>
-            </div>
-          )}
-        </div>
+        <p className="text-xs text-muted-foreground text-center">
+          初回はパスワードでログイン → パスキー登録 → 以降パスキーで認証
+        </p>
       </div>
     </div>
   );
