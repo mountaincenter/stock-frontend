@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { signIn, signInWithRedirect } from 'aws-amplify/auth';
+import { signIn } from 'aws-amplify/auth';
 import { useAuth } from '../../src/components/auth/AuthProvider';
 import { Fingerprint, ChevronDown, ChevronUp } from 'lucide-react';
 
@@ -53,12 +53,21 @@ export default function LoginPage() {
     }
   }
 
-  async function handleHostedUILogin() {
-    try {
-      await signInWithRedirect();
-    } catch (err) {
-      console.error('Hosted UI login error:', err);
-    }
+  function handleHostedUILogin() {
+    // Amplifyのバリデーションバグを回避するため、手動でHosted UI URLを構築
+    const domain = process.env.NEXT_PUBLIC_COGNITO_DOMAIN;
+    const clientId = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID;
+    const redirectUri = process.env.NEXT_PUBLIC_COGNITO_REDIRECT_SIGN_IN;
+    const scopes = ['email', 'openid', 'profile', 'aws.cognito.signin.user.admin'];
+
+    const url = `https://${domain}/oauth2/authorize?` + new URLSearchParams({
+      client_id: clientId || '',
+      response_type: 'code',
+      scope: scopes.join(' '),
+      redirect_uri: redirectUri || '',
+    }).toString();
+
+    window.location.href = url;
   }
 
   if (isLoading) {
