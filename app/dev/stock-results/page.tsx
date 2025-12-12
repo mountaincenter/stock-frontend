@@ -557,26 +557,26 @@ function StockResultsContent() {
                 <div key={group.key} className="border-b border-border/20 last:border-0">
                   <button
                     onClick={() => toggleExpand(group.key)}
-                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors"
+                    className="w-full flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 py-3 hover:bg-muted/30 transition-colors"
                   >
                     <div className="flex items-center gap-2">
                       {expandedKeys.has(group.key) ? (
-                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                        <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
                       ) : (
-                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                        <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
                       )}
-                      <span className="text-foreground font-medium">{group.key}</span>
-                      <span className={`tabular-nums font-medium ${group.total_profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      <span className="text-foreground font-medium whitespace-nowrap">{group.key}</span>
+                      <span className={`tabular-nums font-medium whitespace-nowrap ${group.total_profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                         {group.total_profit >= 0 ? '+' : ''}{group.total_profit.toLocaleString()}円
                       </span>
                     </div>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span>
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1 sm:mt-0 pl-6 sm:pl-0">
+                      <span className="whitespace-nowrap">
                         ロング: <span className={group.long_profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
                           {group.long_profit >= 0 ? '+' : ''}{group.long_profit.toLocaleString()}円
                         </span>
                       </span>
-                      <span>
+                      <span className="whitespace-nowrap">
                         ショート: <span className={group.short_profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
                           {group.short_profit >= 0 ? '+' : ''}{group.short_profit.toLocaleString()}円
                         </span>
