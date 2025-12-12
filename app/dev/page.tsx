@@ -15,10 +15,18 @@ import {
   Legend,
   Cell,
 } from "recharts";
-import { ChevronDown, ChevronUp, Search, ArrowUpRight } from "lucide-react";
+import { ChevronDown, ChevronUp, Search, ArrowUpRight, Settings, Fingerprint, Trash2, X } from "lucide-react";
 import { DashboardData } from "@/lib/grok-backtest-types";
 import MarketSummary from "@/components/MarketSummary";
 import { DevNavLinks, FilterButtonGroup } from "@/components/dev";
+import { useAuth } from "@/components/auth/AuthProvider";
+
+interface PasskeyCredential {
+  credentialId: string;
+  friendlyCredentialName: string;
+  relyingPartyId: string;
+  createdAt: Date;
+}
 
 type SortField = "date" | "win_rate" | "count";
 type SortDirection = "asc" | "desc";
@@ -31,6 +39,7 @@ const PHASE_INFO = {
 } as const;
 
 export default function DevDashboard() {
+  const { isAuthenticated, user } = useAuth();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +50,52 @@ export default function DevDashboard() {
   const [dateFilter, setDateFilter] = useState<"all" | "week" | "month">("all");
   const [selectedVersion, setSelectedVersion] = useState<string | null>(null);
   const [selectedPhase, setSelectedPhase] = useState<Phase>("phase2");
+
+  // 設定モーダル
+  const [showSettings, setShowSettings] = useState(false);
+  const [passkeys, setPasskeys] = useState<PasskeyCredential[]>([]);
+  const [passkeyLoading, setPasskeyLoading] = useState(false);
+  const [passkeyError, setPasskeyError] = useState<string | null>(null);
+
+  // パスキー一覧取得
+  async function loadPasskeys() {
+    if (!isAuthenticated) return;
+    setPasskeyLoading(true);
+    setPasskeyError(null);
+    try {
+      const { listWebAuthnCredentials } = await import('aws-amplify/auth');
+      const result = await listWebAuthnCredentials();
+      setPasskeys(result.credentials || []);
+    } catch (err) {
+      console.error('Failed to load passkeys:', err);
+      setPasskeyError('パスキー一覧の取得に失敗しました');
+    } finally {
+      setPasskeyLoading(false);
+    }
+  }
+
+  // パスキー削除
+  async function deletePasskey(credentialId: string) {
+    if (!confirm('このパスキーを削除しますか？')) return;
+    setPasskeyLoading(true);
+    try {
+      const { deleteWebAuthnCredential } = await import('aws-amplify/auth');
+      await deleteWebAuthnCredential({ credentialId });
+      setPasskeys(prev => prev.filter(p => p.credentialId !== credentialId));
+    } catch (err) {
+      console.error('Failed to delete passkey:', err);
+      setPasskeyError('パスキーの削除に失敗しました');
+    } finally {
+      setPasskeyLoading(false);
+    }
+  }
+
+  // 設定モーダル開く時にパスキー一覧取得
+  useEffect(() => {
+    if (showSettings && isAuthenticated) {
+      loadPasskeys();
+    }
+  }, [showSettings, isAuthenticated]);
 
   useEffect(() => {
     const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "";
@@ -216,9 +271,106 @@ export default function DevDashboard() {
                 value={dateFilter}
                 onChange={setDateFilter}
               />
+
+              {/* 設定ボタン */}
+              <button
+                onClick={() => setShowSettings(true)}
+                className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+                title="設定"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
             </div>
           </div>
         </header>
+
+        {/* 設定モーダル */}
+        {showSettings && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="relative w-full max-w-md mx-4 bg-card rounded-xl border border-border shadow-2xl">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+                <h2 className="text-lg font-semibold text-foreground">設定</h2>
+                <button
+                  onClick={() => setShowSettings(false)}
+                  className="p-1 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-4 space-y-4">
+                {/* ユーザー情報 */}
+                {isAuthenticated && user && (
+                  <div className="p-3 bg-muted/30 rounded-lg">
+                    <div className="text-xs text-muted-foreground mb-1">ログイン中</div>
+                    <div className="text-sm text-foreground truncate">
+                      {user.signInDetails?.loginId || user.username}
+                    </div>
+                  </div>
+                )}
+
+                {/* パスキー管理 */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Fingerprint className="w-4 h-4 text-emerald-400" />
+                    <span className="text-sm font-medium text-foreground">登録済みパスキー</span>
+                  </div>
+
+                  {passkeyError && (
+                    <div className="p-2 mb-3 text-xs text-rose-400 bg-rose-400/10 rounded-lg">
+                      {passkeyError}
+                    </div>
+                  )}
+
+                  {passkeyLoading ? (
+                    <div className="flex items-center justify-center py-6">
+                      <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  ) : passkeys.length === 0 ? (
+                    <div className="py-6 text-center text-sm text-muted-foreground">
+                      {isAuthenticated ? '登録済みのパスキーはありません' : 'ログインが必要です'}
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {passkeys.map((passkey) => (
+                        <div
+                          key={passkey.credentialId}
+                          className="flex items-center justify-between p-3 bg-muted/20 rounded-lg border border-border/30"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm text-foreground truncate">
+                              {passkey.friendlyCredentialName || 'パスキー'}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {new Date(passkey.createdAt).toLocaleDateString('ja-JP')}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => deletePasskey(passkey.credentialId)}
+                            disabled={passkeyLoading}
+                            className="p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-400/10 rounded-lg transition-colors disabled:opacity-50"
+                            title="削除"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="px-4 py-3 border-t border-border">
+                <button
+                  onClick={() => setShowSettings(false)}
+                  className="w-full py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  閉じる
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* KPI Row */}
         <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-6">
