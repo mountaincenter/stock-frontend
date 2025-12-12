@@ -56,6 +56,13 @@ export default function DevDashboard() {
   const [passkeys, setPasskeys] = useState<PasskeyCredential[]>([]);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
   const [passkeyError, setPasskeyError] = useState<string | null>(null);
+  const [passkeySuccess, setPasskeySuccess] = useState<string | null>(null);
+
+  // ログインフォーム（設定モーダル内）
+  const [settingsEmail, setSettingsEmail] = useState('');
+  const [settingsPassword, setSettingsPassword] = useState('');
+  const [settingsLoginLoading, setSettingsLoginLoading] = useState(false);
+  const [settingsLoginError, setSettingsLoginError] = useState<string | null>(null);
 
   // パスキー一覧取得
   async function loadPasskeys() {
@@ -79,10 +86,12 @@ export default function DevDashboard() {
     if (!credentialId) return;
     if (!confirm('このパスキーを削除しますか？')) return;
     setPasskeyLoading(true);
+    setPasskeyError(null);
     try {
       const { deleteWebAuthnCredential } = await import('aws-amplify/auth');
       await deleteWebAuthnCredential({ credentialId });
       setPasskeys(prev => prev.filter(p => p.credentialId !== credentialId));
+      setPasskeySuccess('パスキーを削除しました');
     } catch (err) {
       console.error('Failed to delete passkey:', err);
       setPasskeyError('パスキーの削除に失敗しました');
@@ -91,10 +100,71 @@ export default function DevDashboard() {
     }
   }
 
-  // 設定モーダル開く時にパスキー一覧取得
-  useEffect(() => {
-    if (showSettings && isAuthenticated) {
+  // パスキー登録
+  async function registerPasskey() {
+    setPasskeyLoading(true);
+    setPasskeyError(null);
+    setPasskeySuccess(null);
+    try {
+      const { associateWebAuthnCredential } = await import('aws-amplify/auth');
+      await associateWebAuthnCredential();
+      setPasskeySuccess('パスキーを登録しました！');
+      // メールアドレスをlocalStorageに保存
+      if (settingsEmail) {
+        localStorage.setItem('saved_login_email', settingsEmail);
+      }
       loadPasskeys();
+    } catch (err) {
+      console.error('Passkey registration error:', err);
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setPasskeyError(`パスキー登録に失敗: ${errorMessage}`);
+    } finally {
+      setPasskeyLoading(false);
+    }
+  }
+
+  // 設定モーダル内ログイン
+  async function handleSettingsLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setSettingsLoginLoading(true);
+    setSettingsLoginError(null);
+    try {
+      const { signIn } = await import('aws-amplify/auth');
+      const { isSignedIn } = await signIn({
+        username: settingsEmail,
+        password: settingsPassword,
+      });
+      if (isSignedIn) {
+        // ログイン成功 - パスキー一覧を読み込み
+        localStorage.setItem('saved_login_email', settingsEmail);
+        setSettingsPassword('');
+        // 認証状態が更新されるまで少し待つ
+        setTimeout(() => {
+          loadPasskeys();
+        }, 500);
+      }
+    } catch (err) {
+      console.error('Settings login error:', err);
+      const errorMessage = err instanceof Error ? err.message : 'ログインに失敗しました';
+      setSettingsLoginError(errorMessage);
+    } finally {
+      setSettingsLoginLoading(false);
+    }
+  }
+
+  // 設定モーダル開く時にパスキー一覧取得 & メール復元
+  useEffect(() => {
+    if (showSettings) {
+      setPasskeyError(null);
+      setPasskeySuccess(null);
+      setSettingsLoginError(null);
+      const savedEmail = localStorage.getItem('saved_login_email');
+      if (savedEmail) {
+        setSettingsEmail(savedEmail);
+      }
+      if (isAuthenticated) {
+        loadPasskeys();
+      }
     }
   }, [showSettings, isAuthenticated]);
 
@@ -314,7 +384,7 @@ export default function DevDashboard() {
                 <div>
                   <div className="flex items-center gap-2 mb-3">
                     <Fingerprint className="w-4 h-4 text-emerald-400" />
-                    <span className="text-sm font-medium text-foreground">登録済みパスキー</span>
+                    <span className="text-sm font-medium text-foreground">パスキー管理</span>
                   </div>
 
                   {passkeyError && (
@@ -323,50 +393,96 @@ export default function DevDashboard() {
                     </div>
                   )}
 
+                  {passkeySuccess && (
+                    <div className="p-2 mb-3 text-xs text-emerald-400 bg-emerald-400/10 rounded-lg">
+                      {passkeySuccess}
+                    </div>
+                  )}
+
                   {!isAuthenticated ? (
-                    <div className="py-4 text-center">
-                      <p className="text-sm text-muted-foreground mb-3">パスキー管理にはログインが必要です</p>
-                      <a
-                        href="/login"
-                        className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-                      >
-                        ログイン
-                      </a>
+                    <div className="space-y-3">
+                      <p className="text-xs text-muted-foreground">パスキー登録・解除にはログインが必要です</p>
+
+                      {settingsLoginError && (
+                        <div className="p-2 text-xs text-rose-400 bg-rose-400/10 rounded-lg">
+                          {settingsLoginError}
+                        </div>
+                      )}
+
+                      <form onSubmit={handleSettingsLogin} className="space-y-3">
+                        <input
+                          type="email"
+                          value={settingsEmail}
+                          onChange={(e) => setSettingsEmail(e.target.value)}
+                          placeholder="メールアドレス"
+                          required
+                          className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                        />
+                        <input
+                          type="password"
+                          value={settingsPassword}
+                          onChange={(e) => setSettingsPassword(e.target.value)}
+                          placeholder="パスワード"
+                          required
+                          className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                        />
+                        <button
+                          type="submit"
+                          disabled={settingsLoginLoading}
+                          className="w-full py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+                        >
+                          {settingsLoginLoading ? 'ログイン中...' : 'ログイン'}
+                        </button>
+                      </form>
                     </div>
                   ) : passkeyLoading ? (
                     <div className="flex items-center justify-center py-6">
                       <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                     </div>
-                  ) : passkeys.length === 0 ? (
-                    <div className="py-6 text-center text-sm text-muted-foreground">
-                      登録済みのパスキーはありません
-                    </div>
                   ) : (
-                    <div className="space-y-2">
-                      {passkeys.map((passkey, index) => (
-                        <div
-                          key={passkey.credentialId || index}
-                          className="flex items-center justify-between p-3 bg-muted/20 rounded-lg border border-border/30"
-                        >
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm text-foreground truncate">
-                              {passkey.friendlyCredentialName || 'パスキー'}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {passkey.createdAt ? new Date(passkey.createdAt).toLocaleDateString('ja-JP') : ''}
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => deletePasskey(passkey.credentialId)}
-                            disabled={passkeyLoading || !passkey.credentialId}
-                            className="p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-400/10 rounded-lg transition-colors disabled:opacity-50"
-                            title="削除"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                    <>
+                      {/* パスキー登録ボタン */}
+                      <button
+                        onClick={registerPasskey}
+                        disabled={passkeyLoading}
+                        className="w-full mb-3 py-2 text-sm bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg hover:from-emerald-500 hover:to-teal-500 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        <Fingerprint className="w-4 h-4" />
+                        新しいパスキーを登録
+                      </button>
+
+                      {passkeys.length === 0 ? (
+                        <div className="py-4 text-center text-sm text-muted-foreground">
+                          登録済みのパスキーはありません
                         </div>
-                      ))}
-                    </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {passkeys.map((passkey, index) => (
+                            <div
+                              key={passkey.credentialId || index}
+                              className="flex items-center justify-between p-3 bg-muted/20 rounded-lg border border-border/30"
+                            >
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm text-foreground truncate">
+                                  {passkey.friendlyCredentialName || 'パスキー'}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {passkey.createdAt ? new Date(passkey.createdAt).toLocaleDateString('ja-JP') : ''}
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => deletePasskey(passkey.credentialId)}
+                                disabled={passkeyLoading || !passkey.credentialId}
+                                className="p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-400/10 rounded-lg transition-colors disabled:opacity-50"
+                                title="削除"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
