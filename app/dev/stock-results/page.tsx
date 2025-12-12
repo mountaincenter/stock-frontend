@@ -493,7 +493,7 @@ function StockResultsContent() {
                   return (
                     <div key={item.range} className="flex items-center gap-2 text-xs">
                       <span className="w-14 text-muted-foreground whitespace-nowrap">{item.range}</span>
-                      <div className="flex-1 h-4 bg-muted/30 rounded overflow-hidden">
+                      <div className="w-24 h-4 bg-muted/30 rounded overflow-hidden">
                         <div className="h-full flex" style={{ width: `${widthPct}%` }}>
                           <div className="h-full bg-orange-500" style={{ width: `${longPct}%` }} />
                           <div className="h-full bg-teal-500" style={{ width: `${100 - longPct}%` }} />
