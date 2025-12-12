@@ -6,6 +6,8 @@ import { signIn, confirmSignIn } from 'aws-amplify/auth';
 import { useAuth } from '../../src/components/auth/AuthProvider';
 import { Fingerprint, Key } from 'lucide-react';
 
+const SAVED_EMAIL_KEY = 'saved_login_email';
+
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -19,11 +21,59 @@ function LoginContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPasskeyLoading, setIsPasskeyLoading] = useState(false);
 
+  // 保存済みメールアドレスを復元 & 自動パスキーログイン
+  useEffect(() => {
+    const savedEmail = localStorage.getItem(SAVED_EMAIL_KEY);
+    if (savedEmail) {
+      setEmail(savedEmail);
+      // stock-resultsからのリダイレクトで、メールが保存済みなら自動でパスキーログイン開始
+      if (isFromStockResults && !isLoading && !isAuthenticated) {
+        // 少し遅延させてstateが更新されるのを待つ
+        setTimeout(() => {
+          triggerPasskeyLogin(savedEmail);
+        }, 100);
+      }
+    }
+  }, [isFromStockResults, isLoading, isAuthenticated]);
+
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
       router.push(returnUrl);
     }
   }, [isLoading, isAuthenticated, router, returnUrl]);
+
+  // パスキーログイン実行（内部用）
+  async function triggerPasskeyLogin(emailToUse: string) {
+    if (isPasskeyLoading) return;
+    setError('');
+    setIsPasskeyLoading(true);
+
+    try {
+      const { isSignedIn, nextStep } = await signIn({
+        username: emailToUse,
+        options: {
+          authFlowType: 'USER_AUTH',
+          preferredChallenge: 'WEB_AUTHN',
+        },
+      });
+
+      if (isSignedIn) {
+        localStorage.setItem(SAVED_EMAIL_KEY, emailToUse);
+        if (returnUrl.includes('stock-results')) {
+          sessionStorage.setItem('passkey_session_active', 'true');
+        }
+        router.push(returnUrl);
+        router.refresh();
+      } else if (nextStep?.signInStep === 'CONTINUE_SIGN_IN_WITH_FIRST_FACTOR_SELECTION') {
+        setError('パスキーが登録されていません。');
+      }
+    } catch (err: unknown) {
+      console.error('Auto passkey login error:', err);
+      // 自動ログイン失敗時はエラーを表示せず、手動入力を促す
+    } finally {
+      setIsPasskeyLoading(false);
+    }
+  }
 
   if (!isLoading && isAuthenticated) {
     return null;
@@ -42,6 +92,8 @@ function LoginContent() {
       });
 
       if (isSignedIn) {
+        // メールアドレスを保存（次回自動入力用）
+        localStorage.setItem(SAVED_EMAIL_KEY, email);
         router.push(returnUrl);
         router.refresh();
       } else if (nextStep?.signInStep === 'CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED') {
@@ -74,6 +126,8 @@ function LoginContent() {
       });
 
       if (isSignedIn) {
+        // メールアドレスを保存（次回自動入力用）
+        localStorage.setItem(SAVED_EMAIL_KEY, email);
         // パスキーセッションをセット（stock-resultsアクセス用）
         if (returnUrl.includes('stock-results')) {
           sessionStorage.setItem('passkey_session_active', 'true');
