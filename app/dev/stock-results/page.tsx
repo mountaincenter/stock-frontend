@@ -484,28 +484,28 @@ function StockResultsContent() {
                   <span className="text-muted-foreground">ショート</span>
                 </div>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {summaryData.loss_distribution.map(item => {
                   const maxCount = Math.max(...summaryData.loss_distribution.map(d => d.count));
                   const widthPct = (item.count / maxCount) * 100;
                   const longPct = item.count > 0 ? (item.long / item.count) * 100 : 0;
 
                   return (
-                    <div key={item.range} className="flex items-center gap-3 text-sm">
-                      <span className="w-20 text-muted-foreground">{item.range}</span>
-                      <div className="w-36 h-5 bg-muted/30 rounded overflow-hidden">
+                    <div key={item.range} className="flex items-center gap-2 text-xs">
+                      <span className="w-14 text-muted-foreground whitespace-nowrap">{item.range}</span>
+                      <div className="flex-1 h-4 bg-muted/30 rounded overflow-hidden">
                         <div className="h-full flex" style={{ width: `${widthPct}%` }}>
                           <div className="h-full bg-orange-500" style={{ width: `${longPct}%` }} />
                           <div className="h-full bg-teal-500" style={{ width: `${100 - longPct}%` }} />
                         </div>
                       </div>
-                      <span className="w-20 tabular-nums">
-                        <span className="text-orange-400">{item.long}L</span>
-                        <span className="text-muted-foreground"> / </span>
-                        <span className="text-teal-400">{item.short}S</span>
+                      <span className="w-10 tabular-nums text-center whitespace-nowrap">
+                        <span className="text-orange-400">{item.long}</span>
+                        <span className="text-muted-foreground">/</span>
+                        <span className="text-teal-400">{item.short}</span>
                       </span>
-                      <span className={`w-28 text-right tabular-nums ${item.total >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                        {item.total >= 0 ? '+' : ''}{item.total.toLocaleString()}円
+                      <span className={`w-16 text-right tabular-nums whitespace-nowrap ${item.total >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {item.total >= 0 ? '+' : ''}{item.total.toLocaleString()}
                       </span>
                     </div>
                   );
