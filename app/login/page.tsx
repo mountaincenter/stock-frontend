@@ -1,13 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn, confirmSignIn } from 'aws-amplify/auth';
 import { useAuth } from '../../src/components/auth/AuthProvider';
 import { Fingerprint, Key } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams.get('returnUrl') || '/dev/stock-results';
+  const isFromStockResults = returnUrl.includes('stock-results');
+
   const { isAuthenticated, isLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -17,9 +21,9 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      router.push('/dev/stock-results');
+      router.push(returnUrl);
     }
-  }, [isLoading, isAuthenticated, router]);
+  }, [isLoading, isAuthenticated, router, returnUrl]);
 
   if (!isLoading && isAuthenticated) {
     return null;
@@ -38,7 +42,7 @@ export default function LoginPage() {
       });
 
       if (isSignedIn) {
-        router.push('/dev/stock-results');
+        router.push(returnUrl);
         router.refresh();
       } else if (nextStep?.signInStep === 'CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED') {
         setError('パスワードの変更が必要です。管理者に連絡してください。');
@@ -70,7 +74,7 @@ export default function LoginPage() {
       });
 
       if (isSignedIn) {
-        router.push('/dev/stock-results');
+        router.push(returnUrl);
         router.refresh();
       } else if (nextStep?.signInStep === 'CONTINUE_SIGN_IN_WITH_FIRST_FACTOR_SELECTION') {
         // パスキーが登録されていない場合
@@ -104,6 +108,13 @@ export default function LoginPage() {
           ログイン
         </h1>
 
+        {isFromStockResults && (
+          <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded text-emerald-400 text-sm text-center">
+            <Fingerprint className="w-4 h-4 inline-block mr-1" />
+            Stock Resultsへのアクセスにはパスキー認証が必要です
+          </div>
+        )}
+
         {error && (
           <div className="p-3 bg-destructive/10 border border-destructive/20 rounded text-destructive text-sm">
             {error}
@@ -126,46 +137,66 @@ export default function LoginPage() {
             />
           </div>
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-foreground mb-1">
-              パスワード
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              placeholder="••••••••••••"
-            />
-          </div>
+          {/* パスキー優先の場合はパスワード欄を非表示 */}
+          {!isFromStockResults && (
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-foreground mb-1">
+                パスワード
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                placeholder="••••••••••••"
+              />
+            </div>
+          )}
 
-          <div className="flex gap-3">
-            {/* パスワードログイン */}
-            <button
-              type="submit"
-              disabled={isSubmitting || !password}
-              className="flex-1 py-2.5 px-4 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              <Key className="w-4 h-4" />
-              {isSubmitting ? 'ログイン中...' : 'パスワード'}
-            </button>
+          {isFromStockResults ? (
+            /* パスキー優先 */
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={handlePasskeyLogin}
+                disabled={isPasskeyLoading || !email}
+                className="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-md hover:from-emerald-500 hover:to-teal-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-lg font-medium"
+              >
+                <Fingerprint className="w-5 h-5" />
+                {isPasskeyLoading ? '認証中...' : 'パスキーでログイン'}
+              </button>
+            </div>
+          ) : (
+            /* 通常表示 */
+            <div className="flex gap-3">
+              <button
+                type="submit"
+                disabled={isSubmitting || !password}
+                className="flex-1 py-2.5 px-4 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                <Key className="w-4 h-4" />
+                {isSubmitting ? 'ログイン中...' : 'パスワード'}
+              </button>
 
-            {/* パスキーログイン */}
-            <button
-              type="button"
-              onClick={handlePasskeyLogin}
-              disabled={isPasskeyLoading || !email}
-              className="flex-1 py-2.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-md hover:from-emerald-500 hover:to-teal-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              <Fingerprint className="w-4 h-4" />
-              {isPasskeyLoading ? '認証中...' : 'パスキー'}
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={handlePasskeyLogin}
+                disabled={isPasskeyLoading || !email}
+                className="flex-1 py-2.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-md hover:from-emerald-500 hover:to-teal-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                <Fingerprint className="w-4 h-4" />
+                {isPasskeyLoading ? '認証中...' : 'パスキー'}
+              </button>
+            </div>
+          )}
         </form>
 
         <p className="text-xs text-muted-foreground text-center">
-          初回はパスワードでログイン → パスキー登録 → 以降パスキーで認証
+          {isFromStockResults
+            ? 'パスキー未登録の場合は、/login からパスワードでログインして登録してください'
+            : '初回はパスワードでログイン → パスキー登録 → 以降パスキーで認証'
+          }
         </p>
       </div>
     </div>

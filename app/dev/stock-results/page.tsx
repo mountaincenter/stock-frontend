@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { ProtectedRoute } from '../../../src/components/auth/ProtectedRoute';
 import { useAuth } from '../../../src/components/auth/AuthProvider';
 import { DevNavLinks, FilterButtonGroup } from '../../../components/dev';
@@ -83,6 +84,7 @@ type ViewType = 'daily' | 'weekly' | 'monthly' | 'bystock';
 
 function StockResultsContent() {
   const { signOut } = useAuth();
+  const router = useRouter();
   const [summaryData, setSummaryData] = useState<SummaryResponse | null>(null);
   const [dailyData, setDailyData] = useState<DailyResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -226,7 +228,10 @@ function StockResultsContent() {
             )}
 
             <button
-              onClick={signOut}
+              onClick={async () => {
+                await signOut();
+                router.push('/dev');
+              }}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground border border-border/50 rounded-lg hover:bg-muted/50 transition-colors"
             >
               <LogOut className="w-3.5 h-3.5" />
@@ -646,7 +651,7 @@ function StockResultsContent() {
 
 export default function StockResultsPage() {
   return (
-    <ProtectedRoute>
+    <ProtectedRoute autoLogoutOnLeave={true}>
       <StockResultsContent />
     </ProtectedRoute>
   );
