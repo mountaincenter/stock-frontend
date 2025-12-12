@@ -487,7 +487,20 @@ export default function DevDashboard() {
                 </div>
               </div>
 
-              <div className="px-4 py-3 border-t border-border">
+              <div className="px-4 py-3 border-t border-border space-y-2">
+                {isAuthenticated && (
+                  <button
+                    onClick={async () => {
+                      const { signOut } = await import('aws-amplify/auth');
+                      await signOut();
+                      setPasskeys([]);
+                      setShowSettings(false);
+                    }}
+                    className="w-full py-2 text-sm text-rose-400 hover:text-rose-300 border border-rose-400/30 rounded-lg hover:bg-rose-400/10 transition-colors"
+                  >
+                    ログアウト
+                  </button>
+                )}
                 <button
                   onClick={() => setShowSettings(false)}
                   className="w-full py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg hover:bg-muted/50 transition-colors"
