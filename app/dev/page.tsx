@@ -19,7 +19,7 @@ import { ChevronDown, ChevronUp, Search, ArrowUpRight, Settings, Fingerprint, Tr
 import { DashboardData } from "@/lib/grok-backtest-types";
 import MarketSummary from "@/components/MarketSummary";
 import { DevNavLinks, FilterButtonGroup } from "@/components/dev";
-import { useAuth } from "@/components/auth/AuthProvider";
+import { useAuth } from "../../src/components/auth/AuthProvider";
 
 interface PasskeyCredential {
   credentialId: string;
