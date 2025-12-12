@@ -594,8 +594,8 @@ function StockResultsContent() {
                             {view !== 'bystock' && <th className="px-2 py-2 text-left text-muted-foreground font-medium">銘柄名</th>}
                             <th className="px-2 py-2 text-left text-muted-foreground font-medium">売買</th>
                             <th className="px-2 py-2 text-right text-muted-foreground font-medium">数量</th>
-                            <th className="px-2 py-2 text-right text-muted-foreground font-medium">取得価額</th>
-                            <th className="px-2 py-2 text-right text-muted-foreground font-medium">売却単価</th>
+                            <th className="px-2 py-2 text-right text-muted-foreground font-medium whitespace-nowrap">取得価額</th>
+                            <th className="px-2 py-2 text-right text-muted-foreground font-medium whitespace-nowrap">売却単価</th>
                             <th className="px-2 py-2 text-right text-muted-foreground font-medium">損益</th>
                           </tr>
                         </thead>
