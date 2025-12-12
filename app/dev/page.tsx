@@ -22,10 +22,10 @@ import { DevNavLinks, FilterButtonGroup } from "@/components/dev";
 import { useAuth } from "../../src/components/auth/AuthProvider";
 
 interface PasskeyCredential {
-  credentialId: string;
-  friendlyCredentialName: string;
-  relyingPartyId: string;
-  createdAt: Date;
+  credentialId?: string;
+  friendlyCredentialName?: string;
+  relyingPartyId?: string;
+  createdAt?: Date;
 }
 
 type SortField = "date" | "win_rate" | "count";
@@ -75,7 +75,8 @@ export default function DevDashboard() {
   }
 
   // パスキー削除
-  async function deletePasskey(credentialId: string) {
+  async function deletePasskey(credentialId: string | undefined) {
+    if (!credentialId) return;
     if (!confirm('このパスキーを削除しますか？')) return;
     setPasskeyLoading(true);
     try {
@@ -332,9 +333,9 @@ export default function DevDashboard() {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {passkeys.map((passkey) => (
+                      {passkeys.map((passkey, index) => (
                         <div
-                          key={passkey.credentialId}
+                          key={passkey.credentialId || index}
                           className="flex items-center justify-between p-3 bg-muted/20 rounded-lg border border-border/30"
                         >
                           <div className="flex-1 min-w-0">
@@ -342,12 +343,12 @@ export default function DevDashboard() {
                               {passkey.friendlyCredentialName || 'パスキー'}
                             </div>
                             <div className="text-xs text-muted-foreground">
-                              {new Date(passkey.createdAt).toLocaleDateString('ja-JP')}
+                              {passkey.createdAt ? new Date(passkey.createdAt).toLocaleDateString('ja-JP') : ''}
                             </div>
                           </div>
                           <button
                             onClick={() => deletePasskey(passkey.credentialId)}
-                            disabled={passkeyLoading}
+                            disabled={passkeyLoading || !passkey.credentialId}
                             className="p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-400/10 rounded-lg transition-colors disabled:opacity-50"
                             title="削除"
                           >
