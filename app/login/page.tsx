@@ -20,21 +20,31 @@ function LoginContent() {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPasskeyLoading, setIsPasskeyLoading] = useState(false);
+  const [autoLoginTriggered, setAutoLoginTriggered] = useState(false);
 
-  // 保存済みメールアドレスを復元 & 自動パスキーログイン
+  // 保存済みメールアドレスを復元
   useEffect(() => {
     const savedEmail = localStorage.getItem(SAVED_EMAIL_KEY);
     if (savedEmail) {
       setEmail(savedEmail);
-      // stock-resultsからのリダイレクトで、メールが保存済みなら自動でパスキーログイン開始
-      if (isFromStockResults && !isLoading && !isAuthenticated) {
-        // 少し遅延させてstateが更新されるのを待つ
-        setTimeout(() => {
-          triggerPasskeyLogin(savedEmail);
-        }, 100);
-      }
     }
-  }, [isFromStockResults, isLoading, isAuthenticated]);
+  }, []);
+
+  // 自動パスキーログイン（stock-resultsからのリダイレクト時）
+  useEffect(() => {
+    if (autoLoginTriggered) return;
+    if (isLoading) return;
+    if (isAuthenticated) return;
+
+    const savedEmail = localStorage.getItem(SAVED_EMAIL_KEY);
+    if (savedEmail && isFromStockResults) {
+      setAutoLoginTriggered(true);
+      // 少し遅延させてコンポーネントがマウントされるのを待つ
+      setTimeout(() => {
+        triggerPasskeyLogin(savedEmail);
+      }, 300);
+    }
+  }, [isLoading, isAuthenticated, isFromStockResults, autoLoginTriggered]);
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {

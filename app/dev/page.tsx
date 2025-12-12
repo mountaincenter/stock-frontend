@@ -323,13 +323,23 @@ export default function DevDashboard() {
                     </div>
                   )}
 
-                  {passkeyLoading ? (
+                  {!isAuthenticated ? (
+                    <div className="py-4 text-center">
+                      <p className="text-sm text-muted-foreground mb-3">パスキー管理にはログインが必要です</p>
+                      <a
+                        href="/login"
+                        className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                      >
+                        ログイン
+                      </a>
+                    </div>
+                  ) : passkeyLoading ? (
                     <div className="flex items-center justify-center py-6">
                       <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                     </div>
                   ) : passkeys.length === 0 ? (
                     <div className="py-6 text-center text-sm text-muted-foreground">
-                      {isAuthenticated ? '登録済みのパスキーはありません' : 'ログインが必要です'}
+                      登録済みのパスキーはありません
                     </div>
                   ) : (
                     <div className="space-y-2">
