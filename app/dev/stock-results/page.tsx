@@ -612,7 +612,7 @@ function StockResultsContent() {
                                   {trade.name}
                                 </td>
                               )}
-                              <td className="px-2 py-2">
+                              <td className="px-2 py-2 whitespace-nowrap">
                                 <span className={trade.position === 'ロング' ? 'text-orange-400' : 'text-teal-400'}>
                                   {trade.position}
                                 </span>
