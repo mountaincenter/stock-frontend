@@ -74,6 +74,10 @@ function LoginContent() {
       });
 
       if (isSignedIn) {
+        // パスキーセッションをセット（stock-resultsアクセス用）
+        if (returnUrl.includes('stock-results')) {
+          sessionStorage.setItem('passkey_session_active', 'true');
+        }
         router.push(returnUrl);
         router.refresh();
       } else if (nextStep?.signInStep === 'CONTINUE_SIGN_IN_WITH_FIRST_FACTOR_SELECTION') {

@@ -651,7 +651,7 @@ function StockResultsContent() {
 
 export default function StockResultsPage() {
   return (
-    <ProtectedRoute autoLogoutOnLeave={true}>
+    <ProtectedRoute requirePasskeySession={true}>
       <StockResultsContent />
     </ProtectedRoute>
   );

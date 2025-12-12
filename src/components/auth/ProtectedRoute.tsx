@@ -1,38 +1,66 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from './AuthProvider';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  autoLogoutOnLeave?: boolean;
+  requirePasskeySession?: boolean;
 }
 
-export function ProtectedRoute({ children, autoLogoutOnLeave = false }: ProtectedRouteProps) {
+const PASSKEY_SESSION_KEY = 'passkey_session_active';
+
+export function ProtectedRoute({ children, requirePasskeySession = false }: ProtectedRouteProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { isAuthenticated, isLoading, signOut } = useAuth();
+  const initialPathRef = useRef(pathname);
 
+  // パスキーセッションチェック
+  useEffect(() => {
+    if (requirePasskeySession && typeof window !== 'undefined') {
+      const hasSession = sessionStorage.getItem(PASSKEY_SESSION_KEY);
+      if (!hasSession && isAuthenticated) {
+        // パスキーセッションがない場合は再認証が必要
+        signOut().then(() => {
+          router.push(`/login?returnUrl=${encodeURIComponent(pathname)}`);
+        });
+      } else if (isAuthenticated) {
+        // セッションをセット
+        sessionStorage.setItem(PASSKEY_SESSION_KEY, 'true');
+      }
+    }
+  }, [requirePasskeySession, isAuthenticated, signOut, router, pathname]);
+
+  // ページ遷移検知（pathname変更時にセッションクリア）
+  useEffect(() => {
+    if (requirePasskeySession && typeof window !== 'undefined') {
+      // 初期パスから離れた場合
+      if (pathname !== initialPathRef.current) {
+        sessionStorage.removeItem(PASSKEY_SESSION_KEY);
+      }
+    }
+  }, [pathname, requirePasskeySession]);
+
+  // 未認証時のリダイレクト
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      // パスキーログイン用のreturnUrlを付与
       router.push(`/login?returnUrl=${encodeURIComponent(pathname)}`);
     }
   }, [isLoading, isAuthenticated, router, pathname]);
 
-  // 自動ログアウト（ページ離脱時）
+  // ブラウザ閉じる/リロード時にセッションクリア
   useEffect(() => {
-    if (!autoLogoutOnLeave || !isAuthenticated) return;
+    if (!requirePasskeySession) return;
 
     const handleBeforeUnload = () => {
-      // ページ離脱時にログアウト（同期的に実行）
-      signOut();
+      sessionStorage.removeItem(PASSKEY_SESSION_KEY);
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [autoLogoutOnLeave, isAuthenticated, signOut]);
+  }, [requirePasskeySession]);
 
   if (isLoading) {
     return (
