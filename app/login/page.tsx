@@ -21,12 +21,14 @@ function LoginContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPasskeyLoading, setIsPasskeyLoading] = useState(false);
   const [autoLoginTriggered, setAutoLoginTriggered] = useState(false);
+  const [hasSavedEmail, setHasSavedEmail] = useState(false);
 
   // 保存済みメールアドレスを復元
   useEffect(() => {
     const savedEmail = localStorage.getItem(SAVED_EMAIL_KEY);
     if (savedEmail) {
       setEmail(savedEmail);
+      setHasSavedEmail(true);
     }
   }, []);
 
@@ -165,6 +167,42 @@ function LoginContent() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-foreground">Loading...</div>
+      </div>
+    );
+  }
+
+  // stock-resultsからのアクセスで、メールが保存済みかつ自動ログイン中の場合
+  // パスキー認証画面のみ表示（メールアドレス非表示）
+  if (isFromStockResults && hasSavedEmail && (isPasskeyLoading || autoLoginTriggered)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="w-full max-w-md p-8 space-y-6 bg-card rounded-lg shadow-lg border border-border text-center">
+          <Fingerprint className="w-16 h-16 mx-auto text-emerald-400" />
+          <h1 className="text-xl font-bold text-foreground">パスキー認証</h1>
+          <p className="text-muted-foreground text-sm">
+            生体認証またはセキュリティキーで認証してください
+          </p>
+          {error && (
+            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded text-destructive text-sm">
+              {error}
+              <button
+                onClick={() => {
+                  setAutoLoginTriggered(false);
+                  setHasSavedEmail(false);
+                }}
+                className="block w-full mt-2 text-xs underline"
+              >
+                別のアカウントでログイン
+              </button>
+            </div>
+          )}
+          {isPasskeyLoading && (
+            <div className="flex items-center justify-center gap-2">
+              <div className="w-5 h-5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+              <span className="text-sm text-muted-foreground">認証中...</span>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
