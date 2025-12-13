@@ -594,15 +594,7 @@ export default function StockLists(props: Props & { className?: string }) {
                     </div>
                   )}
                   <div className="text-[10px] text-muted-foreground/70">
-                    Yahoo Finance API（20分ディレイ・15分間隔）
-                    <span className={`ml-2 font-medium ${
-                      marketState === "REGULAR" ? "text-emerald-500" :
-                      marketState === "PRE" ? "text-amber-500" :
-                      marketState === "BREAK" ? "text-amber-500" :
-                      "text-muted-foreground"
-                    }`}>
-                      [{getMarketStateLabel(marketState)}]
-                    </span>
+                    Yahoo Finance API（20分ディレイ・15分間隔）・{getMarketStateLabel(marketState)}
                   </div>
                 </div>
               </div>
@@ -691,15 +683,7 @@ export default function StockLists(props: Props & { className?: string }) {
                   </div>
                 )}
                 <div className="text-[8px] text-muted-foreground/70 leading-tight">
-                  Yahoo Finance API
-                  <span className={`ml-1 font-medium ${
-                    marketState === "REGULAR" ? "text-emerald-500" :
-                    marketState === "PRE" ? "text-amber-500" :
-                    marketState === "BREAK" ? "text-amber-500" :
-                    "text-muted-foreground"
-                  }`}>
-                    [{getMarketStateLabel(marketState)}]
-                  </span>
+                  Yahoo Finance API・{getMarketStateLabel(marketState)}
                 </div>
               </div>
             </div>
