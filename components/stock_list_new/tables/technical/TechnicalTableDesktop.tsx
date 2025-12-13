@@ -239,12 +239,12 @@ const TechnicalRow = React.memo(({
       </div>
 
       {/* KPI4（均等割・Perf と同じ text-base） */}
-      <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+      <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
         <span className={`font-sans tabular-nums ${densityStyles.fontSize.data}`}>
           {fmt(rsi14, nf1Local)}
         </span>
       </div>
-      <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+      <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
         <span
           className={`font-sans tabular-nums ${densityStyles.fontSize.data} ${toneBySign(
             macd
@@ -253,12 +253,12 @@ const TechnicalRow = React.memo(({
           {fmt(macd, nf2)}
         </span>
       </div>
-      <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+      <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
         <span className={`font-sans tabular-nums ${densityStyles.fontSize.data}`}>
           {fmt(pb, nf2)}
         </span>
       </div>
-      <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+      <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
         <span
           className={`font-sans tabular-nums ${densityStyles.fontSize.data} ${toneBySign(
             dev

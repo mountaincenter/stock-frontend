@@ -117,28 +117,28 @@ const PerfRow = React.memo(({
           </div>
 
       {/* パフォーマンス（均等割・右寄せの数値） */}
-      <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+      <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
         <PerfCell v={r.r_5d} nf2={nf2} />
       </div>
-      <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+      <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
         <PerfCell v={r.r_1mo} nf2={nf2} />
       </div>
-      <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+      <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
         <PerfCell v={r.r_3mo} nf2={nf2} />
       </div>
-      <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+      <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
         <PerfCell v={r.r_ytd} nf2={nf2} />
       </div>
-      <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+      <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
         <PerfCell v={r.r_1y} nf2={nf2} />
       </div>
-      <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+      <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
         <PerfCell v={r.r_3y} nf2={nf2} />
       </div>
-      <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+      <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
         <PerfCell v={r.r_5y} nf2={nf2} />
       </div>
-      <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+      <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
         <PerfCell v={r.r_all} nf2={nf2} />
       </div>
       </Link>
