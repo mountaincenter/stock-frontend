@@ -71,8 +71,8 @@ function getTimeJST(date: Date = new Date()): number {
 /**
  * 東証マーケット状態を取得
  *
- * - PRE: 営業日 8:00-9:00（寄付前）
- * - REGULAR: 営業日 前場 9:00-11:30 / 後場 12:30-15:00
+ * - PRE: 営業日 8:50-9:00（寄付直前）
+ * - REGULAR: 営業日 前場 9:00-11:30 / 後場 12:30-15:30
  * - BREAK: 営業日 昼休み 11:30-12:30
  * - CLOSED: 上記以外（休場）
  */
@@ -95,13 +95,13 @@ export async function getTseMarketState(date: Date = new Date()): Promise<TseMar
     return "BREAK";
   }
 
-  // 後場: 12:30-15:00
-  if (time >= 1230 && time < 1500) {
+  // 後場: 12:30-15:30
+  if (time >= 1230 && time < 1530) {
     return "REGULAR";
   }
 
-  // 寄付前: 8:00-9:00
-  if (time >= 800 && time < 900) {
+  // 寄付前: 8:50-9:00
+  if (time >= 850 && time < 900) {
     return "PRE";
   }
 
@@ -126,8 +126,8 @@ export function getTseMarketStateSync(date: Date = new Date()): TseMarketState {
 
   if (time >= 900 && time < 1130) return "REGULAR";
   if (time >= 1130 && time < 1230) return "BREAK";
-  if (time >= 1230 && time < 1500) return "REGULAR";
-  if (time >= 800 && time < 900) return "PRE";
+  if (time >= 1230 && time < 1530) return "REGULAR";
+  if (time >= 850 && time < 900) return "PRE";
 
   return "CLOSED";
 }
