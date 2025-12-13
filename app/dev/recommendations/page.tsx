@@ -136,16 +136,16 @@ export default function RecommendationsPage() {
         {/* Summary Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl text-center">
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-transparent pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-transparent pointer-events-none" />
             <div className="relative">
-              <div className="text-2xl tabular-nums font-bold text-emerald-400">{data.summary.buy}</div>
+              <div className="text-2xl tabular-nums font-bold text-orange-400">{data.summary.buy}</div>
               <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap">買い候補</div>
             </div>
           </div>
           <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl text-center">
-            <div className="absolute inset-0 bg-gradient-to-br from-rose-500/5 via-transparent to-transparent pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 via-transparent to-transparent pointer-events-none" />
             <div className="relative">
-              <div className="text-2xl tabular-nums font-bold text-rose-400">{data.summary.sell}</div>
+              <div className="text-2xl tabular-nums font-bold text-teal-400">{data.summary.sell}</div>
               <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap">売り候補</div>
             </div>
           </div>
@@ -227,7 +227,7 @@ export default function RecommendationsPage() {
             </h2>
             <div className="grid md:grid-cols-3 gap-4 text-sm">
               <div>
-                <h3 className="text-emerald-400 font-medium mb-1.5">買いシグナル</h3>
+                <h3 className="text-orange-400 font-medium mb-1.5">買いシグナル</h3>
                 <ul className="text-muted-foreground space-y-0.5 tabular-nums text-xs">
                   <li>7,500〜10,000円 → 買い5日</li>
                   <li>5,000〜7,500円 → 買い（当日）</li>
@@ -242,7 +242,7 @@ export default function RecommendationsPage() {
                 </ul>
               </div>
               <div>
-                <h3 className="text-rose-400 font-medium mb-1.5">売りシグナル</h3>
+                <h3 className="text-teal-400 font-medium mb-1.5">売りシグナル</h3>
                 <ul className="text-muted-foreground space-y-0.5 tabular-nums text-xs">
                   <li>2,000〜10,000円 → 売り5日</li>
                   <li>その他 → 売り（当日）</li>
@@ -271,9 +271,9 @@ function StockRow({ stock }: { stock: Stock }) {
     if (!label) return <span className="text-muted-foreground">-</span>;
     const color =
       action === "buy"
-        ? "bg-emerald-500/20 text-emerald-400"
+        ? "bg-orange-500/20 text-orange-400"
         : action === "sell"
-        ? "bg-rose-500/20 text-rose-400"
+        ? "bg-teal-500/20 text-teal-400"
         : "bg-amber-500/20 text-amber-400";
     return <span className={`px-2 py-0.5 rounded text-sm font-medium ${color}`}>{label}</span>;
   };
@@ -281,9 +281,9 @@ function StockRow({ stock }: { stock: Stock }) {
   const getActionText = (action: Stock["recommendation"]["action"]) => {
     switch (action) {
       case "buy":
-        return <span className="text-emerald-400">買い</span>;
+        return <span className="text-orange-400">買い</span>;
       case "sell":
-        return <span className="text-rose-400">売り</span>;
+        return <span className="text-teal-400">売り</span>;
       case "hold":
         return <span className="text-amber-400">静観</span>;
     }
