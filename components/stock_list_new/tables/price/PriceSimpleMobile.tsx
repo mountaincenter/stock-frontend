@@ -1,7 +1,9 @@
 "use client";
 
 import * as React from "react";
+import { useState } from "react";
 import Link from "next/link";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import type { Row } from "../../types";
 
 type Props = { rows: Row[]; nf0: Intl.NumberFormat; nf2: Intl.NumberFormat };
@@ -24,6 +26,22 @@ const priceBig = "font-bold font-sans tabular-nums text-[22px] leading-none";
 const pctSmall = "text-[13px] font-bold font-sans tabular-nums leading-none";
 
 export default function PriceSimpleMobile({ rows, nf0, nf2 }: Props) {
+  const [expandedReasons, setExpandedReasons] = useState<Set<string>>(new Set());
+
+  const toggleReason = (ticker: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setExpandedReasons(prev => {
+      const next = new Set(prev);
+      if (next.has(ticker)) {
+        next.delete(ticker);
+      } else {
+        next.add(ticker);
+      }
+      return next;
+    });
+  };
+
   // 日時フォーマット関数 (YYYY-MM-DD HH:mm)
   const formatDateTime = (timeStr: string | null | undefined): string => {
     if (!timeStr) return "—";
@@ -131,9 +149,19 @@ export default function PriceSimpleMobile({ rows, nf0, nf2 }: Props) {
                   <span className={dateSub}>{displayDate}</span>
                 </div>
                 {isGrokStock && grokReason && (
-                  <div className="mt-0.5 text-[10px] leading-tight text-muted-foreground/80">
-                    {grokReason}
-                  </div>
+                  <button
+                    onClick={(e) => toggleReason(r.ticker, e)}
+                    className="mt-0.5 flex items-start gap-0.5 text-[10px] leading-tight text-muted-foreground/80 text-left"
+                  >
+                    {expandedReasons.has(r.ticker) ? (
+                      <ChevronDown className="w-3 h-3 shrink-0 mt-0.5" />
+                    ) : (
+                      <ChevronRight className="w-3 h-3 shrink-0 mt-0.5" />
+                    )}
+                    <span className={expandedReasons.has(r.ticker) ? "" : "line-clamp-1"}>
+                      {grokReason}
+                    </span>
+                  </button>
                 )}
               </div>
 
