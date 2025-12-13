@@ -75,7 +75,8 @@ export type Row = StockMeta & {
   atr14: MaybeNumber;
   atr14_pct: MaybeNumber;
   // リアルタイムタブ
-  marketTime?: string | null;  // 更新時刻
+  marketTime?: string | null;   // 更新時刻
+  marketState?: string | null;  // マーケット状態（PRE/REGULAR/CLOSED）
   open?: MaybeNumber;           // 始値
   high?: MaybeNumber;           // 高値
   low?: MaybeNumber;            // 安値

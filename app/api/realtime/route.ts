@@ -13,6 +13,7 @@ interface QuoteData {
   changePercent: number | null;
   volume: number | null;
   marketTime: string | null;
+  marketState: string | null;
   open: number | null;
   high: number | null;
   low: number | null;
@@ -121,6 +122,7 @@ export async function GET(request: NextRequest) {
           changePercent: quote.regularMarketChangePercent || null,
           volume: quote.regularMarketVolume || null,
           marketTime: marketTime,
+          marketState: quote.marketState || null,
           open: quote.regularMarketOpen || null,
           high: quote.regularMarketDayHigh || null,
           low: quote.regularMarketDayLow || null,

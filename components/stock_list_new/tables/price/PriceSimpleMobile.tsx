@@ -126,6 +126,9 @@ export default function PriceSimpleMobile({ rows, nf0, nf2 }: Props) {
           const isGrokStock = r.categories?.includes("GROK") ?? false;
           const grokReason = isGrokStock ? r.reason : null;
 
+          // 未寄付判定（marketState === 'PRE'）
+          const isNotOpened = r.marketState === 'PRE';
+
           // marketTimeがあればそれを使用、なければdateを使用
           const displayDate = r.marketTime ? formatDateTime(r.marketTime) : (r.date ?? "—");
 
@@ -147,6 +150,11 @@ export default function PriceSimpleMobile({ rows, nf0, nf2 }: Props) {
                 <div className={codeSub}>
                   {r.code}
                   <span className={dateSub}>{displayDate}</span>
+                  {isNotOpened && (
+                    <span className="ml-1.5 px-1 py-0.5 text-[8px] font-medium bg-amber-500/20 text-amber-400 rounded">
+                      未寄付
+                    </span>
+                  )}
                 </div>
                 {isGrokStock && grokReason && (
                   <button

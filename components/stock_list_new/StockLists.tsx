@@ -49,6 +49,7 @@ interface RealtimeQuote {
   changePercent: number | null;
   volume: number | null;
   marketTime: string | null;
+  marketState: string | null;
   open: number | null;
   high: number | null;
   low: number | null;
@@ -134,6 +135,7 @@ export default function StockLists(props: Props & { className?: string }) {
     changePercent: number | null;
     volume: number | null;
     marketTime: string | null;
+    marketState: string | null;
     open: number | null;
     high: number | null;
     low: number | null;
@@ -167,6 +169,7 @@ export default function StockLists(props: Props & { className?: string }) {
             changePercent: quote.changePercent,
             volume: quote.volume,
             marketTime: quote.marketTime,
+            marketState: quote.marketState,
             open: quote.open,
             high: quote.high,
             low: quote.low,
@@ -312,6 +315,7 @@ export default function StockLists(props: Props & { className?: string }) {
         pct_diff: realtimeData.changePercent ?? row.pct_diff,
         volume: realtimeData.volume ?? row.volume,
         marketTime: realtimeData.marketTime ?? row.marketTime,
+        marketState: realtimeData.marketState ?? row.marketState,
         open: realtimeData.open ?? row.open,
         high: realtimeData.high ?? row.high,
         low: realtimeData.low ?? row.low,

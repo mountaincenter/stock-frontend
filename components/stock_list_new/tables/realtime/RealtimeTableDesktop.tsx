@@ -87,6 +87,9 @@ const RealtimeRow = React.memo(({
   const isGrokStock = r.categories?.includes("GROK") ?? false;
   const grokReason = isGrokStock ? r.reason : null;
 
+  // 未寄付判定（marketState === 'PRE'）
+  const isNotOpened = r.marketState === 'PRE';
+
   const rowContent = (
     <Link
       href={`/${encodeURIComponent(r.ticker)}`}
@@ -113,10 +116,15 @@ const RealtimeRow = React.memo(({
       </div>
 
       {/* 時刻 */}
-      <div className="px-3 flex items-center justify-center" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+      <div className="px-3 flex items-center justify-center gap-1.5" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
         <span className={`${densityStyles.fontSize.date} font-sans tabular-nums text-muted-foreground`}>
           {formatTime(r.marketTime)}
         </span>
+        {isNotOpened && (
+          <span className="px-1.5 py-0.5 text-[10px] font-medium bg-amber-500/20 text-amber-400 rounded">
+            未寄付
+          </span>
+        )}
       </div>
 
       {/* 現在値 */}
