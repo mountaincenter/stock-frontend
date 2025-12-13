@@ -140,11 +140,36 @@ function StockResultsContent() {
   if (loading) {
     return (
       <main className="relative min-h-screen">
-        <div className="fixed inset-0 -z-10 bg-gradient-to-br from-background via-background to-muted/20" />
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-muted-foreground text-sm">Loading...</p>
+        <div className="fixed inset-0 -z-10 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20" />
+        </div>
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          {/* Header skeleton */}
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4 pb-3 border-b border-border/30">
+            <div>
+              <div className="h-6 w-36 bg-muted/50 rounded mb-2 animate-pulse" />
+              <div className="h-4 w-48 bg-muted/50 rounded animate-pulse" />
+            </div>
+            <div className="h-8 w-32 bg-muted/50 rounded animate-pulse" />
+          </div>
+          {/* Summary Cards skeleton */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="rounded-xl border border-border/40 bg-card/50 p-4 h-28 animate-pulse" />
+            ))}
+          </div>
+          {/* Charts skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="rounded-xl border border-border/40 bg-card/50 h-40 animate-pulse" />
+            ))}
+          </div>
+          {/* Trade List skeleton */}
+          <div className="rounded-2xl border border-border/40 bg-card/50 overflow-hidden">
+            <div className="h-12 bg-muted/30 border-b border-border/40" />
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="h-14 border-b border-border/20 animate-pulse" />
+            ))}
           </div>
         </div>
       </main>
