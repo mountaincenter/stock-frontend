@@ -512,7 +512,12 @@ function StockResultsContent() {
                   <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                 </div>
               )}
-              {dailyData?.results.map(group => (
+              {dailyData?.results.map(group => {
+                // 銘柄別の場合、tradesからコードと銘柄名を取得
+                const stockCode = view === 'bystock' && group.trades.length > 0 ? group.trades[0].code : null;
+                const stockName = view === 'bystock' && group.trades.length > 0 ? group.trades[0].name : null;
+
+                return (
                 <div key={group.key} className="border-b border-border/20 last:border-0">
                   <button
                     onClick={() => toggleExpand(group.key)}
@@ -524,7 +529,14 @@ function StockResultsContent() {
                       ) : (
                         <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
                       )}
-                      <span className="text-foreground font-medium whitespace-nowrap">{group.key}</span>
+                      {view === 'bystock' && stockCode ? (
+                        <>
+                          <span className="text-muted-foreground tabular-nums whitespace-nowrap">{stockCode}</span>
+                          <span className="text-foreground font-medium truncate max-w-[120px] sm:max-w-none" title={stockName || ''}>{stockName}</span>
+                        </>
+                      ) : (
+                        <span className="text-foreground font-medium whitespace-nowrap">{group.key}</span>
+                      )}
                       <span className={`tabular-nums font-medium whitespace-nowrap ${group.total_profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                         {group.total_profit >= 0 ? '+' : ''}{group.total_profit.toLocaleString()}円
                       </span>
@@ -589,7 +601,8 @@ function StockResultsContent() {
                     </div>
                   )}
                 </div>
-              ))}
+              );
+              })}
             </div>
           </div>
         </div>
