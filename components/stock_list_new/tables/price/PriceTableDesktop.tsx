@@ -93,17 +93,17 @@ const PriceRow = React.memo(({
         </div>
 
         {/* 終値 */}
-        <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+        <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
           <CloseCell v={r.close} nf0={nf0} />
         </div>
 
         {/* 前日差 */}
-        <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+        <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
           <DiffBadge diff={r.diff} nf0={nf0} />
         </div>
 
         {/* 前日差(%) */}
-        <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+        <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
           {pct == null || !Number.isFinite(pct) ? (
             <span className="text-muted-foreground">―</span>
           ) : (
@@ -123,7 +123,7 @@ const PriceRow = React.memo(({
         </div>
 
         {/* TR */}
-        <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+        <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
           {r.tr == null || !Number.isFinite(r.tr) ? (
             <span className="text-muted-foreground">―</span>
           ) : (
@@ -134,7 +134,7 @@ const PriceRow = React.memo(({
         </div>
 
         {/* TR(%) */}
-        <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+        <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
           {r.tr_pct == null || !Number.isFinite(r.tr_pct) ? (
             <span className="text-muted-foreground">―</span>
           ) : (
@@ -145,7 +145,7 @@ const PriceRow = React.memo(({
         </div>
 
         {/* ATR14 */}
-        <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+        <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
           {r.atr14 == null || !Number.isFinite(r.atr14) ? (
             <span className="text-muted-foreground">―</span>
           ) : (
@@ -156,7 +156,7 @@ const PriceRow = React.memo(({
         </div>
 
         {/* ATR14(%) */}
-        <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+        <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
           {r.atr14_pct == null || !Number.isFinite(r.atr14_pct) ? (
             <span className="text-muted-foreground">―</span>
           ) : (
@@ -167,12 +167,12 @@ const PriceRow = React.memo(({
         </div>
 
         {/* 出来高 */}
-        <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+        <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
           <NumCell v={r.volume} nf0={nf0} />
         </div>
 
         {/* 出来高(10) */}
-        <div className="px-3 text-right" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+        <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
           <NumCell v={r.vol_ma10} nf0={nf0} />
         </div>
       </Link>
