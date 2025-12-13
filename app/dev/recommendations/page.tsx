@@ -150,9 +150,9 @@ export default function RecommendationsPage() {
             </div>
           </div>
           <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl text-center">
-            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 via-transparent to-transparent pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-br from-zinc-500/5 via-transparent to-transparent pointer-events-none" />
             <div className="relative">
-              <div className="text-2xl tabular-nums font-bold text-amber-400">{data.summary.hold}</div>
+              <div className="text-2xl tabular-nums font-bold text-zinc-400">{data.summary.hold}</div>
               <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap">静観</div>
             </div>
           </div>
@@ -235,7 +235,7 @@ export default function RecommendationsPage() {
                 </ul>
               </div>
               <div>
-                <h3 className="text-amber-400 font-medium mb-1.5">静観シグナル</h3>
+                <h3 className="text-zinc-400 font-medium mb-1.5">静観シグナル</h3>
                 <ul className="text-muted-foreground space-y-0.5 tabular-nums text-xs">
                   <li>1,500〜3,000円 → 買い5日（転換）</li>
                   <li>その他 → 静観</li>
@@ -274,7 +274,7 @@ function StockRow({ stock }: { stock: Stock }) {
         ? "bg-orange-500/20 text-orange-400"
         : action === "sell"
         ? "bg-teal-500/20 text-teal-400"
-        : "bg-amber-500/20 text-amber-400";
+        : "bg-zinc-500/20 text-zinc-400";
     return <span className={`px-2 py-0.5 rounded text-sm font-medium ${color}`}>{label}</span>;
   };
 
@@ -285,7 +285,7 @@ function StockRow({ stock }: { stock: Stock }) {
       case "sell":
         return <span className="text-teal-400">売り</span>;
       case "hold":
-        return <span className="text-amber-400">静観</span>;
+        return <span className="text-zinc-400">静観</span>;
     }
   };
 
