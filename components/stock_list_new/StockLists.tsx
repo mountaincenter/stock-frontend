@@ -9,6 +9,7 @@ import StockListsDesktop from "./views/StockListsDesktop";
 import StockListsMobile, { MobileTab } from "./views/StockListsMobile";
 import { PolicyFilters } from "./parts/PolicyFilters";
 import { shouldFetchRealtimePrice } from "@/lib/market-hours";
+import { getTseMarketState, getMarketStateLabel, type TseMarketState } from "@/lib/tse-market-state";
 import {
   Select,
   SelectContent,
@@ -129,6 +130,7 @@ export default function StockLists(props: Props & { className?: string }) {
   const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
   const [realtimeData, setRealtimeData] = useState<{ticker: string; price: number; timestamp: string} | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [marketState, setMarketState] = useState<TseMarketState>("CLOSED");
   const [realtimePrices, setRealtimePrices] = useState<Map<string, {
     price: number | null;
     change: number | null;
@@ -226,6 +228,18 @@ export default function StockLists(props: Props & { className?: string }) {
     setSelectedPolicies([]);
     setMobileToolsOpen(false);
   }, [selectedTag]);
+
+  // マーケット状態を取得・更新
+  useEffect(() => {
+    const updateMarketState = async () => {
+      const state = await getTseMarketState();
+      setMarketState(state);
+    };
+    updateMarketState();
+    // 1分ごとに更新
+    const interval = setInterval(updateMarketState, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     setSortState({
@@ -581,6 +595,14 @@ export default function StockLists(props: Props & { className?: string }) {
                   )}
                   <div className="text-[10px] text-muted-foreground/70">
                     Yahoo Finance API（20分ディレイ・15分間隔）
+                    <span className={`ml-2 font-medium ${
+                      marketState === "REGULAR" ? "text-emerald-500" :
+                      marketState === "PRE" ? "text-amber-500" :
+                      marketState === "BREAK" ? "text-amber-500" :
+                      "text-muted-foreground"
+                    }`}>
+                      [{getMarketStateLabel(marketState)}]
+                    </span>
                   </div>
                 </div>
               </div>
@@ -670,6 +692,14 @@ export default function StockLists(props: Props & { className?: string }) {
                 )}
                 <div className="text-[8px] text-muted-foreground/70 leading-tight">
                   Yahoo Finance API
+                  <span className={`ml-1 font-medium ${
+                    marketState === "REGULAR" ? "text-emerald-500" :
+                    marketState === "PRE" ? "text-amber-500" :
+                    marketState === "BREAK" ? "text-amber-500" :
+                    "text-muted-foreground"
+                  }`}>
+                    [{getMarketStateLabel(marketState)}]
+                  </span>
                 </div>
               </div>
             </div>
