@@ -89,7 +89,7 @@ function RatingInline({ label, title }: { label: RatingLabel; title: string }) {
   const { icon, tone } = ratingVisual(label);
   return (
     <div
-      className={`flex items-center justify-center gap-1 ${tone} text-sm font-semibold leading-none`}
+      className={`flex items-center justify-center gap-1 ${tone} text-sm font-semibold leading-none whitespace-nowrap`}
       title={title}
     >
       {icon}
