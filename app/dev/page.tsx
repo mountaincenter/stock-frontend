@@ -277,20 +277,46 @@ export default function DevDashboard() {
 
   if (loading) {
     return (
-      <div className="tv-dark min-h-screen bg-[var(--tv-bg-primary)] flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-[var(--tv-accent)] border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-          <p className="text-[var(--tv-text-secondary)] text-sm">Loading...</p>
+      <main className="relative min-h-screen">
+        <div className="fixed inset-0 -z-10 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20" />
         </div>
-      </div>
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          {/* Header skeleton */}
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4 pb-3 border-b border-border/30">
+            <div>
+              <div className="h-6 w-40 bg-muted/50 rounded mb-2 animate-pulse" />
+              <div className="h-4 w-32 bg-muted/50 rounded animate-pulse" />
+            </div>
+            <div className="flex gap-2">
+              <div className="h-8 w-24 bg-muted/50 rounded animate-pulse" />
+              <div className="h-8 w-24 bg-muted/50 rounded animate-pulse" />
+            </div>
+          </div>
+          {/* KPI Grid skeleton */}
+          <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-6">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="rounded-xl border border-border/40 bg-card/50 p-4 h-24 animate-pulse" />
+            ))}
+          </div>
+          {/* Chart + Table skeleton */}
+          <div className="grid lg:grid-cols-2 gap-4 mb-6">
+            <div className="rounded-2xl border border-border/40 bg-card/50 h-[340px] animate-pulse" />
+            <div className="rounded-2xl border border-border/40 bg-card/50 h-[340px] animate-pulse" />
+          </div>
+          {/* MarketSummary skeleton */}
+          <div className="rounded-xl border border-border/40 bg-card/50 h-[400px] animate-pulse" />
+        </div>
+      </main>
     );
   }
 
   if (error || !dashboardData) {
     return (
-      <div className="tv-dark min-h-screen bg-[var(--tv-bg-primary)] flex items-center justify-center">
-        <div className="text-[var(--tv-down)] text-sm">Error: {error || "No data"}</div>
-      </div>
+      <main className="relative min-h-screen flex items-center justify-center">
+        <div className="fixed inset-0 -z-10 bg-gradient-to-br from-background via-background to-muted/20" />
+        <div className="text-rose-400 text-sm">エラー: {error || "データがありません"}</div>
+      </main>
     );
   }
 
