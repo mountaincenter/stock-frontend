@@ -126,13 +126,6 @@ export default function PriceSimpleMobile({ rows, nf0, nf2 }: Props) {
           const isGrokStock = r.categories?.includes("GROK") ?? false;
           const grokReason = isGrokStock ? r.reason : null;
 
-          // 未寄付判定（marketState === 'PRE'）
-          const isNotOpened = r.marketState === 'PRE';
-
-          // 未寄付の場合、寄付比は無効（前日データのため）
-          const displayOpenDiff = isNotOpened ? null : openDiff;
-          const displayOpenDiffPct = isNotOpened ? null : openDiffPct;
-
           // marketTimeがあればそれを使用、なければdateを使用
           const displayDate = r.marketTime ? formatDateTime(r.marketTime) : (r.date ?? "—");
 
@@ -154,11 +147,6 @@ export default function PriceSimpleMobile({ rows, nf0, nf2 }: Props) {
                 <div className={codeSub}>
                   {r.code}
                   <span className={dateSub}>{displayDate}</span>
-                  {isNotOpened && (
-                    <span className="ml-1.5 px-1 py-0.5 text-[8px] font-medium bg-amber-500/20 text-amber-400 rounded">
-                      未寄付
-                    </span>
-                  )}
                 </div>
                 {isGrokStock && grokReason && (
                   <button
@@ -192,22 +180,22 @@ export default function PriceSimpleMobile({ rows, nf0, nf2 }: Props) {
               <div className="col-span-2 text-right leading-tight">
                 <div className="inline-flex flex-col items-end gap-0.5">
                   {/* 寄付比 */}
-                  {displayOpenDiff == null || !Number.isFinite(displayOpenDiff) ? (
+                  {openDiff == null || !Number.isFinite(openDiff) ? (
                     <span className="text-muted-foreground text-[10px]">—</span>
                   ) : (
                     <span className={`font-bold font-sans tabular-nums text-[11px] leading-none ${openTone}`}>
-                      {displayOpenDiff > 0 ? "+" : ""}
-                      {nf0.format(displayOpenDiff)}
+                      {openDiff > 0 ? "+" : ""}
+                      {nf0.format(openDiff)}
                     </span>
                   )}
 
                   {/* 寄付比% */}
-                  {displayOpenDiffPct == null || !Number.isFinite(displayOpenDiffPct) ? (
+                  {openDiffPct == null || !Number.isFinite(openDiffPct) ? (
                     <span className="text-muted-foreground text-[9px]">—</span>
                   ) : (
                     <span className={`text-[9px] font-bold font-sans tabular-nums leading-none ${openTone}`}>
-                      {displayOpenDiffPct > 0 ? "+" : ""}
-                      {nf2.format(displayOpenDiffPct)}%
+                      {openDiffPct > 0 ? "+" : ""}
+                      {nf2.format(openDiffPct)}%
                     </span>
                   )}
 

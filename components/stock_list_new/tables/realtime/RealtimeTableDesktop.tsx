@@ -87,15 +87,6 @@ const RealtimeRow = React.memo(({
   const isGrokStock = r.categories?.includes("GROK") ?? false;
   const grokReason = isGrokStock ? r.reason : null;
 
-  // 未寄付判定（marketState === 'PRE'）
-  const isNotOpened = r.marketState === 'PRE';
-
-  // 未寄付の場合、寄付比・高値・安値は無効（前日データのため）
-  const displayOpenDiff = isNotOpened ? null : openDiff;
-  const displayOpenDiffPct = isNotOpened ? null : openDiffPct;
-  const displayHigh = isNotOpened ? null : r.high;
-  const displayLow = isNotOpened ? null : r.low;
-
   const rowContent = (
     <Link
       href={`/${encodeURIComponent(r.ticker)}`}
@@ -122,15 +113,10 @@ const RealtimeRow = React.memo(({
       </div>
 
       {/* 時刻 */}
-      <div className="px-3 flex items-center justify-center gap-1.5" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
+      <div className="px-3 flex items-center justify-center" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
         <span className={`${densityStyles.fontSize.date} font-sans tabular-nums text-muted-foreground`}>
           {formatTime(r.marketTime)}
         </span>
-        {isNotOpened && (
-          <span className="px-1.5 py-0.5 text-[10px] font-medium bg-amber-500/20 text-amber-400 rounded">
-            未寄付
-          </span>
-        )}
       </div>
 
       {/* 現在値 */}
@@ -140,12 +126,12 @@ const RealtimeRow = React.memo(({
 
       {/* 寄付比 */}
       <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
-        <DiffBadge diff={displayOpenDiff} nf0={nf0} />
+        <DiffBadge diff={openDiff} nf0={nf0} />
       </div>
 
       {/* 寄付比% */}
       <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
-        <DiffBadge diff={displayOpenDiffPct} nf0={nf2} />
+        <DiffBadge diff={openDiffPct} nf0={nf2} />
       </div>
 
       {/* 前日比 */}
@@ -155,12 +141,12 @@ const RealtimeRow = React.memo(({
 
       {/* 高値 */}
       <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
-        <NumCell v={displayHigh ?? null} nf0={nf0} />
+        <NumCell v={r.high ?? null} nf0={nf0} />
       </div>
 
       {/* 安値 */}
       <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
-        <NumCell v={displayLow ?? null} nf0={nf0} />
+        <NumCell v={r.low ?? null} nf0={nf0} />
       </div>
 
       {/* 出来高 */}
