@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { ProtectedRoute } from '../../../src/components/auth/ProtectedRoute';
 import { DevNavLinks, FilterButtonGroup } from '../../../components/dev';
 import { ChevronDown, ChevronRight } from 'lucide-react';
@@ -87,6 +87,7 @@ function StockResultsContent() {
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<ViewType>('daily');
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
+  const prevViewRef = useRef<ViewType>('daily');
 
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
@@ -111,6 +112,8 @@ function StockResultsContent() {
   // タブ変更時はテーブルデータのみ取得
   useEffect(() => {
     if (loading) return; // 初回ロード中はスキップ
+    if (prevViewRef.current === view) return; // viewが変わっていなければスキップ
+    prevViewRef.current = view;
     setTableLoading(true);
     setExpandedKeys(new Set()); // タブ切替時に展開状態をリセット
     fetch(`${API_BASE}/api/dev/stock-results/${view === 'bystock' ? 'by-stock' : `daily?view=${view}`}`)
