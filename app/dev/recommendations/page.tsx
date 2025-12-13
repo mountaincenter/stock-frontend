@@ -150,7 +150,7 @@ export default function RecommendationsPage() {
             </div>
           </div>
           <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl text-center">
-            <div className="absolute inset-0 bg-gradient-to-br from-zinc-500/5 via-transparent to-transparent pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-br from-zinc-400/5 via-transparent to-transparent pointer-events-none" />
             <div className="relative">
               <div className="text-2xl tabular-nums font-bold text-zinc-400">{data.summary.hold}</div>
               <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap">静観</div>
@@ -274,7 +274,7 @@ function StockRow({ stock }: { stock: Stock }) {
         ? "bg-orange-500/20 text-orange-400"
         : action === "sell"
         ? "bg-teal-500/20 text-teal-400"
-        : "bg-zinc-500/20 text-zinc-400";
+        : "bg-zinc-400/20 text-zinc-400";
     return <span className={`px-2 py-0.5 rounded text-sm font-medium ${color}`}>{label}</span>;
   };
 
