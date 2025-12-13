@@ -28,7 +28,7 @@ export function FilterButtonGroup<T extends string>({
             key={option.value}
             onClick={() => onChange(option.value)}
             className={`
-              px-3 py-1.5 text-xs font-semibold transition-all rounded-md
+              px-2 sm:px-3 py-1.5 text-xs font-semibold transition-all rounded-md whitespace-nowrap
               ${isActive
                 ? "bg-primary text-primary-foreground shadow-md ring-1 ring-primary/50"
                 : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
