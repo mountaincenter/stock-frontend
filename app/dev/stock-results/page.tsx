@@ -83,17 +83,19 @@ function StockResultsContent() {
   const [summaryData, setSummaryData] = useState<SummaryResponse | null>(null);
   const [dailyData, setDailyData] = useState<DailyResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [tableLoading, setTableLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<ViewType>('daily');
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
 
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
+  // 初回のみサマリーと日別データを取得
   useEffect(() => {
     setLoading(true);
     Promise.all([
       fetch(`${API_BASE}/api/dev/stock-results/summary`).then(res => res.json()),
-      fetch(`${API_BASE}/api/dev/stock-results/${view === 'bystock' ? 'by-stock' : `daily?view=${view}`}`).then(res => res.json()),
+      fetch(`${API_BASE}/api/dev/stock-results/daily?view=daily`).then(res => res.json()),
     ])
       .then(([summary, daily]) => {
         setSummaryData(summary);
@@ -104,7 +106,24 @@ function StockResultsContent() {
         setError(err.message);
         setLoading(false);
       });
-  }, [API_BASE, view]);
+  }, [API_BASE]);
+
+  // タブ変更時はテーブルデータのみ取得
+  useEffect(() => {
+    if (loading) return; // 初回ロード中はスキップ
+    setTableLoading(true);
+    setExpandedKeys(new Set()); // タブ切替時に展開状態をリセット
+    fetch(`${API_BASE}/api/dev/stock-results/${view === 'bystock' ? 'by-stock' : `daily?view=${view}`}`)
+      .then(res => res.json())
+      .then(daily => {
+        setDailyData(daily);
+        setTableLoading(false);
+      })
+      .catch(err => {
+        setError(err.message);
+        setTableLoading(false);
+      });
+  }, [API_BASE, view, loading]);
 
   const toggleExpand = (key: string) => {
     setExpandedKeys(prev => {
@@ -487,7 +506,12 @@ function StockResultsContent() {
               />
             </div>
 
-            <div className="max-h-[500px] overflow-auto">
+            <div className="max-h-[500px] overflow-auto relative">
+              {tableLoading && (
+                <div className="absolute inset-0 bg-card/80 backdrop-blur-sm flex items-center justify-center z-10">
+                  <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
               {dailyData?.results.map(group => (
                 <div key={group.key} className="border-b border-border/20 last:border-0">
                   <button
