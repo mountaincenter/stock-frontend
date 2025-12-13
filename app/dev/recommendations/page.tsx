@@ -157,9 +157,9 @@ export default function RecommendationsPage() {
             </div>
           </div>
           <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl text-center">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-br from-zinc-500/5 via-transparent to-transparent pointer-events-none" />
             <div className="relative">
-              <div className="text-2xl tabular-nums font-bold text-muted-foreground">{data.summary.restricted || 0}</div>
+              <div className="text-2xl tabular-nums font-bold text-zinc-500">{data.summary.restricted || 0}</div>
               <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap">取引制限</div>
             </div>
           </div>
@@ -396,13 +396,13 @@ function StockRow({ stock }: { stock: Stock }) {
         <td className="px-2 py-2 text-center whitespace-nowrap">
           {isRestricted ? (
             <span
-              className="text-xs px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400"
+              className="text-xs px-1.5 py-0.5 rounded bg-zinc-500/20 text-zinc-500"
               title={stock.tradingRestriction?.reason ?? undefined}
             >
               停止
             </span>
           ) : (
-            <span className="tabular-nums text-emerald-400">○</span>
+            <span className="tabular-nums text-zinc-400">○</span>
           )}
         </td>
       </tr>
