@@ -455,7 +455,10 @@ export default function DayTradeListPage() {
                               value={edited?.day_trade_available_shares ?? ""}
                               onChange={(e) => updateEditedShares(stock.ticker, e.target.value)}
                               placeholder="-"
-                              className="w-24 px-2 py-1 text-right tabular-nums bg-muted/50 border border-border/40 rounded focus:outline-none focus:border-primary/50"
+                              disabled={!(edited?.day_trade ?? stock.day_trade)}
+                              className={`w-24 px-2 py-1 text-right tabular-nums bg-muted/50 border border-border/40 rounded focus:outline-none focus:border-primary/50 ${
+                                !(edited?.day_trade ?? stock.day_trade) ? "opacity-30 cursor-not-allowed" : ""
+                              }`}
                             />
                           </td>
                         </>
