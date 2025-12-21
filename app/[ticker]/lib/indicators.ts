@@ -51,3 +51,40 @@ export function calculateBollingerBands(
 
   return { upper, middle, lower };
 }
+
+/**
+ * Calculate RSI (Relative Strength Index)
+ */
+export function calculateRSI(data: number[], period: number = 14): (number | null)[] {
+  const result: (number | null)[] = [];
+
+  for (let i = 0; i < data.length; i++) {
+    if (i < period) {
+      result.push(null);
+    } else {
+      let gains = 0;
+      let losses = 0;
+
+      for (let j = i - period + 1; j <= i; j++) {
+        const change = data[j] - data[j - 1];
+        if (change > 0) {
+          gains += change;
+        } else {
+          losses -= change;
+        }
+      }
+
+      const avgGain = gains / period;
+      const avgLoss = losses / period;
+
+      if (avgLoss === 0) {
+        result.push(100);
+      } else {
+        const rs = avgGain / avgLoss;
+        result.push(100 - 100 / (1 + rs));
+      }
+    }
+  }
+
+  return result;
+}

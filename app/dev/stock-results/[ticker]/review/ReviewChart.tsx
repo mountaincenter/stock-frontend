@@ -310,7 +310,8 @@ export default function ReviewChart({ data, rsiValues, signals }: ReviewChartPro
       const allMarkers = [...entryMarkers, ...exitMarkers].sort(
         (a, b) => (a.time as number) - (b.time as number)
       );
-      candleSeries.current.setMarkers(allMarkers);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (candleSeries.current as any).setMarkers(allMarkers);
     }
     if (rsiSeries.current && rsiData.length > 0) {
       rsiSeries.current.setData(rsiData);
