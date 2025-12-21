@@ -12,7 +12,6 @@ type DayTradeStock = {
   change_pct: number | null;
   atr_pct: number | null;
   market_cap_oku: number | null;
-  skip_by_market_cap: boolean;
   shortable: boolean;
   day_trade: boolean;
   ng: boolean;
@@ -24,10 +23,9 @@ type Summary = {
   shortable: number;
   day_trade: number;
   ng: number;
-  skip_by_market_cap: number;
 };
 
-type FilterType = "all" | "unchecked" | "shortable" | "day_trade" | "ng" | "skip_market_cap";
+type FilterType = "all" | "unchecked" | "shortable" | "day_trade" | "ng";
 
 const FILTER_OPTIONS = [
   { value: "all", label: "すべて" },
@@ -35,12 +33,11 @@ const FILTER_OPTIONS = [
   { value: "shortable", label: "制度" },
   { value: "day_trade", label: "いちにち" },
   { value: "ng", label: "NG" },
-  { value: "skip_market_cap", label: "見送り" },
 ];
 
 export default function DayTradeListPage() {
   const [stocks, setStocks] = useState<DayTradeStock[]>([]);
-  const [summary, setSummary] = useState<Summary>({ unchecked: 0, shortable: 0, day_trade: 0, ng: 0, skip_by_market_cap: 0 });
+  const [summary, setSummary] = useState<Summary>({ unchecked: 0, shortable: 0, day_trade: 0, ng: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterType>("all");
@@ -151,7 +148,6 @@ export default function DayTradeListPage() {
         shortable: updated.filter((s) => s.shortable).length,
         day_trade: updated.filter((s) => s.day_trade && !s.shortable).length,
         ng: updated.filter((s) => s.ng).length,
-        skip_by_market_cap: updated.filter((s) => s.skip_by_market_cap).length,
       });
 
       setEditedStocks({});
@@ -226,9 +222,7 @@ export default function DayTradeListPage() {
           ? stocks.filter((s) => s.shortable)
           : filter === "day_trade"
             ? stocks.filter((s) => s.day_trade && !s.shortable)
-            : filter === "skip_market_cap"
-              ? stocks.filter((s) => s.skip_by_market_cap)
-              : stocks.filter((s) => s.ng);
+            : stocks.filter((s) => s.ng);
 
   return (
     <main className="relative min-h-screen">
@@ -257,39 +251,32 @@ export default function DayTradeListPage() {
         </div>
 
         {/* Summary Grid */}
-        <div className="grid grid-cols-5 gap-3 mb-6">
-          <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl text-center">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-6">
+          <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-3 sm:p-4 shadow-lg shadow-black/5 backdrop-blur-xl text-center">
             <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 via-transparent to-transparent pointer-events-none" />
             <div className="relative">
-              <div className="text-2xl tabular-nums font-bold text-teal-400">{summary.shortable}</div>
+              <div className="text-xl sm:text-2xl tabular-nums font-bold text-teal-400">{summary.shortable}</div>
               <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap">制度信用</div>
             </div>
           </div>
-          <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl text-center">
+          <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-3 sm:p-4 shadow-lg shadow-black/5 backdrop-blur-xl text-center">
             <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-transparent pointer-events-none" />
             <div className="relative">
-              <div className="text-2xl tabular-nums font-bold text-orange-400">{summary.day_trade}</div>
+              <div className="text-xl sm:text-2xl tabular-nums font-bold text-orange-400">{summary.day_trade}</div>
               <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap">いちにち</div>
             </div>
           </div>
-          <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl text-center">
+          <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-3 sm:p-4 shadow-lg shadow-black/5 backdrop-blur-xl text-center">
             <div className="absolute inset-0 bg-gradient-to-br from-rose-500/5 via-transparent to-transparent pointer-events-none" />
             <div className="relative">
-              <div className="text-2xl tabular-nums font-bold text-rose-400">{summary.ng}</div>
+              <div className="text-xl sm:text-2xl tabular-nums font-bold text-rose-400">{summary.ng}</div>
               <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap">NG</div>
             </div>
           </div>
-          <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl text-center">
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-transparent pointer-events-none" />
-            <div className="relative">
-              <div className="text-2xl tabular-nums font-bold text-purple-400">{summary.skip_by_market_cap ?? 0}</div>
-              <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap">見送り</div>
-            </div>
-          </div>
-          <div className="relative overflow-hidden rounded-xl border border-amber-500/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl text-center">
+          <div className="relative overflow-hidden rounded-xl border border-amber-500/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-3 sm:p-4 shadow-lg shadow-black/5 backdrop-blur-xl text-center">
             <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 via-transparent to-transparent pointer-events-none" />
             <div className="relative">
-              <div className="text-2xl tabular-nums font-bold text-amber-400">{summary.unchecked}</div>
+              <div className="text-xl sm:text-2xl tabular-nums font-bold text-amber-400">{summary.unchecked}</div>
               <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap">未チェック</div>
             </div>
           </div>
@@ -418,9 +405,7 @@ export default function DayTradeListPage() {
                       <td className="px-3 py-4 text-right tabular-nums text-muted-foreground">
                         {formatPercent(stock.atr_pct, 1)}
                       </td>
-                      <td className={`px-3 py-4 text-right tabular-nums whitespace-nowrap ${
-                        stock.skip_by_market_cap ? "text-purple-400" : "text-muted-foreground"
-                      }`}>
+                      <td className="px-3 py-4 text-right tabular-nums whitespace-nowrap text-muted-foreground">
                         {stock.market_cap_oku != null ? `${stock.market_cap_oku.toLocaleString()}億` : "-"}
                       </td>
                       {bulkEditMode ? (
