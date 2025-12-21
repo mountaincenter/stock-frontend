@@ -452,6 +452,10 @@ export default function DayTradeListPage() {
                           <td className="px-3 py-4 text-center">
                             <input
                               type="number"
+                              inputMode="numeric"
+                              min={0}
+                              max={999999}
+                              step={100}
                               value={edited?.day_trade_available_shares ?? ""}
                               onChange={(e) => updateEditedShares(stock.ticker, e.target.value)}
                               placeholder="-"
