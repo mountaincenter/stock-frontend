@@ -123,7 +123,7 @@ export default function DayTradeListPage() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(changes.map((c) => ({
-          ticker: c.stockName, // APIはstock_nameで検索する
+          ticker: c.ticker, // tickerで検索
           shortable: c.shortable,
           day_trade: c.day_trade,
           ng: c.ng,
