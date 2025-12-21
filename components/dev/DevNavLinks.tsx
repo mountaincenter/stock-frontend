@@ -9,6 +9,8 @@ interface NavLinkConfig {
   label: string;
 }
 
+const isDev = process.env.NODE_ENV === "development";
+
 const NAV_LINKS: Record<string, NavLinkConfig> = {
   dashboard: {
     href: "/dev",
@@ -19,7 +21,7 @@ const NAV_LINKS: Record<string, NavLinkConfig> = {
     label: "Recommendations",
   },
   "stock-results": {
-    href: "/dev/stock-results",
+    href: isDev ? "/dev/dev-stock-results" : "/dev/stock-results",
     label: "Stock Results",
   },
   // v3: {

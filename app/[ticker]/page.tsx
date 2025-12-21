@@ -1,4 +1,5 @@
 // app/[ticker]/page.tsx
+import Link from "next/link";
 import TickerDailyChart from "./TickerDailyChart";
 import TechnicalDetailTable from "./TechDetailTable";
 import PriceCard from "./PriceCard";
@@ -169,7 +170,17 @@ export default async function TickerPage({
       <div className="flex-1 py-4 md:py-5 lg:py-6">
         <div className="w-full md:w-[92%] lg:w-[90%] xl:w-[88%] 2xl:w-[86%] mx-auto px-3 md:px-4 space-y-4">
           {/* Premium navigation header */}
-          <div className="flex justify-end">
+          <div className="flex items-center justify-between">
+            <Link
+              href={`/${ticker}/demo`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-sm font-medium transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              デモトレード
+            </Link>
             <BackToListButton />
           </div>
 
