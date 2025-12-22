@@ -283,14 +283,16 @@ export default function DayTradeListPage() {
         </div>
 
         {/* Filter */}
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-sm text-muted-foreground">フィルター</span>
-          <FilterButtonGroup
-            options={FILTER_OPTIONS}
-            value={filter}
-            onChange={(v) => setFilter(v as FilterType)}
-          />
-          <div className="flex items-center gap-3 ml-auto">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground whitespace-nowrap">フィルター</span>
+            <FilterButtonGroup
+              options={FILTER_OPTIONS}
+              value={filter}
+              onChange={(v) => setFilter(v as FilterType)}
+            />
+          </div>
+          <div className="flex items-center gap-2 sm:gap-3 sm:ml-auto">
             {bulkEditMode ? (
               <div className="flex items-center gap-2">
                 <button
@@ -300,7 +302,7 @@ export default function DayTradeListPage() {
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm font-medium hover:bg-emerald-500/30 transition-colors disabled:opacity-50"
                 >
                   <Check className="w-4 h-4" />
-                  保存
+                  <span className="whitespace-nowrap">保存</span>
                 </button>
                 <button
                   type="button"
@@ -309,20 +311,20 @@ export default function DayTradeListPage() {
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/20 text-rose-400 text-sm font-medium hover:bg-rose-500/30 transition-colors disabled:opacity-50"
                 >
                   <X className="w-4 h-4" />
-                  キャンセル
+                  <span className="whitespace-nowrap">キャンセル</span>
                 </button>
               </div>
             ) : (
               <button
                 type="button"
                 onClick={startBulkEdit}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/20 text-primary text-xs font-medium hover:bg-primary/30 transition-colors"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/20 text-primary text-xs font-medium hover:bg-primary/30 transition-colors whitespace-nowrap"
               >
                 <Pencil className="w-3.5 h-3.5" />
                 一括編集
               </button>
             )}
-            <span className="text-sm tabular-nums text-muted-foreground">
+            <span className="text-sm tabular-nums text-muted-foreground whitespace-nowrap">
               {filteredStocks.length}件
             </span>
           </div>
