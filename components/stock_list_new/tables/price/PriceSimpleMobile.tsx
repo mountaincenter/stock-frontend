@@ -5,6 +5,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import type { Row } from "../../types";
+import { isTradingDay } from "@/lib/market-hours";
+import { getTseMarketStateSync } from "@/lib/tse-market-state";
 
 type Props = { rows: Row[]; nf0: Intl.NumberFormat; nf2: Intl.NumberFormat };
 
@@ -58,6 +60,54 @@ export default function PriceSimpleMobile({ rows, nf0, nf2 }: Props) {
     }
   };
 
+  // 今日の日付（JST）を YYYY-MM-DD で取得
+  const getTodayJST = (): string => {
+    const now = new Date();
+    const jst = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
+    const year = jst.getFullYear();
+    const month = String(jst.getMonth() + 1).padStart(2, "0");
+    const day = String(jst.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  // marketTimeから日付部分（YYYY-MM-DD）を取得
+  const getMarketDateJST = (marketTime: string | null | undefined): string | null => {
+    if (!marketTime) return null;
+    try {
+      const date = new Date(marketTime);
+      const jst = new Date(date.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
+      const year = jst.getFullYear();
+      const month = String(jst.getMonth() + 1).padStart(2, "0");
+      const day = String(jst.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    } catch {
+      return null;
+    }
+  };
+
+  /**
+   * 銘柄が当日寄付いているか判定
+   */
+  const hasOpenedToday = (marketTime: string | null | undefined): boolean => {
+    const today = getTodayJST();
+    const isTradingDayToday = isTradingDay(new Date());
+
+    // 非営業日の場合は前営業日データをそのまま表示
+    if (!isTradingDayToday) {
+      return true;
+    }
+
+    // PRE（8:50-9:00）の間は全銘柄「—」表示
+    const marketState = getTseMarketStateSync();
+    if (marketState === "PRE") {
+      return false;
+    }
+
+    // 9:00以降は、marketTimeの日付が今日と一致するかチェック
+    const marketDate = getMarketDateJST(marketTime);
+    return marketDate === today;
+  };
+
   return (
     <div className="rounded-none border-0 overflow-hidden md:rounded-md md:border md:border-border">
       {/* ヘッダ（sticky） */}
@@ -78,8 +128,12 @@ export default function PriceSimpleMobile({ rows, nf0, nf2 }: Props) {
 
       <div className="max-h-[calc(100vh-168px)] md:max-h-[70vh] overflow-auto">
         {rows.map((r) => {
-          const diff = r.diff;
+          // 寄付判定
+          const isOpened = hasOpenedToday(r.marketTime);
+
+          const diff = isOpened ? r.diff : null;
           const pct =
+            isOpened &&
             r.diff != null &&
             r.prevClose != null &&
             Number.isFinite(r.diff) &&
@@ -88,8 +142,9 @@ export default function PriceSimpleMobile({ rows, nf0, nf2 }: Props) {
               ? (r.diff / r.prevClose) * 100
               : null;
 
-          // 寄付比の計算（デスクトップ版と同じロジック）
+          // 寄付比の計算（寄付いていない場合はnull）
           const openDiff =
+            isOpened &&
             r.close != null &&
             r.open != null &&
             Number.isFinite(r.close) &&
@@ -98,7 +153,7 @@ export default function PriceSimpleMobile({ rows, nf0, nf2 }: Props) {
               : null;
 
           const openDiffPct =
-            openDiff != null && r.open != null && r.open !== 0
+            isOpened && openDiff != null && r.open != null && r.open !== 0
               ? (openDiff / r.open) * 100
               : null;
 
