@@ -702,19 +702,19 @@ export default function DevDashboard() {
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 bg-card/80 backdrop-blur-sm">
                     <tr className="border-b border-border/30">
-                      <th className="px-4 py-2.5 text-left text-muted-foreground font-medium cursor-pointer hover:text-foreground transition-colors" onClick={() => handleSort("date")}>
+                      <th className="px-4 py-2.5 text-left text-muted-foreground font-medium cursor-pointer hover:text-foreground transition-colors whitespace-nowrap" onClick={() => handleSort("date")}>
                         <div className="flex items-center gap-1">
                           日付 {sortField === "date" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                         </div>
                       </th>
-                      <th className="px-3 py-2.5 text-right text-muted-foreground font-medium">件数</th>
-                      <th className="px-3 py-2.5 text-right text-muted-foreground font-medium cursor-pointer hover:text-foreground transition-colors" onClick={() => handleSort("win_rate")}>
+                      <th className="px-3 py-2.5 text-right text-muted-foreground font-medium whitespace-nowrap">件数</th>
+                      <th className="px-3 py-2.5 text-right text-muted-foreground font-medium cursor-pointer hover:text-foreground transition-colors whitespace-nowrap" onClick={() => handleSort("win_rate")}>
                         <div className="flex items-center justify-end gap-1">
                           勝率 {sortField === "win_rate" && (sortDirection === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />)}
                         </div>
                       </th>
-                      <th className="px-3 py-2.5 text-right text-muted-foreground font-medium">損益</th>
-                      <th className="px-3 py-2.5 text-right text-muted-foreground font-medium">Top5</th>
+                      <th className="px-3 py-2.5 text-right text-muted-foreground font-medium whitespace-nowrap">損益</th>
+                      <th className="px-3 py-2.5 text-right text-muted-foreground font-medium whitespace-nowrap">Top5</th>
                       <th className="px-3 py-2.5 w-8"></th>
                     </tr>
                   </thead>
