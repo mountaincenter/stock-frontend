@@ -12,6 +12,8 @@ import { REALTIME_SORT_COLUMNS } from "../../utils/sort";
 import { SortButtonGroup } from "../../parts/SortButtonGroup";
 import { CustomTooltip } from "../../parts/CustomTooltip";
 import { GrokTags } from "../../parts/GrokTags";
+import { isTradingDay } from "@/lib/market-hours";
+import { getTseMarketStateSync } from "@/lib/tse-market-state";
 
 /**
  * リアルタイムタブ（10カラム）- 寄付買い前場引け売り戦略用
@@ -47,6 +49,58 @@ const formatTime = (marketTime: string | null | undefined): string => {
   }
 };
 
+// 今日の日付（JST）を YYYY-MM-DD で取得
+const getTodayJST = (): string => {
+  const now = new Date();
+  const jst = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
+  const year = jst.getFullYear();
+  const month = String(jst.getMonth() + 1).padStart(2, "0");
+  const day = String(jst.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+// marketTimeから日付部分（YYYY-MM-DD）を取得
+const getMarketDateJST = (marketTime: string | null | undefined): string | null => {
+  if (!marketTime) return null;
+  try {
+    const date = new Date(marketTime);
+    // JSTに変換
+    const jst = new Date(date.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
+    const year = jst.getFullYear();
+    const month = String(jst.getMonth() + 1).padStart(2, "0");
+    const day = String(jst.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * 銘柄が当日寄付いているか判定
+ * - PRE（8:50-9:00）の間は全銘柄「—」表示（falseを返す）
+ * - 9:00以降は、marketTimeの日付が今日と一致する場合のみ通常表示
+ * - 非営業日（土日祝）の場合: 前営業日のデータをそのまま表示（寄付判定しない）
+ */
+const hasOpenedToday = (marketTime: string | null | undefined): boolean => {
+  const today = getTodayJST();
+  const isTradingDayToday = isTradingDay(new Date());
+
+  // 非営業日の場合は前営業日データをそのまま表示（trueを返す）
+  if (!isTradingDayToday) {
+    return true;
+  }
+
+  // PRE（8:50-9:00）の間は全銘柄「—」表示
+  const marketState = getTseMarketStateSync();
+  if (marketState === "PRE") {
+    return false;
+  }
+
+  // 9:00以降は、marketTimeの日付が今日と一致するかチェック
+  const marketDate = getMarketDateJST(marketTime);
+  return marketDate === today;
+};
+
 const RealtimeRow = React.memo(({
   row,
   nf0,
@@ -60,8 +114,12 @@ const RealtimeRow = React.memo(({
 }) => {
   const r = row;
 
-  // 寄付比 = 現在値 - 始値
+  // 寄付判定: 営業日かつmarketTimeが今日でない場合は寄付いていない
+  const isOpened = hasOpenedToday(r.marketTime);
+
+  // 寄付比 = 現在値 - 始値（寄付いていない場合はnull）
   const openDiff =
+    isOpened &&
     r.close != null &&
     r.open != null &&
     Number.isFinite(r.close) &&
@@ -69,8 +127,9 @@ const RealtimeRow = React.memo(({
       ? r.close - r.open
       : null;
 
-  // 寄付比% = (現在値 - 始値) / 始値 * 100
+  // 寄付比% = (現在値 - 始値) / 始値 * 100（寄付いていない場合はnull）
   const openDiffPct =
+    isOpened &&
     r.close != null &&
     r.open != null &&
     Number.isFinite(r.close) &&
@@ -115,13 +174,17 @@ const RealtimeRow = React.memo(({
       {/* 時刻 */}
       <div className="px-3 flex items-center justify-center" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
         <span className={`${densityStyles.fontSize.date} font-sans tabular-nums text-muted-foreground`}>
-          {formatTime(r.marketTime)}
+          {isOpened ? formatTime(r.marketTime) : "—"}
         </span>
       </div>
 
       {/* 現在値 */}
       <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
-        <CloseCell v={r.close} nf0={nf0} />
+        {isOpened ? (
+          <CloseCell v={r.close} nf0={nf0} />
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
       </div>
 
       {/* 寄付比 */}
@@ -136,22 +199,38 @@ const RealtimeRow = React.memo(({
 
       {/* 前日比 */}
       <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
-        <DiffBadge diff={r.diff} nf0={nf0} />
+        {isOpened ? (
+          <DiffBadge diff={r.diff} nf0={nf0} />
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
       </div>
 
       {/* 高値 */}
       <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
-        <NumCell v={r.high ?? null} nf0={nf0} />
+        {isOpened ? (
+          <NumCell v={r.high ?? null} nf0={nf0} />
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
       </div>
 
       {/* 安値 */}
       <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
-        <NumCell v={r.low ?? null} nf0={nf0} />
+        {isOpened ? (
+          <NumCell v={r.low ?? null} nf0={nf0} />
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
       </div>
 
       {/* 出来高 */}
       <div className="px-3 text-right flex items-center justify-end" style={{ paddingTop: paddingY, paddingBottom: paddingY }}>
-        <NumCell v={r.volume} nf0={nf0} />
+        {isOpened ? (
+          <NumCell v={r.volume} nf0={nf0} />
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
       </div>
     </Link>
   );
