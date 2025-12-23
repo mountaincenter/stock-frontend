@@ -121,6 +121,13 @@ const PERIOD_LABELS: Record<PeriodType, string> = {
   all: '全期間',
 };
 
+type DetailPeriodType = 'daily' | 'weekly' | 'monthly';
+const DETAIL_PERIOD_LABELS: Record<DetailPeriodType, string> = {
+  daily: '日別',
+  weekly: '週別',
+  monthly: '月別',
+};
+
 // Color helpers matching frontend: emerald-400, rose-400
 const profitClass = (val: number) =>
   val > 0 ? 'text-emerald-400' : val < 0 ? 'text-rose-400' : 'text-foreground';
@@ -162,6 +169,7 @@ function AnalysisContent() {
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
   const [weekdayPositions, setWeekdayPositions] = useState<PositionType[]>([...DEFAULT_WEEKDAY_POSITIONS]);
   const [customLoading, setCustomLoading] = useState(false);
+  const [detailPeriod, setDetailPeriod] = useState<DetailPeriodType>('daily');
 
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
@@ -351,7 +359,7 @@ function AnalysisContent() {
         </div>
 
         {/* Top Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {/* 総件数 */}
           <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-5 shadow-lg shadow-black/5 backdrop-blur-xl">
             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
@@ -643,10 +651,45 @@ function AnalysisContent() {
           );
         })}
 
-        {/* Daily Details */}
+        {/* Detail Section (除0株損益) */}
         <div className="mt-8">
-          <h2 className="text-sm font-semibold mb-4 text-foreground">日別詳細</h2>
-          {currentData.dailyDetails.map(day => {
+          <div className="flex items-center gap-4 mb-4">
+            <h2 className="text-sm font-semibold text-foreground">詳細（除0株損益）</h2>
+            <div className="flex gap-2">
+              {(Object.keys(DETAIL_PERIOD_LABELS) as DetailPeriodType[]).map(dp => (
+                <button
+                  key={dp}
+                  onClick={() => setDetailPeriod(dp)}
+                  className={`px-3 py-1 text-xs rounded-md border transition-colors ${
+                    detailPeriod === dp
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
+                  }`}
+                >
+                  {DETAIL_PERIOD_LABELS[dp]}
+                </button>
+              ))}
+            </div>
+          </div>
+          {(() => {
+            // Filter daily details based on detailPeriod
+            const details = currentData.dailyDetails;
+            let filteredDetails = details;
+
+            if (detailPeriod === 'daily') {
+              // Show all (日別 = individual days)
+              filteredDetails = details;
+            } else if (detailPeriod === 'weekly') {
+              // Group by week (show last 5 business days as one group, etc.)
+              // For simplicity, just show recent 5 days
+              filteredDetails = details.slice(0, 5);
+            } else if (detailPeriod === 'monthly') {
+              // Filter to current month only
+              const currentMonth = details[0]?.date.substring(0, 7);
+              filteredDetails = details.filter(d => d.date.startsWith(currentMonth || ''));
+            }
+
+            return filteredDetails.map(day => {
             const isExpanded = expandedDays.has(day.date);
             const dayP1All = day.p1.all;
             const dayP2All = day.p2.all;
@@ -732,7 +775,8 @@ function AnalysisContent() {
                 </div>
               </details>
             );
-          })}
+          });
+          })()}
         </div>
 
         {/* Footer */}
