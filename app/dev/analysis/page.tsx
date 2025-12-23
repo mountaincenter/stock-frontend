@@ -121,12 +121,40 @@ const PERIOD_LABELS: Record<PeriodType, string> = {
   all: '全期間',
 };
 
-type DetailPeriodType = 'daily' | 'weekly' | 'monthly';
-const DETAIL_PERIOD_LABELS: Record<DetailPeriodType, string> = {
+type DetailViewType = 'daily' | 'weekly' | 'monthly';
+const DETAIL_VIEW_LABELS: Record<DetailViewType, string> = {
   daily: '日別',
   weekly: '週別',
   monthly: '月別',
 };
+
+interface DetailStock {
+  date: string;
+  ticker: string;
+  stockName: string;
+  marginType: string;
+  buyPrice: number | null;
+  shares: number | null;
+  p1: number;
+  p2: number;
+  win1: boolean;
+  win2: boolean;
+  position: string;
+}
+
+interface DetailGroup {
+  key: string;
+  count: { all: number; ex0: number };
+  p1: { all: number; ex0: number };
+  p2: { all: number; ex0: number };
+  stocks: DetailStock[];
+}
+
+interface DetailResponse {
+  view: string;
+  mode: string;
+  results: DetailGroup[];
+}
 
 // Color helpers matching frontend: emerald-400, rose-400
 const profitClass = (val: number) =>
@@ -169,7 +197,9 @@ function AnalysisContent() {
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
   const [weekdayPositions, setWeekdayPositions] = useState<PositionType[]>([...DEFAULT_WEEKDAY_POSITIONS]);
   const [customLoading, setCustomLoading] = useState(false);
-  const [detailPeriod, setDetailPeriod] = useState<DetailPeriodType>('daily');
+  const [detailView, setDetailView] = useState<DetailViewType>('daily');
+  const [detailData, setDetailData] = useState<DetailResponse | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
@@ -185,6 +215,38 @@ function AnalysisContent() {
         setLoading(false);
       });
   }, [API_BASE]);
+
+  // 詳細データ取得
+  const fetchDetailData = async (view: DetailViewType) => {
+    setDetailLoading(true);
+    setExpandedDays(new Set()); // リセット
+    try {
+      const modeParam = strategy === 'weekdayStrategy' ? 'weekday_strategy' : strategy;
+      const params = new URLSearchParams({ view, mode: modeParam });
+      if (strategy === 'weekdayStrategy') {
+        params.set('mon', weekdayPositions[0]);
+        params.set('tue', weekdayPositions[1]);
+        params.set('wed', weekdayPositions[2]);
+        params.set('thu', weekdayPositions[3]);
+        params.set('fri', weekdayPositions[4]);
+      }
+      const res = await fetch(`${API_BASE}/dev/analysis/details?${params}`);
+      const json = await res.json();
+      setDetailData(json);
+    } catch (err) {
+      console.error('Failed to fetch detail data:', err);
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  // 初回および戦略/view変更時に詳細データ取得
+  useEffect(() => {
+    if (!loading && data) {
+      fetchDetailData(detailView);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, strategy, detailView, weekdayPositions]);
 
   // カスタム曜日戦略を取得
   const fetchCustomWeekday = async (positions: PositionType[]) => {
@@ -656,127 +718,107 @@ function AnalysisContent() {
           <div className="flex items-center gap-4 mb-4">
             <h2 className="text-sm font-semibold text-foreground">詳細（除0株損益）</h2>
             <div className="flex gap-2">
-              {(Object.keys(DETAIL_PERIOD_LABELS) as DetailPeriodType[]).map(dp => (
+              {(Object.keys(DETAIL_VIEW_LABELS) as DetailViewType[]).map(dv => (
                 <button
-                  key={dp}
-                  onClick={() => setDetailPeriod(dp)}
+                  key={dv}
+                  onClick={() => setDetailView(dv)}
                   className={`px-3 py-1 text-xs rounded-md border transition-colors ${
-                    detailPeriod === dp
+                    detailView === dv
                       ? 'bg-primary text-primary-foreground border-primary'
                       : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
                   }`}
                 >
-                  {DETAIL_PERIOD_LABELS[dp]}
+                  {DETAIL_VIEW_LABELS[dv]}
                 </button>
               ))}
             </div>
           </div>
-          {(() => {
-            // Filter daily details based on detailPeriod
-            const details = currentData.dailyDetails;
-            let filteredDetails = details;
 
-            if (detailPeriod === 'daily') {
-              // Show all (日別 = individual days)
-              filteredDetails = details;
-            } else if (detailPeriod === 'weekly') {
-              // Group by week (show last 5 business days as one group, etc.)
-              // For simplicity, just show recent 5 days
-              filteredDetails = details.slice(0, 5);
-            } else if (detailPeriod === 'monthly') {
-              // Filter to current month only
-              const currentMonth = details[0]?.date.substring(0, 7);
-              filteredDetails = details.filter(d => d.date.startsWith(currentMonth || ''));
-            }
+          <div className="relative">
+            {detailLoading && (
+              <div className="absolute inset-0 bg-card/80 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg">
+                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
+            {detailData?.results.map(group => {
+              const isExpanded = expandedDays.has(group.key);
+              const [grpP1Class, grpP2Class] = getCompareClasses(group.p1.all, group.p2.all);
 
-            return filteredDetails.map(day => {
-            const isExpanded = expandedDays.has(day.date);
-            const dayP1All = day.p1.all;
-            const dayP2All = day.p2.all;
-            const dayP1Ex0 = day.p1.ex0;
-            const dayP2Ex0 = day.p2.ex0;
-            const [dayP1Class, dayP2Class] = getCompareClasses(dayP1All, dayP2All);
-
-            return (
-              <details
-                key={day.date}
-                className="mb-2 rounded-lg border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 overflow-hidden"
-                open={isExpanded}
-                onToggle={(e) => {
-                  const target = e.target as HTMLDetailsElement;
-                  if (target.open && !isExpanded) toggleDay(day.date);
-                  if (!target.open && isExpanded) toggleDay(day.date);
-                }}
-              >
-                <summary className="px-4 py-3 cursor-pointer flex flex-wrap items-center gap-2 sm:gap-4 text-sm hover:bg-muted/10 transition-colors">
-                  <span className="font-semibold text-foreground whitespace-nowrap">{day.date}</span>
-                  {strategy === 'weekdayStrategy' && (
-                    <span className={`text-xs px-1.5 py-0.5 rounded ${
-                      day.position === 'ロング' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
-                    }`}>
-                      {day.position}
-                    </span>
-                  )}
-                  <span className="text-muted-foreground text-xs">{day.count.all}件</span>
-                  <div className="ml-auto tabular-nums text-xs sm:text-sm flex items-center flex-wrap gap-x-2 sm:gap-x-4">
-                    <span className="whitespace-nowrap">
+              return (
+                <details
+                  key={group.key}
+                  className="mb-2 rounded-lg border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 overflow-hidden"
+                  open={isExpanded}
+                  onToggle={(e) => {
+                    const target = e.target as HTMLDetailsElement;
+                    if (target.open && !isExpanded) toggleDay(group.key);
+                    if (!target.open && isExpanded) toggleDay(group.key);
+                  }}
+                >
+                  <summary className="px-4 py-3 cursor-pointer flex flex-wrap items-center gap-2 sm:gap-4 text-sm hover:bg-muted/10 transition-colors">
+                    <span className="font-semibold text-foreground whitespace-nowrap">{group.key}</span>
+                    <span className="text-muted-foreground text-xs">{group.count.all}件</span>
+                    <div className="ml-auto tabular-nums text-xs sm:text-sm flex items-center">
                       <span className="text-muted-foreground mr-1">前場</span>
-                      <span className={dayP1Class}>{formatProfit(dayP1All)}</span>
-                      <span className="text-muted-foreground text-[10px] sm:text-xs ml-1">({formatProfit(dayP1Ex0)})</span>
-                    </span>
-                    <span className="whitespace-nowrap">
-                      <span className="text-muted-foreground mr-1">大引</span>
-                      <span className={dayP2Class}>{formatProfit(dayP2All)}</span>
-                      <span className="text-muted-foreground text-[10px] sm:text-xs ml-1">({formatProfit(dayP2Ex0)})</span>
-                    </span>
+                      <span className={`min-w-[70px] text-right ${grpP1Class}`}>{formatProfit(group.p1.all)}</span>
+                      <span className="text-muted-foreground text-[10px] sm:text-xs min-w-[80px] text-right ml-1">({formatProfit(group.p1.ex0)})</span>
+                      <span className="text-muted-foreground mr-1 ml-4">大引</span>
+                      <span className={`min-w-[70px] text-right ${grpP2Class}`}>{formatProfit(group.p2.all)}</span>
+                      <span className="text-muted-foreground text-[10px] sm:text-xs min-w-[80px] text-right ml-1">({formatProfit(group.p2.ex0)})</span>
+                    </div>
+                  </summary>
+                  <div className="px-4 pb-3 border-t border-border/30 overflow-x-auto">
+                    <table className="w-full text-sm min-w-[550px]">
+                      <thead>
+                        <tr className="text-muted-foreground text-xs border-b border-border/30">
+                          {detailView !== 'daily' && (
+                            <th className="text-left py-2 font-medium whitespace-nowrap">日付</th>
+                          )}
+                          <th className="text-left py-2 font-medium whitespace-nowrap">銘柄</th>
+                          <th className="text-left py-2 font-medium whitespace-nowrap">区分</th>
+                          <th className="text-right py-2 font-medium whitespace-nowrap">買値</th>
+                          <th className="text-right py-2 font-medium whitespace-nowrap">株数</th>
+                          <th className="text-right py-2 font-medium whitespace-nowrap">前場損益</th>
+                          <th className="text-right py-2 font-medium whitespace-nowrap">大引損益</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {group.stocks.map((s, idx) => {
+                          const [sP1Class, sP2Class] = getCompareClasses(s.p1, s.p2);
+                          return (
+                            <tr key={idx} className="border-b border-border/20">
+                              {detailView !== 'daily' && (
+                                <td className="py-2 text-xs text-muted-foreground whitespace-nowrap">{s.date}</td>
+                              )}
+                              <td className="py-2 whitespace-nowrap">
+                                <span className="text-foreground">{s.ticker.replace('.T', '')}</span>
+                                <span className="text-muted-foreground ml-2 text-xs">{s.stockName}</span>
+                              </td>
+                              <td className="py-2 text-xs text-foreground whitespace-nowrap">
+                                {s.marginType === '制度信用' ? '制度' : 'いちにち'}
+                              </td>
+                              <td className="py-2 text-right tabular-nums text-foreground whitespace-nowrap">
+                                {s.buyPrice?.toLocaleString() ?? '-'}
+                              </td>
+                              <td className="py-2 text-right tabular-nums text-muted-foreground whitespace-nowrap">
+                                {s.shares?.toLocaleString() ?? '-'}
+                              </td>
+                              <td className={`py-2 text-right tabular-nums whitespace-nowrap ${sP1Class}`}>
+                                {formatProfit(s.p1)}
+                              </td>
+                              <td className={`py-2 text-right tabular-nums whitespace-nowrap ${sP2Class}`}>
+                                {formatProfit(s.p2)}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
-                </summary>
-                <div className="px-4 pb-3 border-t border-border/30 overflow-x-auto">
-                  <table className="w-full text-sm min-w-[500px]">
-                    <thead>
-                      <tr className="text-muted-foreground text-xs border-b border-border/30">
-                        <th className="text-left py-2 font-medium whitespace-nowrap">銘柄</th>
-                        <th className="text-left py-2 font-medium whitespace-nowrap">区分</th>
-                        <th className="text-right py-2 font-medium whitespace-nowrap">買値</th>
-                        <th className="text-right py-2 font-medium whitespace-nowrap">株数</th>
-                        <th className="text-right py-2 font-medium whitespace-nowrap">前場損益</th>
-                        <th className="text-right py-2 font-medium whitespace-nowrap">大引損益</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {day.stocks.map((s, idx) => {
-                        const [sP1Class, sP2Class] = getCompareClasses(s.p1, s.p2);
-                        return (
-                          <tr key={idx} className="border-b border-border/20">
-                            <td className="py-2 whitespace-nowrap">
-                              <span className="text-foreground">{s.ticker.replace('.T', '')}</span>
-                              <span className="text-muted-foreground ml-2 text-xs">{s.stockName}</span>
-                            </td>
-                            <td className="py-2 text-xs text-foreground whitespace-nowrap">
-                              {s.marginType === '制度信用' ? '制度' : 'いちにち'}
-                            </td>
-                            <td className="py-2 text-right tabular-nums text-foreground whitespace-nowrap">
-                              {s.buyPrice?.toLocaleString() ?? '-'}
-                            </td>
-                            <td className="py-2 text-right tabular-nums text-muted-foreground whitespace-nowrap">
-                              {s.shares?.toLocaleString() ?? '-'}
-                            </td>
-                            <td className={`py-2 text-right tabular-nums whitespace-nowrap ${sP1Class}`}>
-                              {formatProfit(s.p1)}
-                            </td>
-                            <td className={`py-2 text-right tabular-nums whitespace-nowrap ${sP2Class}`}>
-                              {formatProfit(s.p2)}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </details>
-            );
-          });
-          })()}
+                </details>
+              );
+            })}
+          </div>
         </div>
 
         {/* Footer */}
