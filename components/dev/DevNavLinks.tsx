@@ -16,6 +16,10 @@ const NAV_LINKS: Record<string, NavLinkConfig> = {
     href: "/dev",
     label: "Dashboard",
   },
+  analysis: {
+    href: "/dev/analysis",
+    label: "Analysis",
+  },
   recommendations: {
     href: "/dev/recommendations",
     label: "Recommendations",
@@ -23,10 +27,6 @@ const NAV_LINKS: Record<string, NavLinkConfig> = {
   "stock-results": {
     href: isDev ? "/dev/dev-stock-results" : "/dev/stock-results",
     label: "Stock Results",
-  },
-  analysis: {
-    href: "/dev/analysis",
-    label: "Analysis",
   },
   // v3: {
   //   href: "/dev/v3",
