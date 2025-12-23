@@ -351,7 +351,7 @@ function AnalysisContent() {
         </div>
 
         {/* Top Cards */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           {/* 総件数 */}
           <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-5 shadow-lg shadow-black/5 backdrop-blur-xl">
             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
@@ -417,7 +417,7 @@ function AnalysisContent() {
                   </button>
                 </div>
               </div>
-              <div className={`text-2xl font-bold text-right tabular-nums ${profitClass(stats.p1)}`}>
+              <div className={`text-2xl font-bold text-right tabular-nums whitespace-nowrap ${profitClass(stats.p1)}`}>
                 {formatProfit(stats.p1)}円
               </div>
               <div className={`text-xs text-right mt-1 ${winrateClass(stats.win1)}`}>
@@ -455,7 +455,7 @@ function AnalysisContent() {
                   </button>
                 </div>
               </div>
-              <div className={`text-2xl font-bold text-right tabular-nums ${profitClass(stats.p2)}`}>
+              <div className={`text-2xl font-bold text-right tabular-nums whitespace-nowrap ${profitClass(stats.p2)}`}>
                 {formatProfit(stats.p2)}円
               </div>
               <div className={`text-xs text-right mt-1 ${winrateClass(stats.win2)}`}>
@@ -488,7 +488,7 @@ function AnalysisContent() {
                   </span>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* 制度信用カード */}
                 <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
                   <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
@@ -511,41 +511,43 @@ function AnalysisContent() {
                         </div>
                       </div>
                     </div>
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="text-muted-foreground text-xs border-b border-border/30">
-                          <th className="text-right py-2 font-medium">価格帯</th>
-                          <th className="text-right py-2 font-medium">件</th>
-                          <th className="text-right py-2 font-medium">前場損益</th>
-                          <th className="text-right py-2 font-medium">前場勝率</th>
-                          <th className="text-right py-2 font-medium">大引損益</th>
-                          <th className="text-right py-2 font-medium">大引勝率</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {wd.seido.priceRanges.map(pr => {
-                          const [prP1Class, prP2Class] = getCompareClasses(pr.p1, pr.p2);
-                          return (
-                            <tr key={pr.label} className="border-b border-border/20">
-                              <td className="text-right py-2 tabular-nums text-foreground">{pr.label}</td>
-                              <td className="text-right py-2 tabular-nums text-foreground">{pr.count}</td>
-                              <td className={`text-right py-2 tabular-nums ${prP1Class}`}>
-                                {formatProfit(pr.p1)}
-                              </td>
-                              <td className={`text-right py-2 tabular-nums ${winrateClass(pr.win1)}`}>
-                                {Math.round(pr.win1)}%
-                              </td>
-                              <td className={`text-right py-2 tabular-nums ${prP2Class}`}>
-                                {formatProfit(pr.p2)}
-                              </td>
-                              <td className={`text-right py-2 tabular-nums ${winrateClass(pr.win2)}`}>
-                                {Math.round(pr.win2)}%
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm min-w-[400px]">
+                        <thead>
+                          <tr className="text-muted-foreground text-xs border-b border-border/30">
+                            <th className="text-right py-2 font-medium whitespace-nowrap">価格帯</th>
+                            <th className="text-right py-2 font-medium whitespace-nowrap">件</th>
+                            <th className="text-right py-2 font-medium whitespace-nowrap">前場損益</th>
+                            <th className="text-right py-2 font-medium whitespace-nowrap">前場勝率</th>
+                            <th className="text-right py-2 font-medium whitespace-nowrap">大引損益</th>
+                            <th className="text-right py-2 font-medium whitespace-nowrap">大引勝率</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {wd.seido.priceRanges.map(pr => {
+                            const [prP1Class, prP2Class] = getCompareClasses(pr.p1, pr.p2);
+                            return (
+                              <tr key={pr.label} className="border-b border-border/20">
+                                <td className="text-right py-2 tabular-nums text-foreground whitespace-nowrap">{pr.label}</td>
+                                <td className="text-right py-2 tabular-nums text-foreground">{pr.count}</td>
+                                <td className={`text-right py-2 tabular-nums whitespace-nowrap ${prP1Class}`}>
+                                  {formatProfit(pr.p1)}
+                                </td>
+                                <td className={`text-right py-2 tabular-nums ${winrateClass(pr.win1)}`}>
+                                  {Math.round(pr.win1)}%
+                                </td>
+                                <td className={`text-right py-2 tabular-nums whitespace-nowrap ${prP2Class}`}>
+                                  {formatProfit(pr.p2)}
+                                </td>
+                                <td className={`text-right py-2 tabular-nums ${winrateClass(pr.win2)}`}>
+                                  {Math.round(pr.win2)}%
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
 
@@ -593,45 +595,47 @@ function AnalysisContent() {
                         </div>
                       </div>
                     </div>
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="text-muted-foreground text-xs border-b border-border/30">
-                          <th className="text-right py-2 font-medium">価格帯</th>
-                          <th className="text-right py-2 font-medium">件</th>
-                          <th className="text-right py-2 font-medium">株数</th>
-                          <th className="text-right py-2 font-medium">前場損益</th>
-                          <th className="text-right py-2 font-medium">前場勝率</th>
-                          <th className="text-right py-2 font-medium">大引損益</th>
-                          <th className="text-right py-2 font-medium">大引勝率</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {ichPriceRanges.map(pr => {
-                          const [prP1Class, prP2Class] = getCompareClasses(pr.p1, pr.p2);
-                          return (
-                            <tr key={pr.label} className="border-b border-border/20">
-                              <td className="text-right py-2 tabular-nums text-foreground">{pr.label}</td>
-                              <td className="text-right py-2 tabular-nums text-foreground">{pr.count}</td>
-                              <td className="text-right py-2 tabular-nums text-muted-foreground">
-                                {pr.shares && pr.shares > 0 ? pr.shares.toLocaleString() : '-'}
-                              </td>
-                              <td className={`text-right py-2 tabular-nums ${prP1Class}`}>
-                                {formatProfit(pr.p1)}
-                              </td>
-                              <td className={`text-right py-2 tabular-nums ${winrateClass(pr.win1)}`}>
-                                {Math.round(pr.win1)}%
-                              </td>
-                              <td className={`text-right py-2 tabular-nums ${prP2Class}`}>
-                                {formatProfit(pr.p2)}
-                              </td>
-                              <td className={`text-right py-2 tabular-nums ${winrateClass(pr.win2)}`}>
-                                {Math.round(pr.win2)}%
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm min-w-[480px]">
+                        <thead>
+                          <tr className="text-muted-foreground text-xs border-b border-border/30">
+                            <th className="text-right py-2 font-medium whitespace-nowrap">価格帯</th>
+                            <th className="text-right py-2 font-medium whitespace-nowrap">件</th>
+                            <th className="text-right py-2 font-medium whitespace-nowrap">株数</th>
+                            <th className="text-right py-2 font-medium whitespace-nowrap">前場損益</th>
+                            <th className="text-right py-2 font-medium whitespace-nowrap">前場勝率</th>
+                            <th className="text-right py-2 font-medium whitespace-nowrap">大引損益</th>
+                            <th className="text-right py-2 font-medium whitespace-nowrap">大引勝率</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {ichPriceRanges.map(pr => {
+                            const [prP1Class, prP2Class] = getCompareClasses(pr.p1, pr.p2);
+                            return (
+                              <tr key={pr.label} className="border-b border-border/20">
+                                <td className="text-right py-2 tabular-nums text-foreground whitespace-nowrap">{pr.label}</td>
+                                <td className="text-right py-2 tabular-nums text-foreground">{pr.count}</td>
+                                <td className="text-right py-2 tabular-nums text-muted-foreground whitespace-nowrap">
+                                  {pr.shares && pr.shares > 0 ? pr.shares.toLocaleString() : '-'}
+                                </td>
+                                <td className={`text-right py-2 tabular-nums whitespace-nowrap ${prP1Class}`}>
+                                  {formatProfit(pr.p1)}
+                                </td>
+                                <td className={`text-right py-2 tabular-nums ${winrateClass(pr.win1)}`}>
+                                  {Math.round(pr.win1)}%
+                                </td>
+                                <td className={`text-right py-2 tabular-nums whitespace-nowrap ${prP2Class}`}>
+                                  {formatProfit(pr.p2)}
+                                </td>
+                                <td className={`text-right py-2 tabular-nums ${winrateClass(pr.win2)}`}>
+                                  {Math.round(pr.win2)}%
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -661,8 +665,8 @@ function AnalysisContent() {
                   if (!target.open && isExpanded) toggleDay(day.date);
                 }}
               >
-                <summary className="px-4 py-3 cursor-pointer flex items-center gap-4 text-sm hover:bg-muted/10 transition-colors">
-                  <span className="font-semibold text-foreground">{day.date}</span>
+                <summary className="px-4 py-3 cursor-pointer flex flex-wrap items-center gap-2 sm:gap-4 text-sm hover:bg-muted/10 transition-colors">
+                  <span className="font-semibold text-foreground whitespace-nowrap">{day.date}</span>
                   {strategy === 'weekdayStrategy' && (
                     <span className={`text-xs px-1.5 py-0.5 rounded ${
                       day.position === 'ロング' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
@@ -671,25 +675,29 @@ function AnalysisContent() {
                     </span>
                   )}
                   <span className="text-muted-foreground text-xs">{day.count.all}件</span>
-                  <div className="ml-auto tabular-nums text-sm flex items-center">
-                    <span className="text-muted-foreground mr-1">前場</span>
-                    <span className={dayP1Class}>{formatProfit(dayP1All)}</span>
-                    <span className="text-muted-foreground text-xs ml-1">({formatProfit(dayP1Ex0)})</span>
-                    <span className="text-muted-foreground ml-4 mr-1">大引</span>
-                    <span className={dayP2Class}>{formatProfit(dayP2All)}</span>
-                    <span className="text-muted-foreground text-xs ml-1">({formatProfit(dayP2Ex0)})</span>
+                  <div className="ml-auto tabular-nums text-xs sm:text-sm flex items-center flex-wrap gap-x-2 sm:gap-x-4">
+                    <span className="whitespace-nowrap">
+                      <span className="text-muted-foreground mr-1">前場</span>
+                      <span className={dayP1Class}>{formatProfit(dayP1All)}</span>
+                      <span className="text-muted-foreground text-[10px] sm:text-xs ml-1">({formatProfit(dayP1Ex0)})</span>
+                    </span>
+                    <span className="whitespace-nowrap">
+                      <span className="text-muted-foreground mr-1">大引</span>
+                      <span className={dayP2Class}>{formatProfit(dayP2All)}</span>
+                      <span className="text-muted-foreground text-[10px] sm:text-xs ml-1">({formatProfit(dayP2Ex0)})</span>
+                    </span>
                   </div>
                 </summary>
-                <div className="px-4 pb-3 border-t border-border/30">
-                  <table className="w-full text-sm">
+                <div className="px-4 pb-3 border-t border-border/30 overflow-x-auto">
+                  <table className="w-full text-sm min-w-[500px]">
                     <thead>
                       <tr className="text-muted-foreground text-xs border-b border-border/30">
-                        <th className="text-left py-2 font-medium">銘柄</th>
-                        <th className="text-left py-2 font-medium">区分</th>
-                        <th className="text-right py-2 font-medium">買値</th>
-                        <th className="text-right py-2 font-medium">株数</th>
-                        <th className="text-right py-2 font-medium">前場損益</th>
-                        <th className="text-right py-2 font-medium">大引損益</th>
+                        <th className="text-left py-2 font-medium whitespace-nowrap">銘柄</th>
+                        <th className="text-left py-2 font-medium whitespace-nowrap">区分</th>
+                        <th className="text-right py-2 font-medium whitespace-nowrap">買値</th>
+                        <th className="text-right py-2 font-medium whitespace-nowrap">株数</th>
+                        <th className="text-right py-2 font-medium whitespace-nowrap">前場損益</th>
+                        <th className="text-right py-2 font-medium whitespace-nowrap">大引損益</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -697,23 +705,23 @@ function AnalysisContent() {
                         const [sP1Class, sP2Class] = getCompareClasses(s.p1, s.p2);
                         return (
                           <tr key={idx} className="border-b border-border/20">
-                            <td className="py-2">
+                            <td className="py-2 whitespace-nowrap">
                               <span className="text-foreground">{s.ticker.replace('.T', '')}</span>
                               <span className="text-muted-foreground ml-2 text-xs">{s.stockName}</span>
                             </td>
-                            <td className="py-2 text-xs text-foreground">
+                            <td className="py-2 text-xs text-foreground whitespace-nowrap">
                               {s.marginType === '制度信用' ? '制度' : 'いちにち'}
                             </td>
-                            <td className="py-2 text-right tabular-nums text-foreground">
+                            <td className="py-2 text-right tabular-nums text-foreground whitespace-nowrap">
                               {s.buyPrice?.toLocaleString() ?? '-'}
                             </td>
-                            <td className="py-2 text-right tabular-nums text-muted-foreground">
+                            <td className="py-2 text-right tabular-nums text-muted-foreground whitespace-nowrap">
                               {s.shares?.toLocaleString() ?? '-'}
                             </td>
-                            <td className={`py-2 text-right tabular-nums ${sP1Class}`}>
+                            <td className={`py-2 text-right tabular-nums whitespace-nowrap ${sP1Class}`}>
                               {formatProfit(s.p1)}
                             </td>
-                            <td className={`py-2 text-right tabular-nums ${sP2Class}`}>
+                            <td className={`py-2 text-right tabular-nums whitespace-nowrap ${sP2Class}`}>
                               {formatProfit(s.p2)}
                             </td>
                           </tr>
