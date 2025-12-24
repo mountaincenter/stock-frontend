@@ -395,26 +395,26 @@ export default function DayTradeListPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border/40 bg-muted/30">
-                  <th className="px-4 py-3 text-left text-muted-foreground font-medium text-xs whitespace-nowrap">銘柄</th>
-                  <th className="px-4 py-3 text-left text-muted-foreground font-medium text-xs whitespace-nowrap">名称</th>
-                  <th className="px-3 py-3 text-center text-muted-foreground font-medium text-xs whitespace-nowrap">Rank</th>
-                  <th className="px-3 py-3 text-center text-muted-foreground font-medium text-xs whitespace-nowrap">登場回数</th>
-                  <th className="px-3 py-3 text-right text-muted-foreground font-medium text-xs whitespace-nowrap">終値</th>
-                  <th className="px-3 py-3 text-right text-muted-foreground font-medium text-xs whitespace-nowrap">変化率</th>
-                  <th className="px-3 py-3 text-right text-muted-foreground font-medium text-xs whitespace-nowrap">ATR</th>
-                  <th className="px-3 py-3 text-right text-muted-foreground font-medium text-xs whitespace-nowrap">時価総額</th>
-                  <th className="px-4 py-3 text-center text-muted-foreground font-medium text-xs whitespace-nowrap">
+                  <th className="px-4 py-3 text-left text-foreground font-medium text-xs whitespace-nowrap">銘柄</th>
+                  <th className="px-4 py-3 text-left text-foreground font-medium text-xs whitespace-nowrap">名称</th>
+                  <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">Rank</th>
+                  <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">登場回数</th>
+                  <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">終値</th>
+                  <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">変化率</th>
+                  <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">ATR</th>
+                  <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">時価総額</th>
+                  <th className="px-4 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">
                     {bulkEditMode ? "制度" : "信用区分"}
                   </th>
                   {bulkEditMode && (
                     <>
-                      <th className="px-3 py-3 text-center text-muted-foreground font-medium text-xs whitespace-nowrap">いち</th>
-                      <th className="px-3 py-3 text-center text-muted-foreground font-medium text-xs whitespace-nowrap">NG</th>
-                      <th className="px-3 py-3 text-center text-muted-foreground font-medium text-xs whitespace-nowrap">株数</th>
+                      <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">いち</th>
+                      <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">NG</th>
+                      <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">株数</th>
                     </>
                   )}
                   {!bulkEditMode && (
-                    <th className="px-3 py-3 text-center text-muted-foreground font-medium text-xs whitespace-nowrap">株数</th>
+                    <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">株数</th>
                   )}
                 </tr>
               </thead>
@@ -434,7 +434,7 @@ export default function DayTradeListPage() {
                         className={`hover:bg-primary/5 transition-colors ${canExpand ? "cursor-pointer" : ""} ${isExpanded ? "bg-primary/5" : ""}`}
                         onClick={() => canExpand && toggleExpand(stock.ticker, stock.appearance_count)}
                       >
-                        <td className="px-4 py-4 tabular-nums text-muted-foreground whitespace-nowrap">
+                        <td className="px-4 py-4 tabular-nums text-foreground whitespace-nowrap">
                           <div className="flex items-center gap-1.5">
                             {canExpand && (
                               isExpanded ? <ChevronUp className="w-4 h-4 text-primary" /> : <ChevronDown className="w-4 h-4 text-muted-foreground/50" />
@@ -442,7 +442,7 @@ export default function DayTradeListPage() {
                             {stock.ticker}
                           </div>
                         </td>
-                        <td className="px-4 py-4 text-muted-foreground">
+                        <td className="px-4 py-4 text-foreground">
                           <button
                             type="button"
                             className="hover:text-primary transition-colors block max-w-[12em] truncate text-left"
@@ -564,16 +564,16 @@ export default function DayTradeListPage() {
                                 <table className="w-full text-xs">
                                   <thead>
                                     <tr className="border-b border-border/30">
-                                      <th className="px-2 py-2 text-left text-muted-foreground font-medium">日付</th>
-                                      <th className="px-2 py-2 text-center text-muted-foreground font-medium">曜日</th>
-                                      <th className="px-2 py-2 text-right text-muted-foreground font-medium">前終</th>
-                                      <th className="px-2 py-2 text-right text-muted-foreground font-medium">始値</th>
-                                      <th className="px-2 py-2 text-right text-muted-foreground font-medium">高値</th>
-                                      <th className="px-2 py-2 text-right text-muted-foreground font-medium">安値</th>
-                                      <th className="px-2 py-2 text-right text-muted-foreground font-medium">終値</th>
-                                      <th className="px-2 py-2 text-right text-muted-foreground font-medium">出来高</th>
-                                      <th className="px-2 py-2 text-right text-muted-foreground font-medium">前場</th>
-                                      <th className="px-2 py-2 text-right text-muted-foreground font-medium">大引</th>
+                                      <th className="px-2 py-2 text-left text-foreground font-medium">日付</th>
+                                      <th className="px-2 py-2 text-center text-foreground font-medium">曜日</th>
+                                      <th className="px-2 py-2 text-right text-foreground font-medium">前終</th>
+                                      <th className="px-2 py-2 text-right text-foreground font-medium">始値</th>
+                                      <th className="px-2 py-2 text-right text-foreground font-medium">高値</th>
+                                      <th className="px-2 py-2 text-right text-foreground font-medium">安値</th>
+                                      <th className="px-2 py-2 text-right text-foreground font-medium">終値</th>
+                                      <th className="px-2 py-2 text-right text-foreground font-medium">出来高</th>
+                                      <th className="px-2 py-2 text-right text-foreground font-medium">前場</th>
+                                      <th className="px-2 py-2 text-right text-foreground font-medium">大引</th>
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-border/20">
@@ -588,8 +588,8 @@ export default function DayTradeListPage() {
                                         : "text-muted-foreground";
                                       return (
                                         <tr key={`${h.date}-${idx}`} className="hover:bg-primary/5">
-                                          <td className="px-2 py-2 tabular-nums text-muted-foreground">{h.date}</td>
-                                          <td className="px-2 py-2 text-center text-muted-foreground">{h.weekday}</td>
+                                          <td className="px-2 py-2 tabular-nums text-foreground">{h.date}</td>
+                                          <td className="px-2 py-2 text-center text-foreground">{h.weekday}</td>
                                           <td className="px-2 py-2 text-right tabular-nums text-muted-foreground">{formatPrice(h.prev_close)}</td>
                                           <td className={`px-2 py-2 text-right tabular-nums ${openColor}`}>{formatPrice(h.open)}</td>
                                           <td className="px-2 py-2 text-right tabular-nums text-muted-foreground">{formatPrice(h.high)}</td>
