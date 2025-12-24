@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Pencil, Check, X } from "lucide-react";
+import React, { useEffect, useState, useCallback } from "react";
+import { Pencil, Check, X, ChevronDown, ChevronUp } from "lucide-react";
 import { DevNavLinks, FilterButtonGroup } from "@/components/dev";
 
 type DayTradeStock = {
@@ -16,6 +16,20 @@ type DayTradeStock = {
   day_trade: boolean;
   ng: boolean;
   day_trade_available_shares: number | null;
+  appearance_count: number;
+};
+
+type HistoryRecord = {
+  date: string;
+  weekday: string;
+  prev_close: number | null;
+  open: number | null;
+  high: number | null;
+  low: number | null;
+  close: number | null;
+  volume: number | null;
+  profit_phase1: number | null;
+  profit_phase2: number | null;
 };
 
 type Summary = {
@@ -44,6 +58,9 @@ export default function DayTradeListPage() {
   const [bulkEditMode, setBulkEditMode] = useState(false);
   const [editedStocks, setEditedStocks] = useState<Record<string, { shortable: boolean; day_trade: boolean; ng: boolean; day_trade_available_shares: number | null }>>({});
   const [saving, setSaving] = useState(false);
+  const [expandedTicker, setExpandedTicker] = useState<string | null>(null);
+  const [historyData, setHistoryData] = useState<Record<string, HistoryRecord[]>>({});
+  const [loadingHistory, setLoadingHistory] = useState<string | null>(null);
 
   const fetchData = async () => {
     try {
@@ -62,6 +79,34 @@ export default function DayTradeListPage() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const fetchHistory = useCallback(async (ticker: string) => {
+    if (historyData[ticker]) return; // キャッシュがあればスキップ
+
+    setLoadingHistory(ticker);
+    try {
+      const res = await fetch(`/api/dev/day-trade-list/history/${ticker}`);
+      if (!res.ok) throw new Error("履歴取得に失敗");
+      const data = await res.json();
+      setHistoryData((prev) => ({ ...prev, [ticker]: data.history }));
+    } catch (err) {
+      console.error("履歴取得エラー:", err);
+    } finally {
+      setLoadingHistory(null);
+    }
+  }, [historyData]);
+
+  const toggleExpand = (ticker: string, appearanceCount: number) => {
+    if (bulkEditMode) return; // 編集モード中は展開不可
+    if (appearanceCount <= 1) return; // 1回以下は展開不可
+
+    if (expandedTicker === ticker) {
+      setExpandedTicker(null);
+    } else {
+      setExpandedTicker(ticker);
+      fetchHistory(ticker);
+    }
+  };
 
   const startBulkEdit = () => {
     // 現在の状態をコピー
@@ -175,6 +220,19 @@ export default function DayTradeListPage() {
     if (pct === null) return "-";
     const sign = pct >= 0 ? "+" : "";
     return `${sign}${pct.toFixed(decimals)}%`;
+  };
+
+  const formatProfit = (profit: number | null) => {
+    if (profit === null) return "-";
+    const sign = profit >= 0 ? "+" : "";
+    return `${sign}${profit.toLocaleString()}`;
+  };
+
+  const formatVolume = (vol: number | null) => {
+    if (vol === null) return "-";
+    if (vol >= 1_000_000) return `${(vol / 1_000_000).toFixed(1)}M`;
+    if (vol >= 1_000) return `${(vol / 1_000).toFixed(0)}K`;
+    return vol.toLocaleString();
   };
 
   if (loading) {
@@ -340,6 +398,7 @@ export default function DayTradeListPage() {
                   <th className="px-4 py-3 text-left text-muted-foreground font-medium text-xs whitespace-nowrap">銘柄</th>
                   <th className="px-4 py-3 text-left text-muted-foreground font-medium text-xs whitespace-nowrap">名称</th>
                   <th className="px-3 py-3 text-center text-muted-foreground font-medium text-xs whitespace-nowrap">Rank</th>
+                  <th className="px-3 py-3 text-center text-muted-foreground font-medium text-xs whitespace-nowrap">登場回数</th>
                   <th className="px-3 py-3 text-right text-muted-foreground font-medium text-xs whitespace-nowrap">終値</th>
                   <th className="px-3 py-3 text-right text-muted-foreground font-medium text-xs whitespace-nowrap">変化率</th>
                   <th className="px-3 py-3 text-right text-muted-foreground font-medium text-xs whitespace-nowrap">ATR</th>
@@ -363,111 +422,197 @@ export default function DayTradeListPage() {
                 {filteredStocks.map((stock) => {
                   const status = getStatusLabel(stock);
                   const edited = editedStocks[stock.ticker];
+                  const isExpanded = expandedTicker === stock.ticker;
+                  const canExpand = !bulkEditMode && stock.appearance_count > 1;
+                  const history = historyData[stock.ticker] || [];
+                  const isLoadingHistory = loadingHistory === stock.ticker;
+                  const colSpan = bulkEditMode ? 12 : 10;
 
                   return (
-                    <tr key={stock.ticker} className="hover:bg-primary/5 transition-colors">
-                      <td className="px-4 py-4 tabular-nums text-muted-foreground whitespace-nowrap">
-                        {stock.ticker}
-                      </td>
-                      <td className="px-4 py-4 text-muted-foreground">
-                        <button
-                          type="button"
-                          className="hover:text-primary transition-colors block max-w-[12em] truncate text-left"
-                          title={stock.stock_name}
-                          onClick={() => window.open(`/${stock.ticker}`, "stock-detail")}
-                        >
-                          {stock.stock_name}
-                        </button>
-                      </td>
-                      <td className="px-3 py-4 text-center tabular-nums text-muted-foreground">
-                        {stock.grok_rank ?? "-"}
-                      </td>
-                      <td className={`px-3 py-4 text-right tabular-nums whitespace-nowrap ${
-                        stock.change_pct !== null
-                          ? stock.change_pct > 0
-                            ? "text-emerald-400"
-                            : stock.change_pct < 0
-                              ? "text-rose-400"
-                              : "text-muted-foreground"
-                          : "text-muted-foreground"
-                      }`}>
-                        {formatPrice(stock.close)}
-                      </td>
-                      <td className={`px-3 py-4 text-right tabular-nums ${
-                        stock.change_pct !== null
-                          ? stock.change_pct > 0
-                            ? "text-emerald-400"
-                            : stock.change_pct < 0
-                              ? "text-rose-400"
-                              : "text-muted-foreground"
-                          : "text-muted-foreground"
-                      }`}>
-                        {formatPercent(stock.change_pct)}
-                      </td>
-                      <td className="px-3 py-4 text-right tabular-nums text-muted-foreground">
-                        {formatPercent(stock.atr_pct, 1)}
-                      </td>
-                      <td className="px-3 py-4 text-right tabular-nums whitespace-nowrap text-muted-foreground">
-                        {stock.market_cap_oku != null ? `${stock.market_cap_oku.toLocaleString()}億` : "-"}
-                      </td>
-                      {bulkEditMode ? (
-                        <>
-                          <td className="px-3 py-4 text-center">
-                            <input
-                              type="checkbox"
-                              checked={edited?.shortable ?? stock.shortable}
-                              onChange={(e) => updateEditedStock(stock.ticker, "shortable", e.target.checked)}
-                              className="w-4 h-4 accent-teal-500"
-                            />
+                    <React.Fragment key={stock.ticker}>
+                      <tr
+                        className={`hover:bg-primary/5 transition-colors ${canExpand ? "cursor-pointer" : ""} ${isExpanded ? "bg-primary/5" : ""}`}
+                        onClick={() => canExpand && toggleExpand(stock.ticker, stock.appearance_count)}
+                      >
+                        <td className="px-4 py-4 tabular-nums text-muted-foreground whitespace-nowrap">
+                          <div className="flex items-center gap-1.5">
+                            {canExpand && (
+                              isExpanded ? <ChevronUp className="w-4 h-4 text-primary" /> : <ChevronDown className="w-4 h-4 text-muted-foreground/50" />
+                            )}
+                            {stock.ticker}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 text-muted-foreground">
+                          <button
+                            type="button"
+                            className="hover:text-primary transition-colors block max-w-[12em] truncate text-left"
+                            title={stock.stock_name}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(`/${stock.ticker}`, "stock-detail");
+                            }}
+                          >
+                            {stock.stock_name}
+                          </button>
+                        </td>
+                        <td className="px-3 py-4 text-center tabular-nums text-muted-foreground">
+                          {stock.grok_rank ?? "-"}
+                        </td>
+                        <td className={`px-3 py-4 text-center tabular-nums ${stock.appearance_count > 1 ? "text-primary font-medium" : "text-muted-foreground"}`}>
+                          {stock.appearance_count}
+                        </td>
+                        <td className={`px-3 py-4 text-right tabular-nums whitespace-nowrap ${
+                          stock.change_pct !== null
+                            ? stock.change_pct > 0
+                              ? "text-emerald-400"
+                              : stock.change_pct < 0
+                                ? "text-rose-400"
+                                : "text-muted-foreground"
+                            : "text-muted-foreground"
+                        }`}>
+                          {formatPrice(stock.close)}
+                        </td>
+                        <td className={`px-3 py-4 text-right tabular-nums ${
+                          stock.change_pct !== null
+                            ? stock.change_pct > 0
+                              ? "text-emerald-400"
+                              : stock.change_pct < 0
+                                ? "text-rose-400"
+                                : "text-muted-foreground"
+                            : "text-muted-foreground"
+                        }`}>
+                          {formatPercent(stock.change_pct)}
+                        </td>
+                        <td className="px-3 py-4 text-right tabular-nums text-muted-foreground">
+                          {formatPercent(stock.atr_pct, 1)}
+                        </td>
+                        <td className="px-3 py-4 text-right tabular-nums whitespace-nowrap text-muted-foreground">
+                          {stock.market_cap_oku != null ? `${stock.market_cap_oku.toLocaleString()}億` : "-"}
+                        </td>
+                        {bulkEditMode ? (
+                          <>
+                            <td className="px-3 py-4 text-center">
+                              <input
+                                type="checkbox"
+                                checked={edited?.shortable ?? stock.shortable}
+                                onChange={(e) => updateEditedStock(stock.ticker, "shortable", e.target.checked)}
+                                onClick={(e) => e.stopPropagation()}
+                                className="w-4 h-4 accent-teal-500"
+                              />
+                            </td>
+                            <td className="px-3 py-4 text-center">
+                              <input
+                                type="checkbox"
+                                checked={edited?.day_trade ?? stock.day_trade}
+                                onChange={(e) => updateEditedStock(stock.ticker, "day_trade", e.target.checked)}
+                                onClick={(e) => e.stopPropagation()}
+                                className="w-4 h-4 accent-orange-500"
+                              />
+                            </td>
+                            <td className="px-3 py-4 text-center">
+                              <input
+                                type="checkbox"
+                                checked={edited?.ng ?? stock.ng}
+                                onChange={(e) => updateEditedStock(stock.ticker, "ng", e.target.checked)}
+                                onClick={(e) => e.stopPropagation()}
+                                className="w-4 h-4 accent-rose-500"
+                              />
+                            </td>
+                            <td className="px-3 py-4 text-center">
+                              <input
+                                type="number"
+                                inputMode="numeric"
+                                min={0}
+                                max={999999}
+                                step={100}
+                                value={edited?.day_trade_available_shares ?? ""}
+                                onChange={(e) => updateEditedShares(stock.ticker, e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
+                                placeholder="-"
+                                disabled={!(edited?.day_trade ?? stock.day_trade)}
+                                className={`w-24 px-2 py-1 text-right tabular-nums bg-muted/50 border border-border/40 rounded focus:outline-none focus:border-primary/50 ${
+                                  !(edited?.day_trade ?? stock.day_trade) ? "opacity-30 cursor-not-allowed" : ""
+                                }`}
+                              />
+                            </td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="px-4 py-4 text-center whitespace-nowrap">
+                              <span className={`px-2.5 py-1 rounded text-sm font-medium ${status.color}`}>
+                                {status.label}
+                              </span>
+                            </td>
+                            <td className={`px-3 py-4 tabular-nums text-muted-foreground ${
+                              stock.day_trade_available_shares != null ? "text-right" : "text-center"
+                            }`}>
+                              {stock.day_trade_available_shares != null ? stock.day_trade_available_shares.toLocaleString() : "-"}
+                            </td>
+                          </>
+                        )}
+                      </tr>
+                      {/* 履歴展開行 */}
+                      {isExpanded && (
+                        <tr className="bg-muted/20">
+                          <td colSpan={colSpan} className="px-4 py-3">
+                            {isLoadingHistory ? (
+                              <div className="text-center text-sm text-muted-foreground py-2">読み込み中...</div>
+                            ) : history.length === 0 ? (
+                              <div className="text-center text-sm text-muted-foreground py-2">履歴データなし</div>
+                            ) : (
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-xs">
+                                  <thead>
+                                    <tr className="border-b border-border/30">
+                                      <th className="px-2 py-2 text-left text-muted-foreground font-medium">日付</th>
+                                      <th className="px-2 py-2 text-center text-muted-foreground font-medium">曜日</th>
+                                      <th className="px-2 py-2 text-right text-muted-foreground font-medium">前終</th>
+                                      <th className="px-2 py-2 text-right text-muted-foreground font-medium">始値</th>
+                                      <th className="px-2 py-2 text-right text-muted-foreground font-medium">高値</th>
+                                      <th className="px-2 py-2 text-right text-muted-foreground font-medium">安値</th>
+                                      <th className="px-2 py-2 text-right text-muted-foreground font-medium">終値</th>
+                                      <th className="px-2 py-2 text-right text-muted-foreground font-medium">出来高</th>
+                                      <th className="px-2 py-2 text-right text-muted-foreground font-medium">前場</th>
+                                      <th className="px-2 py-2 text-right text-muted-foreground font-medium">大引</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-border/20">
+                                    {history.map((h, idx) => {
+                                      // ショートベース: GU(始値>前終)は赤、GD(始値<前終)は緑
+                                      const openColor = h.open !== null && h.prev_close !== null
+                                        ? h.open > h.prev_close ? "text-rose-400" : h.open < h.prev_close ? "text-emerald-400" : "text-muted-foreground"
+                                        : "text-muted-foreground";
+                                      // ショートベース: 終値>始値は赤、終値<始値は緑
+                                      const closeColor = h.close !== null && h.open !== null
+                                        ? h.close > h.open ? "text-rose-400" : h.close < h.open ? "text-emerald-400" : "text-muted-foreground"
+                                        : "text-muted-foreground";
+                                      return (
+                                        <tr key={`${h.date}-${idx}`} className="hover:bg-primary/5">
+                                          <td className="px-2 py-2 tabular-nums text-muted-foreground">{h.date}</td>
+                                          <td className="px-2 py-2 text-center text-muted-foreground">{h.weekday}</td>
+                                          <td className="px-2 py-2 text-right tabular-nums text-muted-foreground">{formatPrice(h.prev_close)}</td>
+                                          <td className={`px-2 py-2 text-right tabular-nums ${openColor}`}>{formatPrice(h.open)}</td>
+                                          <td className="px-2 py-2 text-right tabular-nums text-muted-foreground">{formatPrice(h.high)}</td>
+                                          <td className="px-2 py-2 text-right tabular-nums text-muted-foreground">{formatPrice(h.low)}</td>
+                                          <td className={`px-2 py-2 text-right tabular-nums ${closeColor}`}>{formatPrice(h.close)}</td>
+                                          <td className="px-2 py-2 text-right tabular-nums text-muted-foreground">{formatVolume(h.volume)}</td>
+                                          <td className={`px-2 py-2 text-right tabular-nums ${h.profit_phase1 !== null ? (h.profit_phase1 >= 0 ? "text-emerald-400" : "text-rose-400") : "text-muted-foreground"}`}>
+                                            {formatProfit(h.profit_phase1)}
+                                          </td>
+                                          <td className={`px-2 py-2 text-right tabular-nums ${h.profit_phase2 !== null ? (h.profit_phase2 >= 0 ? "text-emerald-400" : "text-rose-400") : "text-muted-foreground"}`}>
+                                            {formatProfit(h.profit_phase2)}
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
                           </td>
-                          <td className="px-3 py-4 text-center">
-                            <input
-                              type="checkbox"
-                              checked={edited?.day_trade ?? stock.day_trade}
-                              onChange={(e) => updateEditedStock(stock.ticker, "day_trade", e.target.checked)}
-                              className="w-4 h-4 accent-orange-500"
-                            />
-                          </td>
-                          <td className="px-3 py-4 text-center">
-                            <input
-                              type="checkbox"
-                              checked={edited?.ng ?? stock.ng}
-                              onChange={(e) => updateEditedStock(stock.ticker, "ng", e.target.checked)}
-                              className="w-4 h-4 accent-rose-500"
-                            />
-                          </td>
-                          <td className="px-3 py-4 text-center">
-                            <input
-                              type="number"
-                              inputMode="numeric"
-                              min={0}
-                              max={999999}
-                              step={100}
-                              value={edited?.day_trade_available_shares ?? ""}
-                              onChange={(e) => updateEditedShares(stock.ticker, e.target.value)}
-                              placeholder="-"
-                              disabled={!(edited?.day_trade ?? stock.day_trade)}
-                              className={`w-24 px-2 py-1 text-right tabular-nums bg-muted/50 border border-border/40 rounded focus:outline-none focus:border-primary/50 ${
-                                !(edited?.day_trade ?? stock.day_trade) ? "opacity-30 cursor-not-allowed" : ""
-                              }`}
-                            />
-                          </td>
-                        </>
-                      ) : (
-                        <>
-                          <td className="px-4 py-4 text-center whitespace-nowrap">
-                            <span className={`px-2.5 py-1 rounded text-sm font-medium ${status.color}`}>
-                              {status.label}
-                            </span>
-                          </td>
-                          <td className={`px-3 py-4 tabular-nums text-muted-foreground ${
-                            stock.day_trade_available_shares != null ? "text-right" : "text-center"
-                          }`}>
-                            {stock.day_trade_available_shares != null ? stock.day_trade_available_shares.toLocaleString() : "-"}
-                          </td>
-                        </>
+                        </tr>
                       )}
-                    </tr>
+                    </React.Fragment>
                   );
                 })}
               </tbody>
