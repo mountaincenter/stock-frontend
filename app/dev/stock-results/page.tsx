@@ -559,7 +559,7 @@ function StockResultsContent() {
                       )}
                       {view === 'bystock' && stockCode ? (
                         <>
-                          <span className="text-muted-foreground tabular-nums whitespace-nowrap">{stockCode}</span>
+                          <span className="text-foreground tabular-nums whitespace-nowrap">{stockCode}</span>
                           <span className="text-foreground font-medium truncate max-w-[120px] sm:max-w-none" title={stockName || ''}>{stockName}</span>
                         </>
                       ) : (
@@ -616,9 +616,9 @@ function StockResultsContent() {
                                   {trade.position}
                                 </span>
                               </td>
-                              <td className="px-2 py-2 text-right tabular-nums text-muted-foreground">{trade.qty.toLocaleString()}</td>
-                              <td className="px-2 py-2 text-right tabular-nums text-muted-foreground">{trade.avg_cost.toLocaleString()}</td>
-                              <td className="px-2 py-2 text-right tabular-nums text-muted-foreground">{trade.avg_price.toLocaleString()}</td>
+                              <td className="px-2 py-2 text-right tabular-nums text-foreground">{trade.qty.toLocaleString()}</td>
+                              <td className="px-2 py-2 text-right tabular-nums text-foreground">{trade.avg_cost.toLocaleString()}</td>
+                              <td className="px-2 py-2 text-right tabular-nums text-foreground">{trade.avg_price.toLocaleString()}</td>
                               <td className={`px-2 py-2 text-right tabular-nums font-medium ${trade.profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                                 {trade.profit >= 0 ? '+' : ''}{trade.profit.toLocaleString()}
                               </td>

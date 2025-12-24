@@ -792,7 +792,7 @@ function AnalysisContent() {
                               )}
                               <td className="py-2 whitespace-nowrap">
                                 <span className="text-foreground">{s.ticker.replace('.T', '')}</span>
-                                <span className="text-muted-foreground ml-2 text-xs">{s.stockName}</span>
+                                <span className="text-foreground ml-2 text-xs">{s.stockName}</span>
                               </td>
                               <td className="py-2 text-xs text-foreground whitespace-nowrap">
                                 {s.marginType === '制度信用' ? '制度' : 'いちにち'}

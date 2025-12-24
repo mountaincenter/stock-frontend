@@ -387,14 +387,14 @@ export default function DailyDetailPage() {
                         </td>
                         <td className="px-3 py-2">
                           <div className="text-sm font-bold text-foreground">{result.stock_name}</div>
-                          <div className="text-xs text-muted-foreground tabular-nums">{result.ticker}</div>
+                          <div className="text-xs text-foreground tabular-nums">{result.ticker}</div>
                         </td>
                         <td className="px-3 py-2 text-sm text-right">
                           <span className="text-primary font-medium">
                             {result.selection_score !== null ? result.selection_score.toFixed(1) : "—"}
                           </span>
                         </td>
-                        <td className="px-3 py-2 text-sm text-right text-muted-foreground tabular-nums">
+                        <td className="px-3 py-2 text-sm text-right text-foreground tabular-nums">
                           {result.buy_price !== null ? `${result.buy_price.toLocaleString()}円` : "—"}
                         </td>
                         <td className={`px-3 py-2 text-sm text-right tabular-nums font-bold ${

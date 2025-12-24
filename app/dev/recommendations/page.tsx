@@ -455,7 +455,7 @@ export default function DayTradeListPage() {
                             {stock.stock_name}
                           </button>
                         </td>
-                        <td className="px-3 py-4 text-center tabular-nums text-muted-foreground">
+                        <td className="px-3 py-4 text-center tabular-nums text-foreground">
                           {stock.grok_rank ?? "-"}
                         </td>
                         <td className={`px-3 py-4 text-center tabular-nums ${stock.appearance_count > 1 ? "text-primary font-medium" : "text-muted-foreground"}`}>
@@ -590,10 +590,10 @@ export default function DayTradeListPage() {
                                         <tr key={`${h.date}-${idx}`} className="hover:bg-primary/5">
                                           <td className="px-2 py-2 tabular-nums text-foreground">{h.date}</td>
                                           <td className="px-2 py-2 text-center text-foreground">{h.weekday}</td>
-                                          <td className="px-2 py-2 text-right tabular-nums text-muted-foreground">{formatPrice(h.prev_close)}</td>
+                                          <td className="px-2 py-2 text-right tabular-nums text-foreground">{formatPrice(h.prev_close)}</td>
                                           <td className={`px-2 py-2 text-right tabular-nums ${openColor}`}>{formatPrice(h.open)}</td>
-                                          <td className="px-2 py-2 text-right tabular-nums text-muted-foreground">{formatPrice(h.high)}</td>
-                                          <td className="px-2 py-2 text-right tabular-nums text-muted-foreground">{formatPrice(h.low)}</td>
+                                          <td className="px-2 py-2 text-right tabular-nums text-foreground">{formatPrice(h.high)}</td>
+                                          <td className="px-2 py-2 text-right tabular-nums text-foreground">{formatPrice(h.low)}</td>
                                           <td className={`px-2 py-2 text-right tabular-nums ${closeColor}`}>{formatPrice(h.close)}</td>
                                           <td className="px-2 py-2 text-right tabular-nums text-muted-foreground">{formatVolume(h.volume)}</td>
                                           <td className={`px-2 py-2 text-right tabular-nums ${h.profit_phase1 !== null ? (h.profit_phase1 >= 0 ? "text-emerald-400" : "text-rose-400") : "text-muted-foreground"}`}>

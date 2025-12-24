@@ -721,9 +721,9 @@ export default function DevDashboard() {
                   <tbody className="divide-y divide-border/20">
                     {sortedStats.slice(0, 20).map((stat) => (
                       <tr key={stat.date} className="hover:bg-muted/30 transition-colors">
-                        <td className="px-4 py-2.5 tabular-nums text-foreground/90">{stat.date}</td>
+                        <td className="px-4 py-2.5 tabular-nums text-foreground">{stat.date}</td>
                         <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">{stat.count}</td>
-                        <td className="px-3 py-2.5 text-right tabular-nums text-foreground/90">{stat.win_rate?.toFixed(1) ?? "—"}%</td>
+                        <td className="px-3 py-2.5 text-right tabular-nums text-foreground">{stat.win_rate?.toFixed(1) ?? "—"}%</td>
                         <td className={`px-3 py-2.5 text-right tabular-nums font-medium ${stat.total_profit_per_100 >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                           {stat.total_profit_per_100 >= 0 ? "+" : ""}{Math.round(stat.total_profit_per_100).toLocaleString()}円
                         </td>
