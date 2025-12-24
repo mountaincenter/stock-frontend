@@ -98,7 +98,7 @@ export default function DayTradeListPage() {
 
   const toggleExpand = (ticker: string, appearanceCount: number) => {
     if (bulkEditMode) return; // 編集モード中は展開不可
-    if (appearanceCount <= 1) return; // 1回以下は展開不可
+    if (appearanceCount < 1) return; // 0回は展開不可
 
     if (expandedTicker === ticker) {
       setExpandedTicker(null);
@@ -423,7 +423,7 @@ export default function DayTradeListPage() {
                   const status = getStatusLabel(stock);
                   const edited = editedStocks[stock.ticker];
                   const isExpanded = expandedTicker === stock.ticker;
-                  const canExpand = !bulkEditMode && stock.appearance_count > 1;
+                  const canExpand = !bulkEditMode && stock.appearance_count >= 1;
                   const history = historyData[stock.ticker] || [];
                   const isLoadingHistory = loadingHistory === stock.ticker;
                   const colSpan = bulkEditMode ? 12 : 10;
