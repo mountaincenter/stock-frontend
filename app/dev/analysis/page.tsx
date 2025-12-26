@@ -815,6 +815,7 @@ function AnalysisContent() {
                       <tbody>
                         {group.stocks
                           .filter(s => detailFilter === 'all' || s.shares !== 0)
+                          .sort((a, b) => b.date.localeCompare(a.date))
                           .map((s, idx) => {
                           const [sP1Class, sP2Class] = getCompareClasses(s.p1, s.p2);
                           return (
