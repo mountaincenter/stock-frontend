@@ -200,6 +200,7 @@ function AnalysisContent() {
   const [detailView, setDetailView] = useState<DetailViewType>('daily');
   const [detailData, setDetailData] = useState<DetailResponse | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [detailFilter, setDetailFilter] = useState<FilterType>('all');
 
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
@@ -713,11 +714,33 @@ function AnalysisContent() {
           );
         })}
 
-        {/* Detail Section (除0株損益) */}
+        {/* Detail Section */}
         <div className="mt-8">
           <div className="flex items-center gap-4 mb-4">
-            <h2 className="text-sm font-semibold text-foreground">詳細（除0株損益）</h2>
-            <div className="flex gap-2">
+            <h2 className="text-sm font-semibold text-foreground">詳細</h2>
+            <div className="flex gap-1">
+              <button
+                onClick={() => setDetailFilter('all')}
+                className={`px-2 py-0.5 text-[10px] rounded border transition-colors ${
+                  detailFilter === 'all'
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
+                }`}
+              >
+                全数
+              </button>
+              <button
+                onClick={() => setDetailFilter('ex0')}
+                className={`px-2 py-0.5 text-[10px] rounded border transition-colors ${
+                  detailFilter === 'ex0'
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
+                }`}
+              >
+                除0株
+              </button>
+            </div>
+            <div className="flex gap-2 ml-auto">
               {(Object.keys(DETAIL_VIEW_LABELS) as DetailViewType[]).map(dv => (
                 <button
                   key={dv}
@@ -742,7 +765,10 @@ function AnalysisContent() {
             )}
             {detailData?.results.map(group => {
               const isExpanded = expandedDays.has(group.key);
-              const [grpP1Class, grpP2Class] = getCompareClasses(group.p1.all, group.p2.all);
+              const grpP1 = detailFilter === 'ex0' ? group.p1.ex0 : group.p1.all;
+              const grpP2 = detailFilter === 'ex0' ? group.p2.ex0 : group.p2.all;
+              const grpCount = detailFilter === 'ex0' ? group.count.ex0 : group.count.all;
+              const [grpP1Class, grpP2Class] = getCompareClasses(grpP1, grpP2);
 
               return (
                 <details
@@ -757,14 +783,12 @@ function AnalysisContent() {
                 >
                   <summary className="px-4 py-3 cursor-pointer flex flex-wrap items-center gap-2 sm:gap-4 text-sm hover:bg-muted/10 transition-colors">
                     <span className="font-semibold text-foreground whitespace-nowrap">{group.key}</span>
-                    <span className="text-muted-foreground text-xs">{group.count.all}件</span>
+                    <span className="text-muted-foreground text-xs">{grpCount}件</span>
                     <div className="ml-auto tabular-nums text-xs sm:text-sm flex items-center">
                       <span className="text-muted-foreground mr-1">前場</span>
-                      <span className={`min-w-[70px] text-right ${grpP1Class}`}>{formatProfit(group.p1.all)}</span>
-                      <span className="text-muted-foreground text-[10px] sm:text-xs min-w-[80px] text-right ml-1">({formatProfit(group.p1.ex0)})</span>
+                      <span className={`min-w-[70px] text-right ${grpP1Class}`}>{formatProfit(grpP1)}</span>
                       <span className="text-muted-foreground mr-1 ml-4">大引</span>
-                      <span className={`min-w-[70px] text-right ${grpP2Class}`}>{formatProfit(group.p2.all)}</span>
-                      <span className="text-muted-foreground text-[10px] sm:text-xs min-w-[80px] text-right ml-1">({formatProfit(group.p2.ex0)})</span>
+                      <span className={`min-w-[70px] text-right ${grpP2Class}`}>{formatProfit(grpP2)}</span>
                     </div>
                   </summary>
                   <div className="px-4 pb-3 border-t border-border/30 overflow-x-auto">
@@ -783,7 +807,9 @@ function AnalysisContent() {
                         </tr>
                       </thead>
                       <tbody>
-                        {group.stocks.map((s, idx) => {
+                        {group.stocks
+                          .filter(s => detailFilter === 'all' || (s.shares !== null && s.shares > 0))
+                          .map((s, idx) => {
                           const [sP1Class, sP2Class] = getCompareClasses(s.p1, s.p2);
                           return (
                             <tr key={idx} className="border-b border-border/20">
