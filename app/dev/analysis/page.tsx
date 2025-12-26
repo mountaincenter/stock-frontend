@@ -134,7 +134,10 @@ interface DetailStock {
   ticker: string;
   stockName: string;
   marginType: string;
+  prevClose: number | null;
   buyPrice: number | null;
+  sellPrice: number | null;
+  dailyClose: number | null;
   shares: number | null;
   p1: number;
   p2: number;
@@ -798,7 +801,7 @@ function AnalysisContent() {
                     </div>
                   </summary>
                   <div className="px-4 pb-3 border-t border-border/30 overflow-x-auto">
-                    <table className="w-full text-sm min-w-[550px]">
+                    <table className="w-full text-sm min-w-[700px]">
                       <thead>
                         <tr className="text-muted-foreground text-xs border-b border-border/30">
                           {detailView !== 'daily' && (
@@ -806,7 +809,10 @@ function AnalysisContent() {
                           )}
                           <th className="text-left py-2 font-medium whitespace-nowrap">銘柄</th>
                           <th className="text-left py-2 font-medium whitespace-nowrap">区分</th>
-                          <th className="text-right py-2 font-medium whitespace-nowrap">買値</th>
+                          <th className="text-right py-2 font-medium whitespace-nowrap">前終</th>
+                          <th className="text-right py-2 font-medium whitespace-nowrap">始値</th>
+                          <th className="text-right py-2 font-medium whitespace-nowrap">前場終</th>
+                          <th className="text-right py-2 font-medium whitespace-nowrap">大引終</th>
                           <th className="text-right py-2 font-medium whitespace-nowrap">株数</th>
                           <th className="text-right py-2 font-medium whitespace-nowrap">前場損益</th>
                           <th className="text-right py-2 font-medium whitespace-nowrap">大引損益</th>
@@ -831,7 +837,16 @@ function AnalysisContent() {
                                 {s.marginType === '制度信用' ? '制度' : 'いちにち'}
                               </td>
                               <td className="py-2 text-right tabular-nums text-foreground whitespace-nowrap">
+                                {s.prevClose?.toLocaleString() ?? '-'}
+                              </td>
+                              <td className="py-2 text-right tabular-nums text-foreground whitespace-nowrap">
                                 {s.buyPrice?.toLocaleString() ?? '-'}
+                              </td>
+                              <td className="py-2 text-right tabular-nums text-foreground whitespace-nowrap">
+                                {s.sellPrice?.toLocaleString() ?? '-'}
+                              </td>
+                              <td className="py-2 text-right tabular-nums text-foreground whitespace-nowrap">
+                                {s.dailyClose?.toLocaleString() ?? '-'}
                               </td>
                               <td className="py-2 text-right tabular-nums text-muted-foreground whitespace-nowrap">
                                 {s.shares?.toLocaleString() ?? '-'}
