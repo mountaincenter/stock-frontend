@@ -824,6 +824,10 @@ function AnalysisContent() {
                           .sort((a, b) => b.date.localeCompare(a.date))
                           .map((s, idx) => {
                           const [sP1Class, sP2Class] = getCompareClasses(s.p1, s.p2);
+                          // GU（始値>前終）は赤、GD（始値<前終）は緑
+                          const openColor = s.buyPrice !== null && s.prevClose !== null
+                            ? s.buyPrice > s.prevClose ? 'text-rose-400' : s.buyPrice < s.prevClose ? 'text-emerald-400' : 'text-foreground'
+                            : 'text-foreground';
                           return (
                             <tr key={idx} className="border-b border-border/20">
                               {detailView !== 'daily' && (
@@ -839,13 +843,13 @@ function AnalysisContent() {
                               <td className="py-2 text-right tabular-nums text-foreground whitespace-nowrap">
                                 {s.prevClose?.toLocaleString() ?? '-'}
                               </td>
-                              <td className="py-2 text-right tabular-nums text-foreground whitespace-nowrap">
+                              <td className={`py-2 text-right tabular-nums whitespace-nowrap ${openColor}`}>
                                 {s.buyPrice?.toLocaleString() ?? '-'}
                               </td>
-                              <td className="py-2 text-right tabular-nums text-foreground whitespace-nowrap">
+                              <td className={`py-2 text-right tabular-nums whitespace-nowrap ${sP1Class}`}>
                                 {s.sellPrice?.toLocaleString() ?? '-'}
                               </td>
-                              <td className="py-2 text-right tabular-nums text-foreground whitespace-nowrap">
+                              <td className={`py-2 text-right tabular-nums whitespace-nowrap ${sP2Class}`}>
                                 {s.dailyClose?.toLocaleString() ?? '-'}
                               </td>
                               <td className="py-2 text-right tabular-nums text-muted-foreground whitespace-nowrap">
