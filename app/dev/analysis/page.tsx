@@ -233,6 +233,11 @@ function AnalysisContent() {
         params.set('fri', weekdayPositions[4]);
       }
       const res = await fetch(`${API_BASE}/dev/analysis/details?${params}`);
+      if (!res.ok) {
+        console.error('API error:', res.status);
+        setDetailData(null);
+        return;
+      }
       const json = await res.json();
       setDetailData(json);
     } catch (err) {
@@ -764,7 +769,7 @@ function AnalysisContent() {
                 <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               </div>
             )}
-            {detailData?.results.map(group => {
+            {detailData?.results?.map(group => {
               const isExpanded = expandedDays.has(group.key);
               const grpP1 = detailFilter === 'ex0' ? group.p1.ex0 : group.p1.all;
               const grpP2 = detailFilter === 'ex0' ? group.p2.ex0 : group.p2.all;
