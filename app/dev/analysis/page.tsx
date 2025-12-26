@@ -121,11 +121,12 @@ const PERIOD_LABELS: Record<PeriodType, string> = {
   all: '全期間',
 };
 
-type DetailViewType = 'daily' | 'weekly' | 'monthly';
+type DetailViewType = 'daily' | 'weekly' | 'monthly' | 'weekday';
 const DETAIL_VIEW_LABELS: Record<DetailViewType, string> = {
   daily: '日別',
   weekly: '週別',
   monthly: '月別',
+  weekday: '曜日別',
 };
 
 interface DetailStock {
