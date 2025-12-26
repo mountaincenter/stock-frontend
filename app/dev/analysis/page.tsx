@@ -814,7 +814,7 @@ function AnalysisContent() {
                       </thead>
                       <tbody>
                         {group.stocks
-                          .filter(s => detailFilter === 'all' || (s.shares !== null && s.shares > 0))
+                          .filter(s => detailFilter === 'all' || s.shares !== 0)
                           .map((s, idx) => {
                           const [sP1Class, sP2Class] = getCompareClasses(s.p1, s.p2);
                           return (
