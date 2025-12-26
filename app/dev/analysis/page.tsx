@@ -177,11 +177,13 @@ const getCompareClasses = (p1: number, p2: number): [string, string] => {
   if (p1 >= 0 && p2 >= 0) {
     if (p1 > p2) return ['text-emerald-400', 'text-foreground'];
     if (p2 > p1) return ['text-foreground', 'text-emerald-400'];
-    return ['text-foreground', 'text-foreground'];
+    // p1 = p2 かつプラス → 大引を緑
+    return ['text-foreground', 'text-emerald-400'];
   } else if (p1 < 0 && p2 < 0) {
     if (Math.abs(p1) > Math.abs(p2)) return ['text-rose-400', 'text-foreground'];
     if (Math.abs(p2) > Math.abs(p1)) return ['text-foreground', 'text-rose-400'];
-    return ['text-foreground', 'text-foreground'];
+    // p1 = p2 かつマイナス → 両方赤
+    return ['text-rose-400', 'text-rose-400'];
   } else {
     return [
       p1 > 0 ? 'text-emerald-400' : 'text-rose-400',
