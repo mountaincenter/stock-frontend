@@ -17,6 +17,7 @@ type DayTradeStock = {
   ng: boolean;
   day_trade_available_shares: number | null;
   appearance_count: number;
+  max_cost_100: number | null;
 };
 
 type HistoryRecord = {
@@ -36,7 +37,11 @@ type Summary = {
   unchecked: number;
   shortable: number;
   day_trade: number;
+  day_trade_nonzero: number;
   ng: number;
+  total_funds_shortable: number;
+  total_funds_day_trade_nonzero: number;
+  total_required_funds: number;
 };
 
 type FilterType = "all" | "unchecked" | "shortable" | "day_trade" | "ng";
@@ -51,7 +56,10 @@ const FILTER_OPTIONS = [
 
 export default function DayTradeListPage() {
   const [stocks, setStocks] = useState<DayTradeStock[]>([]);
-  const [summary, setSummary] = useState<Summary>({ unchecked: 0, shortable: 0, day_trade: 0, ng: 0 });
+  const [summary, setSummary] = useState<Summary>({
+    unchecked: 0, shortable: 0, day_trade: 0, day_trade_nonzero: 0, ng: 0,
+    total_funds_shortable: 0, total_funds_day_trade_nonzero: 0, total_required_funds: 0
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterType>("all");
@@ -188,11 +196,32 @@ export default function DayTradeListPage() {
         const edited = editedStocks[s.ticker];
         return edited ? { ...s, ...edited } : s;
       });
+      const shortableStocks = updated.filter((s) => s.shortable);
+      const dayTradeStocks = updated.filter((s) => s.day_trade && !s.shortable);
+      const dayTradeNonzeroStocks = dayTradeStocks.filter((s) =>
+        s.day_trade_available_shares != null && s.day_trade_available_shares > 0
+      );
+      const totalFundsShortable = shortableStocks.reduce(
+        (sum, s) => sum + (s.max_cost_100 ?? 0), 0
+      );
+      const totalFundsDayTradeNonzero = dayTradeNonzeroStocks.reduce(
+        (sum, s) => sum + (s.max_cost_100 ?? 0), 0
+      );
+      const totalRequiredFunds = updated
+        .filter((s) => !s.ng && (
+          s.shortable || (s.day_trade && s.day_trade_available_shares != null && s.day_trade_available_shares > 0)
+        ))
+        .reduce((sum, s) => sum + (s.max_cost_100 ?? 0), 0);
+
       setSummary({
         unchecked: updated.filter((s) => !s.shortable && !s.day_trade && !s.ng).length,
-        shortable: updated.filter((s) => s.shortable).length,
-        day_trade: updated.filter((s) => s.day_trade && !s.shortable).length,
+        shortable: shortableStocks.length,
+        day_trade: dayTradeStocks.length,
+        day_trade_nonzero: dayTradeNonzeroStocks.length,
         ng: updated.filter((s) => s.ng).length,
+        total_funds_shortable: totalFundsShortable,
+        total_funds_day_trade_nonzero: totalFundsDayTradeNonzero,
+        total_required_funds: totalRequiredFunds,
       });
 
       setEditedStocks({});
@@ -309,7 +338,7 @@ export default function DayTradeListPage() {
         </div>
 
         {/* Summary Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4">
           <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-3 sm:p-4 shadow-lg shadow-black/5 backdrop-blur-xl text-center">
             <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 via-transparent to-transparent pointer-events-none" />
             <div className="relative">
@@ -320,8 +349,10 @@ export default function DayTradeListPage() {
           <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-3 sm:p-4 shadow-lg shadow-black/5 backdrop-blur-xl text-center">
             <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-transparent pointer-events-none" />
             <div className="relative">
-              <div className="text-xl sm:text-2xl tabular-nums font-bold text-orange-400">{summary.day_trade}</div>
-              <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap">いちにち</div>
+              <div className="text-xl sm:text-2xl tabular-nums font-bold text-orange-400">
+                {summary.day_trade_nonzero}<span className="text-sm text-muted-foreground">/{summary.day_trade}</span>
+              </div>
+              <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap">いちにち除0/全</div>
             </div>
           </div>
           <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-3 sm:p-4 shadow-lg shadow-black/5 backdrop-blur-xl text-center">
@@ -336,6 +367,37 @@ export default function DayTradeListPage() {
             <div className="relative">
               <div className="text-xl sm:text-2xl tabular-nums font-bold text-amber-400">{summary.unchecked}</div>
               <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap">未チェック</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Required Funds Summary */}
+        <div className="relative overflow-hidden rounded-xl border border-primary/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-3 sm:p-4 shadow-lg shadow-black/5 backdrop-blur-xl mb-6">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none" />
+          <div className="relative">
+            <div className="text-xs text-muted-foreground mb-2">必要資金（100株ベース・制限値幅込み）</div>
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <div className="text-lg sm:text-xl tabular-nums font-bold text-teal-400">
+                  {(summary.total_funds_shortable / 10000).toLocaleString("ja-JP", { maximumFractionDigits: 0 })}
+                  <span className="text-xs text-muted-foreground ml-0.5">万</span>
+                </div>
+                <div className="text-xs text-muted-foreground">制度信用</div>
+              </div>
+              <div>
+                <div className="text-lg sm:text-xl tabular-nums font-bold text-orange-400">
+                  {(summary.total_funds_day_trade_nonzero / 10000).toLocaleString("ja-JP", { maximumFractionDigits: 0 })}
+                  <span className="text-xs text-muted-foreground ml-0.5">万</span>
+                </div>
+                <div className="text-xs text-muted-foreground">いちにち除0</div>
+              </div>
+              <div>
+                <div className="text-lg sm:text-xl tabular-nums font-bold text-primary">
+                  {(summary.total_required_funds / 10000).toLocaleString("ja-JP", { maximumFractionDigits: 0 })}
+                  <span className="text-xs text-muted-foreground ml-0.5">万</span>
+                </div>
+                <div className="text-xs text-muted-foreground">合計</div>
+              </div>
             </div>
           </div>
         </div>
