@@ -3,7 +3,45 @@ import { NextRequest, NextResponse } from 'next/server';
 import YahooFinance from 'yahoo-finance2';
 
 // YahooFinanceインスタンスを作成
-const yahooFinance = new YahooFinance();
+// suppressNoticesでサーベイ通知を抑制
+const yahooFinance = new YahooFinance({
+  suppressNotices: ['yahooSurvey'],
+});
+
+// リトライ用のユーティリティ関数
+async function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// 指数バックオフでリトライ
+async function fetchWithRetry<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelayMs: number = 1000
+): Promise<T> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      if (attempt > 0) {
+        const delayMs = baseDelayMs * Math.pow(2, attempt - 1);
+        console.log(`[Realtime API] Retry attempt ${attempt + 1}/${maxRetries} after ${delayMs}ms delay`);
+        await sleep(delayMs);
+      }
+      return await fn();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      console.error(`[Realtime API] Attempt ${attempt + 1} failed:`, lastError.message);
+
+      // 429エラー以外は即座に失敗
+      if (!lastError.message.includes('429') && !lastError.message.includes('Too Many Requests')) {
+        throw lastError;
+      }
+    }
+  }
+
+  throw lastError;
+}
 
 // キャッシュ（メモリ）
 interface QuoteData {
@@ -70,15 +108,31 @@ export async function GET(request: NextRequest) {
 
     console.log(`[Realtime API] Fetching ${tickers.length} tickers from Yahoo Finance`);
 
-    // yahoo-finance2で株価取得（複数銘柄は個別に取得）
-    const quotePromises = tickers.map(ticker =>
-      yahooFinance.quote(ticker).catch(err => {
-        console.error(`[Realtime API] Failed to fetch ${ticker}:`, err.message);
-        return null;
-      })
-    );
+    // yahoo-finance2で株価取得（リトライロジック付き）
+    // 並列リクエストによるレート制限を避けるため、バッチ処理で取得
+    const BATCH_SIZE = 5; // 同時リクエスト数を制限
+    const BATCH_DELAY_MS = 100; // バッチ間の遅延
 
-    const quotes = await Promise.all(quotePromises);
+    const quotes: (Awaited<ReturnType<typeof yahooFinance.quote>> | null)[] = [];
+
+    for (let i = 0; i < tickers.length; i += BATCH_SIZE) {
+      const batch = tickers.slice(i, i + BATCH_SIZE);
+
+      if (i > 0) {
+        // バッチ間に遅延を入れる
+        await sleep(BATCH_DELAY_MS);
+      }
+
+      const batchPromises = batch.map(ticker =>
+        fetchWithRetry(() => yahooFinance.quote(ticker), 3, 2000).catch(err => {
+          console.error(`[Realtime API] Failed to fetch ${ticker} after retries:`, err.message);
+          return null;
+        })
+      );
+
+      const batchResults = await Promise.all(batchPromises);
+      quotes.push(...batchResults);
+    }
 
     // データを整形（nullとundefinedを除外）
     const formattedData = quotes
