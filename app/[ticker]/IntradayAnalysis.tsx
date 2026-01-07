@@ -248,7 +248,7 @@ export default function IntradayAnalysis({ ticker }: { ticker: string }) {
                       fontSize: "12px",
                     }}
                     labelStyle={{ color: "#888" }}
-                    formatter={(value: number) => [value?.toFixed(2), ""]}
+                    formatter={(value) => [(value as number)?.toFixed(2) ?? "-", ""]}
                   />
                   <Line
                     type="monotone"
