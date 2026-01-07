@@ -2,6 +2,7 @@
 import Link from "next/link";
 import TickerDailyChart from "./TickerDailyChart";
 import TechnicalDetailTable from "./TechDetailTable";
+import IntradayAnalysis from "./IntradayAnalysis";
 import PriceCard from "./PriceCard";
 import BackToListButton from "./BackToListButton";
 import { canonicalizeTag } from "@/lib/tag-utils";
@@ -194,6 +195,9 @@ export default async function TickerPage({
               <TickerDailyChart ticker={ticker} perf={perf ?? undefined} />
             </div>
           </div>
+
+          {/* 日中高値安値分析 */}
+          <IntradayAnalysis ticker={ticker} />
 
           {/* テクニカル詳細（表のみ。中身はクライアント側で v2 / legacy を吸収） */}
           <TechnicalDetailTable ticker={ticker} />
