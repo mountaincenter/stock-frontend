@@ -640,7 +640,7 @@ export default function DevDashboard() {
                       <Tooltip
                         contentStyle={{ backgroundColor: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
                         labelStyle={{ color: "var(--foreground)" }}
-                        formatter={(value: number, name: string) => [`${value.toFixed(1)}%`, name === "avg" ? "全体" : "Top5"]}
+                        formatter={(value, name) => [`${(value as number)?.toFixed(1) ?? 0}%`, name === "avg" ? "全体" : "Top5"]}
                       />
                       <Legend formatter={(value) => <span style={{ color: "#9ca3af", fontSize: 11 }}>{value}</span>} />
                       <Area type="monotone" dataKey="avg" stroke="#6366f1" fill="#6366f1" fillOpacity={0.15} name="全体" />
@@ -653,7 +653,7 @@ export default function DevDashboard() {
                       <YAxis stroke="var(--border)" tick={{ fill: "#9ca3af" }} fontSize={10} tickFormatter={(v) => `${v}%`} />
                       <Tooltip
                         contentStyle={{ backgroundColor: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
-                        formatter={(value: number) => [`${value.toFixed(1)}%`, "勝率"]}
+                        formatter={(value) => [`${(value as number)?.toFixed(1) ?? 0}%`, "勝率"]}
                       />
                       <Legend formatter={(value) => <span style={{ color: "#9ca3af", fontSize: 11 }}>{value}</span>} />
                       <Bar dataKey="winRate" name="勝率" radius={[4, 4, 0, 0]}>
@@ -669,7 +669,7 @@ export default function DevDashboard() {
                       <YAxis stroke="var(--border)" tick={{ fill: "#9ca3af" }} fontSize={10} tickFormatter={(v) => `${(v / 1000).toFixed(1)}千円`} />
                       <Tooltip
                         contentStyle={{ backgroundColor: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
-                        formatter={(value: number, name: string) => [`${value.toLocaleString()}円`, name === "cumulative" ? "全体" : "Top5"]}
+                        formatter={(value, name) => [`${(value as number)?.toLocaleString() ?? 0}円`, name === "cumulative" ? "全体" : "Top5"]}
                       />
                       <Legend formatter={(value) => <span style={{ color: "#9ca3af", fontSize: 11 }}>{value}</span>} />
                       <Area type="monotone" dataKey="cumulative" stroke="#6366f1" fill="#6366f1" fillOpacity={0.15} name="全体" />
