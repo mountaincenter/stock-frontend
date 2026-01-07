@@ -1,6 +1,15 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  ReferenceLine,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
@@ -104,6 +113,36 @@ export default function IntradayAnalysis({ ticker }: { ticker: string }) {
 
   const { table, normalizedPrices, summary } = data;
 
+  // チャートデータを統合
+  const chartData = useMemo(() => {
+    const timeMap = new Map<string, { time: string; ticker?: number; nikkei?: number; topix?: number }>();
+
+    normalizedPrices.ticker.forEach((p) => {
+      if (!timeMap.has(p.time)) timeMap.set(p.time, { time: p.time });
+      timeMap.get(p.time)!.ticker = p.value;
+    });
+    normalizedPrices.nikkei.forEach((p) => {
+      if (!timeMap.has(p.time)) timeMap.set(p.time, { time: p.time });
+      timeMap.get(p.time)!.nikkei = p.value;
+    });
+    normalizedPrices.topix.forEach((p) => {
+      if (!timeMap.has(p.time)) timeMap.set(p.time, { time: p.time });
+      timeMap.get(p.time)!.topix = p.value;
+    });
+
+    return Array.from(timeMap.values()).sort((a, b) => a.time.localeCompare(b.time));
+  }, [normalizedPrices]);
+
+  // Y軸の範囲を計算
+  const yDomain = useMemo(() => {
+    const allValues = chartData.flatMap((d) => [d.ticker, d.nikkei, d.topix].filter((v): v is number => v !== undefined));
+    if (allValues.length === 0) return [98, 102];
+    const min = Math.min(...allValues);
+    const max = Math.max(...allValues);
+    const padding = (max - min) * 0.1 || 1;
+    return [Math.floor(min - padding), Math.ceil(max + padding)];
+  }, [chartData]);
+
   return (
     <section className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 md:p-6 shadow-xl backdrop-blur-xl">
       <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] via-transparent to-transparent pointer-events-none" />
@@ -149,17 +188,20 @@ export default function IntradayAnalysis({ ticker }: { ticker: string }) {
           </div>
         </div>
 
-        {/* Normalized Price Chart Placeholder */}
+        {/* Normalized Price Chart */}
         <div className="rounded-xl bg-background/40 border border-border/30 p-4">
           <div className="flex items-center justify-between mb-3">
-            <div className="text-sm font-medium">前日終値=100 価格推移</div>
+            <div className="text-sm font-medium">
+              前日終値=100 価格推移
+              <span className="ml-2 text-xs text-muted-foreground">({normalizedPrices.date})</span>
+            </div>
             <div className="flex items-center gap-4 text-xs">
               <label className="flex items-center gap-1.5 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={showNikkei}
                   onChange={(e) => setShowNikkei(e.target.checked)}
-                  className="w-3 h-3 rounded"
+                  className="w-3 h-3 rounded accent-blue-500"
                 />
                 <span className="text-blue-400">日経平均</span>
               </label>
@@ -168,22 +210,76 @@ export default function IntradayAnalysis({ ticker }: { ticker: string }) {
                   type="checkbox"
                   checked={showTopix}
                   onChange={(e) => setShowTopix(e.target.checked)}
-                  className="w-3 h-3 rounded"
+                  className="w-3 h-3 rounded accent-orange-500"
                 />
                 <span className="text-orange-400">TOPIX</span>
               </label>
             </div>
           </div>
-          <div className="h-48 flex items-center justify-center text-muted-foreground text-sm">
-            {/* TODO: lightweight-charts integration */}
-            <div className="text-center">
-              <div className="mb-2">基準日: {normalizedPrices.date}</div>
-              <div className="text-xs text-muted-foreground/60">
-                銘柄: {normalizedPrices.ticker.length}本 /
-                日経: {normalizedPrices.nikkei.length}本 /
-                TOPIX: {normalizedPrices.topix.length}本
+          <div className="h-48">
+            {chartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                  <XAxis
+                    dataKey="time"
+                    tick={{ fontSize: 10, fill: "#888" }}
+                    tickLine={false}
+                    axisLine={{ stroke: "#333" }}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    domain={yDomain}
+                    tick={{ fontSize: 10, fill: "#888" }}
+                    tickLine={false}
+                    axisLine={{ stroke: "#333" }}
+                    tickFormatter={(v) => v.toFixed(0)}
+                  />
+                  <ReferenceLine y={100} stroke="#666" strokeDasharray="3 3" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "rgba(0,0,0,0.8)",
+                      border: "1px solid #333",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                    }}
+                    labelStyle={{ color: "#888" }}
+                    formatter={(value: number) => [value?.toFixed(2), ""]}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="ticker"
+                    stroke="#fff"
+                    strokeWidth={2}
+                    dot={false}
+                    name="銘柄"
+                  />
+                  {showNikkei && (
+                    <Line
+                      type="monotone"
+                      dataKey="nikkei"
+                      stroke="#3b82f6"
+                      strokeWidth={1.5}
+                      dot={false}
+                      name="日経平均"
+                    />
+                  )}
+                  {showTopix && (
+                    <Line
+                      type="monotone"
+                      dataKey="topix"
+                      stroke="#f97316"
+                      strokeWidth={1.5}
+                      dot={false}
+                      name="TOPIX"
+                    />
+                  )}
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+                データなし
               </div>
-            </div>
+            )}
           </div>
         </div>
 
