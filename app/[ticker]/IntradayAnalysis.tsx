@@ -76,6 +76,11 @@ export default function IntradayAnalysis({ ticker }: { ticker: string }) {
   const [showNikkei, setShowNikkei] = useState(true);
   const [showTopix, setShowTopix] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -217,7 +222,7 @@ export default function IntradayAnalysis({ ticker }: { ticker: string }) {
             </div>
           </div>
           <div className="h-48">
-            {chartData.length > 0 ? (
+            {isMounted && chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
                   <XAxis
@@ -277,7 +282,7 @@ export default function IntradayAnalysis({ ticker }: { ticker: string }) {
               </ResponsiveContainer>
             ) : (
               <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
-                データなし
+                {!isMounted ? "読み込み中..." : "データなし"}
               </div>
             )}
           </div>
