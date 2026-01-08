@@ -100,6 +100,38 @@ export default function IntradayAnalysis({ ticker }: { ticker: string }) {
     fetchData();
   }, [ticker]);
 
+  // チャートデータを統合 (Hooks はearly returnの前に呼ぶ必要がある)
+  const chartData = useMemo(() => {
+    if (!data) return [];
+    const { normalizedPrices } = data;
+    const timeMap = new Map<string, { time: string; ticker?: number; nikkei?: number; topix?: number }>();
+
+    normalizedPrices.ticker.forEach((p) => {
+      if (!timeMap.has(p.time)) timeMap.set(p.time, { time: p.time });
+      timeMap.get(p.time)!.ticker = p.value;
+    });
+    normalizedPrices.nikkei.forEach((p) => {
+      if (!timeMap.has(p.time)) timeMap.set(p.time, { time: p.time });
+      timeMap.get(p.time)!.nikkei = p.value;
+    });
+    normalizedPrices.topix.forEach((p) => {
+      if (!timeMap.has(p.time)) timeMap.set(p.time, { time: p.time });
+      timeMap.get(p.time)!.topix = p.value;
+    });
+
+    return Array.from(timeMap.values()).sort((a, b) => a.time.localeCompare(b.time));
+  }, [data]);
+
+  // Y軸の範囲を計算
+  const yDomain = useMemo(() => {
+    const allValues = chartData.flatMap((d) => [d.ticker, d.nikkei, d.topix].filter((v): v is number => v !== undefined));
+    if (allValues.length === 0) return [98, 102] as [number, number];
+    const min = Math.min(...allValues);
+    const max = Math.max(...allValues);
+    const padding = (max - min) * 0.1 || 1;
+    return [Math.floor(min - padding), Math.ceil(max + padding)] as [number, number];
+  }, [chartData]);
+
   if (loading) {
     return (
       <section className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 md:p-6 shadow-xl backdrop-blur-xl">
@@ -117,36 +149,6 @@ export default function IntradayAnalysis({ ticker }: { ticker: string }) {
   }
 
   const { table, normalizedPrices, summary } = data;
-
-  // チャートデータを統合
-  const chartData = useMemo(() => {
-    const timeMap = new Map<string, { time: string; ticker?: number; nikkei?: number; topix?: number }>();
-
-    normalizedPrices.ticker.forEach((p) => {
-      if (!timeMap.has(p.time)) timeMap.set(p.time, { time: p.time });
-      timeMap.get(p.time)!.ticker = p.value;
-    });
-    normalizedPrices.nikkei.forEach((p) => {
-      if (!timeMap.has(p.time)) timeMap.set(p.time, { time: p.time });
-      timeMap.get(p.time)!.nikkei = p.value;
-    });
-    normalizedPrices.topix.forEach((p) => {
-      if (!timeMap.has(p.time)) timeMap.set(p.time, { time: p.time });
-      timeMap.get(p.time)!.topix = p.value;
-    });
-
-    return Array.from(timeMap.values()).sort((a, b) => a.time.localeCompare(b.time));
-  }, [normalizedPrices]);
-
-  // Y軸の範囲を計算
-  const yDomain = useMemo(() => {
-    const allValues = chartData.flatMap((d) => [d.ticker, d.nikkei, d.topix].filter((v): v is number => v !== undefined));
-    if (allValues.length === 0) return [98, 102];
-    const min = Math.min(...allValues);
-    const max = Math.max(...allValues);
-    const padding = (max - min) * 0.1 || 1;
-    return [Math.floor(min - padding), Math.ceil(max + padding)];
-  }, [chartData]);
 
   return (
     <section className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 md:p-6 shadow-xl backdrop-blur-xl">
@@ -223,7 +225,7 @@ export default function IntradayAnalysis({ ticker }: { ticker: string }) {
           </div>
           <div className="h-48">
             {isMounted && chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={192}>
                 <LineChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
                   <XAxis
                     dataKey="time"

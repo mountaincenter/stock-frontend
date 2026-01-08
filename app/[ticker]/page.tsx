@@ -196,8 +196,8 @@ export default async function TickerPage({
             </div>
           </div>
 
-          {/* 日中高値安値分析 - 一時的に無効化 */}
-          {/* <IntradayAnalysis ticker={ticker} /> */}
+          {/* 日中高値安値分析 */}
+          <IntradayAnalysis ticker={ticker} />
 
           {/* テクニカル詳細（表のみ。中身はクライアント側で v2 / legacy を吸収） */}
           <TechnicalDetailTable ticker={ticker} />
