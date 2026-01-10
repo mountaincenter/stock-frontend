@@ -531,13 +531,12 @@ function AnalysisContent() {
             const [meClass, p1Class, aeClass, p2Class] = getQuadrantClasses(stats.me ?? 0, stats.p1, stats.ae ?? 0, stats.p2);
             return (
               <>
-                {/* 前場前半 (10:25) */}
+                {/* 10:25 */}
                 <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-5 shadow-lg shadow-black/5 backdrop-blur-xl">
                   <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
                   <div className="relative">
                     <div className="flex items-center mb-2">
-                      <span className="text-muted-foreground text-sm">前場前半</span>
-                      <span className="text-muted-foreground text-xs ml-1">(10:25)</span>
+                      <span className="text-muted-foreground text-sm">10:25</span>
                     </div>
                     <div className={`text-2xl font-bold text-right tabular-nums whitespace-nowrap ${meClass}`}>
                       {formatProfit(stats.me ?? 0)}円
@@ -548,13 +547,12 @@ function AnalysisContent() {
                   </div>
                 </div>
 
-                {/* 前場引け (11:30) */}
+                {/* 前場引け */}
                 <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-5 shadow-lg shadow-black/5 backdrop-blur-xl">
                   <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
                   <div className="relative">
                     <div className="flex items-center mb-2">
                       <span className="text-muted-foreground text-sm">前場引け</span>
-                      <span className="text-muted-foreground text-xs ml-1">(11:30)</span>
                     </div>
                     <div className={`text-2xl font-bold text-right tabular-nums whitespace-nowrap ${p1Class}`}>
                       {formatProfit(stats.p1)}円
@@ -565,13 +563,12 @@ function AnalysisContent() {
                   </div>
                 </div>
 
-                {/* 後場前半 (13:55) */}
+                {/* 14:45 */}
                 <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-5 shadow-lg shadow-black/5 backdrop-blur-xl">
                   <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
                   <div className="relative">
                     <div className="flex items-center mb-2">
-                      <span className="text-muted-foreground text-sm">後場前半</span>
-                      <span className="text-muted-foreground text-xs ml-1">(13:55)</span>
+                      <span className="text-muted-foreground text-sm">14:45</span>
                     </div>
                     <div className={`text-2xl font-bold text-right tabular-nums whitespace-nowrap ${aeClass}`}>
                       {formatProfit(stats.ae ?? 0)}円
@@ -582,13 +579,12 @@ function AnalysisContent() {
                   </div>
                 </div>
 
-                {/* 大引け (15:00) */}
+                {/* 大引け(15:30) */}
                 <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-5 shadow-lg shadow-black/5 backdrop-blur-xl">
                   <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
                   <div className="relative">
                     <div className="flex items-center mb-2">
-                      <span className="text-muted-foreground text-sm">大引け</span>
-                      <span className="text-muted-foreground text-xs ml-1">(15:00)</span>
+                      <span className="text-muted-foreground text-sm">大引け(15:30)</span>
                     </div>
                     <div className={`text-2xl font-bold text-right tabular-nums whitespace-nowrap ${p2Class}`}>
                       {formatProfit(stats.p2)}円
@@ -639,7 +635,7 @@ function AnalysisContent() {
                       return (
                         <div className="flex justify-end gap-5 mb-3 pb-3 border-b border-border/30">
                           <div className="text-right">
-                            <div className="text-muted-foreground text-sm">前場前半</div>
+                            <div className="text-muted-foreground text-sm">10:25</div>
                             <div className={`text-xl font-bold tabular-nums ${seidoMeClass}`}>
                               {formatProfit(wd.seido.meTotal ?? 0)}
                             </div>
@@ -651,13 +647,13 @@ function AnalysisContent() {
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="text-muted-foreground text-sm">後場前半</div>
+                            <div className="text-muted-foreground text-sm">14:45</div>
                             <div className={`text-xl font-bold tabular-nums ${seidoAeClass}`}>
                               {formatProfit(wd.seido.aeTotal ?? 0)}
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="text-muted-foreground text-sm">大引け</div>
+                            <div className="text-muted-foreground text-sm">大引け(15:30)</div>
                             <div className={`text-xl font-bold tabular-nums ${seidoP2Class}`}>
                               {formatProfit(wd.seido.p2Total)}
                             </div>
@@ -671,14 +667,14 @@ function AnalysisContent() {
                           <tr className="text-muted-foreground text-sm border-b border-border/30">
                             <th className="text-right py-2.5 font-medium whitespace-nowrap">価格帯</th>
                             <th className="text-right py-2.5 font-medium whitespace-nowrap">件</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">前半損益</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">前半%</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">前場損益</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">前場%</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">後半損益</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">後半%</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">大引損益</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">大引%</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">10:25</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">%</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">前場引</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">%</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">14:45</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">%</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">大引</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">%</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -756,7 +752,7 @@ function AnalysisContent() {
                       return (
                         <div className="flex justify-end gap-5 mb-3 pb-3 border-b border-border/30">
                           <div className="text-right">
-                            <div className="text-muted-foreground text-sm">前場前半</div>
+                            <div className="text-muted-foreground text-sm">10:25</div>
                             <div className={`text-xl font-bold tabular-nums ${ichMeClass}`}>
                               {formatProfit(ichMeTotal)}
                             </div>
@@ -768,13 +764,13 @@ function AnalysisContent() {
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="text-muted-foreground text-sm">後場前半</div>
+                            <div className="text-muted-foreground text-sm">14:45</div>
                             <div className={`text-xl font-bold tabular-nums ${ichAeClass}`}>
                               {formatProfit(ichAeTotal)}
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="text-muted-foreground text-sm">大引け</div>
+                            <div className="text-muted-foreground text-sm">大引け(15:30)</div>
                             <div className={`text-xl font-bold tabular-nums ${ichP2Class}`}>
                               {formatProfit(ichP2Total)}
                             </div>
@@ -788,15 +784,14 @@ function AnalysisContent() {
                           <tr className="text-muted-foreground text-sm border-b border-border/30">
                             <th className="text-right py-2.5 font-medium whitespace-nowrap">価格帯</th>
                             <th className="text-right py-2.5 font-medium whitespace-nowrap">件</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">株数</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">前半損益</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">前半%</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">前場損益</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">前場%</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">後半損益</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">後半%</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">大引損益</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">大引%</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">10:25</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">%</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">前場引</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">%</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">14:45</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">%</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">大引</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">%</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -806,9 +801,6 @@ function AnalysisContent() {
                             <tr key={pr.label} className="border-b border-border/20">
                               <td className="text-right py-2.5 tabular-nums text-foreground whitespace-nowrap">{pr.label}</td>
                               <td className="text-right py-2.5 tabular-nums text-foreground">{pr.count}</td>
-                              <td className="text-right py-2.5 tabular-nums text-muted-foreground whitespace-nowrap">
-                                {pr.shares && pr.shares > 0 ? pr.shares.toLocaleString() : '-'}
-                              </td>
                               <td className={`text-right py-2.5 tabular-nums whitespace-nowrap ${prMeClass}`}>
                                 {formatProfit(pr.me ?? 0)}
                               </td>
@@ -922,15 +914,15 @@ function AnalysisContent() {
                       return (
                         <div className="ml-auto tabular-nums text-sm sm:text-base flex items-center gap-4">
                           <div className="text-center min-w-[80px]">
-                            <span className="text-muted-foreground text-xs block">前半</span>
+                            <span className="text-muted-foreground text-xs block">10:25</span>
                             <span className={`block text-center ${meClass}`}>{formatProfit(grpMe)}</span>
                           </div>
                           <div className="text-center min-w-[80px]">
-                            <span className="text-muted-foreground text-xs block">前場</span>
+                            <span className="text-muted-foreground text-xs block">前場引</span>
                             <span className={`block text-center ${p1Class}`}>{formatProfit(grpP1)}</span>
                           </div>
                           <div className="text-center min-w-[80px]">
-                            <span className="text-muted-foreground text-xs block">後半</span>
+                            <span className="text-muted-foreground text-xs block">14:45</span>
                             <span className={`block text-center ${aeClass}`}>{formatProfit(grpAe)}</span>
                           </div>
                           <div className="text-center min-w-[80px]">
@@ -953,10 +945,10 @@ function AnalysisContent() {
                           <th className="text-right py-2.5 font-medium whitespace-nowrap">前終</th>
                           <th className="text-right py-2.5 font-medium whitespace-nowrap">始値</th>
                           <th className="text-right py-2.5 font-medium whitespace-nowrap">株数</th>
-                          <th className="text-right py-2.5 font-medium whitespace-nowrap">前半損益</th>
-                          <th className="text-right py-2.5 font-medium whitespace-nowrap">前場損益</th>
-                          <th className="text-right py-2.5 font-medium whitespace-nowrap">後半損益</th>
-                          <th className="text-right py-2.5 font-medium whitespace-nowrap">大引損益</th>
+                          <th className="text-right py-2.5 font-medium whitespace-nowrap">10:25</th>
+                          <th className="text-right py-2.5 font-medium whitespace-nowrap">前場引</th>
+                          <th className="text-right py-2.5 font-medium whitespace-nowrap">14:45</th>
+                          <th className="text-right py-2.5 font-medium whitespace-nowrap">大引</th>
                         </tr>
                       </thead>
                       <tbody>
