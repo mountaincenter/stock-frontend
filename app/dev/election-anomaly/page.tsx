@@ -368,13 +368,13 @@ export default function ElectionAnomalyPage() {
               <LineChart data={chartData}>
                 <XAxis
                   dataKey="day"
-                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
-                  axisLine={{ stroke: 'hsl(var(--border))' }}
+                  tick={{ fill: '#9ca3af', fontSize: 10 }}
+                  axisLine={{ stroke: '#374151' }}
                   tickLine={false}
                 />
                 <YAxis
-                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
-                  axisLine={{ stroke: 'hsl(var(--border))' }}
+                  tick={{ fill: '#9ca3af', fontSize: 10 }}
+                  axisLine={{ stroke: '#374151' }}
                   tickLine={false}
                   tickFormatter={(v) => `${v}%`}
                 />

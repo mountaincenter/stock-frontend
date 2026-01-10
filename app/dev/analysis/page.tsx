@@ -662,7 +662,7 @@ function AnalysisContent() {
                       );
                     })()}
                     <div className="overflow-x-auto">
-                      <table className="w-full text-sm md:text-base">
+                      <table className="w-full text-xs md:text-base">
                         <thead>
                           <tr className="text-muted-foreground text-sm border-b border-border/30">
                             <th className="text-right py-2.5 font-medium whitespace-nowrap">価格帯</th>
@@ -779,7 +779,7 @@ function AnalysisContent() {
                       );
                     })()}
                     <div className="overflow-x-auto">
-                      <table className="w-full text-sm md:text-base">
+                      <table className="w-full text-xs md:text-base">
                         <thead>
                           <tr className="text-muted-foreground text-sm border-b border-border/30">
                             <th className="text-right py-2.5 font-medium whitespace-nowrap">価格帯</th>
@@ -934,7 +934,7 @@ function AnalysisContent() {
                     })()}
                   </summary>
                   <div className="px-4 pb-3 border-t border-border/30 overflow-x-auto">
-                    <table className="w-full text-sm md:text-base min-w-[900px]">
+                    <table className="w-full text-xs md:text-base min-w-[900px]">
                       <thead>
                         <tr className="text-muted-foreground text-sm border-b border-border/30">
                           {detailView !== 'daily' && (
