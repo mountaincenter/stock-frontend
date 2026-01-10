@@ -32,6 +32,19 @@ export default function ElectionAnomalyPage() {
   const [error, setError] = useState<string | null>(null);
   const [expandedTicker, setExpandedTicker] = useState<string | null>(null);
 
+  // 類似選挙（デフォルト表示）
+  const similarElections = [38, 44, 46, 48];
+  const [visibleElections, setVisibleElections] = useState<Set<number>>(new Set(similarElections));
+
+  const toggleElection = (num: number) => {
+    setVisibleElections((prev) => {
+      const next = new Set(prev);
+      if (next.has(num)) next.delete(num);
+      else next.add(num);
+      return next;
+    });
+  };
+
   useEffect(() => {
     fetch('/data/election-data.json')
       .then((res) => {
@@ -305,7 +318,51 @@ export default function ElectionAnomalyPage() {
 
         {/* N225 Daily Chart */}
         <Card className="p-5 mb-6">
-          <div className="text-muted-foreground text-sm mb-3">N225 日次累積リターン（解散日=0%）</div>
+          <div className="flex flex-col gap-3 mb-4">
+            <div className="text-muted-foreground text-sm">N225 日次累積リターン（解散日=0%）</div>
+            {/* 選挙トグル */}
+            <div className="flex flex-wrap gap-2">
+              <span className="text-muted-foreground text-xs self-center mr-2">類似:</span>
+              {n225Daily.filter((s) => similarElections.includes(s.num)).map((series) => {
+                const isVisible = visibleElections.has(series.num);
+                const result = n225Results.find((r) => r.num === series.num);
+                return (
+                  <button
+                    key={series.num}
+                    onClick={() => toggleElection(series.num)}
+                    className={`px-2 py-1 text-xs rounded border transition-all ${
+                      isVisible
+                        ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
+                        : 'bg-muted/10 border-border/30 text-muted-foreground'
+                    }`}
+                  >
+                    {series.num}回 {result ? `${valueSign(result.returnPct)}${result.returnPct.toFixed(1)}%` : ''}
+                  </button>
+                );
+              })}
+              <span className="text-muted-foreground text-xs self-center mx-2">|</span>
+              <span className="text-muted-foreground text-xs self-center mr-2">その他:</span>
+              {n225Daily.filter((s) => !similarElections.includes(s.num)).map((series) => {
+                const isVisible = visibleElections.has(series.num);
+                const result = n225Results.find((r) => r.num === series.num);
+                return (
+                  <button
+                    key={series.num}
+                    onClick={() => toggleElection(series.num)}
+                    className={`px-2 py-1 text-xs rounded border transition-all ${
+                      isVisible
+                        ? series.win
+                          ? 'bg-sky-500/20 border-sky-500/50 text-sky-400'
+                          : 'bg-rose-500/20 border-rose-500/50 text-rose-400'
+                        : 'bg-muted/10 border-border/30 text-muted-foreground'
+                    }`}
+                  >
+                    {series.num}回
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
@@ -327,27 +384,60 @@ export default function ElectionAnomalyPage() {
                     border: '1px solid hsl(var(--border))',
                     borderRadius: '8px',
                     fontSize: '12px',
+                    color: 'hsl(var(--foreground))',
                   }}
+                  labelStyle={{ color: 'hsl(var(--muted-foreground))' }}
+                  itemStyle={{ color: 'hsl(var(--foreground))' }}
                   formatter={(value) => value !== undefined ? [`${Number(value).toFixed(2)}%`] : []}
                 />
                 <ReferenceLine y={0} stroke="hsl(var(--border))" strokeDasharray="3 3" />
-                <Legend
-                  wrapperStyle={{ fontSize: '10px' }}
-                  formatter={(value) => <span style={{ color: 'hsl(var(--muted-foreground))' }}>{value}</span>}
-                />
-                {n225Daily.map((series, i) => (
-                  <Line
-                    key={series.num}
-                    type="monotone"
-                    dataKey={`${series.num}回`}
-                    stroke={series.win ? `hsl(${120 + i * 15}, 70%, 50%)` : `hsl(0, 70%, 50%)`}
-                    strokeWidth={1.5}
-                    dot={false}
-                    opacity={0.7}
-                  />
-                ))}
+                {n225Daily
+                  .filter((series) => visibleElections.has(series.num))
+                  .map((series, i) => {
+                    const isSimilar = similarElections.includes(series.num);
+                    const colorIndex = similarElections.indexOf(series.num);
+                    // 類似選挙: 緑系で区別、その他: 青or赤
+                    const stroke = isSimilar
+                      ? `hsl(${140 + colorIndex * 30}, 70%, 50%)`
+                      : series.win
+                        ? 'hsl(200, 70%, 50%)'
+                        : 'hsl(0, 70%, 50%)';
+                    return (
+                      <Line
+                        key={series.num}
+                        type="monotone"
+                        dataKey={`${series.num}回`}
+                        stroke={stroke}
+                        strokeWidth={isSimilar ? 2.5 : 1.5}
+                        dot={false}
+                        opacity={isSimilar ? 1 : 0.6}
+                      />
+                    );
+                  })}
               </LineChart>
             </ResponsiveContainer>
+          </div>
+          {/* 凡例 */}
+          <div className="flex flex-wrap gap-4 mt-3 text-xs">
+            {n225Daily
+              .filter((series) => visibleElections.has(series.num))
+              .map((series) => {
+                const isSimilar = similarElections.includes(series.num);
+                const colorIndex = similarElections.indexOf(series.num);
+                const color = isSimilar
+                  ? `hsl(${140 + colorIndex * 30}, 70%, 50%)`
+                  : series.win
+                    ? 'hsl(200, 70%, 50%)'
+                    : 'hsl(0, 70%, 50%)';
+                const result = n225Results.find((r) => r.num === series.num);
+                return (
+                  <div key={series.num} className="flex items-center gap-1">
+                    <div className="w-4 h-0.5" style={{ backgroundColor: color }} />
+                    <span style={{ color }} className="font-medium">{series.num}回</span>
+                    <span className="text-muted-foreground">{result?.note}</span>
+                  </div>
+                );
+              })}
           </div>
         </Card>
 
