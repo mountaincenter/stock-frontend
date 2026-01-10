@@ -454,7 +454,7 @@ export default function DayTradeListPage() {
         <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 shadow-xl shadow-black/5 backdrop-blur-xl">
           <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
           <div className="relative overflow-x-auto">
-            <table className="w-full text-base">
+            <table className="w-full text-sm md:text-base">
               <thead>
                 <tr className="border-b border-border/40 bg-muted/30">
                   <th className="px-4 py-3 text-left text-foreground font-medium text-xs whitespace-nowrap">銘柄</th>

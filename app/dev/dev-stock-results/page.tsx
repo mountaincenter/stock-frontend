@@ -585,7 +585,7 @@ function StockResultsContent() {
 
                   {expandedKeys.has(group.key) && (
                     <div className="px-4 pb-4">
-                      <table className="w-full text-base">
+                      <table className="w-full text-sm md:text-base">
                         <thead>
                           <tr className="border-b border-border/30">
                             {view === 'bystock' && <th className="px-2 py-2 text-left text-muted-foreground font-medium">日付</th>}

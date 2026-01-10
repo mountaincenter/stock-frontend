@@ -1,0 +1,5201 @@
+{
+  "n225Summary": {
+    "wins": 11,
+    "total": 13,
+    "avgReturn": 2.88,
+    "maxReturn": 9.14,
+    "minReturn": -3.47
+  },
+  "n225Results": [
+    {
+      "num": 38,
+      "dissolution": "1986-06-02",
+      "election": "1986-07-04",
+      "days": 32,
+      "startPrice": 16739.27,
+      "endPrice": 17597.73,
+      "returnPct": 5.13,
+      "note": "中曽根ダブル選挙",
+      "win": true
+    },
+    {
+      "num": 39,
+      "dissolution": "1990-01-24",
+      "election": "1990-02-16",
+      "days": 23,
+      "startPrice": 36778.98,
+      "endPrice": 37460.32,
+      "returnPct": 1.85,
+      "note": "海部内閣",
+      "win": true
+    },
+    {
+      "num": 40,
+      "dissolution": "1993-06-18",
+      "election": "1993-07-16",
+      "days": 28,
+      "startPrice": 19804.54,
+      "endPrice": 20331.53,
+      "returnPct": 2.66,
+      "note": "宮澤内閣",
+      "win": true
+    },
+    {
+      "num": 41,
+      "dissolution": "1996-09-27",
+      "election": "1996-10-18",
+      "days": 21,
+      "startPrice": 21547.02,
+      "endPrice": 21612.3,
+      "returnPct": 0.3,
+      "note": "橋本内閣",
+      "win": true
+    },
+    {
+      "num": 42,
+      "dissolution": "2000-06-02",
+      "election": "2000-06-23",
+      "days": 21,
+      "startPrice": 16800.06,
+      "endPrice": 16963.21,
+      "returnPct": 0.97,
+      "note": "森内閣",
+      "win": true
+    },
+    {
+      "num": 43,
+      "dissolution": "2003-10-10",
+      "election": "2003-11-07",
+      "days": 28,
+      "startPrice": 10786.04,
+      "endPrice": 10628.98,
+      "returnPct": -1.46,
+      "note": "小泉内閣",
+      "win": false
+    },
+    {
+      "num": 44,
+      "dissolution": "2005-08-08",
+      "election": "2005-09-09",
+      "days": 32,
+      "startPrice": 11778.98,
+      "endPrice": 12692.04,
+      "returnPct": 7.75,
+      "note": "郵政選挙",
+      "win": true
+    },
+    {
+      "num": 45,
+      "dissolution": "2009-07-21",
+      "election": "2009-08-28",
+      "days": 38,
+      "startPrice": 9652.02,
+      "endPrice": 10534.14,
+      "returnPct": 9.14,
+      "note": "政権交代",
+      "win": true
+    },
+    {
+      "num": 46,
+      "dissolution": "2012-11-16",
+      "election": "2012-12-14",
+      "days": 28,
+      "startPrice": 9024.16,
+      "endPrice": 9737.56,
+      "returnPct": 7.91,
+      "note": "安倍政権復帰",
+      "win": true
+    },
+    {
+      "num": 47,
+      "dissolution": "2014-11-21",
+      "election": "2014-12-12",
+      "days": 21,
+      "startPrice": 17357.51,
+      "endPrice": 17371.58,
+      "returnPct": 0.08,
+      "note": "アベノミクス",
+      "win": true
+    },
+    {
+      "num": 48,
+      "dissolution": "2017-09-28",
+      "election": "2017-10-20",
+      "days": 22,
+      "startPrice": 20363.11,
+      "endPrice": 21457.64,
+      "returnPct": 5.38,
+      "note": "安倍内閣",
+      "win": true
+    },
+    {
+      "num": 49,
+      "dissolution": "2021-10-14",
+      "election": "2021-10-29",
+      "days": 15,
+      "startPrice": 28550.93,
+      "endPrice": 28892.69,
+      "returnPct": 1.2,
+      "note": "岸田内閣",
+      "win": true
+    },
+    {
+      "num": 50,
+      "dissolution": "2024-10-09",
+      "election": "2024-10-25",
+      "days": 16,
+      "startPrice": 39277.96,
+      "endPrice": 37913.92,
+      "returnPct": -3.47,
+      "note": "石破内閣",
+      "win": false
+    }
+  ],
+  "n225Daily": [
+    {
+      "num": 38,
+      "note": "中曽根ダブル選挙",
+      "win": true,
+      "data": [
+        0.0,
+        -0.42,
+        0.38,
+        0.43,
+        0.47,
+        1.61,
+        1.36,
+        2.13,
+        2.34,
+        2.79,
+        2.67,
+        2.01,
+        2.62,
+        3.22,
+        3.97,
+        4.29,
+        3.6,
+        4.64,
+        5.15,
+        4.55,
+        5.47,
+        5.28,
+        5.56,
+        5.69,
+        5.13,
+        5.82,
+        5.94,
+        4.58,
+        4.36,
+        5.56
+      ]
+    },
+    {
+      "num": 39,
+      "note": "海部内閣",
+      "win": true,
+      "data": [
+        0.0,
+        0.52,
+        0.26,
+        1.07,
+        1.19,
+        1.11,
+        1.16,
+        2.37,
+        2.32,
+        2.41,
+        1.42,
+        2.0,
+        1.38,
+        0.89,
+        1.02,
+        1.88,
+        1.85,
+        1.21,
+        0.32,
+        -2.84,
+        -2.59,
+        -5.13,
+        -9.4,
+        -7.83,
+        -5.95,
+        -8.02,
+        -7.4,
+        -7.98
+      ]
+    },
+    {
+      "num": 40,
+      "note": "宮澤内閣",
+      "win": true,
+      "data": [
+        0.0,
+        -2.99,
+        -1.34,
+        -1.58,
+        -0.6,
+        -0.73,
+        0.42,
+        -1.32,
+        -1.08,
+        0.61,
+        -0.92,
+        -0.92,
+        0.13,
+        -0.42,
+        -0.59,
+        0.37,
+        0.89,
+        1.9,
+        1.69,
+        1.78,
+        2.66,
+        1.75,
+        1.18,
+        1.4,
+        1.57,
+        -0.35,
+        0.09,
+        0.44,
+        0.13
+      ]
+    },
+    {
+      "num": 41,
+      "note": "橋本内閣",
+      "win": true,
+      "data": [
+        0.0,
+        0.04,
+        -0.39,
+        -0.22,
+        -1.0,
+        -1.85,
+        -1.79,
+        -2.36,
+        -3.14,
+        -2.69,
+        -2.4,
+        -0.54,
+        -0.7,
+        -0.57,
+        0.3,
+        -1.13,
+        -1.96,
+        -2.16,
+        -2.52,
+        -3.75,
+        -3.07,
+        -2.73,
+        -4.02,
+        -5.01,
+        -4.24,
+        -4.43,
+        -2.58
+      ]
+    },
+    {
+      "num": 42,
+      "note": "森内閣",
+      "win": true,
+      "data": [
+        0.0,
+        2.39,
+        2.2,
+        2.05,
+        1.22,
+        0.37,
+        1.07,
+        0.68,
+        -0.87,
+        -2.75,
+        -2.87,
+        -1.24,
+        0.64,
+        2.44,
+        1.82,
+        0.97,
+        0.75,
+        2.85,
+        3.39,
+        4.02,
+        3.64,
+        4.85,
+        3.99,
+        3.79,
+        2.87,
+        3.56,
+        4.6,
+        4.19,
+        3.23
+      ]
+    },
+    {
+      "num": 43,
+      "note": "小泉内閣",
+      "win": false,
+      "data": [
+        0.0,
+        1.67,
+        1.06,
+        2.22,
+        2.33,
+        3.48,
+        2.28,
+        0.96,
+        -4.18,
+        -4.18,
+        -3.08,
+        -2.09,
+        -0.43,
+        -0.84,
+        -2.1,
+        0.57,
+        0.48,
+        -2.17,
+        -1.46,
+        -2.61,
+        -5.37,
+        -5.19,
+        -4.16,
+        -5.74,
+        -9.26,
+        -8.24,
+        -10.86
+      ]
+    },
+    {
+      "num": 44,
+      "note": "郵政選挙",
+      "win": true,
+      "data": [
+        0.0,
+        1.03,
+        2.71,
+        4.11,
+        4.1,
+        4.05,
+        4.56,
+        4.2,
+        4.49,
+        4.35,
+        5.72,
+        5.89,
+        6.14,
+        5.32,
+        5.61,
+        4.51,
+        5.72,
+        5.39,
+        6.18,
+        6.97,
+        7.27,
+        6.97,
+        7.03,
+        6.41,
+        7.75,
+        9.49,
+        9.53,
+        8.96,
+        10.25,
+        10.02
+      ]
+    },
+    {
+      "num": 45,
+      "note": "政権交代",
+      "win": true,
+      "data": [
+        0.0,
+        0.74,
+        1.46,
+        3.03,
+        4.52,
+        4.51,
+        4.78,
+        5.32,
+        7.3,
+        7.26,
+        7.49,
+        6.22,
+        7.63,
+        7.87,
+        9.04,
+        9.67,
+        8.11,
+        8.96,
+        9.79,
+        6.39,
+        6.56,
+        5.72,
+        7.58,
+        6.07,
+        9.63,
+        8.76,
+        10.23,
+        8.52,
+        9.14
+      ]
+    },
+    {
+      "num": 46,
+      "note": "安倍政権復帰",
+      "win": true,
+      "data": [
+        0.0,
+        1.43,
+        1.31,
+        2.2,
+        3.8,
+        4.04,
+        4.42,
+        3.15,
+        4.17,
+        4.67,
+        4.81,
+        4.52,
+        4.93,
+        5.77,
+        5.58,
+        5.65,
+        5.55,
+        6.18,
+        7.96,
+        7.91,
+        8.92,
+        9.96,
+        12.59,
+        11.25,
+        10.15,
+        11.7,
+        13.37
+      ]
+    },
+    {
+      "num": 47,
+      "note": "アベノミクス",
+      "win": true,
+      "data": [
+        0.0,
+        0.29,
+        0.15,
+        -0.63,
+        0.59,
+        1.34,
+        1.76,
+        2.09,
+        3.05,
+        3.24,
+        3.33,
+        2.63,
+        0.32,
+        -0.58,
+        0.08,
+        -1.49,
+        -3.47,
+        -3.1,
+        -0.85,
+        1.52,
+        1.6,
+        2.86,
+        2.6,
+        2.66,
+        2.15,
+        0.54
+      ]
+    },
+    {
+      "num": 48,
+      "note": "安倍内閣",
+      "win": true,
+      "data": [
+        0.0,
+        -0.03,
+        0.18,
+        1.23,
+        1.29,
+        1.3,
+        1.61,
+        2.26,
+        2.54,
+        2.91,
+        3.89,
+        4.38,
+        4.78,
+        4.91,
+        5.33,
+        5.38,
+        6.55,
+        7.08,
+        6.6,
+        6.76,
+        8.08,
+        8.1,
+        8.1,
+        10.1,
+        10.69,
+        10.73,
+        12.64
+      ]
+    },
+    {
+      "num": 49,
+      "note": "岸田内閣",
+      "win": true,
+      "data": [
+        0.0,
+        1.81,
+        1.66,
+        2.33,
+        2.47,
+        0.55,
+        0.89,
+        0.17,
+        1.94,
+        1.92,
+        0.94,
+        1.2,
+        3.84,
+        3.4,
+        4.36,
+        3.71,
+        3.35,
+        2.57,
+        1.95,
+        2.55,
+        3.71,
+        4.29,
+        4.4,
+        3.98,
+        3.67,
+        4.19,
+        4.28
+      ]
+    },
+    {
+      "num": 50,
+      "note": "石破内閣",
+      "win": false,
+      "data": [
+        0.0,
+        0.26,
+        0.83,
+        1.61,
+        -0.25,
+        -0.93,
+        -0.75,
+        -0.82,
+        -2.2,
+        -2.99,
+        -2.89,
+        -3.47,
+        -1.71,
+        -0.95,
+        -0.0,
+        -0.5,
+        -3.12,
+        -2.04,
+        0.52,
+        0.26,
+        0.57,
+        0.65,
+        0.25,
+        -1.42,
+        -1.89,
+        -1.62,
+        -2.69
+      ]
+    }
+  ],
+  "correlations": [
+    {
+      "ticker": "9022.T",
+      "stockName": "JR東海",
+      "category": "政策銘柄",
+      "correlation": 0.928,
+      "avgReturn": 1.36,
+      "winRate": 50.0,
+      "latestClose": 4374.0,
+      "details": [
+        {
+          "num": 43,
+          "startPrice": 1555.6,
+          "endPrice": 1537.4,
+          "returnPct": -1.17,
+          "profit100": -1820.0
+        },
+        {
+          "num": 44,
+          "startPrice": 1362.2,
+          "endPrice": 1403.9,
+          "returnPct": 3.06,
+          "profit100": 4173.0
+        },
+        {
+          "num": 45,
+          "startPrice": 975.2,
+          "endPrice": 1078.6,
+          "returnPct": 10.6,
+          "profit100": 10338.0
+        },
+        {
+          "num": 46,
+          "startPrice": 1157.3,
+          "endPrice": 1220.6,
+          "returnPct": 5.47,
+          "profit100": 6329.0
+        },
+        {
+          "num": 47,
+          "startPrice": 3231.0,
+          "endPrice": 3108.4,
+          "returnPct": -3.79,
+          "profit100": -12257.0
+        },
+        {
+          "num": 48,
+          "startPrice": 3753.2,
+          "endPrice": 3909.2,
+          "returnPct": 4.16,
+          "profit100": 15603.0
+        },
+        {
+          "num": 49,
+          "startPrice": 3281.5,
+          "endPrice": 3268.9,
+          "returnPct": -0.38,
+          "profit100": -1257.0
+        },
+        {
+          "num": 50,
+          "startPrice": 3271.1,
+          "endPrice": 3039.3,
+          "returnPct": -7.09,
+          "profit100": -23188.0
+        }
+      ]
+    },
+    {
+      "ticker": "6758.T",
+      "stockName": "ソニーグループ",
+      "category": "Core30, 政策銘柄",
+      "correlation": 0.899,
+      "avgReturn": 2.97,
+      "winRate": 77.8,
+      "latestClose": 3876.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 1706.9,
+          "endPrice": 1657.1,
+          "returnPct": -2.92,
+          "profit100": -4976.0
+        },
+        {
+          "num": 43,
+          "startPrice": 672.2,
+          "endPrice": 673.9,
+          "returnPct": 0.25,
+          "profit100": 168.0
+        },
+        {
+          "num": 44,
+          "startPrice": 630.8,
+          "endPrice": 675.0,
+          "returnPct": 7.01,
+          "profit100": 4421.0
+        },
+        {
+          "num": 45,
+          "startPrice": 405.8,
+          "endPrice": 447.0,
+          "returnPct": 10.15,
+          "profit100": 4119.0
+        },
+        {
+          "num": 46,
+          "startPrice": 150.4,
+          "endPrice": 166.4,
+          "returnPct": 10.62,
+          "profit100": 1598.0
+        },
+        {
+          "num": 47,
+          "startPrice": 456.0,
+          "endPrice": 457.3,
+          "returnPct": 0.29,
+          "profit100": 131.0
+        },
+        {
+          "num": 48,
+          "startPrice": 784.0,
+          "endPrice": 806.3,
+          "returnPct": 2.84,
+          "profit100": 2226.0
+        },
+        {
+          "num": 49,
+          "startPrice": 2447.6,
+          "endPrice": 2561.6,
+          "returnPct": 4.66,
+          "profit100": 11405.0
+        },
+        {
+          "num": 50,
+          "startPrice": 2804.4,
+          "endPrice": 2630.4,
+          "returnPct": -6.21,
+          "profit100": -17403.0
+        }
+      ]
+    },
+    {
+      "ticker": "8031.T",
+      "stockName": "三井物産",
+      "category": "Core30",
+      "correlation": 0.898,
+      "avgReturn": 1.25,
+      "winRate": 44.4,
+      "latestClose": 4799.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 177.6,
+          "endPrice": 173.6,
+          "returnPct": -2.25,
+          "profit100": -399.0
+        },
+        {
+          "num": 43,
+          "startPrice": 212.7,
+          "endPrice": 206.1,
+          "returnPct": -3.1,
+          "profit100": -660.0
+        },
+        {
+          "num": 44,
+          "startPrice": 267.3,
+          "endPrice": 295.0,
+          "returnPct": 10.35,
+          "profit100": 2768.0
+        },
+        {
+          "num": 45,
+          "startPrice": 314.6,
+          "endPrice": 336.2,
+          "returnPct": 6.89,
+          "profit100": 2167.0
+        },
+        {
+          "num": 46,
+          "startPrice": 333.5,
+          "endPrice": 359.5,
+          "returnPct": 7.79,
+          "profit100": 2598.0
+        },
+        {
+          "num": 47,
+          "startPrice": 533.2,
+          "endPrice": 510.0,
+          "returnPct": -4.35,
+          "profit100": -2320.0
+        },
+        {
+          "num": 48,
+          "startPrice": 616.8,
+          "endPrice": 613.3,
+          "returnPct": -0.57,
+          "profit100": -352.0
+        },
+        {
+          "num": 49,
+          "startPrice": 1122.1,
+          "endPrice": 1135.4,
+          "returnPct": 1.19,
+          "profit100": 1336.0
+        },
+        {
+          "num": 50,
+          "startPrice": 3134.8,
+          "endPrice": 2988.4,
+          "returnPct": -4.67,
+          "profit100": -14637.0
+        }
+      ]
+    },
+    {
+      "ticker": "7963.T",
+      "stockName": "興研",
+      "category": "政策銘柄",
+      "correlation": 0.883,
+      "avgReturn": 4.54,
+      "winRate": 66.7,
+      "latestClose": 1961.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 285.7,
+          "endPrice": 288.7,
+          "returnPct": 1.08,
+          "profit100": 307.0
+        },
+        {
+          "num": 43,
+          "startPrice": 536.8,
+          "endPrice": 520.1,
+          "returnPct": -3.11,
+          "profit100": -1667.0
+        },
+        {
+          "num": 44,
+          "startPrice": 744.9,
+          "endPrice": 812.5,
+          "returnPct": 9.07,
+          "profit100": 6759.0
+        },
+        {
+          "num": 45,
+          "startPrice": 610.7,
+          "endPrice": 718.4,
+          "returnPct": 17.64,
+          "profit100": 10773.0
+        },
+        {
+          "num": 46,
+          "startPrice": 646.3,
+          "endPrice": 691.4,
+          "returnPct": 6.98,
+          "profit100": 4513.0
+        },
+        {
+          "num": 47,
+          "startPrice": 1428.8,
+          "endPrice": 1368.4,
+          "returnPct": -4.23,
+          "profit100": -6039.0
+        },
+        {
+          "num": 48,
+          "startPrice": 1606.7,
+          "endPrice": 1790.5,
+          "returnPct": 11.44,
+          "profit100": 18379.0
+        },
+        {
+          "num": 49,
+          "startPrice": 1627.4,
+          "endPrice": 1678.4,
+          "returnPct": 3.14,
+          "profit100": 5105.0
+        },
+        {
+          "num": 50,
+          "startPrice": 1486.4,
+          "endPrice": 1469.2,
+          "returnPct": -1.16,
+          "profit100": -1726.0
+        }
+      ]
+    },
+    {
+      "ticker": "7011.T",
+      "stockName": "三菱重工業",
+      "category": "Core30, 政策銘柄",
+      "correlation": 0.872,
+      "avgReturn": 2.87,
+      "winRate": 66.7,
+      "latestClose": 4267.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 260.1,
+          "endPrice": 269.6,
+          "returnPct": 3.63,
+          "profit100": 945.0
+        },
+        {
+          "num": 43,
+          "startPrice": 213.1,
+          "endPrice": 202.6,
+          "returnPct": -4.95,
+          "profit100": -1056.0
+        },
+        {
+          "num": 44,
+          "startPrice": 189.6,
+          "endPrice": 215.3,
+          "returnPct": 13.52,
+          "profit100": 2564.0
+        },
+        {
+          "num": 45,
+          "startPrice": 259.7,
+          "endPrice": 278.0,
+          "returnPct": 7.07,
+          "profit100": 1835.0
+        },
+        {
+          "num": 46,
+          "startPrice": 251.6,
+          "endPrice": 282.0,
+          "returnPct": 12.06,
+          "profit100": 3035.0
+        },
+        {
+          "num": 47,
+          "startPrice": 515.4,
+          "endPrice": 517.7,
+          "returnPct": 0.44,
+          "profit100": 229.0
+        },
+        {
+          "num": 48,
+          "startPrice": 364.3,
+          "endPrice": 371.7,
+          "returnPct": 2.03,
+          "profit100": 740.0
+        },
+        {
+          "num": 49,
+          "startPrice": 279.9,
+          "endPrice": 270.6,
+          "returnPct": -3.32,
+          "profit100": -930.0
+        },
+        {
+          "num": 50,
+          "startPrice": 2183.3,
+          "endPrice": 2081.6,
+          "returnPct": -4.66,
+          "profit100": -10172.0
+        }
+      ]
+    },
+    {
+      "ticker": "7013.T",
+      "stockName": "ＩＨＩ",
+      "category": "政策銘柄",
+      "correlation": 0.867,
+      "avgReturn": 3.9,
+      "winRate": 55.6,
+      "latestClose": 3235.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 185.0,
+          "endPrice": 183.0,
+          "returnPct": -1.08,
+          "profit100": -199.0
+        },
+        {
+          "num": 43,
+          "startPrice": 171.4,
+          "endPrice": 151.8,
+          "returnPct": -11.45,
+          "profit100": -1962.0
+        },
+        {
+          "num": 44,
+          "startPrice": 170.3,
+          "endPrice": 198.2,
+          "returnPct": 16.36,
+          "profit100": 2788.0
+        },
+        {
+          "num": 45,
+          "startPrice": 177.3,
+          "endPrice": 212.7,
+          "returnPct": 20.0,
+          "profit100": 3545.0
+        },
+        {
+          "num": 46,
+          "startPrice": 199.7,
+          "endPrice": 227.6,
+          "returnPct": 13.95,
+          "profit100": 2786.0
+        },
+        {
+          "num": 47,
+          "startPrice": 709.7,
+          "endPrice": 715.7,
+          "returnPct": 0.85,
+          "profit100": 602.0
+        },
+        {
+          "num": 48,
+          "startPrice": 471.7,
+          "endPrice": 477.9,
+          "returnPct": 1.3,
+          "profit100": 612.0
+        },
+        {
+          "num": 49,
+          "startPrice": 362.9,
+          "endPrice": 347.8,
+          "returnPct": -4.15,
+          "profit100": -1507.0
+        },
+        {
+          "num": 50,
+          "startPrice": 1105.1,
+          "endPrice": 1098.1,
+          "returnPct": -0.64,
+          "profit100": -707.0
+        }
+      ]
+    },
+    {
+      "ticker": "8354.T",
+      "stockName": "ふくおかフィナンシャルグループ",
+      "category": "政策銘柄",
+      "correlation": 0.855,
+      "avgReturn": 1.82,
+      "winRate": 50.0,
+      "latestClose": 5341.0,
+      "details": [
+        {
+          "num": 43,
+          "startPrice": 1525.8,
+          "endPrice": 1419.6,
+          "returnPct": -6.96,
+          "profit100": -10625.0
+        },
+        {
+          "num": 44,
+          "startPrice": 1856.4,
+          "endPrice": 2098.4,
+          "returnPct": 13.04,
+          "profit100": 24201.0
+        },
+        {
+          "num": 45,
+          "startPrice": 1192.4,
+          "endPrice": 1255.9,
+          "returnPct": 5.33,
+          "profit100": 6355.0
+        },
+        {
+          "num": 46,
+          "startPrice": 1033.6,
+          "endPrice": 1076.3,
+          "returnPct": 4.13,
+          "profit100": 4266.0
+        },
+        {
+          "num": 47,
+          "startPrice": 2229.8,
+          "endPrice": 2226.4,
+          "returnPct": -0.16,
+          "profit100": -346.0
+        },
+        {
+          "num": 48,
+          "startPrice": 1945.6,
+          "endPrice": 2031.8,
+          "returnPct": 4.43,
+          "profit100": 8622.0
+        },
+        {
+          "num": 49,
+          "startPrice": 1794.2,
+          "endPrice": 1773.4,
+          "returnPct": -1.16,
+          "profit100": -2079.0
+        },
+        {
+          "num": 50,
+          "startPrice": 3464.7,
+          "endPrice": 3323.8,
+          "returnPct": -4.07,
+          "profit100": -14091.0
+        }
+      ]
+    },
+    {
+      "ticker": "1766.T",
+      "stockName": "竹中工務店",
+      "category": "政策銘柄",
+      "correlation": 0.85,
+      "avgReturn": 4.55,
+      "winRate": 62.5,
+      "latestClose": 14890.0,
+      "details": [
+        {
+          "num": 43,
+          "startPrice": 1118.8,
+          "endPrice": 1045.7,
+          "returnPct": -6.54,
+          "profit100": -7317.0
+        },
+        {
+          "num": 44,
+          "startPrice": 2273.8,
+          "endPrice": 2536.2,
+          "returnPct": 11.54,
+          "profit100": 26236.0
+        },
+        {
+          "num": 45,
+          "startPrice": 1994.8,
+          "endPrice": 2301.4,
+          "returnPct": 15.37,
+          "profit100": 30663.0
+        },
+        {
+          "num": 46,
+          "startPrice": 2593.4,
+          "endPrice": 3268.2,
+          "returnPct": 26.02,
+          "profit100": 67475.0
+        },
+        {
+          "num": 47,
+          "startPrice": 4056.0,
+          "endPrice": 3799.1,
+          "returnPct": -6.33,
+          "profit100": -25690.0
+        },
+        {
+          "num": 48,
+          "startPrice": 10755.8,
+          "endPrice": 10763.9,
+          "returnPct": 0.08,
+          "profit100": 811.0
+        },
+        {
+          "num": 49,
+          "startPrice": 8292.0,
+          "endPrice": 8327.9,
+          "returnPct": 0.43,
+          "profit100": 3586.0
+        },
+        {
+          "num": 50,
+          "startPrice": 10711.4,
+          "endPrice": 10262.7,
+          "returnPct": -4.19,
+          "profit100": -44875.0
+        }
+      ]
+    },
+    {
+      "ticker": "4063.T",
+      "stockName": "信越化学工業",
+      "category": "Core30, 政策銘柄",
+      "correlation": 0.842,
+      "avgReturn": 4.19,
+      "winRate": 66.7,
+      "latestClose": 5114.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 738.5,
+          "endPrice": 682.6,
+          "returnPct": -7.56,
+          "profit100": -5586.0
+        },
+        {
+          "num": 43,
+          "startPrice": 614.2,
+          "endPrice": 583.9,
+          "returnPct": -4.93,
+          "profit100": -3030.0
+        },
+        {
+          "num": 44,
+          "startPrice": 578.3,
+          "endPrice": 636.5,
+          "returnPct": 10.07,
+          "profit100": 5824.0
+        },
+        {
+          "num": 45,
+          "startPrice": 659.2,
+          "endPrice": 803.6,
+          "returnPct": 21.9,
+          "profit100": 14439.0
+        },
+        {
+          "num": 46,
+          "startPrice": 719.2,
+          "endPrice": 769.5,
+          "returnPct": 7.0,
+          "profit100": 5036.0
+        },
+        {
+          "num": 47,
+          "startPrice": 1279.9,
+          "endPrice": 1329.6,
+          "returnPct": 3.88,
+          "profit100": 4971.0
+        },
+        {
+          "num": 48,
+          "startPrice": 1731.2,
+          "endPrice": 1864.7,
+          "returnPct": 7.71,
+          "profit100": 13349.0
+        },
+        {
+          "num": 49,
+          "startPrice": 3495.7,
+          "endPrice": 3694.5,
+          "returnPct": 5.69,
+          "profit100": 19881.0
+        },
+        {
+          "num": 50,
+          "startPrice": 5990.3,
+          "endPrice": 5629.6,
+          "returnPct": -6.02,
+          "profit100": -36065.0
+        }
+      ]
+    },
+    {
+      "ticker": "8766.T",
+      "stockName": "東京海上ホールディングス",
+      "category": "Core30",
+      "correlation": 0.817,
+      "avgReturn": 1.78,
+      "winRate": 55.6,
+      "latestClose": 5955.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": -0.2,
+          "endPrice": -0.1,
+          "returnPct": -1.33,
+          "profit100": 0.0
+        },
+        {
+          "num": 43,
+          "startPrice": 0.3,
+          "endPrice": 0.3,
+          "returnPct": -6.43,
+          "profit100": -2.0
+        },
+        {
+          "num": 44,
+          "startPrice": 3.4,
+          "endPrice": 3.7,
+          "returnPct": 6.0,
+          "profit100": 21.0
+        },
+        {
+          "num": 45,
+          "startPrice": 526.3,
+          "endPrice": 557.2,
+          "returnPct": 5.87,
+          "profit100": 3090.0
+        },
+        {
+          "num": 46,
+          "startPrice": 449.6,
+          "endPrice": 468.6,
+          "returnPct": 4.22,
+          "profit100": 1898.0
+        },
+        {
+          "num": 47,
+          "startPrice": 862.8,
+          "endPrice": 881.4,
+          "returnPct": 2.16,
+          "profit100": 1860.0
+        },
+        {
+          "num": 48,
+          "startPrice": 1093.9,
+          "endPrice": 1165.6,
+          "returnPct": 6.55,
+          "profit100": 7166.0
+        },
+        {
+          "num": 49,
+          "startPrice": 1753.6,
+          "endPrice": 1747.2,
+          "returnPct": -0.37,
+          "profit100": -641.0
+        },
+        {
+          "num": 50,
+          "startPrice": 5309.6,
+          "endPrice": 5273.8,
+          "returnPct": -0.67,
+          "profit100": -3584.0
+        }
+      ]
+    },
+    {
+      "ticker": "9005.T",
+      "stockName": "東急",
+      "category": "政策銘柄",
+      "correlation": 0.815,
+      "avgReturn": 2.53,
+      "winRate": 55.6,
+      "latestClose": 1844.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 724.5,
+          "endPrice": 684.0,
+          "returnPct": -5.6,
+          "profit100": -4059.0
+        },
+        {
+          "num": 43,
+          "startPrice": 792.9,
+          "endPrice": 769.6,
+          "returnPct": -2.94,
+          "profit100": -2327.0
+        },
+        {
+          "num": 44,
+          "startPrice": 738.4,
+          "endPrice": 858.3,
+          "returnPct": 16.24,
+          "profit100": 11991.0
+        },
+        {
+          "num": 45,
+          "startPrice": 710.2,
+          "endPrice": 756.0,
+          "returnPct": 6.45,
+          "profit100": 4582.0
+        },
+        {
+          "num": 46,
+          "startPrice": 706.2,
+          "endPrice": 749.6,
+          "returnPct": 6.14,
+          "profit100": 4338.0
+        },
+        {
+          "num": 47,
+          "startPrice": 1296.2,
+          "endPrice": 1259.0,
+          "returnPct": -2.87,
+          "profit100": -3724.0
+        },
+        {
+          "num": 48,
+          "startPrice": 1468.7,
+          "endPrice": 1561.9,
+          "returnPct": 6.35,
+          "profit100": 9328.0
+        },
+        {
+          "num": 49,
+          "startPrice": 1515.4,
+          "endPrice": 1533.6,
+          "returnPct": 1.2,
+          "profit100": 1819.0
+        },
+        {
+          "num": 50,
+          "startPrice": 1852.2,
+          "endPrice": 1810.8,
+          "returnPct": -2.23,
+          "profit100": -4138.0
+        }
+      ]
+    },
+    {
+      "ticker": "2802.T",
+      "stockName": "味の素",
+      "category": "政策銘柄",
+      "correlation": 0.802,
+      "avgReturn": 3.82,
+      "winRate": 66.7,
+      "latestClose": 3300.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 453.6,
+          "endPrice": 472.8,
+          "returnPct": 4.23,
+          "profit100": 1920.0
+        },
+        {
+          "num": 43,
+          "startPrice": 414.9,
+          "endPrice": 409.4,
+          "returnPct": -1.32,
+          "profit100": -549.0
+        },
+        {
+          "num": 44,
+          "startPrice": 420.5,
+          "endPrice": 439.1,
+          "returnPct": 4.42,
+          "profit100": 1859.0
+        },
+        {
+          "num": 45,
+          "startPrice": 311.8,
+          "endPrice": 370.7,
+          "returnPct": 18.89,
+          "profit100": 5890.0
+        },
+        {
+          "num": 46,
+          "startPrice": 452.1,
+          "endPrice": 477.1,
+          "returnPct": 5.53,
+          "profit100": 2500.0
+        },
+        {
+          "num": 47,
+          "startPrice": 985.8,
+          "endPrice": 978.1,
+          "returnPct": -0.78,
+          "profit100": -771.0
+        },
+        {
+          "num": 48,
+          "startPrice": 958.7,
+          "endPrice": 1002.9,
+          "returnPct": 4.61,
+          "profit100": 4415.0
+        },
+        {
+          "num": 49,
+          "startPrice": 1585.2,
+          "endPrice": 1610.2,
+          "returnPct": 1.58,
+          "profit100": 2506.0
+        },
+        {
+          "num": 50,
+          "startPrice": 2877.8,
+          "endPrice": 2798.8,
+          "returnPct": -2.75,
+          "profit100": -7903.0
+        }
+      ]
+    },
+    {
+      "ticker": "6954.T",
+      "stockName": "ファナック",
+      "category": "政策銘柄",
+      "correlation": 0.786,
+      "avgReturn": 2.19,
+      "winRate": 55.6,
+      "latestClose": 6448.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 1327.6,
+          "endPrice": 1344.7,
+          "returnPct": 1.29,
+          "profit100": 1712.0
+        },
+        {
+          "num": 43,
+          "startPrice": 947.6,
+          "endPrice": 933.0,
+          "returnPct": -1.55,
+          "profit100": -1466.0
+        },
+        {
+          "num": 44,
+          "startPrice": 1046.1,
+          "endPrice": 1112.0,
+          "returnPct": 6.3,
+          "profit100": 6589.0
+        },
+        {
+          "num": 45,
+          "startPrice": 1081.4,
+          "endPrice": 1104.2,
+          "returnPct": 2.11,
+          "profit100": 2286.0
+        },
+        {
+          "num": 46,
+          "startPrice": 2002.0,
+          "endPrice": 2252.1,
+          "returnPct": 12.49,
+          "profit100": 25007.0
+        },
+        {
+          "num": 47,
+          "startPrice": 3088.4,
+          "endPrice": 3062.4,
+          "returnPct": -0.84,
+          "profit100": -2604.0
+        },
+        {
+          "num": 48,
+          "startPrice": 3777.5,
+          "endPrice": 4137.4,
+          "returnPct": 9.53,
+          "profit100": 35995.0
+        },
+        {
+          "num": 49,
+          "startPrice": 4243.9,
+          "endPrice": 4077.6,
+          "returnPct": -3.92,
+          "profit100": -16632.0
+        },
+        {
+          "num": 50,
+          "startPrice": 4025.0,
+          "endPrice": 3797.4,
+          "returnPct": -5.66,
+          "profit100": -22763.0
+        }
+      ]
+    },
+    {
+      "ticker": "9021.T",
+      "stockName": "JR西日本",
+      "category": "政策銘柄",
+      "correlation": 0.776,
+      "avgReturn": -1.87,
+      "winRate": 44.4,
+      "latestClose": 3118.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 1405.0,
+          "endPrice": 1224.4,
+          "returnPct": -12.85,
+          "profit100": -18060.0
+        },
+        {
+          "num": 43,
+          "startPrice": 1386.7,
+          "endPrice": 1253.4,
+          "returnPct": -9.61,
+          "profit100": -13328.0
+        },
+        {
+          "num": 44,
+          "startPrice": 1201.8,
+          "endPrice": 1283.0,
+          "returnPct": 6.76,
+          "profit100": 8121.0
+        },
+        {
+          "num": 45,
+          "startPrice": 1056.9,
+          "endPrice": 1104.9,
+          "returnPct": 4.55,
+          "profit100": 4804.0
+        },
+        {
+          "num": 46,
+          "startPrice": 1246.1,
+          "endPrice": 1251.7,
+          "returnPct": 0.45,
+          "profit100": 563.0
+        },
+        {
+          "num": 47,
+          "startPrice": 2261.1,
+          "endPrice": 2198.6,
+          "returnPct": -2.76,
+          "profit100": -6245.0
+        },
+        {
+          "num": 48,
+          "startPrice": 3290.3,
+          "endPrice": 3392.1,
+          "returnPct": 3.09,
+          "profit100": 10179.0
+        },
+        {
+          "num": 49,
+          "startPrice": 2448.5,
+          "endPrice": 2433.1,
+          "returnPct": -0.63,
+          "profit100": -1543.0
+        },
+        {
+          "num": 50,
+          "startPrice": 2705.0,
+          "endPrice": 2546.7,
+          "returnPct": -5.85,
+          "profit100": -15832.0
+        }
+      ]
+    },
+    {
+      "ticker": "6503.T",
+      "stockName": "三菱電機",
+      "category": "Core30, 政策銘柄",
+      "correlation": 0.772,
+      "avgReturn": 6.54,
+      "winRate": 77.8,
+      "latestClose": 4735.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 731.9,
+          "endPrice": 811.1,
+          "returnPct": 10.82,
+          "profit100": 7918.0
+        },
+        {
+          "num": 43,
+          "startPrice": 330.9,
+          "endPrice": 335.7,
+          "returnPct": 1.44,
+          "profit100": 476.0
+        },
+        {
+          "num": 44,
+          "startPrice": 397.9,
+          "endPrice": 413.8,
+          "returnPct": 4.0,
+          "profit100": 1592.0
+        },
+        {
+          "num": 45,
+          "startPrice": 436.7,
+          "endPrice": 502.1,
+          "returnPct": 14.99,
+          "profit100": 6547.0
+        },
+        {
+          "num": 46,
+          "startPrice": 449.7,
+          "endPrice": 532.4,
+          "returnPct": 18.39,
+          "profit100": 8272.0
+        },
+        {
+          "num": 47,
+          "startPrice": 1085.4,
+          "endPrice": 1119.1,
+          "returnPct": 3.1,
+          "profit100": 3369.0
+        },
+        {
+          "num": 48,
+          "startPrice": 1429.4,
+          "endPrice": 1571.9,
+          "returnPct": 9.97,
+          "profit100": 14252.0
+        },
+        {
+          "num": 49,
+          "startPrice": 1391.0,
+          "endPrice": 1390.1,
+          "returnPct": -0.07,
+          "profit100": -91.0
+        },
+        {
+          "num": 50,
+          "startPrice": 2351.1,
+          "endPrice": 2263.1,
+          "returnPct": -3.74,
+          "profit100": -8801.0
+        }
+      ]
+    },
+    {
+      "ticker": "6702.T",
+      "stockName": "富士通",
+      "category": "政策銘柄",
+      "correlation": 0.768,
+      "avgReturn": 6.85,
+      "winRate": 66.7,
+      "latestClose": 4336.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 2335.5,
+          "endPrice": 2535.0,
+          "returnPct": 8.54,
+          "profit100": 19955.0
+        },
+        {
+          "num": 43,
+          "startPrice": 463.7,
+          "endPrice": 508.7,
+          "returnPct": 9.69,
+          "profit100": 4495.0
+        },
+        {
+          "num": 44,
+          "startPrice": 468.8,
+          "endPrice": 531.9,
+          "returnPct": 13.45,
+          "profit100": 6307.0
+        },
+        {
+          "num": 45,
+          "startPrice": 400.7,
+          "endPrice": 499.7,
+          "returnPct": 24.7,
+          "profit100": 9899.0
+        },
+        {
+          "num": 46,
+          "startPrice": 250.8,
+          "endPrice": 279.8,
+          "returnPct": 11.56,
+          "profit100": 2900.0
+        },
+        {
+          "num": 47,
+          "startPrice": 585.8,
+          "endPrice": 568.8,
+          "returnPct": -2.89,
+          "profit100": -1693.0
+        },
+        {
+          "num": 48,
+          "startPrice": 754.3,
+          "endPrice": 808.0,
+          "returnPct": 7.12,
+          "profit100": 5369.0
+        },
+        {
+          "num": 49,
+          "startPrice": 1971.3,
+          "endPrice": 1873.5,
+          "returnPct": -4.96,
+          "profit100": -9785.0
+        },
+        {
+          "num": 50,
+          "startPrice": 3124.7,
+          "endPrice": 2952.2,
+          "returnPct": -5.52,
+          "profit100": -17249.0
+        }
+      ]
+    },
+    {
+      "ticker": "7267.T",
+      "stockName": "本田技研工業",
+      "category": "Core30",
+      "correlation": 0.758,
+      "avgReturn": 1.7,
+      "winRate": 55.6,
+      "latestClose": 1572.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 338.2,
+          "endPrice": 310.2,
+          "returnPct": -8.27,
+          "profit100": -2795.0
+        },
+        {
+          "num": 43,
+          "startPrice": 406.7,
+          "endPrice": 411.3,
+          "returnPct": 1.13,
+          "profit100": 461.0
+        },
+        {
+          "num": 44,
+          "startPrice": 538.3,
+          "endPrice": 555.2,
+          "returnPct": 3.14,
+          "profit100": 1688.0
+        },
+        {
+          "num": 45,
+          "startPrice": 517.9,
+          "endPrice": 607.2,
+          "returnPct": 17.25,
+          "profit100": 8936.0
+        },
+        {
+          "num": 46,
+          "startPrice": 561.5,
+          "endPrice": 613.0,
+          "returnPct": 9.19,
+          "profit100": 5157.0
+        },
+        {
+          "num": 47,
+          "startPrice": 836.8,
+          "endPrice": 798.2,
+          "returnPct": -4.61,
+          "profit100": -3855.0
+        },
+        {
+          "num": 48,
+          "startPrice": 826.5,
+          "endPrice": 842.7,
+          "returnPct": 1.96,
+          "profit100": 1622.0
+        },
+        {
+          "num": 49,
+          "startPrice": 976.3,
+          "endPrice": 953.2,
+          "returnPct": -2.36,
+          "profit100": -2305.0
+        },
+        {
+          "num": 50,
+          "startPrice": 1484.6,
+          "endPrice": 1453.5,
+          "returnPct": -2.09,
+          "profit100": -3107.0
+        }
+      ]
+    },
+    {
+      "ticker": "8058.T",
+      "stockName": "三菱商事",
+      "category": "Core30, 政策銘柄",
+      "correlation": 0.753,
+      "avgReturn": 1.33,
+      "winRate": 55.6,
+      "latestClose": 3782.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 154.4,
+          "endPrice": 154.6,
+          "returnPct": 0.11,
+          "profit100": 17.0
+        },
+        {
+          "num": 43,
+          "startPrice": 189.3,
+          "endPrice": 191.5,
+          "returnPct": 1.18,
+          "profit100": 223.0
+        },
+        {
+          "num": 44,
+          "startPrice": 287.1,
+          "endPrice": 327.4,
+          "returnPct": 14.02,
+          "profit100": 4027.0
+        },
+        {
+          "num": 45,
+          "startPrice": 338.9,
+          "endPrice": 356.1,
+          "returnPct": 5.08,
+          "profit100": 1720.0
+        },
+        {
+          "num": 46,
+          "startPrice": 313.6,
+          "endPrice": 328.7,
+          "returnPct": 4.8,
+          "profit100": 1505.0
+        },
+        {
+          "num": 47,
+          "startPrice": 507.6,
+          "endPrice": 481.5,
+          "returnPct": -5.14,
+          "profit100": -2609.0
+        },
+        {
+          "num": 48,
+          "startPrice": 639.5,
+          "endPrice": 631.3,
+          "returnPct": -1.28,
+          "profit100": -820.0
+        },
+        {
+          "num": 49,
+          "startPrice": 1062.5,
+          "endPrice": 1055.2,
+          "returnPct": -0.69,
+          "profit100": -730.0
+        },
+        {
+          "num": 50,
+          "startPrice": 2848.9,
+          "endPrice": 2674.8,
+          "returnPct": -6.11,
+          "profit100": -17410.0
+        }
+      ]
+    },
+    {
+      "ticker": "6861.T",
+      "stockName": "キーエンス",
+      "category": "Core30",
+      "correlation": 0.751,
+      "avgReturn": 3.26,
+      "winRate": 75.0,
+      "latestClose": 57670.0,
+      "details": [
+        {
+          "num": 43,
+          "startPrice": 3382.9,
+          "endPrice": 3565.4,
+          "returnPct": 5.39,
+          "profit100": 18247.0
+        },
+        {
+          "num": 44,
+          "startPrice": 3685.2,
+          "endPrice": 3923.1,
+          "returnPct": 6.45,
+          "profit100": 23785.0
+        },
+        {
+          "num": 45,
+          "startPrice": 3807.7,
+          "endPrice": 4214.4,
+          "returnPct": 10.68,
+          "profit100": 40667.0
+        },
+        {
+          "num": 46,
+          "startPrice": 5219.7,
+          "endPrice": 5533.6,
+          "returnPct": 6.01,
+          "profit100": 31390.0
+        },
+        {
+          "num": 47,
+          "startPrice": 13279.5,
+          "endPrice": 12767.8,
+          "returnPct": -3.85,
+          "profit100": -51167.0
+        },
+        {
+          "num": 48,
+          "startPrice": 28501.7,
+          "endPrice": 29263.3,
+          "returnPct": 2.67,
+          "profit100": 76159.0
+        },
+        {
+          "num": 49,
+          "startPrice": 63857.7,
+          "endPrice": 66986.5,
+          "returnPct": 4.9,
+          "profit100": 312883.0
+        },
+        {
+          "num": 50,
+          "startPrice": 68546.4,
+          "endPrice": 64309.4,
+          "returnPct": -6.18,
+          "profit100": -423702.0
+        }
+      ]
+    },
+    {
+      "ticker": "8316.T",
+      "stockName": "三井住友フィナンシャルグループ",
+      "category": "Core30",
+      "correlation": 0.737,
+      "avgReturn": 1.75,
+      "winRate": 55.6,
+      "latestClose": 5253.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 1110.8,
+          "endPrice": 1068.9,
+          "returnPct": -3.77,
+          "profit100": -4185.0
+        },
+        {
+          "num": 43,
+          "startPrice": 1026.2,
+          "endPrice": 859.8,
+          "returnPct": -16.22,
+          "profit100": -16642.0
+        },
+        {
+          "num": 44,
+          "startPrice": 1204.0,
+          "endPrice": 1470.5,
+          "returnPct": 22.13,
+          "profit100": 26646.0
+        },
+        {
+          "num": 45,
+          "startPrice": 650.7,
+          "endPrice": 693.5,
+          "returnPct": 6.58,
+          "profit100": 4281.0
+        },
+        {
+          "num": 46,
+          "startPrice": 493.7,
+          "endPrice": 542.7,
+          "returnPct": 9.92,
+          "profit100": 4900.0
+        },
+        {
+          "num": 47,
+          "startPrice": 927.3,
+          "endPrice": 897.7,
+          "returnPct": -3.19,
+          "profit100": -2958.0
+        },
+        {
+          "num": 48,
+          "startPrice": 997.8,
+          "endPrice": 1015.6,
+          "returnPct": 1.79,
+          "profit100": 1783.0
+        },
+        {
+          "num": 49,
+          "startPrice": 1076.3,
+          "endPrice": 1052.6,
+          "returnPct": -2.21,
+          "profit100": -2376.0
+        },
+        {
+          "num": 50,
+          "startPrice": 2978.3,
+          "endPrice": 2999.5,
+          "returnPct": 0.71,
+          "profit100": 2127.0
+        }
+      ]
+    },
+    {
+      "ticker": "6367.T",
+      "stockName": "ダイキン工業",
+      "category": "Core30",
+      "correlation": 0.731,
+      "avgReturn": 4.84,
+      "winRate": 77.8,
+      "latestClose": 19330.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 1788.0,
+          "endPrice": 1768.8,
+          "returnPct": -1.07,
+          "profit100": -1914.0
+        },
+        {
+          "num": 43,
+          "startPrice": 1844.4,
+          "endPrice": 1938.2,
+          "returnPct": 5.08,
+          "profit100": 9378.0
+        },
+        {
+          "num": 44,
+          "startPrice": 2075.8,
+          "endPrice": 2352.1,
+          "returnPct": 13.31,
+          "profit100": 27625.0
+        },
+        {
+          "num": 45,
+          "startPrice": 2513.6,
+          "endPrice": 2742.1,
+          "returnPct": 9.09,
+          "profit100": 22851.0
+        },
+        {
+          "num": 46,
+          "startPrice": 2104.5,
+          "endPrice": 2327.8,
+          "returnPct": 10.61,
+          "profit100": 22329.0
+        },
+        {
+          "num": 47,
+          "startPrice": 6264.9,
+          "endPrice": 6871.3,
+          "returnPct": 9.68,
+          "profit100": 60642.0
+        },
+        {
+          "num": 48,
+          "startPrice": 10426.9,
+          "endPrice": 10872.5,
+          "returnPct": 4.27,
+          "profit100": 44563.0
+        },
+        {
+          "num": 49,
+          "startPrice": 23433.7,
+          "endPrice": 23575.8,
+          "returnPct": 0.61,
+          "profit100": 14208.0
+        },
+        {
+          "num": 50,
+          "startPrice": 19201.3,
+          "endPrice": 17659.3,
+          "returnPct": -8.03,
+          "profit100": -154200.0
+        }
+      ]
+    },
+    {
+      "ticker": "5020.T",
+      "stockName": "ENEOSホールディングス",
+      "category": "政策銘柄",
+      "correlation": 0.725,
+      "avgReturn": 1.78,
+      "winRate": 62.5,
+      "latestClose": 1171.0,
+      "details": [
+        {
+          "num": 43,
+          "startPrice": 303.2,
+          "endPrice": 311.6,
+          "returnPct": 2.79,
+          "profit100": 847.0
+        },
+        {
+          "num": 44,
+          "startPrice": 448.8,
+          "endPrice": 501.9,
+          "returnPct": 11.82,
+          "profit100": 5307.0
+        },
+        {
+          "num": 45,
+          "startPrice": 296.4,
+          "endPrice": 302.0,
+          "returnPct": 1.9,
+          "profit100": 565.0
+        },
+        {
+          "num": 46,
+          "startPrice": 248.8,
+          "endPrice": 279.5,
+          "returnPct": 12.32,
+          "profit100": 3064.0
+        },
+        {
+          "num": 47,
+          "startPrice": 295.8,
+          "endPrice": 283.5,
+          "returnPct": -4.14,
+          "profit100": -1225.0
+        },
+        {
+          "num": 48,
+          "startPrice": 419.5,
+          "endPrice": 414.8,
+          "returnPct": -1.14,
+          "profit100": -477.0
+        },
+        {
+          "num": 49,
+          "startPrice": 391.8,
+          "endPrice": 394.6,
+          "returnPct": 0.7,
+          "profit100": 275.0
+        },
+        {
+          "num": 50,
+          "startPrice": 817.6,
+          "endPrice": 735.5,
+          "returnPct": -10.04,
+          "profit100": -8205.0
+        }
+      ]
+    },
+    {
+      "ticker": "6946.T",
+      "stockName": "日本アビオニクス",
+      "category": "政策銘柄",
+      "correlation": 0.716,
+      "avgReturn": 5.74,
+      "winRate": 87.5,
+      "latestClose": 4850.0,
+      "details": [
+        {
+          "num": 43,
+          "startPrice": 384.7,
+          "endPrice": 396.0,
+          "returnPct": 2.96,
+          "profit100": 1137.0
+        },
+        {
+          "num": 44,
+          "startPrice": 792.1,
+          "endPrice": 862.2,
+          "returnPct": 8.85,
+          "profit100": 7011.0
+        },
+        {
+          "num": 45,
+          "startPrice": 359.6,
+          "endPrice": 440.6,
+          "returnPct": 22.53,
+          "profit100": 8101.0
+        },
+        {
+          "num": 46,
+          "startPrice": 181.8,
+          "endPrice": 197.6,
+          "returnPct": 8.7,
+          "profit100": 1581.0
+        },
+        {
+          "num": 47,
+          "startPrice": 432.7,
+          "endPrice": 436.7,
+          "returnPct": 0.91,
+          "profit100": 395.0
+        },
+        {
+          "num": 48,
+          "startPrice": 577.0,
+          "endPrice": 585.8,
+          "returnPct": 1.54,
+          "profit100": 889.0
+        },
+        {
+          "num": 49,
+          "startPrice": 471.2,
+          "endPrice": 539.4,
+          "returnPct": 14.47,
+          "profit100": 6817.0
+        },
+        {
+          "num": 50,
+          "startPrice": 2579.1,
+          "endPrice": 2215.9,
+          "returnPct": -14.08,
+          "profit100": -36317.0
+        }
+      ]
+    },
+    {
+      "ticker": "7203.T",
+      "stockName": "トヨタ自動車",
+      "category": "Core30",
+      "correlation": 0.716,
+      "avgReturn": 4.05,
+      "winRate": 88.9,
+      "latestClose": 3388.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 559.4,
+          "endPrice": 524.5,
+          "returnPct": -6.24,
+          "profit100": -3489.0
+        },
+        {
+          "num": 43,
+          "startPrice": 396.4,
+          "endPrice": 401.1,
+          "returnPct": 1.17,
+          "profit100": 465.0
+        },
+        {
+          "num": 44,
+          "startPrice": 499.4,
+          "endPrice": 549.4,
+          "returnPct": 10.0,
+          "profit100": 4994.0
+        },
+        {
+          "num": 45,
+          "startPrice": 466.9,
+          "endPrice": 521.1,
+          "returnPct": 11.6,
+          "profit100": 5418.0
+        },
+        {
+          "num": 46,
+          "startPrice": 452.2,
+          "endPrice": 489.6,
+          "returnPct": 8.27,
+          "profit100": 3740.0
+        },
+        {
+          "num": 47,
+          "startPrice": 1015.4,
+          "endPrice": 1074.3,
+          "returnPct": 5.8,
+          "profit100": 5887.0
+        },
+        {
+          "num": 48,
+          "startPrice": 1067.2,
+          "endPrice": 1103.4,
+          "returnPct": 3.4,
+          "profit100": 3626.0
+        },
+        {
+          "num": 49,
+          "startPrice": 1769.8,
+          "endPrice": 1788.5,
+          "returnPct": 1.06,
+          "profit100": 1872.0
+        },
+        {
+          "num": 50,
+          "startPrice": 2480.0,
+          "endPrice": 2515.3,
+          "returnPct": 1.42,
+          "profit100": 3531.0
+        }
+      ]
+    },
+    {
+      "ticker": "9984.T",
+      "stockName": "ソフトバンクグループ",
+      "category": "Core30, 政策銘柄",
+      "correlation": 0.707,
+      "avgReturn": 5.77,
+      "winRate": 55.6,
+      "latestClose": 4263.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 658.6,
+          "endPrice": 631.0,
+          "returnPct": -4.18,
+          "profit100": -2752.0
+        },
+        {
+          "num": 43,
+          "startPrice": 199.6,
+          "endPrice": 199.6,
+          "returnPct": 0.0,
+          "profit100": 0.0
+        },
+        {
+          "num": 44,
+          "startPrice": 162.4,
+          "endPrice": 216.6,
+          "returnPct": 33.41,
+          "profit100": 5425.0
+        },
+        {
+          "num": 45,
+          "startPrice": 202.1,
+          "endPrice": 233.0,
+          "returnPct": 15.3,
+          "profit100": 3091.0
+        },
+        {
+          "num": 46,
+          "startPrice": 322.0,
+          "endPrice": 337.0,
+          "returnPct": 4.64,
+          "profit100": 1495.0
+        },
+        {
+          "num": 47,
+          "startPrice": 907.8,
+          "endPrice": 854.9,
+          "returnPct": -5.83,
+          "profit100": -5291.0
+        },
+        {
+          "num": 48,
+          "startPrice": 1082.2,
+          "endPrice": 1183.9,
+          "returnPct": 9.4,
+          "profit100": 10174.0
+        },
+        {
+          "num": 49,
+          "startPrice": 1524.4,
+          "endPrice": 1503.0,
+          "returnPct": -1.41,
+          "profit100": -2146.0
+        },
+        {
+          "num": 50,
+          "startPrice": 2165.5,
+          "endPrice": 2179.2,
+          "returnPct": 0.63,
+          "profit100": 1370.0
+        }
+      ]
+    },
+    {
+      "ticker": "1605.T",
+      "stockName": "INPEX",
+      "category": "政策銘柄",
+      "correlation": 0.703,
+      "avgReturn": -2.34,
+      "winRate": 44.4,
+      "latestClose": 3120.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 358.9,
+          "endPrice": 365.5,
+          "returnPct": 1.85,
+          "profit100": 663.0
+        },
+        {
+          "num": 43,
+          "startPrice": 621.7,
+          "endPrice": 541.1,
+          "returnPct": -12.97,
+          "profit100": -8062.0
+        },
+        {
+          "num": 44,
+          "startPrice": 931.0,
+          "endPrice": 1025.9,
+          "returnPct": 10.2,
+          "profit100": 9497.0
+        },
+        {
+          "num": 45,
+          "startPrice": 1191.9,
+          "endPrice": 1219.6,
+          "returnPct": 2.32,
+          "profit100": 2768.0
+        },
+        {
+          "num": 46,
+          "startPrice": 757.6,
+          "endPrice": 766.9,
+          "returnPct": 1.23,
+          "profit100": 932.0
+        },
+        {
+          "num": 47,
+          "startPrice": 985.7,
+          "endPrice": 853.3,
+          "returnPct": -13.43,
+          "profit100": -13241.0
+        },
+        {
+          "num": 48,
+          "startPrice": 889.0,
+          "endPrice": 857.9,
+          "returnPct": -3.51,
+          "profit100": -3117.0
+        },
+        {
+          "num": 49,
+          "startPrice": 788.8,
+          "endPrice": 785.5,
+          "returnPct": -0.42,
+          "profit100": -330.0
+        },
+        {
+          "num": 50,
+          "startPrice": 1978.4,
+          "endPrice": 1853.5,
+          "returnPct": -6.31,
+          "profit100": -12488.0
+        }
+      ]
+    },
+    {
+      "ticker": "8411.T",
+      "stockName": "みずほフィナンシャルグループ",
+      "category": "Core30",
+      "correlation": 0.692,
+      "avgReturn": 2.81,
+      "winRate": 62.5,
+      "latestClose": 6195.0,
+      "details": [
+        {
+          "num": 43,
+          "startPrice": 1469.8,
+          "endPrice": 1151.9,
+          "returnPct": -21.63,
+          "profit100": -31793.0
+        },
+        {
+          "num": 44,
+          "startPrice": 2335.2,
+          "endPrice": 2862.9,
+          "returnPct": 22.6,
+          "profit100": 52775.0
+        },
+        {
+          "num": 45,
+          "startPrice": 998.2,
+          "endPrice": 1155.3,
+          "returnPct": 15.74,
+          "profit100": 15708.0
+        },
+        {
+          "num": 46,
+          "startPrice": 756.3,
+          "endPrice": 797.7,
+          "returnPct": 5.47,
+          "profit100": 4136.0
+        },
+        {
+          "num": 47,
+          "startPrice": 1284.9,
+          "endPrice": 1284.3,
+          "returnPct": -0.05,
+          "profit100": -63.0
+        },
+        {
+          "num": 48,
+          "startPrice": 1399.9,
+          "endPrice": 1402.0,
+          "returnPct": 0.15,
+          "profit100": 212.0
+        },
+        {
+          "num": 49,
+          "startPrice": 1311.0,
+          "endPrice": 1275.9,
+          "returnPct": -2.68,
+          "profit100": -3518.0
+        },
+        {
+          "num": 50,
+          "startPrice": 2907.0,
+          "endPrice": 2990.3,
+          "returnPct": 2.87,
+          "profit100": 8333.0
+        }
+      ]
+    },
+    {
+      "ticker": "4502.T",
+      "stockName": "武田薬品工業",
+      "category": "Core30",
+      "correlation": 0.684,
+      "avgReturn": 1.34,
+      "winRate": 44.4,
+      "latestClose": 5080.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 3034.1,
+          "endPrice": 2919.2,
+          "returnPct": -3.79,
+          "profit100": -11490.0
+        },
+        {
+          "num": 43,
+          "startPrice": 1803.8,
+          "endPrice": 1790.5,
+          "returnPct": -0.74,
+          "profit100": -1330.0
+        },
+        {
+          "num": 44,
+          "startPrice": 2552.4,
+          "endPrice": 2875.5,
+          "returnPct": 12.66,
+          "profit100": 32304.0
+        },
+        {
+          "num": 45,
+          "startPrice": 1865.7,
+          "endPrice": 1875.7,
+          "returnPct": 0.54,
+          "profit100": 1006.0
+        },
+        {
+          "num": 46,
+          "startPrice": 2160.3,
+          "endPrice": 2252.1,
+          "returnPct": 4.25,
+          "profit100": 9174.0
+        },
+        {
+          "num": 47,
+          "startPrice": 3167.3,
+          "endPrice": 3149.1,
+          "returnPct": -0.57,
+          "profit100": -1815.0
+        },
+        {
+          "num": 48,
+          "startPrice": 4293.5,
+          "endPrice": 4443.1,
+          "returnPct": 3.48,
+          "profit100": 14960.0
+        },
+        {
+          "num": 49,
+          "startPrice": 2698.4,
+          "endPrice": 2675.8,
+          "returnPct": -0.84,
+          "profit100": -2256.0
+        },
+        {
+          "num": 50,
+          "startPrice": 4044.0,
+          "endPrice": 3926.4,
+          "returnPct": -2.91,
+          "profit100": -11765.0
+        }
+      ]
+    },
+    {
+      "ticker": "7721.T",
+      "stockName": "東京計器",
+      "category": "政策銘柄",
+      "correlation": 0.633,
+      "avgReturn": 2.81,
+      "winRate": 50.0,
+      "latestClose": 6370.0,
+      "details": [
+        {
+          "num": 43,
+          "startPrice": 752.9,
+          "endPrice": 769.8,
+          "returnPct": 2.25,
+          "profit100": 1696.0
+        },
+        {
+          "num": 44,
+          "startPrice": 789.6,
+          "endPrice": 775.8,
+          "returnPct": -1.75,
+          "profit100": -1379.0
+        },
+        {
+          "num": 45,
+          "startPrice": 450.4,
+          "endPrice": 526.1,
+          "returnPct": 16.8,
+          "profit100": 7567.0
+        },
+        {
+          "num": 46,
+          "startPrice": 494.0,
+          "endPrice": 559.1,
+          "returnPct": 13.18,
+          "profit100": 6510.0
+        },
+        {
+          "num": 47,
+          "startPrice": 1079.6,
+          "endPrice": 1146.8,
+          "returnPct": 6.23,
+          "profit100": 6723.0
+        },
+        {
+          "num": 48,
+          "startPrice": 1316.6,
+          "endPrice": 1286.3,
+          "returnPct": -2.3,
+          "profit100": -3034.0
+        },
+        {
+          "num": 49,
+          "startPrice": 935.6,
+          "endPrice": 932.8,
+          "returnPct": -0.3,
+          "profit100": -279.0
+        },
+        {
+          "num": 50,
+          "startPrice": 3263.8,
+          "endPrice": 2884.4,
+          "returnPct": -11.62,
+          "profit100": -37937.0
+        }
+      ]
+    },
+    {
+      "ticker": "8331.T",
+      "stockName": "千葉銀行",
+      "category": "政策銘柄",
+      "correlation": 0.629,
+      "avgReturn": 0.45,
+      "winRate": 44.4,
+      "latestClose": 1887.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 271.4,
+          "endPrice": 275.0,
+          "returnPct": 1.33,
+          "profit100": 360.0
+        },
+        {
+          "num": 43,
+          "startPrice": 319.3,
+          "endPrice": 306.8,
+          "returnPct": -3.92,
+          "profit100": -1252.0
+        },
+        {
+          "num": 44,
+          "startPrice": 450.7,
+          "endPrice": 507.3,
+          "returnPct": 12.55,
+          "profit100": 5658.0
+        },
+        {
+          "num": 45,
+          "startPrice": 393.8,
+          "endPrice": 389.1,
+          "returnPct": -1.19,
+          "profit100": -468.0
+        },
+        {
+          "num": 46,
+          "startPrice": 340.9,
+          "endPrice": 353.2,
+          "returnPct": 3.59,
+          "profit100": 1225.0
+        },
+        {
+          "num": 47,
+          "startPrice": 601.9,
+          "endPrice": 578.0,
+          "returnPct": -3.97,
+          "profit100": -2389.0
+        },
+        {
+          "num": 48,
+          "startPrice": 638.3,
+          "endPrice": 647.8,
+          "returnPct": 1.49,
+          "profit100": 953.0
+        },
+        {
+          "num": 49,
+          "startPrice": 645.6,
+          "endPrice": 623.5,
+          "returnPct": -3.42,
+          "profit100": -2208.0
+        },
+        {
+          "num": 50,
+          "startPrice": 1096.1,
+          "endPrice": 1069.4,
+          "returnPct": -2.43,
+          "profit100": -2669.0
+        }
+      ]
+    },
+    {
+      "ticker": "1803.T",
+      "stockName": "清水建設",
+      "category": "政策銘柄",
+      "correlation": 0.626,
+      "avgReturn": 3.65,
+      "winRate": 55.6,
+      "latestClose": 2795.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 155.3,
+          "endPrice": 170.9,
+          "returnPct": 10.08,
+          "profit100": 1565.0
+        },
+        {
+          "num": 43,
+          "startPrice": 283.5,
+          "endPrice": 260.2,
+          "returnPct": -8.22,
+          "profit100": -2331.0
+        },
+        {
+          "num": 44,
+          "startPrice": 339.4,
+          "endPrice": 398.2,
+          "returnPct": 17.33,
+          "profit100": 5880.0
+        },
+        {
+          "num": 45,
+          "startPrice": 251.4,
+          "endPrice": 256.1,
+          "returnPct": 1.87,
+          "profit100": 469.0
+        },
+        {
+          "num": 46,
+          "startPrice": 179.0,
+          "endPrice": 201.3,
+          "returnPct": 12.5,
+          "profit100": 2237.0
+        },
+        {
+          "num": 47,
+          "startPrice": 604.1,
+          "endPrice": 596.7,
+          "returnPct": -1.23,
+          "profit100": -743.0
+        },
+        {
+          "num": 48,
+          "startPrice": 981.4,
+          "endPrice": 1008.9,
+          "returnPct": 2.8,
+          "profit100": 2750.0
+        },
+        {
+          "num": 49,
+          "startPrice": 764.6,
+          "endPrice": 749.3,
+          "returnPct": -2.0,
+          "profit100": -1529.0
+        },
+        {
+          "num": 50,
+          "startPrice": 960.4,
+          "endPrice": 957.6,
+          "returnPct": -0.29,
+          "profit100": -283.0
+        }
+      ]
+    },
+    {
+      "ticker": "9432.T",
+      "stockName": "ＮＴＴ",
+      "category": "Core30",
+      "correlation": 0.623,
+      "avgReturn": -0.29,
+      "winRate": 55.6,
+      "latestClose": 159.1,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 73.3,
+          "endPrice": 74.3,
+          "returnPct": 1.43,
+          "profit100": 105.0
+        },
+        {
+          "num": 43,
+          "startPrice": 28.9,
+          "endPrice": 24.5,
+          "returnPct": -14.98,
+          "profit100": -432.0
+        },
+        {
+          "num": 44,
+          "startPrice": 26.8,
+          "endPrice": 27.3,
+          "returnPct": 1.84,
+          "profit100": 49.0
+        },
+        {
+          "num": 45,
+          "startPrice": 22.1,
+          "endPrice": 23.8,
+          "returnPct": 7.47,
+          "profit100": 165.0
+        },
+        {
+          "num": 46,
+          "startPrice": 24.1,
+          "endPrice": 24.1,
+          "returnPct": 0.0,
+          "profit100": 0.0
+        },
+        {
+          "num": 47,
+          "startPrice": 45.3,
+          "endPrice": 44.5,
+          "returnPct": -1.88,
+          "profit100": -85.0
+        },
+        {
+          "num": 48,
+          "startPrice": 78.5,
+          "endPrice": 81.0,
+          "returnPct": 3.17,
+          "profit100": 249.0
+        },
+        {
+          "num": 49,
+          "startPrice": 109.3,
+          "endPrice": 112.3,
+          "returnPct": 2.74,
+          "profit100": 300.0
+        },
+        {
+          "num": 50,
+          "startPrice": 144.0,
+          "endPrice": 140.5,
+          "returnPct": -2.42,
+          "profit100": -348.0
+        }
+      ]
+    },
+    {
+      "ticker": "9433.T",
+      "stockName": "ＫＤＤＩ",
+      "category": "Core30",
+      "correlation": 0.607,
+      "avgReturn": -1.54,
+      "winRate": 33.3,
+      "latestClose": 2680.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 498.6,
+          "endPrice": 475.5,
+          "returnPct": -4.63,
+          "profit100": -2308.0
+        },
+        {
+          "num": 43,
+          "startPrice": 307.8,
+          "endPrice": 268.9,
+          "returnPct": -12.65,
+          "profit100": -3895.0
+        },
+        {
+          "num": 44,
+          "startPrice": 275.5,
+          "endPrice": 293.6,
+          "returnPct": 6.59,
+          "profit100": 1814.0
+        },
+        {
+          "num": 45,
+          "startPrice": 261.7,
+          "endPrice": 268.3,
+          "returnPct": 2.52,
+          "profit100": 659.0
+        },
+        {
+          "num": 46,
+          "startPrice": 338.5,
+          "endPrice": 328.4,
+          "returnPct": -2.98,
+          "profit100": -1007.0
+        },
+        {
+          "num": 47,
+          "startPrice": 903.0,
+          "endPrice": 894.8,
+          "returnPct": -0.91,
+          "profit100": -822.0
+        },
+        {
+          "num": 48,
+          "startPrice": 1125.8,
+          "endPrice": 1160.5,
+          "returnPct": 3.08,
+          "profit100": 3466.0
+        },
+        {
+          "num": 49,
+          "startPrice": 1615.7,
+          "endPrice": 1556.2,
+          "returnPct": -3.69,
+          "profit100": -5955.0
+        },
+        {
+          "num": 50,
+          "startPrice": 2315.2,
+          "endPrice": 2288.5,
+          "returnPct": -1.15,
+          "profit100": -2663.0
+        }
+      ]
+    },
+    {
+      "ticker": "7012.T",
+      "stockName": "川崎重工業",
+      "category": "政策銘柄",
+      "correlation": 0.586,
+      "avgReturn": 2.39,
+      "winRate": 57.1,
+      "latestClose": 12370.0,
+      "details": [
+        {
+          "num": 44,
+          "startPrice": 1570.0,
+          "endPrice": 1754.7,
+          "returnPct": 11.76,
+          "profit100": 18471.0
+        },
+        {
+          "num": 45,
+          "startPrice": 1836.1,
+          "endPrice": 1836.1,
+          "returnPct": 0.0,
+          "profit100": 0.0
+        },
+        {
+          "num": 46,
+          "startPrice": 1387.7,
+          "endPrice": 1590.4,
+          "returnPct": 14.61,
+          "profit100": 20270.0
+        },
+        {
+          "num": 47,
+          "startPrice": 4037.9,
+          "endPrice": 4467.7,
+          "returnPct": 10.64,
+          "profit100": 42974.0
+        },
+        {
+          "num": 48,
+          "startPrice": 3249.0,
+          "endPrice": 3379.7,
+          "returnPct": 4.02,
+          "profit100": 13066.0
+        },
+        {
+          "num": 49,
+          "startPrice": 2438.1,
+          "endPrice": 2121.6,
+          "returnPct": -12.98,
+          "profit100": -31649.0
+        },
+        {
+          "num": 50,
+          "startPrice": 6424.7,
+          "endPrice": 5696.6,
+          "returnPct": -11.33,
+          "profit100": -72807.0
+        }
+      ]
+    },
+    {
+      "ticker": "1812.T",
+      "stockName": "鹿島建設",
+      "category": "政策銘柄",
+      "correlation": 0.58,
+      "avgReturn": 2.46,
+      "winRate": 66.7,
+      "latestClose": 6177.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 286.7,
+          "endPrice": 317.4,
+          "returnPct": 10.69,
+          "profit100": 3064.0
+        },
+        {
+          "num": 43,
+          "startPrice": 507.3,
+          "endPrice": 445.4,
+          "returnPct": -12.21,
+          "profit100": -6196.0
+        },
+        {
+          "num": 44,
+          "startPrice": 469.8,
+          "endPrice": 544.9,
+          "returnPct": 15.99,
+          "profit100": 7512.0
+        },
+        {
+          "num": 45,
+          "startPrice": 332.9,
+          "endPrice": 336.7,
+          "returnPct": 1.15,
+          "profit100": 381.0
+        },
+        {
+          "num": 46,
+          "startPrice": 326.5,
+          "endPrice": 351.4,
+          "returnPct": 7.63,
+          "profit100": 2490.0
+        },
+        {
+          "num": 47,
+          "startPrice": 666.9,
+          "endPrice": 681.1,
+          "returnPct": 2.13,
+          "profit100": 1422.0
+        },
+        {
+          "num": 48,
+          "startPrice": 1662.1,
+          "endPrice": 1720.9,
+          "returnPct": 3.54,
+          "profit100": 5877.0
+        },
+        {
+          "num": 49,
+          "startPrice": 1260.9,
+          "endPrice": 1209.1,
+          "returnPct": -4.11,
+          "profit100": -5182.0
+        },
+        {
+          "num": 50,
+          "startPrice": 2594.5,
+          "endPrice": 2526.2,
+          "returnPct": -2.63,
+          "profit100": -6833.0
+        }
+      ]
+    },
+    {
+      "ticker": "1969.T",
+      "stockName": "高砂熱学工業",
+      "category": "政策銘柄",
+      "correlation": 0.572,
+      "avgReturn": -1.01,
+      "winRate": 50.0,
+      "latestClose": 4695.0,
+      "details": [
+        {
+          "num": 43,
+          "startPrice": 188.7,
+          "endPrice": 163.6,
+          "returnPct": -13.29,
+          "profit100": -2509.0
+        },
+        {
+          "num": 44,
+          "startPrice": 224.2,
+          "endPrice": 228.4,
+          "returnPct": 1.89,
+          "profit100": 423.0
+        },
+        {
+          "num": 45,
+          "startPrice": 260.7,
+          "endPrice": 255.8,
+          "returnPct": -1.89,
+          "profit100": -494.0
+        },
+        {
+          "num": 46,
+          "startPrice": 210.6,
+          "endPrice": 221.1,
+          "returnPct": 4.99,
+          "profit100": 1051.0
+        },
+        {
+          "num": 47,
+          "startPrice": 534.1,
+          "endPrice": 558.5,
+          "returnPct": 4.56,
+          "profit100": 2436.0
+        },
+        {
+          "num": 48,
+          "startPrice": 726.5,
+          "endPrice": 765.5,
+          "returnPct": 5.38,
+          "profit100": 3908.0
+        },
+        {
+          "num": 49,
+          "startPrice": 961.6,
+          "endPrice": 920.0,
+          "returnPct": -4.32,
+          "profit100": -4158.0
+        },
+        {
+          "num": 50,
+          "startPrice": 2430.7,
+          "endPrice": 2299.5,
+          "returnPct": -5.4,
+          "profit100": -13126.0
+        }
+      ]
+    },
+    {
+      "ticker": "9501.T",
+      "stockName": "東京電力ホールディングス",
+      "category": "政策銘柄",
+      "correlation": 0.559,
+      "avgReturn": 0.66,
+      "winRate": 55.6,
+      "latestClose": 718.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 2005.4,
+          "endPrice": 2107.6,
+          "returnPct": 5.1,
+          "profit100": 10223.0
+        },
+        {
+          "num": 43,
+          "startPrice": 2064.2,
+          "endPrice": 1936.2,
+          "returnPct": -6.2,
+          "profit100": -12795.0
+        },
+        {
+          "num": 44,
+          "startPrice": 2348.4,
+          "endPrice": 2414.7,
+          "returnPct": 2.82,
+          "profit100": 6634.0
+        },
+        {
+          "num": 45,
+          "startPrice": 2354.6,
+          "endPrice": 2316.1,
+          "returnPct": -1.64,
+          "profit100": -3852.0
+        },
+        {
+          "num": 46,
+          "startPrice": 126.0,
+          "endPrice": 152.0,
+          "returnPct": 20.63,
+          "profit100": 2600.0
+        },
+        {
+          "num": 47,
+          "startPrice": 444.0,
+          "endPrice": 463.0,
+          "returnPct": 4.28,
+          "profit100": 1900.0
+        },
+        {
+          "num": 48,
+          "startPrice": 456.0,
+          "endPrice": 466.0,
+          "returnPct": 2.19,
+          "profit100": 1000.0
+        },
+        {
+          "num": 49,
+          "startPrice": 356.0,
+          "endPrice": 315.0,
+          "returnPct": -11.52,
+          "profit100": -4100.0
+        },
+        {
+          "num": 50,
+          "startPrice": 657.4,
+          "endPrice": 593.6,
+          "returnPct": -9.7,
+          "profit100": -6380.0
+        }
+      ]
+    },
+    {
+      "ticker": "6506.T",
+      "stockName": "安川電機",
+      "category": "政策銘柄",
+      "correlation": 0.523,
+      "avgReturn": 8.68,
+      "winRate": 87.5,
+      "latestClose": 5026.0,
+      "details": [
+        {
+          "num": 43,
+          "startPrice": 516.8,
+          "endPrice": 590.0,
+          "returnPct": 14.16,
+          "profit100": 7316.0
+        },
+        {
+          "num": 44,
+          "startPrice": 568.5,
+          "endPrice": 686.9,
+          "returnPct": 20.83,
+          "profit100": 11843.0
+        },
+        {
+          "num": 45,
+          "startPrice": 543.4,
+          "endPrice": 559.0,
+          "returnPct": 2.87,
+          "profit100": 1562.0
+        },
+        {
+          "num": 46,
+          "startPrice": 527.7,
+          "endPrice": 612.0,
+          "returnPct": 15.99,
+          "profit100": 8439.0
+        },
+        {
+          "num": 47,
+          "startPrice": 1255.7,
+          "endPrice": 1379.2,
+          "returnPct": 9.83,
+          "profit100": 12348.0
+        },
+        {
+          "num": 48,
+          "startPrice": 3193.1,
+          "endPrice": 3649.9,
+          "returnPct": 14.31,
+          "profit100": 45680.0
+        },
+        {
+          "num": 49,
+          "startPrice": 4607.5,
+          "endPrice": 4650.0,
+          "returnPct": 0.92,
+          "profit100": 4253.0
+        },
+        {
+          "num": 50,
+          "startPrice": 4580.6,
+          "endPrice": 4146.1,
+          "returnPct": -9.49,
+          "profit100": -43452.0
+        }
+      ]
+    },
+    {
+      "ticker": "8001.T",
+      "stockName": "伊藤忠商事",
+      "category": "Core30, 政策銘柄",
+      "correlation": 0.517,
+      "avgReturn": 1.59,
+      "winRate": 44.4,
+      "latestClose": 2005.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 46.0,
+          "endPrice": 49.7,
+          "returnPct": 8.19,
+          "profit100": 376.0
+        },
+        {
+          "num": 43,
+          "startPrice": 41.0,
+          "endPrice": 39.1,
+          "returnPct": -4.4,
+          "profit100": -180.0
+        },
+        {
+          "num": 44,
+          "startPrice": 65.2,
+          "endPrice": 71.8,
+          "returnPct": 10.05,
+          "profit100": 655.0
+        },
+        {
+          "num": 45,
+          "startPrice": 77.7,
+          "endPrice": 76.2,
+          "returnPct": -1.93,
+          "profit100": -150.0
+        },
+        {
+          "num": 46,
+          "startPrice": 102.8,
+          "endPrice": 109.0,
+          "returnPct": 6.06,
+          "profit100": 623.0
+        },
+        {
+          "num": 47,
+          "startPrice": 184.5,
+          "endPrice": 181.2,
+          "returnPct": -1.77,
+          "profit100": -327.0
+        },
+        {
+          "num": 48,
+          "startPrice": 287.4,
+          "endPrice": 292.9,
+          "returnPct": 1.92,
+          "profit100": 551.0
+        },
+        {
+          "num": 49,
+          "startPrice": 580.6,
+          "endPrice": 577.6,
+          "returnPct": -0.52,
+          "profit100": -303.0
+        },
+        {
+          "num": 50,
+          "startPrice": 1504.0,
+          "endPrice": 1454.1,
+          "returnPct": -3.32,
+          "profit100": -4991.0
+        }
+      ]
+    },
+    {
+      "ticker": "6857.T",
+      "stockName": "アドバンテスト",
+      "category": "政策銘柄",
+      "correlation": 0.513,
+      "avgReturn": 9.06,
+      "winRate": 88.9,
+      "latestClose": 20255.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 2222.8,
+          "endPrice": 2185.4,
+          "returnPct": -1.68,
+          "profit100": -3744.0
+        },
+        {
+          "num": 43,
+          "startPrice": 735.6,
+          "endPrice": 827.1,
+          "returnPct": 12.44,
+          "profit100": 9147.0
+        },
+        {
+          "num": 44,
+          "startPrice": 852.6,
+          "endPrice": 864.2,
+          "returnPct": 1.35,
+          "profit100": 1155.0
+        },
+        {
+          "num": 45,
+          "startPrice": 359.1,
+          "endPrice": 466.9,
+          "returnPct": 30.04,
+          "profit100": 10788.0
+        },
+        {
+          "num": 46,
+          "startPrice": 219.9,
+          "endPrice": 244.3,
+          "returnPct": 11.07,
+          "profit100": 2435.0
+        },
+        {
+          "num": 47,
+          "startPrice": 296.9,
+          "endPrice": 317.8,
+          "returnPct": 7.03,
+          "profit100": 2088.0
+        },
+        {
+          "num": 48,
+          "startPrice": 464.3,
+          "endPrice": 532.4,
+          "returnPct": 14.67,
+          "profit100": 6810.0
+        },
+        {
+          "num": 49,
+          "startPrice": 2156.8,
+          "endPrice": 2248.4,
+          "returnPct": 4.25,
+          "profit100": 9158.0
+        },
+        {
+          "num": 50,
+          "startPrice": 7602.5,
+          "endPrice": 7782.7,
+          "returnPct": 2.37,
+          "profit100": 18014.0
+        }
+      ]
+    },
+    {
+      "ticker": "6501.T",
+      "stockName": "日立製作所",
+      "category": "Core30, 政策銘柄",
+      "correlation": 0.512,
+      "avgReturn": 6.09,
+      "winRate": 100.0,
+      "latestClose": 5135.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 927.1,
+          "endPrice": 994.1,
+          "returnPct": 7.23,
+          "profit100": 6700.0
+        },
+        {
+          "num": 43,
+          "startPrice": 439.0,
+          "endPrice": 483.6,
+          "returnPct": 10.16,
+          "profit100": 4460.0
+        },
+        {
+          "num": 44,
+          "startPrice": 484.9,
+          "endPrice": 497.7,
+          "returnPct": 2.65,
+          "profit100": 1283.0
+        },
+        {
+          "num": 45,
+          "startPrice": 211.4,
+          "endPrice": 244.3,
+          "returnPct": 15.55,
+          "profit100": 3287.0
+        },
+        {
+          "num": 46,
+          "startPrice": 340.6,
+          "endPrice": 370.5,
+          "returnPct": 8.76,
+          "profit100": 2983.0
+        },
+        {
+          "num": 47,
+          "startPrice": 719.3,
+          "endPrice": 725.7,
+          "returnPct": 0.9,
+          "profit100": 648.0
+        },
+        {
+          "num": 48,
+          "startPrice": 682.1,
+          "endPrice": 738.1,
+          "returnPct": 8.2,
+          "profit100": 5594.0
+        },
+        {
+          "num": 49,
+          "startPrice": 1225.6,
+          "endPrice": 1228.8,
+          "returnPct": 0.26,
+          "profit100": 319.0
+        },
+        {
+          "num": 50,
+          "startPrice": 3924.6,
+          "endPrice": 3966.1,
+          "returnPct": 1.06,
+          "profit100": 4151.0
+        }
+      ]
+    },
+    {
+      "ticker": "4307.T",
+      "stockName": "野村総合研究所",
+      "category": "政策銘柄",
+      "correlation": 0.507,
+      "avgReturn": 1.52,
+      "winRate": 75.0,
+      "latestClose": 6197.0,
+      "details": [
+        {
+          "num": 43,
+          "startPrice": 418.5,
+          "endPrice": 388.1,
+          "returnPct": -7.27,
+          "profit100": -3045.0
+        },
+        {
+          "num": 44,
+          "startPrice": 390.0,
+          "endPrice": 417.9,
+          "returnPct": 7.15,
+          "profit100": 2788.0
+        },
+        {
+          "num": 45,
+          "startPrice": 450.4,
+          "endPrice": 461.6,
+          "returnPct": 2.49,
+          "profit100": 1121.0
+        },
+        {
+          "num": 46,
+          "startPrice": 368.2,
+          "endPrice": 376.0,
+          "returnPct": 2.14,
+          "profit100": 789.0
+        },
+        {
+          "num": 47,
+          "startPrice": 855.6,
+          "endPrice": 888.3,
+          "returnPct": 3.83,
+          "profit100": 3273.0
+        },
+        {
+          "num": 48,
+          "startPrice": 1303.3,
+          "endPrice": 1310.9,
+          "returnPct": 0.58,
+          "profit100": 751.0
+        },
+        {
+          "num": 49,
+          "startPrice": 3915.7,
+          "endPrice": 4320.2,
+          "returnPct": 10.33,
+          "profit100": 40442.0
+        },
+        {
+          "num": 50,
+          "startPrice": 5116.7,
+          "endPrice": 4753.4,
+          "returnPct": -7.1,
+          "profit100": -36329.0
+        }
+      ]
+    },
+    {
+      "ticker": "9503.T",
+      "stockName": "関西電力",
+      "category": "政策銘柄",
+      "correlation": 0.502,
+      "avgReturn": 2.15,
+      "winRate": 55.6,
+      "latestClose": 2475.5,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 968.6,
+          "endPrice": 1007.8,
+          "returnPct": 4.05,
+          "profit100": 3922.0
+        },
+        {
+          "num": 43,
+          "startPrice": 1138.2,
+          "endPrice": 1119.9,
+          "returnPct": -1.61,
+          "profit100": -1836.0
+        },
+        {
+          "num": 44,
+          "startPrice": 1419.5,
+          "endPrice": 1465.6,
+          "returnPct": 3.25,
+          "profit100": 4609.0
+        },
+        {
+          "num": 45,
+          "startPrice": 1439.9,
+          "endPrice": 1419.9,
+          "returnPct": -1.39,
+          "profit100": -1995.0
+        },
+        {
+          "num": 46,
+          "startPrice": 519.4,
+          "endPrice": 576.2,
+          "returnPct": 10.92,
+          "profit100": 5673.0
+        },
+        {
+          "num": 47,
+          "startPrice": 897.4,
+          "endPrice": 954.5,
+          "returnPct": 6.36,
+          "profit100": 5710.0
+        },
+        {
+          "num": 48,
+          "startPrice": 1110.1,
+          "endPrice": 1177.6,
+          "returnPct": 6.08,
+          "profit100": 6753.0
+        },
+        {
+          "num": 49,
+          "startPrice": 943.6,
+          "endPrice": 924.2,
+          "returnPct": -2.06,
+          "profit100": -1940.0
+        },
+        {
+          "num": 50,
+          "startPrice": 2548.6,
+          "endPrice": 2388.4,
+          "returnPct": -6.28,
+          "profit100": -16014.0
+        }
+      ]
+    },
+    {
+      "ticker": "3382.T",
+      "stockName": "セブン＆アイ・ホールディングス",
+      "category": "Core30",
+      "correlation": 0.482,
+      "avgReturn": 9.33,
+      "winRate": 66.7,
+      "latestClose": 2270.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 451.3,
+          "endPrice": 460.0,
+          "returnPct": 1.94,
+          "profit100": 876.0
+        },
+        {
+          "num": 43,
+          "startPrice": 400.0,
+          "endPrice": 393.2,
+          "returnPct": -1.7,
+          "profit100": -679.0
+        },
+        {
+          "num": 44,
+          "startPrice": 451.3,
+          "endPrice": 795.2,
+          "returnPct": 76.21,
+          "profit100": 34392.0
+        },
+        {
+          "num": 45,
+          "startPrice": 509.2,
+          "endPrice": 521.4,
+          "returnPct": 2.39,
+          "profit100": 1219.0
+        },
+        {
+          "num": 46,
+          "startPrice": 587.0,
+          "endPrice": 612.3,
+          "returnPct": 4.31,
+          "profit100": 2531.0
+        },
+        {
+          "num": 47,
+          "startPrice": 1190.9,
+          "endPrice": 1136.4,
+          "returnPct": -4.57,
+          "profit100": -5447.0
+        },
+        {
+          "num": 48,
+          "startPrice": 1224.8,
+          "endPrice": 1322.1,
+          "returnPct": 7.94,
+          "profit100": 9731.0
+        },
+        {
+          "num": 49,
+          "startPrice": 1467.7,
+          "endPrice": 1474.8,
+          "returnPct": 0.48,
+          "profit100": 709.0
+        },
+        {
+          "num": 50,
+          "startPrice": 2285.9,
+          "endPrice": 2216.4,
+          "returnPct": -3.04,
+          "profit100": -6951.0
+        }
+      ]
+    },
+    {
+      "ticker": "9697.T",
+      "stockName": "カプコン",
+      "category": "政策銘柄",
+      "correlation": 0.481,
+      "avgReturn": 2.46,
+      "winRate": 62.5,
+      "latestClose": 3650.0,
+      "details": [
+        {
+          "num": 43,
+          "startPrice": 115.6,
+          "endPrice": 116.9,
+          "returnPct": 1.12,
+          "profit100": 130.0
+        },
+        {
+          "num": 44,
+          "startPrice": 94.3,
+          "endPrice": 98.7,
+          "returnPct": 4.62,
+          "profit100": 436.0
+        },
+        {
+          "num": 45,
+          "startPrice": 152.9,
+          "endPrice": 172.7,
+          "returnPct": 12.96,
+          "profit100": 1981.0
+        },
+        {
+          "num": 46,
+          "startPrice": 158.7,
+          "endPrice": 154.2,
+          "returnPct": -2.83,
+          "profit100": -449.0
+        },
+        {
+          "num": 47,
+          "startPrice": 189.1,
+          "endPrice": 194.9,
+          "returnPct": 3.05,
+          "profit100": 577.0
+        },
+        {
+          "num": 48,
+          "startPrice": 305.3,
+          "endPrice": 311.3,
+          "returnPct": 1.96,
+          "profit100": 599.0
+        },
+        {
+          "num": 49,
+          "startPrice": 1457.2,
+          "endPrice": 1452.5,
+          "returnPct": -0.33,
+          "profit100": -475.0
+        },
+        {
+          "num": 50,
+          "startPrice": 3187.7,
+          "endPrice": 3159.0,
+          "returnPct": -0.9,
+          "profit100": -2869.0
+        }
+      ]
+    },
+    {
+      "ticker": "2914.T",
+      "stockName": "日本たばこ産業",
+      "category": "Core30",
+      "correlation": 0.476,
+      "avgReturn": 0.65,
+      "winRate": 55.6,
+      "latestClose": 5777.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 357.4,
+          "endPrice": 391.0,
+          "returnPct": 9.39,
+          "profit100": 3358.0
+        },
+        {
+          "num": 43,
+          "startPrice": 350.0,
+          "endPrice": 348.6,
+          "returnPct": -0.39,
+          "profit100": -138.0
+        },
+        {
+          "num": 44,
+          "startPrice": 744.7,
+          "endPrice": 763.4,
+          "returnPct": 2.52,
+          "profit100": 1873.0
+        },
+        {
+          "num": 45,
+          "startPrice": 669.4,
+          "endPrice": 669.7,
+          "returnPct": 0.04,
+          "profit100": 24.0
+        },
+        {
+          "num": 46,
+          "startPrice": 1193.7,
+          "endPrice": 1277.0,
+          "returnPct": 6.98,
+          "profit100": 8334.0
+        },
+        {
+          "num": 47,
+          "startPrice": 2193.7,
+          "endPrice": 1960.1,
+          "returnPct": -10.65,
+          "profit100": -23359.0
+        },
+        {
+          "num": 48,
+          "startPrice": 2266.7,
+          "endPrice": 2374.7,
+          "returnPct": 4.77,
+          "profit100": 10805.0
+        },
+        {
+          "num": 49,
+          "startPrice": 1763.5,
+          "endPrice": 1733.7,
+          "returnPct": -1.69,
+          "profit100": -2986.0
+        },
+        {
+          "num": 50,
+          "startPrice": 4014.8,
+          "endPrice": 3808.0,
+          "returnPct": -5.15,
+          "profit100": -20674.0
+        }
+      ]
+    },
+    {
+      "ticker": "8035.T",
+      "stockName": "東京エレクトロン",
+      "category": "Core30, 政策銘柄",
+      "correlation": 0.471,
+      "avgReturn": 5.65,
+      "winRate": 77.8,
+      "latestClose": 37910.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 3257.3,
+          "endPrice": 3154.0,
+          "returnPct": -3.17,
+          "profit100": -10331.0
+        },
+        {
+          "num": 43,
+          "startPrice": 1612.0,
+          "endPrice": 1786.1,
+          "returnPct": 10.8,
+          "profit100": 17415.0
+        },
+        {
+          "num": 44,
+          "startPrice": 1330.2,
+          "endPrice": 1368.7,
+          "returnPct": 2.9,
+          "profit100": 3856.0
+        },
+        {
+          "num": 45,
+          "startPrice": 997.3,
+          "endPrice": 1138.2,
+          "returnPct": 14.13,
+          "profit100": 14087.0
+        },
+        {
+          "num": 46,
+          "startPrice": 845.8,
+          "endPrice": 909.6,
+          "returnPct": 7.54,
+          "profit100": 6379.0
+        },
+        {
+          "num": 47,
+          "startPrice": 1865.0,
+          "endPrice": 2044.5,
+          "returnPct": 9.62,
+          "profit100": 17941.0
+        },
+        {
+          "num": 48,
+          "startPrice": 4562.6,
+          "endPrice": 4977.5,
+          "returnPct": 9.09,
+          "profit100": 41490.0
+        },
+        {
+          "num": 49,
+          "startPrice": 14491.2,
+          "endPrice": 15915.7,
+          "returnPct": 9.83,
+          "profit100": 142443.0
+        },
+        {
+          "num": 50,
+          "startPrice": 25139.4,
+          "endPrice": 22651.8,
+          "returnPct": -9.9,
+          "profit100": -248760.0
+        }
+      ]
+    },
+    {
+      "ticker": "1802.T",
+      "stockName": "大林組",
+      "category": "政策銘柄",
+      "correlation": 0.454,
+      "avgReturn": 4.98,
+      "winRate": 77.8,
+      "latestClose": 3420.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 222.1,
+          "endPrice": 258.9,
+          "returnPct": 16.58,
+          "profit100": 3682.0
+        },
+        {
+          "num": 43,
+          "startPrice": 304.7,
+          "endPrice": 287.4,
+          "returnPct": -5.65,
+          "profit100": -1722.0
+        },
+        {
+          "num": 44,
+          "startPrice": 370.2,
+          "endPrice": 420.5,
+          "returnPct": 13.61,
+          "profit100": 5037.0
+        },
+        {
+          "num": 45,
+          "startPrice": 262.7,
+          "endPrice": 267.2,
+          "returnPct": 1.7,
+          "profit100": 447.0
+        },
+        {
+          "num": 46,
+          "startPrice": 261.3,
+          "endPrice": 296.5,
+          "returnPct": 13.46,
+          "profit100": 3516.0
+        },
+        {
+          "num": 47,
+          "startPrice": 539.4,
+          "endPrice": 521.0,
+          "returnPct": -3.42,
+          "profit100": -1843.0
+        },
+        {
+          "num": 48,
+          "startPrice": 1026.4,
+          "endPrice": 1073.8,
+          "returnPct": 4.63,
+          "profit100": 4747.0
+        },
+        {
+          "num": 49,
+          "startPrice": 805.3,
+          "endPrice": 813.8,
+          "returnPct": 1.05,
+          "profit100": 850.0
+        },
+        {
+          "num": 50,
+          "startPrice": 1765.1,
+          "endPrice": 1815.7,
+          "returnPct": 2.87,
+          "profit100": 5061.0
+        }
+      ]
+    },
+    {
+      "ticker": "8359.T",
+      "stockName": "八十二銀行",
+      "category": "政策銘柄",
+      "correlation": 0.451,
+      "avgReturn": -0.07,
+      "winRate": 25.0,
+      "latestClose": 1797.5,
+      "details": [
+        {
+          "num": 43,
+          "startPrice": 341.3,
+          "endPrice": 330.7,
+          "returnPct": -3.1,
+          "profit100": -1059.0
+        },
+        {
+          "num": 44,
+          "startPrice": 440.3,
+          "endPrice": 489.0,
+          "returnPct": 11.05,
+          "profit100": 4864.0
+        },
+        {
+          "num": 45,
+          "startPrice": 354.4,
+          "endPrice": 350.4,
+          "returnPct": -1.11,
+          "profit100": -394.0
+        },
+        {
+          "num": 46,
+          "startPrice": 282.6,
+          "endPrice": 283.3,
+          "returnPct": 0.24,
+          "profit100": 69.0
+        },
+        {
+          "num": 47,
+          "startPrice": 524.1,
+          "endPrice": 524.1,
+          "returnPct": 0.0,
+          "profit100": 0.0
+        },
+        {
+          "num": 48,
+          "startPrice": 545.7,
+          "endPrice": 531.9,
+          "returnPct": -2.54,
+          "profit100": -1383.0
+        },
+        {
+          "num": 49,
+          "startPrice": 342.6,
+          "endPrice": 330.4,
+          "returnPct": -3.54,
+          "profit100": -1214.0
+        },
+        {
+          "num": 50,
+          "startPrice": 810.1,
+          "endPrice": 797.3,
+          "returnPct": -1.59,
+          "profit100": -1289.0
+        }
+      ]
+    },
+    {
+      "ticker": "7974.T",
+      "stockName": "任天堂",
+      "category": "Core30",
+      "correlation": -0.448,
+      "avgReturn": -0.71,
+      "winRate": 62.5,
+      "latestClose": 10165.0,
+      "details": [
+        {
+          "num": 43,
+          "startPrice": 543.4,
+          "endPrice": 576.2,
+          "returnPct": 6.03,
+          "profit100": 3275.0
+        },
+        {
+          "num": 44,
+          "startPrice": 765.1,
+          "endPrice": 785.2,
+          "returnPct": 2.63,
+          "profit100": 2012.0
+        },
+        {
+          "num": 45,
+          "startPrice": 1862.8,
+          "endPrice": 1815.8,
+          "returnPct": -2.52,
+          "profit100": -4702.0
+        },
+        {
+          "num": 46,
+          "startPrice": 811.5,
+          "endPrice": 670.2,
+          "returnPct": -17.41,
+          "profit100": -14126.0
+        },
+        {
+          "num": 47,
+          "startPrice": 1013.8,
+          "endPrice": 1032.6,
+          "returnPct": 1.85,
+          "profit100": 1876.0
+        },
+        {
+          "num": 48,
+          "startPrice": 3373.8,
+          "endPrice": 3540.1,
+          "returnPct": 4.93,
+          "profit100": 16637.0
+        },
+        {
+          "num": 49,
+          "startPrice": 4673.9,
+          "endPrice": 4542.7,
+          "returnPct": -2.81,
+          "profit100": -13121.0
+        },
+        {
+          "num": 50,
+          "startPrice": 7791.0,
+          "endPrice": 7914.7,
+          "returnPct": 1.59,
+          "profit100": 12364.0
+        }
+      ]
+    },
+    {
+      "ticker": "6981.T",
+      "stockName": "村田製作所",
+      "category": "Core30",
+      "correlation": 0.423,
+      "avgReturn": 5.56,
+      "winRate": 87.5,
+      "latestClose": 3194.0,
+      "details": [
+        {
+          "num": 43,
+          "startPrice": 450.9,
+          "endPrice": 512.0,
+          "returnPct": 13.54,
+          "profit100": 6104.0
+        },
+        {
+          "num": 44,
+          "startPrice": 409.0,
+          "endPrice": 466.2,
+          "returnPct": 13.99,
+          "profit100": 5721.0
+        },
+        {
+          "num": 45,
+          "startPrice": 353.9,
+          "endPrice": 361.3,
+          "returnPct": 2.09,
+          "profit100": 739.0
+        },
+        {
+          "num": 46,
+          "startPrice": 375.7,
+          "endPrice": 429.4,
+          "returnPct": 14.27,
+          "profit100": 5362.0
+        },
+        {
+          "num": 47,
+          "startPrice": 1166.8,
+          "endPrice": 1172.2,
+          "returnPct": 0.47,
+          "profit100": 543.0
+        },
+        {
+          "num": 48,
+          "startPrice": 1563.1,
+          "endPrice": 1605.6,
+          "returnPct": 2.72,
+          "profit100": 4253.0
+        },
+        {
+          "num": 49,
+          "startPrice": 2626.8,
+          "endPrice": 2663.1,
+          "returnPct": 1.38,
+          "profit100": 3632.0
+        },
+        {
+          "num": 50,
+          "startPrice": 2804.8,
+          "endPrice": 2693.3,
+          "returnPct": -3.97,
+          "profit100": -11143.0
+        }
+      ]
+    },
+    {
+      "ticker": "6701.T",
+      "stockName": "ＮＥＣ",
+      "category": "政策銘柄",
+      "correlation": 0.412,
+      "avgReturn": 6.36,
+      "winRate": 77.8,
+      "latestClose": 5612.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 4276.2,
+          "endPrice": 4942.7,
+          "returnPct": 15.59,
+          "profit100": 66651.0
+        },
+        {
+          "num": 43,
+          "startPrice": 1361.9,
+          "endPrice": 1518.3,
+          "returnPct": 11.48,
+          "profit100": 15638.0
+        },
+        {
+          "num": 44,
+          "startPrice": 875.2,
+          "endPrice": 941.3,
+          "returnPct": 7.56,
+          "profit100": 6614.0
+        },
+        {
+          "num": 45,
+          "startPrice": 476.6,
+          "endPrice": 532.5,
+          "returnPct": 11.74,
+          "profit100": 5597.0
+        },
+        {
+          "num": 46,
+          "startPrice": 233.7,
+          "endPrice": 262.9,
+          "returnPct": 12.5,
+          "profit100": 2921.0
+        },
+        {
+          "num": 47,
+          "startPrice": 601.3,
+          "endPrice": 633.0,
+          "returnPct": 5.28,
+          "profit100": 3173.0
+        },
+        {
+          "num": 48,
+          "startPrice": 535.2,
+          "endPrice": 544.9,
+          "returnPct": 1.81,
+          "profit100": 970.0
+        },
+        {
+          "num": 49,
+          "startPrice": 1141.8,
+          "endPrice": 1098.4,
+          "returnPct": -3.8,
+          "profit100": -4341.0
+        },
+        {
+          "num": 50,
+          "startPrice": 2740.6,
+          "endPrice": 2605.6,
+          "returnPct": -4.92,
+          "profit100": -13494.0
+        }
+      ]
+    },
+    {
+      "ticker": "6762.T",
+      "stockName": "ＴＤＫ",
+      "category": "政策銘柄",
+      "correlation": 0.412,
+      "avgReturn": 8.32,
+      "winRate": 77.8,
+      "latestClose": 2141.5,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 664.7,
+          "endPrice": 657.0,
+          "returnPct": -1.15,
+          "profit100": -765.0
+        },
+        {
+          "num": 43,
+          "startPrice": 309.3,
+          "endPrice": 361.2,
+          "returnPct": 16.77,
+          "profit100": 5186.0
+        },
+        {
+          "num": 44,
+          "startPrice": 369.7,
+          "endPrice": 400.2,
+          "returnPct": 8.25,
+          "profit100": 3050.0
+        },
+        {
+          "num": 45,
+          "startPrice": 220.2,
+          "endPrice": 270.4,
+          "returnPct": 22.78,
+          "profit100": 5016.0
+        },
+        {
+          "num": 46,
+          "startPrice": 164.5,
+          "endPrice": 177.6,
+          "returnPct": 7.95,
+          "profit100": 1309.0
+        },
+        {
+          "num": 47,
+          "startPrice": 386.2,
+          "endPrice": 423.1,
+          "returnPct": 9.57,
+          "profit100": 3696.0
+        },
+        {
+          "num": 48,
+          "startPrice": 440.3,
+          "endPrice": 454.2,
+          "returnPct": 3.16,
+          "profit100": 1390.0
+        },
+        {
+          "num": 49,
+          "startPrice": 685.9,
+          "endPrice": 765.6,
+          "returnPct": 11.62,
+          "profit100": 7971.0
+        },
+        {
+          "num": 50,
+          "startPrice": 1882.0,
+          "endPrice": 1804.8,
+          "returnPct": -4.1,
+          "profit100": -7715.0
+        }
+      ]
+    },
+    {
+      "ticker": "9983.T",
+      "stockName": "ファーストリテイリング",
+      "category": "Core30",
+      "correlation": 0.37,
+      "avgReturn": 6.7,
+      "winRate": 55.6,
+      "latestClose": 62750.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 2972.6,
+          "endPrice": 2603.7,
+          "returnPct": -12.41,
+          "profit100": -36884.0
+        },
+        {
+          "num": 43,
+          "startPrice": 1535.6,
+          "endPrice": 1817.9,
+          "returnPct": 18.38,
+          "profit100": 28226.0
+        },
+        {
+          "num": 44,
+          "startPrice": 1699.2,
+          "endPrice": 2195.6,
+          "returnPct": 29.21,
+          "profit100": 49640.0
+        },
+        {
+          "num": 45,
+          "startPrice": 3247.8,
+          "endPrice": 3173.8,
+          "returnPct": -2.28,
+          "profit100": -7394.0
+        },
+        {
+          "num": 46,
+          "startPrice": 5092.0,
+          "endPrice": 5907.6,
+          "returnPct": 16.02,
+          "profit100": 81556.0
+        },
+        {
+          "num": 47,
+          "startPrice": 13025.5,
+          "endPrice": 12934.9,
+          "returnPct": -0.7,
+          "profit100": -9066.0
+        },
+        {
+          "num": 48,
+          "startPrice": 10304.9,
+          "endPrice": 11356.0,
+          "returnPct": 10.2,
+          "profit100": 105102.0
+        },
+        {
+          "num": 49,
+          "startPrice": 23383.9,
+          "endPrice": 24231.0,
+          "returnPct": 3.62,
+          "profit100": 84717.0
+        },
+        {
+          "num": 50,
+          "startPrice": 50169.8,
+          "endPrice": 49319.0,
+          "returnPct": -1.7,
+          "profit100": -85084.0
+        }
+      ]
+    },
+    {
+      "ticker": "7735.T",
+      "stockName": "SCREENホールディングス",
+      "category": "政策銘柄",
+      "correlation": 0.34,
+      "avgReturn": 5.58,
+      "winRate": 75.0,
+      "latestClose": 15850.0,
+      "details": [
+        {
+          "num": 43,
+          "startPrice": 1316.9,
+          "endPrice": 1486.0,
+          "returnPct": 12.85,
+          "profit100": 16917.0
+        },
+        {
+          "num": 44,
+          "startPrice": 1367.9,
+          "endPrice": 1509.3,
+          "returnPct": 10.34,
+          "profit100": 14144.0
+        },
+        {
+          "num": 45,
+          "startPrice": 619.1,
+          "endPrice": 641.4,
+          "returnPct": 3.59,
+          "profit100": 2226.0
+        },
+        {
+          "num": 46,
+          "startPrice": 942.4,
+          "endPrice": 1005.9,
+          "returnPct": 6.74,
+          "profit100": 6351.0
+        },
+        {
+          "num": 47,
+          "startPrice": 1577.1,
+          "endPrice": 1525.6,
+          "returnPct": -3.27,
+          "profit100": -5154.0
+        },
+        {
+          "num": 48,
+          "startPrice": 3306.0,
+          "endPrice": 3587.1,
+          "returnPct": 8.51,
+          "profit100": 28118.0
+        },
+        {
+          "num": 49,
+          "startPrice": 4085.0,
+          "endPrice": 4719.0,
+          "returnPct": 15.52,
+          "profit100": 63396.0
+        },
+        {
+          "num": 50,
+          "startPrice": 10262.7,
+          "endPrice": 9277.8,
+          "returnPct": -9.6,
+          "profit100": -98491.0
+        }
+      ]
+    },
+    {
+      "ticker": "9602.T",
+      "stockName": "東宝",
+      "category": "政策銘柄",
+      "correlation": 0.306,
+      "avgReturn": 0.41,
+      "winRate": 66.7,
+      "latestClose": 7800.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 1363.6,
+          "endPrice": 1314.9,
+          "returnPct": -3.58,
+          "profit100": -4875.0
+        },
+        {
+          "num": 43,
+          "startPrice": 1058.3,
+          "endPrice": 1064.5,
+          "returnPct": 0.59,
+          "profit100": 621.0
+        },
+        {
+          "num": 44,
+          "startPrice": 1298.7,
+          "endPrice": 1364.3,
+          "returnPct": 5.05,
+          "profit100": 6559.0
+        },
+        {
+          "num": 45,
+          "startPrice": 1297.7,
+          "endPrice": 1292.7,
+          "returnPct": -0.38,
+          "profit100": -495.0
+        },
+        {
+          "num": 46,
+          "startPrice": 1142.7,
+          "endPrice": 1191.4,
+          "returnPct": 4.27,
+          "profit100": 4875.0
+        },
+        {
+          "num": 47,
+          "startPrice": 2344.2,
+          "endPrice": 2359.9,
+          "returnPct": 0.67,
+          "profit100": 1571.0
+        },
+        {
+          "num": 48,
+          "startPrice": 3589.7,
+          "endPrice": 3454.0,
+          "returnPct": -3.78,
+          "profit100": -13563.0
+        },
+        {
+          "num": 49,
+          "startPrice": 5047.4,
+          "endPrice": 5075.9,
+          "returnPct": 0.56,
+          "profit100": 2846.0
+        },
+        {
+          "num": 50,
+          "startPrice": 5701.0,
+          "endPrice": 5716.8,
+          "returnPct": 0.28,
+          "profit100": 1582.0
+        }
+      ]
+    },
+    {
+      "ticker": "4568.T",
+      "stockName": "第一三共",
+      "category": "Core30",
+      "correlation": 0.305,
+      "avgReturn": 6.01,
+      "winRate": 44.4,
+      "latestClose": 3542.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 392.2,
+          "endPrice": 539.9,
+          "returnPct": 37.66,
+          "profit100": 14770.0
+        },
+        {
+          "num": 43,
+          "startPrice": 372.4,
+          "endPrice": 345.7,
+          "returnPct": -7.15,
+          "profit100": -2664.0
+        },
+        {
+          "num": 44,
+          "startPrice": 522.1,
+          "endPrice": 535.7,
+          "returnPct": 2.6,
+          "profit100": 1358.0
+        },
+        {
+          "num": 45,
+          "startPrice": 382.9,
+          "endPrice": 466.1,
+          "returnPct": 21.73,
+          "profit100": 8320.0
+        },
+        {
+          "num": 46,
+          "startPrice": 314.5,
+          "endPrice": 336.3,
+          "returnPct": 6.93,
+          "profit100": 2180.0
+        },
+        {
+          "num": 47,
+          "startPrice": 486.4,
+          "endPrice": 472.7,
+          "returnPct": -2.82,
+          "profit100": -1374.0
+        },
+        {
+          "num": 48,
+          "startPrice": 762.5,
+          "endPrice": 761.5,
+          "returnPct": -0.12,
+          "profit100": -91.0
+        },
+        {
+          "num": 49,
+          "startPrice": 2780.9,
+          "endPrice": 2730.4,
+          "returnPct": -1.82,
+          "profit100": -5047.0
+        },
+        {
+          "num": 50,
+          "startPrice": 4840.3,
+          "endPrice": 4699.1,
+          "returnPct": -2.92,
+          "profit100": -14118.0
+        }
+      ]
+    },
+    {
+      "ticker": "7741.T",
+      "stockName": "ＨＯＹＡ",
+      "category": "Core30",
+      "correlation": 0.277,
+      "avgReturn": 2.31,
+      "winRate": 75.0,
+      "latestClose": 24990.0,
+      "details": [
+        {
+          "num": 43,
+          "startPrice": 1478.7,
+          "endPrice": 1693.5,
+          "returnPct": 14.53,
+          "profit100": 21479.0
+        },
+        {
+          "num": 44,
+          "startPrice": 2324.1,
+          "endPrice": 2475.5,
+          "returnPct": 6.52,
+          "profit100": 15146.0
+        },
+        {
+          "num": 45,
+          "startPrice": 1533.9,
+          "endPrice": 1582.7,
+          "returnPct": 3.18,
+          "profit100": 4876.0
+        },
+        {
+          "num": 46,
+          "startPrice": 1320.1,
+          "endPrice": 1354.5,
+          "returnPct": 2.6,
+          "profit100": 3436.0
+        },
+        {
+          "num": 47,
+          "startPrice": 3777.3,
+          "endPrice": 3613.3,
+          "returnPct": -4.34,
+          "profit100": -16390.0
+        },
+        {
+          "num": 48,
+          "startPrice": 5698.7,
+          "endPrice": 5896.4,
+          "returnPct": 3.47,
+          "profit100": 19775.0
+        },
+        {
+          "num": 49,
+          "startPrice": 16136.5,
+          "endPrice": 16170.4,
+          "returnPct": 0.21,
+          "profit100": 3384.0
+        },
+        {
+          "num": 50,
+          "startPrice": 21125.7,
+          "endPrice": 19496.5,
+          "returnPct": -7.71,
+          "profit100": -162923.0
+        }
+      ]
+    },
+    {
+      "ticker": "4816.T",
+      "stockName": "東映アニメーション",
+      "category": "政策銘柄",
+      "correlation": 0.268,
+      "avgReturn": 2.03,
+      "winRate": 50.0,
+      "latestClose": 2788.0,
+      "details": [
+        {
+          "num": 43,
+          "startPrice": 129.8,
+          "endPrice": 130.8,
+          "returnPct": 0.74,
+          "profit100": 96.0
+        },
+        {
+          "num": 44,
+          "startPrice": 126.4,
+          "endPrice": 155.6,
+          "returnPct": 23.08,
+          "profit100": 2917.0
+        },
+        {
+          "num": 45,
+          "startPrice": 77.6,
+          "endPrice": 76.8,
+          "returnPct": -1.03,
+          "profit100": -80.0
+        },
+        {
+          "num": 46,
+          "startPrice": 106.7,
+          "endPrice": 110.6,
+          "returnPct": 3.64,
+          "profit100": 389.0
+        },
+        {
+          "num": 47,
+          "startPrice": 173.4,
+          "endPrice": 191.4,
+          "returnPct": 10.39,
+          "profit100": 1801.0
+        },
+        {
+          "num": 48,
+          "startPrice": 660.0,
+          "endPrice": 632.7,
+          "returnPct": -4.13,
+          "profit100": -2725.0
+        },
+        {
+          "num": 49,
+          "startPrice": 4049.7,
+          "endPrice": 3389.1,
+          "returnPct": -16.31,
+          "profit100": -66059.0
+        },
+        {
+          "num": 50,
+          "startPrice": 3149.3,
+          "endPrice": 3144.3,
+          "returnPct": -0.16,
+          "profit100": -494.0
+        }
+      ]
+    },
+    {
+      "ticker": "1801.T",
+      "stockName": "大成建設",
+      "category": "政策銘柄",
+      "correlation": 0.215,
+      "avgReturn": 5.83,
+      "winRate": 88.9,
+      "latestClose": 16090.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 408.2,
+          "endPrice": 464.5,
+          "returnPct": 13.79,
+          "profit100": 5630.0
+        },
+        {
+          "num": 43,
+          "startPrice": 1042.7,
+          "endPrice": 1124.3,
+          "returnPct": 7.83,
+          "profit100": 8160.0
+        },
+        {
+          "num": 44,
+          "startPrice": 1136.3,
+          "endPrice": 1274.8,
+          "returnPct": 12.2,
+          "profit100": 13857.0
+        },
+        {
+          "num": 45,
+          "startPrice": 679.6,
+          "endPrice": 686.2,
+          "returnPct": 0.97,
+          "profit100": 660.0
+        },
+        {
+          "num": 46,
+          "startPrice": 809.4,
+          "endPrice": 888.5,
+          "returnPct": 9.78,
+          "profit100": 7914.0
+        },
+        {
+          "num": 47,
+          "startPrice": 2274.2,
+          "endPrice": 2388.8,
+          "returnPct": 5.04,
+          "profit100": 11463.0
+        },
+        {
+          "num": 48,
+          "startPrice": 4569.0,
+          "endPrice": 4773.5,
+          "returnPct": 4.48,
+          "profit100": 20447.0
+        },
+        {
+          "num": 49,
+          "startPrice": 3243.5,
+          "endPrice": 3176.7,
+          "returnPct": -2.06,
+          "profit100": -6674.0
+        },
+        {
+          "num": 50,
+          "startPrice": 6036.2,
+          "endPrice": 6060.4,
+          "returnPct": 0.4,
+          "profit100": 2419.0
+        }
+      ]
+    },
+    {
+      "ticker": "9513.T",
+      "stockName": "電源開発",
+      "category": "政策銘柄",
+      "correlation": 0.202,
+      "avgReturn": -0.34,
+      "winRate": 42.9,
+      "latestClose": 3245.0,
+      "details": [
+        {
+          "num": 44,
+          "startPrice": 1317.6,
+          "endPrice": 1438.1,
+          "returnPct": 9.14,
+          "profit100": 12049.0
+        },
+        {
+          "num": 45,
+          "startPrice": 1687.3,
+          "endPrice": 1681.3,
+          "returnPct": -0.36,
+          "profit100": -600.0
+        },
+        {
+          "num": 46,
+          "startPrice": 1435.7,
+          "endPrice": 1357.5,
+          "returnPct": -5.45,
+          "profit100": -7821.0
+        },
+        {
+          "num": 47,
+          "startPrice": 2836.0,
+          "endPrice": 2790.8,
+          "returnPct": -1.59,
+          "profit100": -4518.0
+        },
+        {
+          "num": 48,
+          "startPrice": 2096.4,
+          "endPrice": 2115.0,
+          "returnPct": 0.89,
+          "profit100": 1860.0
+        },
+        {
+          "num": 49,
+          "startPrice": 1356.2,
+          "endPrice": 1277.2,
+          "returnPct": -5.83,
+          "profit100": -7908.0
+        },
+        {
+          "num": 50,
+          "startPrice": 2315.3,
+          "endPrice": 2333.6,
+          "returnPct": 0.79,
+          "profit100": 1831.0
+        }
+      ]
+    },
+    {
+      "ticker": "8136.T",
+      "stockName": "サンリオ",
+      "category": "政策銘柄",
+      "correlation": 0.201,
+      "avgReturn": -0.9,
+      "winRate": 50.0,
+      "latestClose": 5112.0,
+      "details": [
+        {
+          "num": 43,
+          "startPrice": 227.9,
+          "endPrice": 223.9,
+          "returnPct": -1.73,
+          "profit100": -394.0
+        },
+        {
+          "num": 44,
+          "startPrice": 263.6,
+          "endPrice": 295.6,
+          "returnPct": 12.14,
+          "profit100": 3201.0
+        },
+        {
+          "num": 45,
+          "startPrice": 212.0,
+          "endPrice": 212.5,
+          "returnPct": 0.24,
+          "profit100": 52.0
+        },
+        {
+          "num": 46,
+          "startPrice": 778.4,
+          "endPrice": 741.3,
+          "returnPct": -4.77,
+          "profit100": -3716.0
+        },
+        {
+          "num": 47,
+          "startPrice": 865.9,
+          "endPrice": 872.9,
+          "returnPct": 0.81,
+          "profit100": 698.0
+        },
+        {
+          "num": 48,
+          "startPrice": 651.6,
+          "endPrice": 581.9,
+          "returnPct": -10.7,
+          "profit100": -6973.0
+        },
+        {
+          "num": 49,
+          "startPrice": 809.9,
+          "endPrice": 820.9,
+          "returnPct": 1.35,
+          "profit100": 1097.0
+        },
+        {
+          "num": 50,
+          "startPrice": 4148.9,
+          "endPrice": 3961.6,
+          "returnPct": -4.51,
+          "profit100": -18728.0
+        }
+      ]
+    },
+    {
+      "ticker": "6723.T",
+      "stockName": "ルネサスエレクトロニクス",
+      "category": "政策銘柄",
+      "correlation": 0.187,
+      "avgReturn": 4.24,
+      "winRate": 87.5,
+      "latestClose": 2380.0,
+      "details": [
+        {
+          "num": 43,
+          "startPrice": 7885.7,
+          "endPrice": 8781.4,
+          "returnPct": 11.36,
+          "profit100": 89566.0
+        },
+        {
+          "num": 44,
+          "startPrice": 3628.6,
+          "endPrice": 3735.9,
+          "returnPct": 2.96,
+          "profit100": 10730.0
+        },
+        {
+          "num": 45,
+          "startPrice": 847.6,
+          "endPrice": 893.5,
+          "returnPct": 5.41,
+          "profit100": 4585.0
+        },
+        {
+          "num": 46,
+          "startPrice": 281.9,
+          "endPrice": 292.6,
+          "returnPct": 3.81,
+          "profit100": 1073.0
+        },
+        {
+          "num": 47,
+          "startPrice": 796.9,
+          "endPrice": 823.3,
+          "returnPct": 3.3,
+          "profit100": 2634.0
+        },
+        {
+          "num": 48,
+          "startPrice": 1186.1,
+          "endPrice": 1248.5,
+          "returnPct": 5.26,
+          "profit100": 6243.0
+        },
+        {
+          "num": 49,
+          "startPrice": 1272.0,
+          "endPrice": 1367.6,
+          "returnPct": 7.52,
+          "profit100": 9559.0
+        },
+        {
+          "num": 50,
+          "startPrice": 2106.5,
+          "endPrice": 1987.2,
+          "returnPct": -5.66,
+          "profit100": -11933.0
+        }
+      ]
+    },
+    {
+      "ticker": "5631.T",
+      "stockName": "日本製鋼所",
+      "category": "政策銘柄",
+      "correlation": 0.128,
+      "avgReturn": 2.84,
+      "winRate": 44.4,
+      "latestClose": 8629.0,
+      "details": [
+        {
+          "num": 42,
+          "startPrice": 371.9,
+          "endPrice": 404.4,
+          "returnPct": 8.74,
+          "profit100": 3250.0
+        },
+        {
+          "num": 43,
+          "startPrice": 465.8,
+          "endPrice": 455.0,
+          "returnPct": -2.33,
+          "profit100": -1083.0
+        },
+        {
+          "num": 44,
+          "startPrice": 1195.1,
+          "endPrice": 1420.8,
+          "returnPct": 18.89,
+          "profit100": 22570.0
+        },
+        {
+          "num": 45,
+          "startPrice": 4722.3,
+          "endPrice": 4409.5,
+          "returnPct": -6.62,
+          "profit100": -31278.0
+        },
+        {
+          "num": 46,
+          "startPrice": 2068.4,
+          "endPrice": 1922.7,
+          "returnPct": -7.05,
+          "profit100": -14572.0
+        },
+        {
+          "num": 47,
+          "startPrice": 1737.7,
+          "endPrice": 1683.7,
+          "returnPct": -3.1,
+          "profit100": -5391.0
+        },
+        {
+          "num": 48,
+          "startPrice": 2239.3,
+          "endPrice": 2444.8,
+          "returnPct": 9.17,
+          "profit100": 20545.0
+        },
+        {
+          "num": 49,
+          "startPrice": 2757.4,
+          "endPrice": 3106.7,
+          "returnPct": 12.67,
+          "profit100": 34933.0
+        },
+        {
+          "num": 50,
+          "startPrice": 5523.7,
+          "endPrice": 5256.3,
+          "returnPct": -4.84,
+          "profit100": -26740.0
+        }
+      ]
+    }
+  ],
+  "pickBalanced": [
+    "7963.T",
+    "1766.T",
+    "4063.T",
+    "6503.T",
+    "6702.T",
+    "6367.T",
+    "6946.T",
+    "7203.T",
+    "9984.T"
+  ],
+  "pickHighCorr": [
+    "9022.T",
+    "6758.T",
+    "8031.T",
+    "7963.T",
+    "7011.T",
+    "7013.T",
+    "8354.T"
+  ],
+  "generatedAt": "2026-01-11T04:02:48.478915"
+}
