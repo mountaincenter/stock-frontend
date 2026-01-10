@@ -12,6 +12,11 @@ interface Stats {
   p2: number;
   win1: number;
   win2: number;
+  // 4区分用
+  me?: number;
+  ae?: number;
+  winMe?: number;
+  winAe?: number;
 }
 
 interface PeriodStats {
@@ -27,6 +32,11 @@ interface PriceRangeStats {
   p2: number;
   win1: number;
   win2: number;
+  // 4区分用
+  me?: number;
+  ae?: number;
+  winMe?: number;
+  winAe?: number;
 }
 
 interface SeidoData {
@@ -36,6 +46,9 @@ interface SeidoData {
   p2Total: number;
   priceRanges: PriceRangeStats[];
   position: string;
+  // 4区分用
+  meTotal?: number;
+  aeTotal?: number;
 }
 
 interface IchinichiData {
@@ -45,6 +58,9 @@ interface IchinichiData {
   p2Total: { all: number; ex0: number };
   priceRanges: { all: PriceRangeStats[]; ex0: PriceRangeStats[] };
   position: string;
+  // 4区分用
+  meTotal?: { all: number; ex0: number };
+  aeTotal?: { all: number; ex0: number };
 }
 
 interface WeekdayData {
@@ -64,6 +80,11 @@ interface Stock {
   p2: number;
   win1: boolean;
   win2: boolean;
+  // 4区分用
+  me?: number;
+  ae?: number;
+  winMe?: boolean;
+  winAe?: boolean;
 }
 
 interface DailyDetail {
@@ -73,6 +94,9 @@ interface DailyDetail {
   p2: { all: number; ex0: number };
   stocks: Stock[];
   position: string;
+  // 4区分用
+  me?: { all: number; ex0: number };
+  ae?: { all: number; ex0: number };
 }
 
 interface Meta {
@@ -80,6 +104,7 @@ interface Meta {
   dateRange: { start: string; end: string };
   totalRecords: number;
   mode: string;
+  segments?: number;
 }
 
 interface StrategyData {
@@ -144,6 +169,11 @@ interface DetailStock {
   win1: boolean;
   win2: boolean;
   position: string;
+  // 4区分用
+  me?: number;
+  ae?: number;
+  winMe?: boolean;
+  winAe?: boolean;
 }
 
 interface DetailGroup {
@@ -152,6 +182,9 @@ interface DetailGroup {
   p1: { all: number; ex0: number };
   p2: { all: number; ex0: number };
   stocks: DetailStock[];
+  // 4区分用
+  me?: { all: number; ex0: number };
+  ae?: { all: number; ex0: number };
 }
 
 interface DetailResponse {
@@ -172,24 +205,47 @@ const formatProfit = (val: number) => {
   return `${sign}${val.toLocaleString()}`;
 };
 
-// Compare classes for phase1 vs phase2
-const getCompareClasses = (p1: number, p2: number): [string, string] => {
-  if (p1 >= 0 && p2 >= 0) {
-    if (p1 > p2) return ['text-emerald-400', 'text-foreground'];
-    if (p2 > p1) return ['text-foreground', 'text-emerald-400'];
-    // p1 = p2 かつプラス → 大引を緑
-    return ['text-foreground', 'text-emerald-400'];
-  } else if (p1 < 0 && p2 < 0) {
-    if (Math.abs(p1) > Math.abs(p2)) return ['text-rose-400', 'text-foreground'];
-    if (Math.abs(p2) > Math.abs(p1)) return ['text-foreground', 'text-rose-400'];
-    // p1 = p2 かつマイナス → 両方赤
-    return ['text-rose-400', 'text-rose-400'];
-  } else {
-    return [
-      p1 > 0 ? 'text-emerald-400' : 'text-rose-400',
-      p2 > 0 ? 'text-emerald-400' : 'text-rose-400',
-    ];
+// 4区分の色分けルール
+// 1. 全部プラス: 最大値を緑、他を白
+// 2. 全部マイナス: 最小値（絶対値最大）を赤、他を白
+// 3. プラス3,マイナス1: プラス最大値を緑、マイナスを赤、他を白
+// 4. プラス2,マイナス2: プラス最大値を緑、マイナス最小値を赤、他を白
+// 5. プラス1,マイナス3: プラスを緑、マイナス最小値を赤、他を白
+const getQuadrantClasses = (me: number, p1: number, ae: number, p2: number): [string, string, string, string] => {
+  const values = [me, p1, ae, p2];
+  const positives = values.filter(v => v > 0);
+  const negatives = values.filter(v => v < 0);
+
+  const WHITE = 'text-foreground';
+  const GREEN = 'text-emerald-400';
+  const RED = 'text-rose-400';
+
+  // 全部プラス
+  if (positives.length === 4) {
+    const maxVal = Math.max(...values);
+    return values.map(v => v === maxVal ? GREEN : WHITE) as [string, string, string, string];
   }
+
+  // 全部マイナス
+  if (negatives.length === 4) {
+    const minVal = Math.min(...values); // 最もマイナスが大きい
+    return values.map(v => v === minVal ? RED : WHITE) as [string, string, string, string];
+  }
+
+  // 全部ゼロ
+  if (positives.length === 0 && negatives.length === 0) {
+    return [WHITE, WHITE, WHITE, WHITE];
+  }
+
+  // 混在: プラス最大値を緑、マイナス最小値を赤、他を白
+  const maxPositive = positives.length > 0 ? Math.max(...positives) : null;
+  const minNegative = negatives.length > 0 ? Math.min(...negatives) : null;
+
+  return values.map(v => {
+    if (v > 0 && v === maxPositive) return GREEN;
+    if (v < 0 && v === minNegative) return RED;
+    return WHITE;
+  }) as [string, string, string, string];
 };
 
 function AnalysisContent() {
@@ -211,7 +267,7 @@ function AnalysisContent() {
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
   useEffect(() => {
-    fetch(`${API_BASE}/dev/analysis/day-trade-summary`)
+    fetch(`${API_BASE}/dev/analysis/day-trade-summary?segments=4`)
       .then(res => res.json())
       .then(json => {
         setData(json);
@@ -229,7 +285,7 @@ function AnalysisContent() {
     setExpandedDays(new Set()); // リセット
     try {
       const modeParam = strategy === 'weekdayStrategy' ? 'weekday_strategy' : strategy;
-      const params = new URLSearchParams({ view, mode: modeParam });
+      const params = new URLSearchParams({ view, mode: modeParam, segments: '4' });
       if (strategy === 'weekdayStrategy') {
         params.set('mon', weekdayPositions[0]);
         params.set('tue', weekdayPositions[1]);
@@ -270,6 +326,7 @@ function AnalysisContent() {
         wed: positions[2],
         thu: positions[3],
         fri: positions[4],
+        segments: '4',
       });
       const res = await fetch(`${API_BASE}/dev/analysis/custom-weekday?${params}`);
       const json = await res.json();
@@ -432,34 +489,34 @@ function AnalysisContent() {
           ))}
         </div>
 
-        {/* Top Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        {/* Top Cards - 5カード (総件数 + 4区分) */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
           {/* 総件数 */}
           <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-5 shadow-lg shadow-black/5 backdrop-blur-xl">
             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
             <div className="relative">
               <div className="flex items-center mb-2">
-                <span className="text-muted-foreground text-xs">総件数</span>
+                <span className="text-muted-foreground text-sm">総件数</span>
                 <div className="flex gap-1 ml-auto">
                   <button
                     onClick={() => setTopFilter('all')}
-                    className={`px-2 py-0.5 text-[10px] rounded border transition-colors ${
+                    className={`px-2 py-0.5 text-xs rounded border transition-colors ${
                       topFilter === 'all'
                         ? 'bg-primary text-primary-foreground border-primary'
                         : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
                     }`}
                   >
-                    全数
+                    全
                   </button>
                   <button
                     onClick={() => setTopFilter('ex0')}
-                    className={`px-2 py-0.5 text-[10px] rounded border transition-colors ${
+                    className={`px-2 py-0.5 text-xs rounded border transition-colors ${
                       topFilter === 'ex0'
                         ? 'bg-primary text-primary-foreground border-primary'
                         : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
                     }`}
                   >
-                    除0株
+                    除0
                   </button>
                 </div>
               </div>
@@ -470,93 +527,91 @@ function AnalysisContent() {
             </div>
           </div>
 
-          {/* 前場引け */}
-          <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-5 shadow-lg shadow-black/5 backdrop-blur-xl">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
-            <div className="relative">
-              <div className="flex items-center mb-2">
-                <span className="text-muted-foreground text-xs">前場引け</span>
-                <div className="flex gap-1 ml-auto">
-                  <button
-                    onClick={() => setTopFilter('all')}
-                    className={`px-2 py-0.5 text-[10px] rounded border transition-colors ${
-                      topFilter === 'all'
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
-                    }`}
-                  >
-                    全数
-                  </button>
-                  <button
-                    onClick={() => setTopFilter('ex0')}
-                    className={`px-2 py-0.5 text-[10px] rounded border transition-colors ${
-                      topFilter === 'ex0'
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
-                    }`}
-                  >
-                    除0株
-                  </button>
+          {(() => {
+            const [meClass, p1Class, aeClass, p2Class] = getQuadrantClasses(stats.me ?? 0, stats.p1, stats.ae ?? 0, stats.p2);
+            return (
+              <>
+                {/* 前場前半 (10:25) */}
+                <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-5 shadow-lg shadow-black/5 backdrop-blur-xl">
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+                  <div className="relative">
+                    <div className="flex items-center mb-2">
+                      <span className="text-muted-foreground text-sm">前場前半</span>
+                      <span className="text-muted-foreground text-xs ml-1">(10:25)</span>
+                    </div>
+                    <div className={`text-2xl font-bold text-right tabular-nums whitespace-nowrap ${meClass}`}>
+                      {formatProfit(stats.me ?? 0)}円
+                    </div>
+                    <div className={`text-xs text-right mt-1 ${winrateClass(stats.winMe ?? 0)}`}>
+                      勝率 {Math.round(stats.winMe ?? 0)}%
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className={`text-2xl font-bold text-right tabular-nums whitespace-nowrap ${profitClass(stats.p1)}`}>
-                {formatProfit(stats.p1)}円
-              </div>
-              <div className={`text-xs text-right mt-1 ${winrateClass(stats.win1)}`}>
-                勝率 {Math.round(stats.win1)}%
-              </div>
-            </div>
-          </div>
 
-          {/* 大引け */}
-          <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-5 shadow-lg shadow-black/5 backdrop-blur-xl">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
-            <div className="relative">
-              <div className="flex items-center mb-2">
-                <span className="text-muted-foreground text-xs">大引け</span>
-                <div className="flex gap-1 ml-auto">
-                  <button
-                    onClick={() => setTopFilter('all')}
-                    className={`px-2 py-0.5 text-[10px] rounded border transition-colors ${
-                      topFilter === 'all'
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
-                    }`}
-                  >
-                    全数
-                  </button>
-                  <button
-                    onClick={() => setTopFilter('ex0')}
-                    className={`px-2 py-0.5 text-[10px] rounded border transition-colors ${
-                      topFilter === 'ex0'
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
-                    }`}
-                  >
-                    除0株
-                  </button>
+                {/* 前場引け (11:30) */}
+                <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-5 shadow-lg shadow-black/5 backdrop-blur-xl">
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+                  <div className="relative">
+                    <div className="flex items-center mb-2">
+                      <span className="text-muted-foreground text-sm">前場引け</span>
+                      <span className="text-muted-foreground text-xs ml-1">(11:30)</span>
+                    </div>
+                    <div className={`text-2xl font-bold text-right tabular-nums whitespace-nowrap ${p1Class}`}>
+                      {formatProfit(stats.p1)}円
+                    </div>
+                    <div className={`text-xs text-right mt-1 ${winrateClass(stats.win1)}`}>
+                      勝率 {Math.round(stats.win1)}%
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className={`text-2xl font-bold text-right tabular-nums whitespace-nowrap ${profitClass(stats.p2)}`}>
-                {formatProfit(stats.p2)}円
-              </div>
-              <div className={`text-xs text-right mt-1 ${winrateClass(stats.win2)}`}>
-                勝率 {Math.round(stats.win2)}%
-              </div>
-            </div>
-          </div>
+
+                {/* 後場前半 (13:55) */}
+                <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-5 shadow-lg shadow-black/5 backdrop-blur-xl">
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+                  <div className="relative">
+                    <div className="flex items-center mb-2">
+                      <span className="text-muted-foreground text-sm">後場前半</span>
+                      <span className="text-muted-foreground text-xs ml-1">(13:55)</span>
+                    </div>
+                    <div className={`text-2xl font-bold text-right tabular-nums whitespace-nowrap ${aeClass}`}>
+                      {formatProfit(stats.ae ?? 0)}円
+                    </div>
+                    <div className={`text-xs text-right mt-1 ${winrateClass(stats.winAe ?? 0)}`}>
+                      勝率 {Math.round(stats.winAe ?? 0)}%
+                    </div>
+                  </div>
+                </div>
+
+                {/* 大引け (15:00) */}
+                <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-5 shadow-lg shadow-black/5 backdrop-blur-xl">
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+                  <div className="relative">
+                    <div className="flex items-center mb-2">
+                      <span className="text-muted-foreground text-sm">大引け</span>
+                      <span className="text-muted-foreground text-xs ml-1">(15:00)</span>
+                    </div>
+                    <div className={`text-2xl font-bold text-right tabular-nums whitespace-nowrap ${p2Class}`}>
+                      {formatProfit(stats.p2)}円
+                    </div>
+                    <div className={`text-xs text-right mt-1 ${winrateClass(stats.win2)}`}>
+                      勝率 {Math.round(stats.win2)}%
+                    </div>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
         </div>
 
-        {/* Weekday Cards */}
+        {/* Weekday Cards - 4区分対応・縦並び */}
         {currentData.weekdayData.map((wd, idx) => {
           const ichFilter = getIchinichiFilter(idx);
           const ichPriceRanges = ichFilter === 'ex0' ? wd.ichinichi.priceRanges.ex0 : wd.ichinichi.priceRanges.all;
           const ichCount = ichFilter === 'ex0' ? wd.ichinichi.count.ex0 : wd.ichinichi.count.all;
+          const ichMeTotal = ichFilter === 'ex0' ? (wd.ichinichi.meTotal?.ex0 ?? 0) : (wd.ichinichi.meTotal?.all ?? 0);
           const ichP1Total = ichFilter === 'ex0' ? wd.ichinichi.p1Total.ex0 : wd.ichinichi.p1Total.all;
+          const ichAeTotal = ichFilter === 'ex0' ? (wd.ichinichi.aeTotal?.ex0 ?? 0) : (wd.ichinichi.aeTotal?.all ?? 0);
           const ichP2Total = ichFilter === 'ex0' ? wd.ichinichi.p2Total.ex0 : wd.ichinichi.p2Total.all;
-
-          const [seidoP1Class, seidoP2Class] = getCompareClasses(wd.seido.p1Total, wd.seido.p2Total);
-          const [ichP1Class, ichP2Class] = getCompareClasses(ichP1Total, ichP2Total);
 
           return (
             <div key={wd.weekday} className="mb-6">
@@ -570,62 +625,95 @@ function AnalysisContent() {
                   </span>
                 )}
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 {/* 制度信用カード */}
                 <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
                   <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
                   <div className="relative">
                     <div className="flex items-center gap-2 mb-3">
-                      <span className="font-semibold text-sm text-foreground">制度信用</span>
-                      <span className="text-muted-foreground text-xs">{wd.seido.count}件</span>
+                      <span className="font-semibold text-lg text-foreground">制度信用</span>
+                      <span className="text-muted-foreground text-base">{wd.seido.count}件</span>
                     </div>
-                    <div className="flex justify-end gap-6 mb-3 pb-3 border-b border-border/30">
-                      <div className="text-right">
-                        <div className="text-muted-foreground text-[11px]">前場</div>
-                        <div className={`text-lg font-bold tabular-nums ${seidoP1Class}`}>
-                          {formatProfit(wd.seido.p1Total)}
+                    {(() => {
+                      const [seidoMeClass, seidoP1Class, seidoAeClass, seidoP2Class] = getQuadrantClasses(wd.seido.meTotal ?? 0, wd.seido.p1Total, wd.seido.aeTotal ?? 0, wd.seido.p2Total);
+                      return (
+                        <div className="flex justify-end gap-5 mb-3 pb-3 border-b border-border/30">
+                          <div className="text-right">
+                            <div className="text-muted-foreground text-sm">前場前半</div>
+                            <div className={`text-xl font-bold tabular-nums ${seidoMeClass}`}>
+                              {formatProfit(wd.seido.meTotal ?? 0)}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-muted-foreground text-sm">前場引け</div>
+                            <div className={`text-xl font-bold tabular-nums ${seidoP1Class}`}>
+                              {formatProfit(wd.seido.p1Total)}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-muted-foreground text-sm">後場前半</div>
+                            <div className={`text-xl font-bold tabular-nums ${seidoAeClass}`}>
+                              {formatProfit(wd.seido.aeTotal ?? 0)}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-muted-foreground text-sm">大引け</div>
+                            <div className={`text-xl font-bold tabular-nums ${seidoP2Class}`}>
+                              {formatProfit(wd.seido.p2Total)}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-muted-foreground text-[11px]">大引</div>
-                        <div className={`text-lg font-bold tabular-nums ${seidoP2Class}`}>
-                          {formatProfit(wd.seido.p2Total)}
-                        </div>
-                      </div>
-                    </div>
+                      );
+                    })()}
                     <div className="overflow-x-auto">
-                      <table className="w-full text-sm min-w-[400px]">
+                      <table className="w-full text-base">
                         <thead>
-                          <tr className="text-muted-foreground text-xs border-b border-border/30">
-                            <th className="text-right py-2 font-medium whitespace-nowrap">価格帯</th>
-                            <th className="text-right py-2 font-medium whitespace-nowrap">件</th>
-                            <th className="text-right py-2 font-medium whitespace-nowrap">前場損益</th>
-                            <th className="text-right py-2 font-medium whitespace-nowrap">前場勝率</th>
-                            <th className="text-right py-2 font-medium whitespace-nowrap">大引損益</th>
-                            <th className="text-right py-2 font-medium whitespace-nowrap">大引勝率</th>
+                          <tr className="text-muted-foreground text-sm border-b border-border/30">
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">価格帯</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">件</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">前半損益</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">前半%</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">前場損益</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">前場%</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">後半損益</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">後半%</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">大引損益</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">大引%</th>
                           </tr>
                         </thead>
                         <tbody>
                           {wd.seido.priceRanges.map(pr => {
-                            const [prP1Class, prP2Class] = getCompareClasses(pr.p1, pr.p2);
+                            const [prMeClass, prP1Class, prAeClass, prP2Class] = getQuadrantClasses(pr.me ?? 0, pr.p1, pr.ae ?? 0, pr.p2);
                             return (
-                              <tr key={pr.label} className="border-b border-border/20">
-                                <td className="text-right py-2 tabular-nums text-foreground whitespace-nowrap">{pr.label}</td>
-                                <td className="text-right py-2 tabular-nums text-foreground">{pr.count}</td>
-                                <td className={`text-right py-2 tabular-nums whitespace-nowrap ${prP1Class}`}>
-                                  {formatProfit(pr.p1)}
-                                </td>
-                                <td className={`text-right py-2 tabular-nums ${winrateClass(pr.win1)}`}>
-                                  {Math.round(pr.win1)}%
-                                </td>
-                                <td className={`text-right py-2 tabular-nums whitespace-nowrap ${prP2Class}`}>
-                                  {formatProfit(pr.p2)}
-                                </td>
-                                <td className={`text-right py-2 tabular-nums ${winrateClass(pr.win2)}`}>
-                                  {Math.round(pr.win2)}%
-                                </td>
-                              </tr>
-                            );
+                            <tr key={pr.label} className="border-b border-border/20">
+                              <td className="text-right py-2.5 tabular-nums text-foreground whitespace-nowrap">{pr.label}</td>
+                              <td className="text-right py-2.5 tabular-nums text-foreground">{pr.count}</td>
+                              <td className={`text-right py-2.5 tabular-nums whitespace-nowrap ${prMeClass}`}>
+                                {formatProfit(pr.me ?? 0)}
+                              </td>
+                              <td className={`text-right py-2.5 tabular-nums ${winrateClass(pr.winMe ?? 0)}`}>
+                                {Math.round(pr.winMe ?? 0)}%
+                              </td>
+                              <td className={`text-right py-2.5 tabular-nums whitespace-nowrap ${prP1Class}`}>
+                                {formatProfit(pr.p1)}
+                              </td>
+                              <td className={`text-right py-2.5 tabular-nums ${winrateClass(pr.win1)}`}>
+                                {Math.round(pr.win1)}%
+                              </td>
+                              <td className={`text-right py-2.5 tabular-nums whitespace-nowrap ${prAeClass}`}>
+                                {formatProfit(pr.ae ?? 0)}
+                              </td>
+                              <td className={`text-right py-2.5 tabular-nums ${winrateClass(pr.winAe ?? 0)}`}>
+                                {Math.round(pr.winAe ?? 0)}%
+                              </td>
+                              <td className={`text-right py-2.5 tabular-nums whitespace-nowrap ${prP2Class}`}>
+                                {formatProfit(pr.p2)}
+                              </td>
+                              <td className={`text-right py-2.5 tabular-nums ${winrateClass(pr.win2)}`}>
+                                {Math.round(pr.win2)}%
+                              </td>
+                            </tr>
+                          );
                           })}
                         </tbody>
                       </table>
@@ -638,12 +726,12 @@ function AnalysisContent() {
                   <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
                   <div className="relative">
                     <div className="flex items-center gap-2 mb-3">
-                      <span className="font-semibold text-sm text-foreground">いちにち信用</span>
-                      <span className="text-muted-foreground text-xs">{ichCount}件</span>
+                      <span className="font-semibold text-lg text-foreground">いちにち信用</span>
+                      <span className="text-muted-foreground text-base">{ichCount}件</span>
                       <div className="flex gap-1 ml-auto">
                         <button
                           onClick={() => setIchinichiFilter(idx, 'all')}
-                          className={`px-2 py-0.5 text-[11px] rounded border transition-colors ${
+                          className={`px-2.5 py-1 text-sm rounded border transition-colors ${
                             ichFilter === 'all'
                               ? 'bg-primary text-primary-foreground border-primary'
                               : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
@@ -653,7 +741,7 @@ function AnalysisContent() {
                         </button>
                         <button
                           onClick={() => setIchinichiFilter(idx, 'ex0')}
-                          className={`px-2 py-0.5 text-[11px] rounded border transition-colors ${
+                          className={`px-2.5 py-1 text-sm rounded border transition-colors ${
                             ichFilter === 'ex0'
                               ? 'bg-primary text-primary-foreground border-primary'
                               : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
@@ -663,57 +751,90 @@ function AnalysisContent() {
                         </button>
                       </div>
                     </div>
-                    <div className="flex justify-end gap-6 mb-3 pb-3 border-b border-border/30">
-                      <div className="text-right">
-                        <div className="text-muted-foreground text-[11px]">前場</div>
-                        <div className={`text-lg font-bold tabular-nums ${ichP1Class}`}>
-                          {formatProfit(ichP1Total)}
+                    {(() => {
+                      const [ichMeClass, ichP1Class, ichAeClass, ichP2Class] = getQuadrantClasses(ichMeTotal, ichP1Total, ichAeTotal, ichP2Total);
+                      return (
+                        <div className="flex justify-end gap-5 mb-3 pb-3 border-b border-border/30">
+                          <div className="text-right">
+                            <div className="text-muted-foreground text-sm">前場前半</div>
+                            <div className={`text-xl font-bold tabular-nums ${ichMeClass}`}>
+                              {formatProfit(ichMeTotal)}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-muted-foreground text-sm">前場引け</div>
+                            <div className={`text-xl font-bold tabular-nums ${ichP1Class}`}>
+                              {formatProfit(ichP1Total)}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-muted-foreground text-sm">後場前半</div>
+                            <div className={`text-xl font-bold tabular-nums ${ichAeClass}`}>
+                              {formatProfit(ichAeTotal)}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-muted-foreground text-sm">大引け</div>
+                            <div className={`text-xl font-bold tabular-nums ${ichP2Class}`}>
+                              {formatProfit(ichP2Total)}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-muted-foreground text-[11px]">大引</div>
-                        <div className={`text-lg font-bold tabular-nums ${ichP2Class}`}>
-                          {formatProfit(ichP2Total)}
-                        </div>
-                      </div>
-                    </div>
+                      );
+                    })()}
                     <div className="overflow-x-auto">
-                      <table className="w-full text-sm min-w-[480px]">
+                      <table className="w-full text-base">
                         <thead>
-                          <tr className="text-muted-foreground text-xs border-b border-border/30">
-                            <th className="text-right py-2 font-medium whitespace-nowrap">価格帯</th>
-                            <th className="text-right py-2 font-medium whitespace-nowrap">件</th>
-                            <th className="text-right py-2 font-medium whitespace-nowrap">株数</th>
-                            <th className="text-right py-2 font-medium whitespace-nowrap">前場損益</th>
-                            <th className="text-right py-2 font-medium whitespace-nowrap">前場勝率</th>
-                            <th className="text-right py-2 font-medium whitespace-nowrap">大引損益</th>
-                            <th className="text-right py-2 font-medium whitespace-nowrap">大引勝率</th>
+                          <tr className="text-muted-foreground text-sm border-b border-border/30">
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">価格帯</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">件</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">株数</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">前半損益</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">前半%</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">前場損益</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">前場%</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">後半損益</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">後半%</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">大引損益</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">大引%</th>
                           </tr>
                         </thead>
                         <tbody>
                           {ichPriceRanges.map(pr => {
-                            const [prP1Class, prP2Class] = getCompareClasses(pr.p1, pr.p2);
+                            const [prMeClass, prP1Class, prAeClass, prP2Class] = getQuadrantClasses(pr.me ?? 0, pr.p1, pr.ae ?? 0, pr.p2);
                             return (
-                              <tr key={pr.label} className="border-b border-border/20">
-                                <td className="text-right py-2 tabular-nums text-foreground whitespace-nowrap">{pr.label}</td>
-                                <td className="text-right py-2 tabular-nums text-foreground">{pr.count}</td>
-                                <td className="text-right py-2 tabular-nums text-muted-foreground whitespace-nowrap">
-                                  {pr.shares && pr.shares > 0 ? pr.shares.toLocaleString() : '-'}
-                                </td>
-                                <td className={`text-right py-2 tabular-nums whitespace-nowrap ${prP1Class}`}>
-                                  {formatProfit(pr.p1)}
-                                </td>
-                                <td className={`text-right py-2 tabular-nums ${winrateClass(pr.win1)}`}>
-                                  {Math.round(pr.win1)}%
-                                </td>
-                                <td className={`text-right py-2 tabular-nums whitespace-nowrap ${prP2Class}`}>
-                                  {formatProfit(pr.p2)}
-                                </td>
-                                <td className={`text-right py-2 tabular-nums ${winrateClass(pr.win2)}`}>
-                                  {Math.round(pr.win2)}%
-                                </td>
-                              </tr>
-                            );
+                            <tr key={pr.label} className="border-b border-border/20">
+                              <td className="text-right py-2.5 tabular-nums text-foreground whitespace-nowrap">{pr.label}</td>
+                              <td className="text-right py-2.5 tabular-nums text-foreground">{pr.count}</td>
+                              <td className="text-right py-2.5 tabular-nums text-muted-foreground whitespace-nowrap">
+                                {pr.shares && pr.shares > 0 ? pr.shares.toLocaleString() : '-'}
+                              </td>
+                              <td className={`text-right py-2.5 tabular-nums whitespace-nowrap ${prMeClass}`}>
+                                {formatProfit(pr.me ?? 0)}
+                              </td>
+                              <td className={`text-right py-2.5 tabular-nums ${winrateClass(pr.winMe ?? 0)}`}>
+                                {Math.round(pr.winMe ?? 0)}%
+                              </td>
+                              <td className={`text-right py-2.5 tabular-nums whitespace-nowrap ${prP1Class}`}>
+                                {formatProfit(pr.p1)}
+                              </td>
+                              <td className={`text-right py-2.5 tabular-nums ${winrateClass(pr.win1)}`}>
+                                {Math.round(pr.win1)}%
+                              </td>
+                              <td className={`text-right py-2.5 tabular-nums whitespace-nowrap ${prAeClass}`}>
+                                {formatProfit(pr.ae ?? 0)}
+                              </td>
+                              <td className={`text-right py-2.5 tabular-nums ${winrateClass(pr.winAe ?? 0)}`}>
+                                {Math.round(pr.winAe ?? 0)}%
+                              </td>
+                              <td className={`text-right py-2.5 tabular-nums whitespace-nowrap ${prP2Class}`}>
+                                {formatProfit(pr.p2)}
+                              </td>
+                              <td className={`text-right py-2.5 tabular-nums ${winrateClass(pr.win2)}`}>
+                                {Math.round(pr.win2)}%
+                              </td>
+                            </tr>
+                          );
                           })}
                         </tbody>
                       </table>
@@ -776,10 +897,11 @@ function AnalysisContent() {
             )}
             {detailData?.results?.map(group => {
               const isExpanded = expandedDays.has(group.key);
+              const grpMe = detailFilter === 'ex0' ? (group.me?.ex0 ?? 0) : (group.me?.all ?? 0);
               const grpP1 = detailFilter === 'ex0' ? group.p1.ex0 : group.p1.all;
+              const grpAe = detailFilter === 'ex0' ? (group.ae?.ex0 ?? 0) : (group.ae?.all ?? 0);
               const grpP2 = detailFilter === 'ex0' ? group.p2.ex0 : group.p2.all;
               const grpCount = detailFilter === 'ex0' ? group.count.ex0 : group.count.all;
-              const [grpP1Class, grpP2Class] = getCompareClasses(grpP1, grpP2);
 
               return (
                 <details
@@ -792,32 +914,49 @@ function AnalysisContent() {
                     if (!target.open && isExpanded) toggleDay(group.key);
                   }}
                 >
-                  <summary className="px-4 py-3 cursor-pointer flex flex-wrap items-center gap-2 sm:gap-4 text-sm hover:bg-muted/10 transition-colors">
+                  <summary className="px-4 py-3 cursor-pointer flex flex-wrap items-center gap-2 sm:gap-4 text-base hover:bg-muted/10 transition-colors">
                     <span className="font-semibold text-foreground whitespace-nowrap">{group.key}</span>
-                    <span className="text-muted-foreground text-xs">{grpCount}件</span>
-                    <div className="ml-auto tabular-nums text-xs sm:text-sm flex items-center">
-                      <span className="text-muted-foreground mr-1">前場</span>
-                      <span className={`min-w-[70px] text-right ${grpP1Class}`}>{formatProfit(grpP1)}</span>
-                      <span className="text-muted-foreground mr-1 ml-4">大引</span>
-                      <span className={`min-w-[70px] text-right ${grpP2Class}`}>{formatProfit(grpP2)}</span>
-                    </div>
+                    <span className="text-muted-foreground text-sm">{grpCount}件</span>
+                    {(() => {
+                      const [meClass, p1Class, aeClass, p2Class] = getQuadrantClasses(grpMe, grpP1, grpAe, grpP2);
+                      return (
+                        <div className="ml-auto tabular-nums text-sm sm:text-base flex items-center gap-4">
+                          <div className="text-center min-w-[80px]">
+                            <span className="text-muted-foreground text-xs block">前半</span>
+                            <span className={`block text-center ${meClass}`}>{formatProfit(grpMe)}</span>
+                          </div>
+                          <div className="text-center min-w-[80px]">
+                            <span className="text-muted-foreground text-xs block">前場</span>
+                            <span className={`block text-center ${p1Class}`}>{formatProfit(grpP1)}</span>
+                          </div>
+                          <div className="text-center min-w-[80px]">
+                            <span className="text-muted-foreground text-xs block">後半</span>
+                            <span className={`block text-center ${aeClass}`}>{formatProfit(grpAe)}</span>
+                          </div>
+                          <div className="text-center min-w-[80px]">
+                            <span className="text-muted-foreground text-xs block">大引</span>
+                            <span className={`block text-center ${p2Class}`}>{formatProfit(grpP2)}</span>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </summary>
                   <div className="px-4 pb-3 border-t border-border/30 overflow-x-auto">
-                    <table className="w-full text-sm min-w-[700px]">
+                    <table className="w-full text-base min-w-[900px]">
                       <thead>
-                        <tr className="text-muted-foreground text-xs border-b border-border/30">
+                        <tr className="text-muted-foreground text-sm border-b border-border/30">
                           {detailView !== 'daily' && (
-                            <th className="text-left py-2 font-medium whitespace-nowrap">日付</th>
+                            <th className="text-left py-2.5 font-medium whitespace-nowrap">日付</th>
                           )}
-                          <th className="text-left py-2 font-medium whitespace-nowrap">銘柄</th>
-                          <th className="text-left py-2 font-medium whitespace-nowrap">区分</th>
-                          <th className="text-right py-2 font-medium whitespace-nowrap">前終</th>
-                          <th className="text-right py-2 font-medium whitespace-nowrap">始値</th>
-                          <th className="text-right py-2 font-medium whitespace-nowrap">前場終</th>
-                          <th className="text-right py-2 font-medium whitespace-nowrap">大引終</th>
-                          <th className="text-right py-2 font-medium whitespace-nowrap">株数</th>
-                          <th className="text-right py-2 font-medium whitespace-nowrap">前場損益</th>
-                          <th className="text-right py-2 font-medium whitespace-nowrap">大引損益</th>
+                          <th className="text-left py-2.5 font-medium whitespace-nowrap">銘柄</th>
+                          <th className="text-left py-2.5 font-medium whitespace-nowrap">区分</th>
+                          <th className="text-right py-2.5 font-medium whitespace-nowrap">前終</th>
+                          <th className="text-right py-2.5 font-medium whitespace-nowrap">始値</th>
+                          <th className="text-right py-2.5 font-medium whitespace-nowrap">株数</th>
+                          <th className="text-right py-2.5 font-medium whitespace-nowrap">前半損益</th>
+                          <th className="text-right py-2.5 font-medium whitespace-nowrap">前場損益</th>
+                          <th className="text-right py-2.5 font-medium whitespace-nowrap">後半損益</th>
+                          <th className="text-right py-2.5 font-medium whitespace-nowrap">大引損益</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -825,42 +964,42 @@ function AnalysisContent() {
                           .filter(s => detailFilter === 'all' || s.shares !== 0)
                           .sort((a, b) => b.date.localeCompare(a.date))
                           .map((s, idx) => {
-                          const [sP1Class, sP2Class] = getCompareClasses(s.p1, s.p2);
                           // GU（始値>前終）は赤、GD（始値<前終）は緑
                           const openColor = s.buyPrice !== null && s.prevClose !== null
                             ? s.buyPrice > s.prevClose ? 'text-rose-400' : s.buyPrice < s.prevClose ? 'text-emerald-400' : 'text-foreground'
                             : 'text-foreground';
+                          const [sMeClass, sP1Class, sAeClass, sP2Class] = getQuadrantClasses(s.me ?? 0, s.p1, s.ae ?? 0, s.p2);
                           return (
                             <tr key={idx} className="border-b border-border/20">
                               {detailView !== 'daily' && (
-                                <td className="py-2 text-xs text-muted-foreground whitespace-nowrap">{s.date}</td>
+                                <td className="py-2.5 text-sm text-muted-foreground whitespace-nowrap">{s.date}</td>
                               )}
-                              <td className="py-2 whitespace-nowrap">
+                              <td className="py-2.5 whitespace-nowrap">
                                 <span className="text-foreground">{s.ticker.replace('.T', '')}</span>
-                                <span className="text-foreground ml-2 text-xs">{s.stockName}</span>
+                                <span className="text-foreground ml-2 text-sm">{s.stockName}</span>
                               </td>
-                              <td className="py-2 text-xs text-foreground whitespace-nowrap">
+                              <td className="py-2.5 text-sm text-foreground whitespace-nowrap">
                                 {s.marginType === '制度信用' ? '制度' : 'いちにち'}
                               </td>
-                              <td className="py-2 text-right tabular-nums text-foreground whitespace-nowrap">
+                              <td className="py-2.5 text-right tabular-nums text-foreground whitespace-nowrap">
                                 {s.prevClose?.toLocaleString() ?? '-'}
                               </td>
-                              <td className={`py-2 text-right tabular-nums whitespace-nowrap ${openColor}`}>
+                              <td className={`py-2.5 text-right tabular-nums whitespace-nowrap ${openColor}`}>
                                 {s.buyPrice?.toLocaleString() ?? '-'}
                               </td>
-                              <td className={`py-2 text-right tabular-nums whitespace-nowrap ${sP1Class}`}>
-                                {s.sellPrice?.toLocaleString() ?? '-'}
-                              </td>
-                              <td className={`py-2 text-right tabular-nums whitespace-nowrap ${sP2Class}`}>
-                                {s.dailyClose?.toLocaleString() ?? '-'}
-                              </td>
-                              <td className="py-2 text-right tabular-nums text-muted-foreground whitespace-nowrap">
+                              <td className="py-2.5 text-right tabular-nums text-muted-foreground whitespace-nowrap">
                                 {s.shares?.toLocaleString() ?? '-'}
                               </td>
-                              <td className={`py-2 text-right tabular-nums whitespace-nowrap ${sP1Class}`}>
+                              <td className={`py-2.5 text-right tabular-nums whitespace-nowrap ${sMeClass}`}>
+                                {formatProfit(s.me ?? 0)}
+                              </td>
+                              <td className={`py-2.5 text-right tabular-nums whitespace-nowrap ${sP1Class}`}>
                                 {formatProfit(s.p1)}
                               </td>
-                              <td className={`py-2 text-right tabular-nums whitespace-nowrap ${sP2Class}`}>
+                              <td className={`py-2.5 text-right tabular-nums whitespace-nowrap ${sAeClass}`}>
+                                {formatProfit(s.ae ?? 0)}
+                              </td>
+                              <td className={`py-2.5 text-right tabular-nums whitespace-nowrap ${sP2Class}`}>
                                 {formatProfit(s.p2)}
                               </td>
                             </tr>
