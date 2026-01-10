@@ -323,19 +323,19 @@ export default function DayTradeListPage() {
 
       <div className="max-w-7xl mx-auto px-4 py-4 leading-[1.8] tracking-[0.02em] font-sans">
         {/* Header */}
-        <div className="mb-6">
-          <DevNavLinks links={["dashboard"]} className="mb-3" />
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-bold text-foreground">
-                Grok デイトレードリスト
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                空売り対象銘柄の管理（制度信用・いちにち信用）
-              </p>
-            </div>
+        <header className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4 pb-3 border-b border-border/30">
+          <div>
+            <h1 className="text-xl font-bold text-foreground">
+              Grok デイトレードリスト
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              空売り対象銘柄の管理（制度信用・いちにち信用）
+            </p>
           </div>
-        </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <DevNavLinks links={["dashboard", "analysis", "stock-results"]} />
+          </div>
+        </header>
 
         {/* Summary Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4">
@@ -454,7 +454,7 @@ export default function DayTradeListPage() {
         <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 shadow-xl shadow-black/5 backdrop-blur-xl">
           <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
           <div className="relative overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-base">
               <thead>
                 <tr className="border-b border-border/40 bg-muted/30">
                   <th className="px-4 py-3 text-left text-foreground font-medium text-xs whitespace-nowrap">銘柄</th>

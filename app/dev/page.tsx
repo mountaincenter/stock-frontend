@@ -699,7 +699,7 @@ export default function DevDashboard() {
                 </div>
               </div>
               <div className="overflow-x-auto overflow-y-auto max-h-[280px]">
-                <table className="w-full text-sm min-w-[500px]">
+                <table className="w-full text-base min-w-[500px]">
                   <thead className="sticky top-0 bg-card/80 backdrop-blur-sm">
                     <tr className="border-b border-border/30">
                       <th className="px-4 py-2.5 text-left text-muted-foreground font-medium cursor-pointer hover:text-foreground transition-colors whitespace-nowrap" onClick={() => handleSort("date")}>

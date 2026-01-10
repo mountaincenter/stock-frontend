@@ -220,7 +220,7 @@ function StockResultsContent() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <DevNavLinks links={["dashboard", "recommendations"]} />
+            <DevNavLinks links={["dashboard", "analysis", "recommendations"]} />
           </div>
         </header>
 
