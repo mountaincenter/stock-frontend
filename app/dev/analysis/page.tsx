@@ -584,7 +584,7 @@ function AnalysisContent() {
                   <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
                   <div className="relative">
                     <div className="flex items-center mb-2">
-                      <span className="text-muted-foreground text-sm">大引け(15:30)</span>
+                      <span className="text-muted-foreground text-sm whitespace-nowrap">大引け(15:30)</span>
                     </div>
                     <div className={`text-2xl font-bold text-right tabular-nums whitespace-nowrap ${p2Class}`}>
                       {formatProfit(stats.p2)}円
@@ -653,7 +653,7 @@ function AnalysisContent() {
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="text-muted-foreground text-sm">大引け(15:30)</div>
+                            <div className="text-muted-foreground text-sm whitespace-nowrap">大引け(15:30)</div>
                             <div className={`text-xl font-bold tabular-nums ${seidoP2Class}`}>
                               {formatProfit(wd.seido.p2Total)}
                             </div>
@@ -770,7 +770,7 @@ function AnalysisContent() {
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="text-muted-foreground text-sm">大引け(15:30)</div>
+                            <div className="text-muted-foreground text-sm whitespace-nowrap">大引け(15:30)</div>
                             <div className={`text-xl font-bold tabular-nums ${ichP2Class}`}>
                               {formatProfit(ichP2Total)}
                             </div>
