@@ -19,7 +19,7 @@ const notoJP = Noto_Sans_JP({
   variable: "--font-noto-jp",
   weight: ["400", "500", "700"],
   display: "optional",
-  preload: true,
+  preload: false,
 });
 
 export const metadata: Metadata = {
