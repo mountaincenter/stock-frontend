@@ -665,16 +665,16 @@ function AnalysisContent() {
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="text-muted-foreground text-sm border-b border-border/30">
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">価格帯</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">件</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">10:25</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">%</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">前場引</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">%</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">14:45</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">%</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">大引</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">%</th>
+                            <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">価格帯</th>
+                            <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">件</th>
+                            <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">10:25</th>
+                            <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">%</th>
+                            <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">前場引</th>
+                            <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">%</th>
+                            <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">14:45</th>
+                            <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">%</th>
+                            <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">大引</th>
+                            <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">%</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -682,30 +682,30 @@ function AnalysisContent() {
                             const [prMeClass, prP1Class, prAeClass, prP2Class] = getQuadrantClasses(pr.me ?? 0, pr.p1, pr.ae ?? 0, pr.p2);
                             return (
                             <tr key={pr.label} className="border-b border-border/20">
-                              <td className="text-right py-2.5 tabular-nums text-foreground whitespace-nowrap">{pr.label}</td>
-                              <td className="text-right py-2.5 tabular-nums text-foreground">{pr.count}</td>
-                              <td className={`text-right py-2.5 tabular-nums whitespace-nowrap ${prMeClass}`}>
+                              <td className="text-right px-2 py-2.5 tabular-nums text-foreground whitespace-nowrap">{pr.label}</td>
+                              <td className="text-right px-2 py-2.5 tabular-nums text-foreground">{pr.count}</td>
+                              <td className={`text-right px-2 py-2.5 tabular-nums whitespace-nowrap ${prMeClass}`}>
                                 {formatProfit(pr.me ?? 0)}
                               </td>
-                              <td className={`text-right py-2.5 tabular-nums ${winrateClass(pr.winMe ?? 0)}`}>
+                              <td className={`text-right px-2 py-2.5 tabular-nums ${winrateClass(pr.winMe ?? 0)}`}>
                                 {Math.round(pr.winMe ?? 0)}%
                               </td>
-                              <td className={`text-right py-2.5 tabular-nums whitespace-nowrap ${prP1Class}`}>
+                              <td className={`text-right px-2 py-2.5 tabular-nums whitespace-nowrap ${prP1Class}`}>
                                 {formatProfit(pr.p1)}
                               </td>
-                              <td className={`text-right py-2.5 tabular-nums ${winrateClass(pr.win1)}`}>
+                              <td className={`text-right px-2 py-2.5 tabular-nums ${winrateClass(pr.win1)}`}>
                                 {Math.round(pr.win1)}%
                               </td>
-                              <td className={`text-right py-2.5 tabular-nums whitespace-nowrap ${prAeClass}`}>
+                              <td className={`text-right px-2 py-2.5 tabular-nums whitespace-nowrap ${prAeClass}`}>
                                 {formatProfit(pr.ae ?? 0)}
                               </td>
-                              <td className={`text-right py-2.5 tabular-nums ${winrateClass(pr.winAe ?? 0)}`}>
+                              <td className={`text-right px-2 py-2.5 tabular-nums ${winrateClass(pr.winAe ?? 0)}`}>
                                 {Math.round(pr.winAe ?? 0)}%
                               </td>
-                              <td className={`text-right py-2.5 tabular-nums whitespace-nowrap ${prP2Class}`}>
+                              <td className={`text-right px-2 py-2.5 tabular-nums whitespace-nowrap ${prP2Class}`}>
                                 {formatProfit(pr.p2)}
                               </td>
-                              <td className={`text-right py-2.5 tabular-nums ${winrateClass(pr.win2)}`}>
+                              <td className={`text-right px-2 py-2.5 tabular-nums ${winrateClass(pr.win2)}`}>
                                 {Math.round(pr.win2)}%
                               </td>
                             </tr>
@@ -782,16 +782,16 @@ function AnalysisContent() {
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="text-muted-foreground text-sm border-b border-border/30">
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">価格帯</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">件</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">10:25</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">%</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">前場引</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">%</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">14:45</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">%</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">大引</th>
-                            <th className="text-right py-2.5 font-medium whitespace-nowrap">%</th>
+                            <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">価格帯</th>
+                            <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">件</th>
+                            <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">10:25</th>
+                            <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">%</th>
+                            <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">前場引</th>
+                            <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">%</th>
+                            <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">14:45</th>
+                            <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">%</th>
+                            <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">大引</th>
+                            <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">%</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -799,30 +799,30 @@ function AnalysisContent() {
                             const [prMeClass, prP1Class, prAeClass, prP2Class] = getQuadrantClasses(pr.me ?? 0, pr.p1, pr.ae ?? 0, pr.p2);
                             return (
                             <tr key={pr.label} className="border-b border-border/20">
-                              <td className="text-right py-2.5 tabular-nums text-foreground whitespace-nowrap">{pr.label}</td>
-                              <td className="text-right py-2.5 tabular-nums text-foreground">{pr.count}</td>
-                              <td className={`text-right py-2.5 tabular-nums whitespace-nowrap ${prMeClass}`}>
+                              <td className="text-right px-2 py-2.5 tabular-nums text-foreground whitespace-nowrap">{pr.label}</td>
+                              <td className="text-right px-2 py-2.5 tabular-nums text-foreground">{pr.count}</td>
+                              <td className={`text-right px-2 py-2.5 tabular-nums whitespace-nowrap ${prMeClass}`}>
                                 {formatProfit(pr.me ?? 0)}
                               </td>
-                              <td className={`text-right py-2.5 tabular-nums ${winrateClass(pr.winMe ?? 0)}`}>
+                              <td className={`text-right px-2 py-2.5 tabular-nums ${winrateClass(pr.winMe ?? 0)}`}>
                                 {Math.round(pr.winMe ?? 0)}%
                               </td>
-                              <td className={`text-right py-2.5 tabular-nums whitespace-nowrap ${prP1Class}`}>
+                              <td className={`text-right px-2 py-2.5 tabular-nums whitespace-nowrap ${prP1Class}`}>
                                 {formatProfit(pr.p1)}
                               </td>
-                              <td className={`text-right py-2.5 tabular-nums ${winrateClass(pr.win1)}`}>
+                              <td className={`text-right px-2 py-2.5 tabular-nums ${winrateClass(pr.win1)}`}>
                                 {Math.round(pr.win1)}%
                               </td>
-                              <td className={`text-right py-2.5 tabular-nums whitespace-nowrap ${prAeClass}`}>
+                              <td className={`text-right px-2 py-2.5 tabular-nums whitespace-nowrap ${prAeClass}`}>
                                 {formatProfit(pr.ae ?? 0)}
                               </td>
-                              <td className={`text-right py-2.5 tabular-nums ${winrateClass(pr.winAe ?? 0)}`}>
+                              <td className={`text-right px-2 py-2.5 tabular-nums ${winrateClass(pr.winAe ?? 0)}`}>
                                 {Math.round(pr.winAe ?? 0)}%
                               </td>
-                              <td className={`text-right py-2.5 tabular-nums whitespace-nowrap ${prP2Class}`}>
+                              <td className={`text-right px-2 py-2.5 tabular-nums whitespace-nowrap ${prP2Class}`}>
                                 {formatProfit(pr.p2)}
                               </td>
-                              <td className={`text-right py-2.5 tabular-nums ${winrateClass(pr.win2)}`}>
+                              <td className={`text-right px-2 py-2.5 tabular-nums ${winrateClass(pr.win2)}`}>
                                 {Math.round(pr.win2)}%
                               </td>
                             </tr>
@@ -912,20 +912,20 @@ function AnalysisContent() {
                     {(() => {
                       const [meClass, p1Class, aeClass, p2Class] = getQuadrantClasses(grpMe, grpP1, grpAe, grpP2);
                       return (
-                        <div className="ml-auto tabular-nums text-sm sm:text-base flex items-center gap-4">
-                          <div className="text-center min-w-[80px]">
+                        <div className="ml-auto tabular-nums text-sm sm:text-base flex items-center gap-1 sm:gap-4">
+                          <div className="text-center min-w-[50px] sm:min-w-[80px]">
                             <span className="text-muted-foreground text-xs block">10:25</span>
                             <span className={`block text-center ${meClass}`}>{formatProfit(grpMe)}</span>
                           </div>
-                          <div className="text-center min-w-[80px]">
+                          <div className="text-center min-w-[50px] sm:min-w-[80px]">
                             <span className="text-muted-foreground text-xs block">前場引</span>
                             <span className={`block text-center ${p1Class}`}>{formatProfit(grpP1)}</span>
                           </div>
-                          <div className="text-center min-w-[80px]">
+                          <div className="text-center min-w-[50px] sm:min-w-[80px]">
                             <span className="text-muted-foreground text-xs block">14:45</span>
                             <span className={`block text-center ${aeClass}`}>{formatProfit(grpAe)}</span>
                           </div>
-                          <div className="text-center min-w-[80px]">
+                          <div className="text-center min-w-[50px] sm:min-w-[80px]">
                             <span className="text-muted-foreground text-xs block">大引</span>
                             <span className={`block text-center ${p2Class}`}>{formatProfit(grpP2)}</span>
                           </div>
