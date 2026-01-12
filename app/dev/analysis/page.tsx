@@ -74,6 +74,7 @@ interface Stock {
   ticker: string;
   stockName: string;
   marginType: string;
+  priceRange?: string;
   buyPrice: number | null;
   shares: number | null;
   p1: number;
@@ -85,6 +86,9 @@ interface Stock {
   ae?: number;
   winMe?: boolean;
   winAe?: boolean;
+  // detail用
+  date?: string;
+  prevClose?: number | null;
 }
 
 interface DailyDetail {
@@ -154,11 +158,18 @@ const DETAIL_VIEW_LABELS: Record<DetailViewType, string> = {
   weekday: '曜日別',
 };
 
+// Price range labels for filtering
+const PRICE_RANGE_LABELS = ['~1,000円', '1,000~3,000円', '3,000~5,000円', '5,000~10,000円', '10,000円~'];
+
+// Margin type labels for filtering
+const MARGIN_TYPE_LABELS = ['制度信用', 'いちにち信用'];
+
 interface DetailStock {
   date: string;
   ticker: string;
   stockName: string;
   marginType: string;
+  priceRange: string;
   prevClose: number | null;
   buyPrice: number | null;
   sellPrice: number | null;
@@ -263,8 +274,40 @@ function AnalysisContent() {
   const [detailData, setDetailData] = useState<DetailResponse | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailFilter, setDetailFilter] = useState<FilterType>('all');
+  const [priceRangeFilters, setPriceRangeFilters] = useState<Set<string>>(new Set(PRICE_RANGE_LABELS));
+  const [marginTypeFilters, setMarginTypeFilters] = useState<Set<string>>(new Set(MARGIN_TYPE_LABELS));
 
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+
+  // Toggle price range filter
+  const togglePriceRange = (label: string) => {
+    setPriceRangeFilters(prev => {
+      const next = new Set(prev);
+      if (next.has(label)) {
+        next.delete(label);
+      } else {
+        next.add(label);
+      }
+      return next;
+    });
+  };
+
+  // Select all / none for price ranges
+  const selectAllPriceRanges = () => setPriceRangeFilters(new Set(PRICE_RANGE_LABELS));
+  const selectNonePriceRanges = () => setPriceRangeFilters(new Set());
+
+  // Toggle margin type filter
+  const toggleMarginType = (label: string) => {
+    setMarginTypeFilters(prev => {
+      const next = new Set(prev);
+      if (next.has(label)) {
+        next.delete(label);
+      } else {
+        next.add(label);
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     fetch(`${API_BASE}/dev/analysis/day-trade-summary?segments=4`)
@@ -840,7 +883,7 @@ function AnalysisContent() {
 
         {/* Detail Section */}
         <div className="mt-8">
-          <div className="flex items-center gap-4 mb-4">
+          <div className="flex flex-wrap items-center gap-4 mb-4">
             <h2 className="text-sm font-semibold text-foreground">詳細</h2>
             <div className="flex gap-1">
               <button
@@ -863,6 +906,58 @@ function AnalysisContent() {
               >
                 除0株
               </button>
+            </div>
+            {/* Price Range Filter */}
+            <div className="flex items-center gap-2 border-l border-border/40 pl-4">
+              <span className="text-xs text-muted-foreground">価格帯:</span>
+              <div className="flex gap-1">
+                <button
+                  onClick={selectAllPriceRanges}
+                  className="px-1.5 py-0.5 text-[9px] rounded border bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50"
+                >
+                  全
+                </button>
+                <button
+                  onClick={selectNonePriceRanges}
+                  className="px-1.5 py-0.5 text-[9px] rounded border bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50"
+                >
+                  解除
+                </button>
+              </div>
+              <div className="flex gap-1 flex-wrap">
+                {PRICE_RANGE_LABELS.map(label => (
+                  <label key={label} className="flex items-center gap-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={priceRangeFilters.has(label)}
+                      onChange={() => togglePriceRange(label)}
+                      className="w-3 h-3 rounded border-border/40 bg-muted/30 text-primary focus:ring-primary/50"
+                    />
+                    <span className={`text-[10px] ${priceRangeFilters.has(label) ? 'text-foreground' : 'text-muted-foreground'}`}>
+                      {label}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            {/* Margin Type Filter */}
+            <div className="flex items-center gap-2 border-l border-border/40 pl-4">
+              <span className="text-xs text-muted-foreground">区分:</span>
+              <div className="flex gap-2">
+                {MARGIN_TYPE_LABELS.map(label => (
+                  <label key={label} className="flex items-center gap-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={marginTypeFilters.has(label)}
+                      onChange={() => toggleMarginType(label)}
+                      className="w-3 h-3 rounded border-border/40 bg-muted/30 text-primary focus:ring-primary/50"
+                    />
+                    <span className={`text-[10px] ${marginTypeFilters.has(label) ? 'text-foreground' : 'text-muted-foreground'}`}>
+                      {label === '制度信用' ? '制度' : 'いちにち'}
+                    </span>
+                  </label>
+                ))}
+              </div>
             </div>
             <div className="flex gap-2 ml-auto">
               {(Object.keys(DETAIL_VIEW_LABELS) as DetailViewType[]).map(dv => (
@@ -889,11 +984,19 @@ function AnalysisContent() {
             )}
             {detailData?.results?.map(group => {
               const isExpanded = expandedDays.has(group.key);
-              const grpMe = detailFilter === 'ex0' ? (group.me?.ex0 ?? 0) : (group.me?.all ?? 0);
-              const grpP1 = detailFilter === 'ex0' ? group.p1.ex0 : group.p1.all;
-              const grpAe = detailFilter === 'ex0' ? (group.ae?.ex0 ?? 0) : (group.ae?.all ?? 0);
-              const grpP2 = detailFilter === 'ex0' ? group.p2.ex0 : group.p2.all;
-              const grpCount = detailFilter === 'ex0' ? group.count.ex0 : group.count.all;
+              // Filter stocks by detailFilter, priceRangeFilters, and marginTypeFilters
+              const filteredStocks = group.stocks.filter(s => {
+                const passDetailFilter = detailFilter === 'all' || s.shares !== 0;
+                const passPriceRange = priceRangeFilters.has(s.priceRange);
+                const passMarginType = marginTypeFilters.has(s.marginType);
+                return passDetailFilter && passPriceRange && passMarginType;
+              });
+              // Calculate totals from filtered stocks
+              const grpMe = filteredStocks.reduce((sum, s) => sum + (s.me ?? 0), 0);
+              const grpP1 = filteredStocks.reduce((sum, s) => sum + s.p1, 0);
+              const grpAe = filteredStocks.reduce((sum, s) => sum + (s.ae ?? 0), 0);
+              const grpP2 = filteredStocks.reduce((sum, s) => sum + s.p2, 0);
+              const grpCount = filteredStocks.length;
 
               return (
                 <details
@@ -952,8 +1055,7 @@ function AnalysisContent() {
                         </tr>
                       </thead>
                       <tbody>
-                        {group.stocks
-                          .filter(s => detailFilter === 'all' || s.shares !== 0)
+                        {filteredStocks
                           .sort((a, b) => b.date.localeCompare(a.date))
                           .map((s, idx) => {
                           // GU（始値>前終）は赤、GD（始値<前終）は緑
