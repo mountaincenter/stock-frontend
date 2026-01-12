@@ -884,11 +884,11 @@ function AnalysisContent() {
         {/* Detail Section */}
         <div className="mt-8">
           <div className="flex flex-wrap items-center gap-4 mb-4">
-            <h2 className="text-sm font-semibold text-foreground">詳細</h2>
+            <h2 className="text-sm md:text-base font-semibold text-foreground">詳細</h2>
             <div className="flex gap-1">
               <button
                 onClick={() => setDetailFilter('all')}
-                className={`px-2 py-0.5 text-[10px] rounded border transition-colors ${
+                className={`px-2 py-0.5 text-[10px] md:text-xs rounded border transition-colors ${
                   detailFilter === 'all'
                     ? 'bg-primary text-primary-foreground border-primary'
                     : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
@@ -898,7 +898,7 @@ function AnalysisContent() {
               </button>
               <button
                 onClick={() => setDetailFilter('ex0')}
-                className={`px-2 py-0.5 text-[10px] rounded border transition-colors ${
+                className={`px-2 py-0.5 text-[10px] md:text-xs rounded border transition-colors ${
                   detailFilter === 'ex0'
                     ? 'bg-primary text-primary-foreground border-primary'
                     : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
@@ -909,31 +909,31 @@ function AnalysisContent() {
             </div>
             {/* Price Range Filter */}
             <div className="flex items-center gap-2 border-l border-border/40 pl-4">
-              <span className="text-xs text-muted-foreground">価格帯:</span>
+              <span className="text-xs md:text-sm text-muted-foreground">価格帯:</span>
               <div className="flex gap-1">
                 <button
                   onClick={selectAllPriceRanges}
-                  className="px-1.5 py-0.5 text-[9px] rounded border bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50"
+                  className="px-1.5 py-0.5 text-[9px] md:text-[10px] rounded border bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50"
                 >
                   全
                 </button>
                 <button
                   onClick={selectNonePriceRanges}
-                  className="px-1.5 py-0.5 text-[9px] rounded border bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50"
+                  className="px-1.5 py-0.5 text-[9px] md:text-[10px] rounded border bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50"
                 >
                   解除
                 </button>
               </div>
-              <div className="flex gap-1 flex-wrap">
+              <div className="flex gap-1 md:gap-1.5 flex-wrap">
                 {PRICE_RANGE_LABELS.map(label => (
                   <label key={label} className="flex items-center gap-1 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={priceRangeFilters.has(label)}
                       onChange={() => togglePriceRange(label)}
-                      className="w-3 h-3 rounded border-border/40 bg-muted/30 text-primary focus:ring-primary/50"
+                      className="w-3 h-3 md:w-3.5 md:h-3.5 rounded border-border/40 bg-muted/30 text-primary focus:ring-primary/50"
                     />
-                    <span className={`text-[10px] ${priceRangeFilters.has(label) ? 'text-foreground' : 'text-muted-foreground'}`}>
+                    <span className={`text-[10px] md:text-[11px] ${priceRangeFilters.has(label) ? 'text-foreground' : 'text-muted-foreground'}`}>
                       {label}
                     </span>
                   </label>
@@ -942,7 +942,7 @@ function AnalysisContent() {
             </div>
             {/* Margin Type Filter */}
             <div className="flex items-center gap-2 border-l border-border/40 pl-4">
-              <span className="text-xs text-muted-foreground">区分:</span>
+              <span className="text-xs md:text-sm text-muted-foreground">区分:</span>
               <div className="flex gap-2">
                 {MARGIN_TYPE_LABELS.map(label => (
                   <label key={label} className="flex items-center gap-1 cursor-pointer">
@@ -950,9 +950,9 @@ function AnalysisContent() {
                       type="checkbox"
                       checked={marginTypeFilters.has(label)}
                       onChange={() => toggleMarginType(label)}
-                      className="w-3 h-3 rounded border-border/40 bg-muted/30 text-primary focus:ring-primary/50"
+                      className="w-3 h-3 md:w-3.5 md:h-3.5 rounded border-border/40 bg-muted/30 text-primary focus:ring-primary/50"
                     />
-                    <span className={`text-[10px] ${marginTypeFilters.has(label) ? 'text-foreground' : 'text-muted-foreground'}`}>
+                    <span className={`text-[10px] md:text-[11px] ${marginTypeFilters.has(label) ? 'text-foreground' : 'text-muted-foreground'}`}>
                       {label === '制度信用' ? '制度' : 'いちにち'}
                     </span>
                   </label>
@@ -964,7 +964,7 @@ function AnalysisContent() {
                 <button
                   key={dv}
                   onClick={() => setDetailView(dv)}
-                  className={`px-3 py-1 text-xs rounded-md border transition-colors ${
+                  className={`px-3 py-1 text-xs md:text-sm rounded-md border transition-colors ${
                     detailView === dv
                       ? 'bg-primary text-primary-foreground border-primary'
                       : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
@@ -985,8 +985,9 @@ function AnalysisContent() {
             {detailData?.results?.map(group => {
               const isExpanded = expandedDays.has(group.key);
               // Filter stocks by detailFilter, priceRangeFilters, and marginTypeFilters
+              // 除0株: 制度信用は常に残す、いちにち信用のみ株数0を除外
               const filteredStocks = group.stocks.filter(s => {
-                const passDetailFilter = detailFilter === 'all' || s.shares !== 0;
+                const passDetailFilter = detailFilter === 'all' || s.marginType === '制度信用' || s.shares === null || (s.shares ?? 0) > 0;
                 const passPriceRange = priceRangeFilters.has(s.priceRange);
                 const passMarginType = marginTypeFilters.has(s.marginType);
                 return passDetailFilter && passPriceRange && passMarginType;
