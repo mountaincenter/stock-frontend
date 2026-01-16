@@ -123,10 +123,41 @@ interface StrategyData {
   meta: Meta;
 }
 
+// 極端相場情報
+interface ExtremeDay {
+  date: string;
+  reason: string;
+  futuresChangePct: number;
+  count: number;
+}
+
+interface ExtremeMarketInfo {
+  available: boolean;
+  extremeDays: ExtremeDay[];
+}
+
 interface AnalysisResponse {
   short: StrategyData;
   long: StrategyData;
   weekdayStrategy: StrategyData;
+  extremeMarket?: ExtremeMarketInfo;
+  excludeExtreme?: boolean;
+}
+
+// 市場騰落表示用
+interface MarketData {
+  date: string;
+  close?: number;
+  prevClose?: number;
+  price?: number;
+  prevPrice?: number;
+  changePct: number;
+}
+
+interface MarketStatusResponse {
+  generatedAt: string;
+  nikkei: MarketData | null;
+  futures: MarketData | null;
 }
 
 type StrategyType = 'short' | 'long' | 'weekdayStrategy';
@@ -276,6 +307,9 @@ function AnalysisContent() {
   const [detailFilter, setDetailFilter] = useState<FilterType>('all');
   const [priceRangeFilters, setPriceRangeFilters] = useState<Set<string>>(new Set(PRICE_RANGE_LABELS));
   const [marginTypeFilters, setMarginTypeFilters] = useState<Set<string>>(new Set(MARGIN_TYPE_LABELS));
+  const [marketData, setMarketData] = useState<MarketStatusResponse | null>(null);
+  const [marketLoading, setMarketLoading] = useState(true);
+  const [excludeExtreme, setExcludeExtreme] = useState(false);
 
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
@@ -309,26 +343,51 @@ function AnalysisContent() {
     });
   };
 
+  // メインデータ取得
+  const fetchMainData = async (excludeEx: boolean) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/dev/analysis/day-trade-summary?segments=4&exclude_extreme=${excludeEx}`);
+      const json = await res.json();
+      setData(json);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetch(`${API_BASE}/dev/analysis/day-trade-summary?segments=4`)
+    fetchMainData(excludeExtreme);
+
+    // 市場騰落データ取得
+    fetch(`${API_BASE}/dev/analysis/market-status`)
       .then(res => res.json())
       .then(json => {
-        setData(json);
-        setLoading(false);
+        setMarketData(json);
+        setMarketLoading(false);
       })
       .catch(err => {
-        setError(err.message);
-        setLoading(false);
+        console.error('市場騰落データ取得エラー:', err);
+        setMarketLoading(false);
       });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [API_BASE]);
 
+  // 極端相場除外トグル変更時
+  const handleExcludeExtremeChange = async (exclude: boolean) => {
+    setExcludeExtreme(exclude);
+    await fetchMainData(exclude);
+    fetchDetailData(detailView, exclude);
+  };
+
   // 詳細データ取得
-  const fetchDetailData = async (view: DetailViewType) => {
+  const fetchDetailData = async (view: DetailViewType, excludeEx: boolean = excludeExtreme) => {
     setDetailLoading(true);
     setExpandedDays(new Set()); // リセット
     try {
       const modeParam = strategy === 'weekdayStrategy' ? 'weekday_strategy' : strategy;
-      const params = new URLSearchParams({ view, mode: modeParam, segments: '4' });
+      const params = new URLSearchParams({ view, mode: modeParam, segments: '4', exclude_extreme: String(excludeEx) });
       if (strategy === 'weekdayStrategy') {
         params.set('mon', weekdayPositions[0]);
         params.set('tue', weekdayPositions[1]);
@@ -360,7 +419,7 @@ function AnalysisContent() {
   }, [loading, strategy, detailView, weekdayPositions]);
 
   // カスタム曜日戦略を取得
-  const fetchCustomWeekday = async (positions: PositionType[]) => {
+  const fetchCustomWeekday = async (positions: PositionType[], excludeEx: boolean = excludeExtreme) => {
     setCustomLoading(true);
     try {
       const params = new URLSearchParams({
@@ -370,6 +429,7 @@ function AnalysisContent() {
         thu: positions[3],
         fri: positions[4],
         segments: '4',
+        exclude_extreme: String(excludeEx),
       });
       const res = await fetch(`${API_BASE}/dev/analysis/custom-weekday?${params}`);
       const json = await res.json();
@@ -466,9 +526,40 @@ function AnalysisContent() {
             <h1 className="text-xl font-bold text-foreground">Grok分析</h1>
             <p className="text-muted-foreground text-sm">
               {currentData.meta.dateRange.start} ~ {currentData.meta.dateRange.end} ({currentData.meta.totalRecords}件)
+              {excludeExtreme && <span className="ml-2 text-amber-400">（極端相場除外中）</span>}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            {/* 極端相場除外トグル */}
+            {data?.extremeMarket?.available && data.extremeMarket.extremeDays.length > 0 && (
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={excludeExtreme}
+                    onChange={(e) => handleExcludeExtremeChange(e.target.checked)}
+                    className="w-4 h-4 rounded border-amber-500/50 bg-muted/30 text-amber-500 focus:ring-amber-500/50"
+                  />
+                  <span className="text-xs text-amber-400 whitespace-nowrap">極端相場除外</span>
+                </label>
+                <div className="relative group">
+                  <span className="text-amber-400 text-xs cursor-help">ⓘ</span>
+                  <div className="absolute right-0 top-6 z-50 hidden group-hover:block bg-card border border-border/40 rounded-lg p-3 shadow-xl w-72">
+                    <p className="text-xs text-muted-foreground mb-2">先物±3%超（前夜23:00）の極端相場日を除外</p>
+                    <ul className="text-xs space-y-1">
+                      {data.extremeMarket.extremeDays.map(day => (
+                        <li key={day.date} className="flex justify-between">
+                          <span className="text-foreground">{day.date}</span>
+                          <span className={(day.futuresChangePct ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
+                            先物{(day.futuresChangePct ?? 0) >= 0 ? '+' : ''}{(day.futuresChangePct ?? 0).toFixed(2)}%
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
             <DevNavLinks links={["dashboard", "recommendations", "stock-results"]} />
           </div>
         </header>
@@ -640,6 +731,71 @@ function AnalysisContent() {
               </>
             );
           })()}
+        </div>
+
+        {/* Market Status Section - 市場騰落 */}
+        <div className="mb-6">
+          <h2 className="text-sm md:text-base font-semibold text-foreground mb-3">市場騰落</h2>
+          {marketLoading ? (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="rounded-xl border border-border/40 bg-card/50 p-4 h-24 animate-pulse" />
+              <div className="rounded-xl border border-border/40 bg-card/50 p-4 h-24 animate-pulse" />
+            </div>
+          ) : marketData ? (
+            <div className="grid grid-cols-2 gap-4">
+              {/* 日経終値 */}
+              <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+                <div className="relative">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-muted-foreground text-sm">日経終値（15:30）</span>
+                    {marketData.nikkei && (
+                      <span className="text-muted-foreground text-xs">{marketData.nikkei.date}</span>
+                    )}
+                  </div>
+                  {marketData.nikkei ? (
+                    <div className="flex items-end justify-between">
+                      <div className="text-muted-foreground text-xs">
+                        {marketData.nikkei.prevClose?.toLocaleString()} → {marketData.nikkei.close?.toLocaleString()}
+                      </div>
+                      <div className={`text-2xl font-bold tabular-nums ${profitClass(marketData.nikkei.changePct)}`}>
+                        {marketData.nikkei.changePct >= 0 ? '+' : ''}{marketData.nikkei.changePct.toFixed(2)}%
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-muted-foreground text-sm">データなし</div>
+                  )}
+                </div>
+              </div>
+
+              {/* 先物 */}
+              <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+                <div className="relative">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-muted-foreground text-sm">先物（23:00）</span>
+                    {marketData.futures && (
+                      <span className="text-muted-foreground text-xs">{marketData.futures.date}</span>
+                    )}
+                  </div>
+                  {marketData.futures ? (
+                    <div className="flex items-end justify-between">
+                      <div className="text-muted-foreground text-xs">
+                        {marketData.futures.prevPrice?.toLocaleString()} → {marketData.futures.price?.toLocaleString()}
+                      </div>
+                      <div className={`text-2xl font-bold tabular-nums ${profitClass(marketData.futures.changePct)}`}>
+                        {marketData.futures.changePct >= 0 ? '+' : ''}{marketData.futures.changePct.toFixed(2)}%
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-muted-foreground text-sm">データなし</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-muted-foreground text-sm">データなし</div>
+          )}
         </div>
 
         {/* Weekday Cards - 4区分対応・縦並び */}
