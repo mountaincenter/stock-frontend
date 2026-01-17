@@ -126,6 +126,21 @@ interface RsiBandData {
   ichinichi: RsiBandStats[];
 }
 
+// ATR帯別データ
+interface AtrBandStats {
+  label: string;
+  count: number;
+  me: number;
+  p1: number;
+  ae: number;
+  p2: number;
+}
+
+interface AtrBandData {
+  seido: AtrBandStats[];
+  ichinichi: AtrBandStats[];
+}
+
 interface StrategyData {
   periodStats: {
     daily: PeriodStats;
@@ -136,6 +151,7 @@ interface StrategyData {
   weekdayData: WeekdayData[];
   dailyDetails: DailyDetail[];
   rsiBandData?: RsiBandData;
+  atrBandData?: AtrBandData;
   meta: Meta;
 }
 
@@ -875,6 +891,88 @@ function AnalysisContent() {
                       </thead>
                       <tbody>
                         {currentData.rsiBandData.ichinichi.map((band) => {
+                          const [meC, p1C, aeC, p2C] = getQuadrantClasses(band.me, band.p1, band.ae, band.p2);
+                          return (
+                            <tr key={band.label} className="border-b border-border/20">
+                              <td className="py-1.5 text-left text-muted-foreground">{band.label}</td>
+                              <td className="py-1.5 text-right tabular-nums">{band.count}</td>
+                              <td className={`py-1.5 text-right tabular-nums ${meC}`}>{formatProfit(band.me)}</td>
+                              <td className={`py-1.5 text-right tabular-nums ${p1C}`}>{formatProfit(band.p1)}</td>
+                              <td className={`py-1.5 text-right tabular-nums ${aeC}`}>{formatProfit(band.ae)}</td>
+                              <td className={`py-1.5 text-right tabular-nums ${p2C}`}>{formatProfit(band.p2)}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ATR Band Section - ATR帯別（4区分時のみ表示） */}
+        {currentData.atrBandData && (
+          <div className="mb-6">
+            <h2 className="text-sm md:text-base font-semibold text-foreground mb-3">ATR帯別</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* 制度信用 */}
+              <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+                <div className="relative">
+                  <h3 className="font-semibold text-sky-400 mb-3">制度信用</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border/50">
+                          <th className="py-2 text-left text-muted-foreground font-medium">ATR</th>
+                          <th className="py-2 text-right text-muted-foreground font-medium">件</th>
+                          <th className="py-2 text-right text-muted-foreground font-medium">10:25</th>
+                          <th className="py-2 text-right text-muted-foreground font-medium">前引</th>
+                          <th className="py-2 text-right text-muted-foreground font-medium">14:45</th>
+                          <th className="py-2 text-right text-muted-foreground font-medium">大引</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {currentData.atrBandData.seido.map((band) => {
+                          const [meC, p1C, aeC, p2C] = getQuadrantClasses(band.me, band.p1, band.ae, band.p2);
+                          return (
+                            <tr key={band.label} className="border-b border-border/20">
+                              <td className="py-1.5 text-left text-muted-foreground">{band.label}</td>
+                              <td className="py-1.5 text-right tabular-nums">{band.count}</td>
+                              <td className={`py-1.5 text-right tabular-nums ${meC}`}>{formatProfit(band.me)}</td>
+                              <td className={`py-1.5 text-right tabular-nums ${p1C}`}>{formatProfit(band.p1)}</td>
+                              <td className={`py-1.5 text-right tabular-nums ${aeC}`}>{formatProfit(band.ae)}</td>
+                              <td className={`py-1.5 text-right tabular-nums ${p2C}`}>{formatProfit(band.p2)}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              {/* いちにち信用 */}
+              <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+                <div className="relative">
+                  <h3 className="font-semibold text-amber-400 mb-3">いちにち信用</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border/50">
+                          <th className="py-2 text-left text-muted-foreground font-medium">ATR</th>
+                          <th className="py-2 text-right text-muted-foreground font-medium">件</th>
+                          <th className="py-2 text-right text-muted-foreground font-medium">10:25</th>
+                          <th className="py-2 text-right text-muted-foreground font-medium">前引</th>
+                          <th className="py-2 text-right text-muted-foreground font-medium">14:45</th>
+                          <th className="py-2 text-right text-muted-foreground font-medium">大引</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {currentData.atrBandData.ichinichi.map((band) => {
                           const [meC, p1C, aeC, p2C] = getQuadrantClasses(band.me, band.p1, band.ae, band.p2);
                           return (
                             <tr key={band.label} className="border-b border-border/20">

@@ -9,9 +9,9 @@ type DayTradeStock = {
   stock_name: string;
   grok_rank: number | null;
   close: number | null;
-  change_pct: number | null;
+  price_diff: number | null;
+  rsi9: number | null;
   atr_pct: number | null;
-  market_cap_oku: number | null;
   shortable: boolean;
   day_trade: boolean;
   ng: boolean;
@@ -462,9 +462,9 @@ export default function DayTradeListPage() {
                   <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">Rank</th>
                   <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">登場回数</th>
                   <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">終値</th>
-                  <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">変化率</th>
+                  <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">前日差</th>
+                  <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">RSI</th>
                   <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">ATR</th>
-                  <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">時価総額</th>
                   <th className="px-4 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">
                     {bulkEditMode ? "制度" : "信用区分"}
                   </th>
@@ -523,33 +523,39 @@ export default function DayTradeListPage() {
                         <td className={`px-3 py-4 text-center tabular-nums ${stock.appearance_count > 1 ? "text-primary font-medium" : "text-muted-foreground"}`}>
                           {stock.appearance_count}
                         </td>
-                        <td className={`px-3 py-4 text-right tabular-nums whitespace-nowrap ${
-                          stock.change_pct !== null
-                            ? stock.change_pct > 0
-                              ? "text-emerald-400"
-                              : stock.change_pct < 0
-                                ? "text-rose-400"
-                                : "text-muted-foreground"
-                            : "text-muted-foreground"
-                        }`}>
+                        <td className="px-3 py-4 text-right tabular-nums whitespace-nowrap text-muted-foreground">
                           {formatPrice(stock.close)}
                         </td>
-                        <td className={`px-3 py-4 text-right tabular-nums ${
-                          stock.change_pct !== null
-                            ? stock.change_pct > 0
+                        <td className={`px-3 py-4 text-right tabular-nums whitespace-nowrap ${
+                          stock.price_diff !== null
+                            ? stock.price_diff > 0
                               ? "text-emerald-400"
-                              : stock.change_pct < 0
+                              : stock.price_diff < 0
                                 ? "text-rose-400"
                                 : "text-muted-foreground"
                             : "text-muted-foreground"
                         }`}>
-                          {formatPercent(stock.change_pct)}
+                          {stock.price_diff !== null
+                            ? (stock.price_diff > 0 ? "+" : "") + stock.price_diff.toLocaleString()
+                            : "-"}
                         </td>
-                        <td className="px-3 py-4 text-right tabular-nums text-muted-foreground">
+                        <td className={`px-3 py-4 text-right tabular-nums ${
+                          stock.rsi9 !== null
+                            ? (stock.shortable && stock.rsi9 >= 70) || (!stock.shortable && stock.day_trade && stock.rsi9 >= 90)
+                              ? "text-rose-400 font-medium"
+                              : "text-muted-foreground"
+                            : "text-muted-foreground"
+                        }`}>
+                          {stock.rsi9 !== null ? stock.rsi9.toFixed(1) : "-"}
+                        </td>
+                        <td className={`px-3 py-4 text-right tabular-nums ${
+                          stock.atr_pct !== null
+                            ? (stock.shortable && stock.atr_pct >= 8) || (!stock.shortable && stock.day_trade && stock.atr_pct >= 9)
+                              ? "text-emerald-400 font-medium"
+                              : "text-muted-foreground"
+                            : "text-muted-foreground"
+                        }`}>
                           {formatPercent(stock.atr_pct, 1)}
-                        </td>
-                        <td className="px-3 py-4 text-right tabular-nums whitespace-nowrap text-muted-foreground">
-                          {stock.market_cap_oku != null ? `${stock.market_cap_oku.toLocaleString()}億` : "-"}
                         </td>
                         {bulkEditMode ? (
                           <>
