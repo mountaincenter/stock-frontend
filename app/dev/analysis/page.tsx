@@ -63,11 +63,42 @@ interface IchinichiData {
   aeTotal?: { all: number; ex0: number };
 }
 
+// RSI/ATRセグメント別データ
+interface RsiAtrSegmentMarginData {
+  count: number | { all: number; ex0: number };
+  meTotal: number | { all: number; ex0: number };
+  p1Total: number | { all: number; ex0: number };
+  aeTotal: number | { all: number; ex0: number };
+  p2Total: number | { all: number; ex0: number };
+  priceRanges: PriceRangeStats[] | { all: PriceRangeStats[]; ex0: PriceRangeStats[] };
+  position: string;
+}
+
+interface RsiAtrSegmentData {
+  seido: RsiAtrSegmentMarginData;
+  ichinichi: RsiAtrSegmentMarginData;
+}
+
+interface RsiAtrSegments {
+  counts: {
+    excluded: number;
+    rsi_only: number;
+    atr_only: number;
+    both: number;
+    all: number;
+  };
+  excluded: RsiAtrSegmentData;
+  rsi_only: RsiAtrSegmentData;
+  atr_only: RsiAtrSegmentData;
+  both: RsiAtrSegmentData;
+}
+
 interface WeekdayData {
   weekday: string;
   seido: SeidoData;
   ichinichi: IchinichiData;
   position: string;
+  rsiAtrSegments?: RsiAtrSegments;
 }
 
 interface Stock {
@@ -206,6 +237,16 @@ const STRATEGY_LABELS: Record<StrategyType, string> = {
 const WEEKDAY_LABELS = ['月', '火', '水', '木', '金'];
 const DEFAULT_WEEKDAY_POSITIONS: PositionType[] = ['S', 'S', 'S', 'S', 'L'];
 
+// RSI/ATRセグメントタブ
+type RsiAtrTabType = 'all' | 'excluded' | 'rsi_only' | 'atr_only' | 'both';
+const RSI_ATR_TABS: { key: RsiAtrTabType; label: string }[] = [
+  { key: 'excluded', label: '通常' },
+  { key: 'rsi_only', label: 'RSI' },
+  { key: 'atr_only', label: 'ATR' },
+  { key: 'both', label: '両方' },
+  { key: 'all', label: '全て' },
+];
+
 const PERIOD_LABELS: Record<PeriodType, string> = {
   daily: '日別',
   weekly: '週別',
@@ -248,6 +289,9 @@ interface DetailStock {
   ae?: number;
   winMe?: boolean;
   winAe?: boolean;
+  // RSI/ATRフラグ
+  rsiHit?: boolean;
+  atrHit?: boolean;
 }
 
 interface DetailGroup {
@@ -342,6 +386,10 @@ function AnalysisContent() {
   const [marketData, setMarketData] = useState<MarketStatusResponse | null>(null);
   const [marketLoading, setMarketLoading] = useState(true);
   const [excludeExtreme, setExcludeExtreme] = useState(false);
+  // RSI/ATRセグメントタブ（曜日ごと）
+  const [weekdayRsiAtrTabs, setWeekdayRsiAtrTabs] = useState<Record<number, RsiAtrTabType>>({
+    0: 'excluded', 1: 'excluded', 2: 'excluded', 3: 'excluded', 4: 'excluded',
+  });
 
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
@@ -994,19 +1042,67 @@ function AnalysisContent() {
           </div>
         )}
 
-        {/* Weekday Cards - 4区分対応・縦並び */}
+        {/* Weekday Cards - 4区分対応・縦並び + RSI/ATRタブ */}
         {currentData.weekdayData.map((wd, idx) => {
           const ichFilter = getIchinichiFilter(idx);
-          const ichPriceRanges = ichFilter === 'ex0' ? wd.ichinichi.priceRanges.ex0 : wd.ichinichi.priceRanges.all;
-          const ichCount = ichFilter === 'ex0' ? wd.ichinichi.count.ex0 : wd.ichinichi.count.all;
-          const ichMeTotal = ichFilter === 'ex0' ? (wd.ichinichi.meTotal?.ex0 ?? 0) : (wd.ichinichi.meTotal?.all ?? 0);
-          const ichP1Total = ichFilter === 'ex0' ? wd.ichinichi.p1Total.ex0 : wd.ichinichi.p1Total.all;
-          const ichAeTotal = ichFilter === 'ex0' ? (wd.ichinichi.aeTotal?.ex0 ?? 0) : (wd.ichinichi.aeTotal?.all ?? 0);
-          const ichP2Total = ichFilter === 'ex0' ? wd.ichinichi.p2Total.ex0 : wd.ichinichi.p2Total.all;
+          const currentRsiAtrTab = weekdayRsiAtrTabs[idx] ?? 'excluded';
+
+          // RSI/ATRタブに応じてデータソースを切り替え
+          const getSegmentData = () => {
+            if (!wd.rsiAtrSegments || currentRsiAtrTab === 'all') {
+              // 「全て」または旧データの場合は元のデータを使用
+              return {
+                seido: {
+                  count: wd.seido.count,
+                  meTotal: wd.seido.meTotal ?? 0,
+                  p1Total: wd.seido.p1Total,
+                  aeTotal: wd.seido.aeTotal ?? 0,
+                  p2Total: wd.seido.p2Total,
+                  priceRanges: wd.seido.priceRanges,
+                },
+                ichinichi: {
+                  count: wd.ichinichi.count,
+                  meTotal: wd.ichinichi.meTotal ?? { all: 0, ex0: 0 },
+                  p1Total: wd.ichinichi.p1Total,
+                  aeTotal: wd.ichinichi.aeTotal ?? { all: 0, ex0: 0 },
+                  p2Total: wd.ichinichi.p2Total,
+                  priceRanges: wd.ichinichi.priceRanges,
+                },
+              };
+            }
+            // セグメント別データを使用
+            const segData = wd.rsiAtrSegments[currentRsiAtrTab as keyof Omit<RsiAtrSegments, 'counts'>];
+            return {
+              seido: {
+                count: segData.seido.count as number,
+                meTotal: segData.seido.meTotal as number,
+                p1Total: segData.seido.p1Total as number,
+                aeTotal: segData.seido.aeTotal as number,
+                p2Total: segData.seido.p2Total as number,
+                priceRanges: segData.seido.priceRanges as PriceRangeStats[],
+              },
+              ichinichi: {
+                count: segData.ichinichi.count as { all: number; ex0: number },
+                meTotal: segData.ichinichi.meTotal as { all: number; ex0: number },
+                p1Total: segData.ichinichi.p1Total as { all: number; ex0: number },
+                aeTotal: segData.ichinichi.aeTotal as { all: number; ex0: number },
+                p2Total: segData.ichinichi.p2Total as { all: number; ex0: number },
+                priceRanges: segData.ichinichi.priceRanges as { all: PriceRangeStats[]; ex0: PriceRangeStats[] },
+              },
+            };
+          };
+          const segmentData = getSegmentData();
+
+          const ichPriceRanges = ichFilter === 'ex0' ? segmentData.ichinichi.priceRanges.ex0 : segmentData.ichinichi.priceRanges.all;
+          const ichCount = ichFilter === 'ex0' ? segmentData.ichinichi.count.ex0 : segmentData.ichinichi.count.all;
+          const ichMeTotal = ichFilter === 'ex0' ? segmentData.ichinichi.meTotal.ex0 : segmentData.ichinichi.meTotal.all;
+          const ichP1Total = ichFilter === 'ex0' ? segmentData.ichinichi.p1Total.ex0 : segmentData.ichinichi.p1Total.all;
+          const ichAeTotal = ichFilter === 'ex0' ? segmentData.ichinichi.aeTotal.ex0 : segmentData.ichinichi.aeTotal.all;
+          const ichP2Total = ichFilter === 'ex0' ? segmentData.ichinichi.p2Total.ex0 : segmentData.ichinichi.p2Total.all;
 
           return (
             <div key={wd.weekday} className="mb-6">
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-3 flex-wrap">
                 <h2 className="text-sm font-semibold text-foreground">{wd.weekday}</h2>
                 {strategy === 'weekdayStrategy' && (
                   <span className={`text-xs px-2 py-0.5 rounded ${
@@ -1014,6 +1110,29 @@ function AnalysisContent() {
                   }`}>
                     {wd.position}
                   </span>
+                )}
+                {/* RSI/ATRセグメントタブ */}
+                {wd.rsiAtrSegments && (
+                  <div className="flex gap-1 ml-auto">
+                    {RSI_ATR_TABS.map(tab => {
+                      const count = tab.key === 'all'
+                        ? wd.rsiAtrSegments!.counts.all
+                        : wd.rsiAtrSegments!.counts[tab.key as keyof Omit<RsiAtrSegments['counts'], 'all'>];
+                      return (
+                        <button
+                          key={tab.key}
+                          onClick={() => setWeekdayRsiAtrTabs(prev => ({ ...prev, [idx]: tab.key }))}
+                          className={`px-2 py-1 text-xs rounded border transition-colors ${
+                            currentRsiAtrTab === tab.key
+                              ? 'bg-primary text-primary-foreground border-primary'
+                              : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
+                          }`}
+                        >
+                          {tab.label}({count})
+                        </button>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
               <div className="grid grid-cols-1 gap-4">
@@ -1023,34 +1142,34 @@ function AnalysisContent() {
                   <div className="relative">
                     <div className="flex items-center gap-2 mb-3">
                       <span className="font-semibold text-lg text-foreground">制度信用</span>
-                      <span className="text-muted-foreground text-base">{wd.seido.count}件</span>
+                      <span className="text-muted-foreground text-base">{segmentData.seido.count}件</span>
                     </div>
                     {(() => {
-                      const [seidoMeClass, seidoP1Class, seidoAeClass, seidoP2Class] = getQuadrantClasses(wd.seido.meTotal ?? 0, wd.seido.p1Total, wd.seido.aeTotal ?? 0, wd.seido.p2Total);
+                      const [seidoMeClass, seidoP1Class, seidoAeClass, seidoP2Class] = getQuadrantClasses(segmentData.seido.meTotal, segmentData.seido.p1Total, segmentData.seido.aeTotal, segmentData.seido.p2Total);
                       return (
                         <div className="flex justify-end gap-5 mb-3 pb-3 border-b border-border/30">
                           <div className="text-right">
                             <div className="text-muted-foreground text-sm">10:25</div>
                             <div className={`text-xl font-bold tabular-nums ${seidoMeClass}`}>
-                              {formatProfit(wd.seido.meTotal ?? 0)}
+                              {formatProfit(segmentData.seido.meTotal)}
                             </div>
                           </div>
                           <div className="text-right">
                             <div className="text-muted-foreground text-sm">前場引け</div>
                             <div className={`text-xl font-bold tabular-nums ${seidoP1Class}`}>
-                              {formatProfit(wd.seido.p1Total)}
+                              {formatProfit(segmentData.seido.p1Total)}
                             </div>
                           </div>
                           <div className="text-right">
                             <div className="text-muted-foreground text-sm">14:45</div>
                             <div className={`text-xl font-bold tabular-nums ${seidoAeClass}`}>
-                              {formatProfit(wd.seido.aeTotal ?? 0)}
+                              {formatProfit(segmentData.seido.aeTotal)}
                             </div>
                           </div>
                           <div className="text-right">
                             <div className="text-muted-foreground text-sm whitespace-nowrap">大引け(15:30)</div>
                             <div className={`text-xl font-bold tabular-nums ${seidoP2Class}`}>
-                              {formatProfit(wd.seido.p2Total)}
+                              {formatProfit(segmentData.seido.p2Total)}
                             </div>
                           </div>
                         </div>
@@ -1073,7 +1192,7 @@ function AnalysisContent() {
                           </tr>
                         </thead>
                         <tbody>
-                          {wd.seido.priceRanges.map(pr => {
+                          {segmentData.seido.priceRanges.map(pr => {
                             const [prMeClass, prP1Class, prAeClass, prP2Class] = getQuadrantClasses(pr.me ?? 0, pr.p1, pr.ae ?? 0, pr.p2);
                             return (
                             <tr key={pr.label} className="border-b border-border/20">
@@ -1424,6 +1543,8 @@ function AnalysisContent() {
                               <td className="py-2.5 whitespace-nowrap">
                                 <span className="text-foreground">{s.ticker.replace('.T', '')}</span>
                                 <span className="text-foreground ml-2 text-sm">{s.stockName}</span>
+                                {s.rsiHit && <span className="ml-1 px-1 py-0.5 text-xs rounded bg-rose-500/20 text-rose-400">R</span>}
+                                {s.atrHit && <span className="ml-1 px-1 py-0.5 text-xs rounded bg-emerald-500/20 text-emerald-400">A</span>}
                               </td>
                               <td className="py-2.5 text-sm text-foreground whitespace-nowrap">
                                 {s.marginType === '制度信用' ? '制度' : 'いちにち'}
