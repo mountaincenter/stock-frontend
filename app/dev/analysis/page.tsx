@@ -836,7 +836,7 @@ function AnalysisContent() {
                   {marketData.nikkei ? (
                     <div className="flex items-end justify-between">
                       <div className="text-muted-foreground text-xs">
-                        {marketData.nikkei.prevClose?.toLocaleString()} → {marketData.nikkei.close?.toLocaleString()}
+                        {marketData.nikkei.prevClose?.toLocaleString()} → {marketData.nikkei.close?.toLocaleString()} ({marketData.nikkei.close && marketData.nikkei.prevClose ? (marketData.nikkei.close - marketData.nikkei.prevClose >= 0 ? '+' : '') + Math.round(marketData.nikkei.close - marketData.nikkei.prevClose).toLocaleString() : ''})
                       </div>
                       <div className={`text-2xl font-bold tabular-nums ${profitClass(marketData.nikkei.changePct)}`}>
                         {marketData.nikkei.changePct >= 0 ? '+' : ''}{marketData.nikkei.changePct.toFixed(2)}%
@@ -861,7 +861,7 @@ function AnalysisContent() {
                   {marketData.futures ? (
                     <div className="flex items-end justify-between">
                       <div className="text-muted-foreground text-xs">
-                        {marketData.futures.prevPrice?.toLocaleString()} → {marketData.futures.price?.toLocaleString()}
+                        {marketData.futures.prevPrice?.toLocaleString()} → {marketData.futures.price?.toLocaleString()} ({marketData.futures.price && marketData.futures.prevPrice ? (marketData.futures.price - marketData.futures.prevPrice >= 0 ? '+' : '') + Math.round(marketData.futures.price - marketData.futures.prevPrice).toLocaleString() : ''})
                       </div>
                       <div className={`text-2xl font-bold tabular-nums ${profitClass(marketData.futures.changePct)}`}>
                         {marketData.futures.changePct >= 0 ? '+' : ''}{marketData.futures.changePct.toFixed(2)}%
