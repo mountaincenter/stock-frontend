@@ -5,8 +5,8 @@ import * as React from "react";
 
 interface FinancialData {
   ticker: string;
-  fiscalYear: string | null;
-  fiscalQuarter: number | null;
+  fiscalPeriod: string | null;
+  periodEnd: string | null;
   disclosureDate: string | null;
   sales: number | null;
   operatingProfit: number | null;
@@ -103,9 +103,8 @@ export default function FinancialsCard({ ticker }: { ticker: string }) {
     );
   }
 
-  const fiscalPeriod = data.fiscalQuarter
-    ? `${data.fiscalYear} ${data.fiscalQuarter}Q`
-    : data.fiscalYear ?? "—";
+  // 自己資本比率を%に変換（0.256 -> 25.6）
+  const equityRatioPct = data.equityRatio != null ? data.equityRatio * 100 : null;
 
   return (
     <section
@@ -119,10 +118,9 @@ export default function FinancialsCard({ ticker }: { ticker: string }) {
         <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/30">
           <h2 className="text-lg font-semibold text-foreground">財務データ</h2>
           <div className="text-xs text-muted-foreground">
-            {fiscalPeriod}
-            {data.disclosureDate && (
-              <span className="ml-2">開示: {data.disclosureDate}</span>
-            )}
+            {data.fiscalPeriod ?? "—"}
+            {data.periodEnd && <span className="ml-2">期末: {data.periodEnd}</span>}
+            {data.disclosureDate && <span className="ml-2">開示: {data.disclosureDate}</span>}
           </div>
         </div>
 
@@ -133,11 +131,7 @@ export default function FinancialsCard({ ticker }: { ticker: string }) {
             <h3 className="text-xs uppercase tracking-wider text-emerald-400/80 font-medium mb-3">
               損益計算書
             </h3>
-            <DataRow
-              label="売上高"
-              value={data.sales}
-              unit="億円"
-            />
+            <DataRow label="売上高" value={data.sales} unit="億円" />
             <DataRow
               label="営業利益"
               value={data.operatingProfit}
@@ -168,21 +162,13 @@ export default function FinancialsCard({ ticker }: { ticker: string }) {
             <h3 className="text-xs uppercase tracking-wider text-blue-400/80 font-medium mb-3">
               貸借対照表
             </h3>
-            <DataRow
-              label="総資産"
-              value={data.totalAssets}
-              unit="億円"
-            />
-            <DataRow
-              label="純資産"
-              value={data.equity}
-              unit="億円"
-            />
+            <DataRow label="総資産" value={data.totalAssets} unit="億円" />
+            <DataRow label="純資産" value={data.equity} unit="億円" />
             <DataRow
               label="自己資本比率"
-              value={data.equityRatio != null ? data.equityRatio.toFixed(1) : null}
+              value={equityRatioPct != null ? equityRatioPct.toFixed(1) : null}
               unit="%"
-              positive={data.equityRatio != null ? data.equityRatio >= 40 : null}
+              positive={equityRatioPct != null ? equityRatioPct >= 40 : null}
             />
             <DataRow
               label="BPS"
@@ -210,9 +196,7 @@ export default function FinancialsCard({ ticker }: { ticker: string }) {
 
         {/* Footer */}
         <div className="mt-4 pt-3 border-t border-border/20">
-          <p className="text-[9px] text-muted-foreground/50">
-            データソース: J-Quants API
-          </p>
+          <p className="text-[9px] text-muted-foreground/50">データソース: J-Quants API</p>
         </div>
       </div>
     </section>
