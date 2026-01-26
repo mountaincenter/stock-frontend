@@ -87,6 +87,7 @@ export default function IntradayAnalysis({ ticker }: { ticker: string }) {
   const [selectedWeekday, setSelectedWeekday] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
+  const [showTable, setShowTable] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -398,55 +399,76 @@ export default function IntradayAnalysis({ ticker }: { ticker: string }) {
           </div>
         </div>
 
-        {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs md:text-sm">
-            <thead>
-              <tr className="border-b border-border/30 text-muted-foreground">
-                <th className="text-left py-2 px-1 font-medium">日付</th>
-                <th className="text-center py-2 px-1 font-medium">曜日</th>
-                <th className="text-right py-2 px-1 font-medium">前終</th>
-                <th className="text-right py-2 px-1 font-medium">始値</th>
-                <th className="text-right py-2 px-1 font-medium">高値</th>
-                <th className="text-center py-2 px-1 font-medium">時間</th>
-                <th className="text-right py-2 px-1 font-medium">安値</th>
-                <th className="text-center py-2 px-1 font-medium">時間</th>
-                <th className="text-right py-2 px-1 font-medium">前場終</th>
-                <th className="text-right py-2 px-1 font-medium">前場PnL</th>
-                <th className="text-right py-2 px-1 font-medium">終値</th>
-                <th className="text-right py-2 px-1 font-medium">日中PnL</th>
-                <th className="text-right py-2 px-1 font-medium">ボラ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {table.map((row) => (
-                <tr
-                  key={row.date}
-                  className="border-b border-border/20 hover:bg-background/30 transition-colors"
-                >
-                  <td className="py-2 px-1 font-mono">{row.date.slice(5)}</td>
-                  <td className="py-2 px-1 text-center">{row.dayOfWeek}</td>
-                  <td className="py-2 px-1 text-right font-mono">{formatNumber(row.prevClose)}</td>
-                  <td className="py-2 px-1 text-right font-mono">{formatNumber(row.open)}</td>
-                  <td className="py-2 px-1 text-right font-mono text-emerald-400">{formatNumber(row.high)}</td>
-                  <td className="py-2 px-1 text-center font-mono text-muted-foreground">{row.highTime}</td>
-                  <td className="py-2 px-1 text-right font-mono text-red-400">{formatNumber(row.low)}</td>
-                  <td className="py-2 px-1 text-center font-mono text-muted-foreground">{row.lowTime}</td>
-                  <td className="py-2 px-1 text-right font-mono">{formatNumber(row.amClose)}</td>
-                  <td className={`py-2 px-1 text-right font-mono ${pnlColor(row.amPnl)}`}>
-                    {formatPnl(row.amPnl)}
-                  </td>
-                  <td className="py-2 px-1 text-right font-mono">{formatNumber(row.close)}</td>
-                  <td className={`py-2 px-1 text-right font-mono ${pnlColor(row.dayPnl)}`}>
-                    {formatPnl(row.dayPnl)}
-                  </td>
-                  <td className="py-2 px-1 text-right font-mono text-muted-foreground">
-                    {formatNumber(row.volatility)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        {/* Table (Collapsible) */}
+        <div>
+          <button
+            onClick={() => setShowTable(!showTable)}
+            className="w-full flex items-center justify-between py-2 px-3 rounded-lg bg-background/40 border border-border/30 hover:bg-background/60 transition-colors"
+          >
+            <span className="text-sm font-medium text-muted-foreground">
+              詳細データ ({table.length}件)
+            </span>
+            <svg
+              className={`w-4 h-4 text-muted-foreground transition-transform ${showTable ? "rotate-180" : ""}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {showTable && (
+            <div className="overflow-x-auto mt-3">
+              <table className="w-full text-xs md:text-sm">
+                <thead>
+                  <tr className="border-b border-border/30 text-muted-foreground">
+                    <th className="text-left py-2 px-1 font-medium">日付</th>
+                    <th className="text-center py-2 px-1 font-medium">曜日</th>
+                    <th className="text-right py-2 px-1 font-medium">前終</th>
+                    <th className="text-right py-2 px-1 font-medium">始値</th>
+                    <th className="text-right py-2 px-1 font-medium">高値</th>
+                    <th className="text-center py-2 px-1 font-medium">時間</th>
+                    <th className="text-right py-2 px-1 font-medium">安値</th>
+                    <th className="text-center py-2 px-1 font-medium">時間</th>
+                    <th className="text-right py-2 px-1 font-medium">前場終</th>
+                    <th className="text-right py-2 px-1 font-medium">前場PnL</th>
+                    <th className="text-right py-2 px-1 font-medium">終値</th>
+                    <th className="text-right py-2 px-1 font-medium">日中PnL</th>
+                    <th className="text-right py-2 px-1 font-medium">ボラ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {table.map((row) => (
+                    <tr
+                      key={row.date}
+                      className="border-b border-border/20 hover:bg-background/30 transition-colors"
+                    >
+                      <td className="py-2 px-1 font-mono">{row.date.slice(5)}</td>
+                      <td className="py-2 px-1 text-center">{row.dayOfWeek}</td>
+                      <td className="py-2 px-1 text-right font-mono">{formatNumber(row.prevClose)}</td>
+                      <td className="py-2 px-1 text-right font-mono">{formatNumber(row.open)}</td>
+                      <td className="py-2 px-1 text-right font-mono text-emerald-400">{formatNumber(row.high)}</td>
+                      <td className="py-2 px-1 text-center font-mono text-muted-foreground">{row.highTime}</td>
+                      <td className="py-2 px-1 text-right font-mono text-red-400">{formatNumber(row.low)}</td>
+                      <td className="py-2 px-1 text-center font-mono text-muted-foreground">{row.lowTime}</td>
+                      <td className="py-2 px-1 text-right font-mono">{formatNumber(row.amClose)}</td>
+                      <td className={`py-2 px-1 text-right font-mono ${pnlColor(row.amPnl)}`}>
+                        {formatPnl(row.amPnl)}
+                      </td>
+                      <td className="py-2 px-1 text-right font-mono">{formatNumber(row.close)}</td>
+                      <td className={`py-2 px-1 text-right font-mono ${pnlColor(row.dayPnl)}`}>
+                        {formatPnl(row.dayPnl)}
+                      </td>
+                      <td className="py-2 px-1 text-right font-mono text-muted-foreground">
+                        {formatNumber(row.volatility)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </section>

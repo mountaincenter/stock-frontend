@@ -6,6 +6,7 @@ import IntradayAnalysis from "./IntradayAnalysis";
 import PriceCard from "./PriceCard";
 import FinancialsCard from "./FinancialsCard";
 import BackToListButton from "./BackToListButton";
+import AnnouncementBadge from "./AnnouncementBadge";
 import { canonicalizeTag } from "@/lib/tag-utils";
 
 const RAW_API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
@@ -172,7 +173,7 @@ export default async function TickerPage({
       <div className="flex-1 py-4 md:py-5 lg:py-6">
         <div className="w-full md:w-[92%] lg:w-[90%] xl:w-[88%] 2xl:w-[86%] mx-auto px-3 md:px-4 space-y-4">
           {/* Premium navigation header */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <Link
               href={`/${ticker}/demo`}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-sm font-medium transition-colors"
@@ -183,6 +184,7 @@ export default async function TickerPage({
               </svg>
               デモトレード
             </Link>
+            <AnnouncementBadge ticker={ticker} />
             <BackToListButton />
           </div>
 

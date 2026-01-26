@@ -20,6 +20,13 @@ interface FinancialData {
   sharesOutstanding: number | null;
 }
 
+interface AnnouncementData {
+  ticker: string;
+  announcementDate: string | null;
+  nextQuarter: string | null;
+  confidence: string | null;
+}
+
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
 function DataRow({
@@ -50,8 +57,59 @@ function DataRow({
   );
 }
 
+function formatAnnouncementDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
+  const weekday = weekdays[date.getDay()];
+  return `${month}/${day}(${weekday})`;
+}
+
+function getBusinessDays(fromDate: Date, toDate: Date): number {
+  let count = 0;
+  const current = new Date(fromDate);
+  current.setHours(0, 0, 0, 0);
+  const target = new Date(toDate);
+  target.setHours(0, 0, 0, 0);
+  const direction = target > current ? 1 : -1;
+  while (direction > 0 ? current < target : current > target) {
+    current.setDate(current.getDate() + direction);
+    const dayOfWeek = current.getDay();
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      count += direction;
+    }
+  }
+  return count;
+}
+
+function getAnnouncementStyle(announcementDate: string): { text: string; className: string } {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(announcementDate);
+  target.setHours(0, 0, 0, 0);
+  const businessDays = getBusinessDays(today, target);
+
+  if (businessDays > 5) {
+    return { text: "", className: "bg-amber-500/10 text-amber-400 border-amber-500/20" };
+  } else if (businessDays >= 0) {
+    return {
+      text: businessDays === 0 ? " (本日)" : ` (${businessDays}営業日後)`,
+      className: "bg-amber-500/20 text-amber-300 border-amber-500/40",
+    };
+  } else if (businessDays >= -5) {
+    return {
+      text: " 発表済",
+      className: "bg-sky-500/20 text-sky-300 border-sky-500/40",
+    };
+  } else {
+    return { text: "", className: "bg-muted/50 text-muted-foreground border-border/30" };
+  }
+}
+
 export default function FinancialsCard({ ticker }: { ticker: string }) {
   const [data, setData] = React.useState<FinancialData | null>(null);
+  const [announcement, setAnnouncement] = React.useState<AnnouncementData | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -73,7 +131,23 @@ export default function FinancialsCard({ ticker }: { ticker: string }) {
         setLoading(false);
       }
     }
+
+    async function fetchAnnouncement() {
+      try {
+        const url = API_BASE
+          ? `${API_BASE}/fins/announcement/${ticker}`
+          : `/api/fins/announcement/${ticker}`;
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const json = await res.json();
+        setAnnouncement(json);
+      } catch {
+        // silently fail
+      }
+    }
+
     fetchFinancials();
+    fetchAnnouncement();
   }, [ticker]);
 
   if (loading) {
@@ -117,10 +191,21 @@ export default function FinancialsCard({ ticker }: { ticker: string }) {
         {/* Header */}
         <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/30">
           <h2 className="text-lg font-semibold text-foreground">財務データ</h2>
-          <div className="text-xs text-muted-foreground">
-            {data.fiscalPeriod ?? "—"}
-            {data.periodEnd && <span className="ml-2">期末: {data.periodEnd}</span>}
-            {data.disclosureDate && <span className="ml-2">開示: {data.disclosureDate}</span>}
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <div>
+              {data.fiscalPeriod ?? "—"}
+              {data.periodEnd && <span className="ml-2">期末: {data.periodEnd}</span>}
+              {data.disclosureDate && <span className="ml-2">開示: {data.disclosureDate}</span>}
+            </div>
+            {announcement?.announcementDate && (() => {
+              const style = getAnnouncementStyle(announcement.announcementDate);
+              return (
+                <div className={`px-2 py-0.5 rounded border ${style.className}`}>
+                  次回{announcement.nextQuarter}: {formatAnnouncementDate(announcement.announcementDate)}
+                  {style.text}
+                </div>
+              );
+            })()}
           </div>
         </div>
 
