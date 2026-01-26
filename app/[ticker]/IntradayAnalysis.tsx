@@ -41,6 +41,13 @@ type IntradayData = {
     ticker: NormalizedPrice[];
     nikkei: NormalizedPrice[];
     topix: NormalizedPrice[];
+    avg5d?: NormalizedPrice[];
+    avg10d?: NormalizedPrice[];
+    avgMon?: NormalizedPrice[];
+    avgTue?: NormalizedPrice[];
+    avgWed?: NormalizedPrice[];
+    avgThu?: NormalizedPrice[];
+    avgFri?: NormalizedPrice[];
   };
   summary: {
     highAmPct: number;
@@ -75,6 +82,9 @@ export default function IntradayAnalysis({ ticker }: { ticker: string }) {
   const [error, setError] = useState<string | null>(null);
   const [showNikkei, setShowNikkei] = useState(true);
   const [showTopix, setShowTopix] = useState(false);
+  const [showAvg5d, setShowAvg5d] = useState(false);
+  const [showAvg10d, setShowAvg10d] = useState(false);
+  const [selectedWeekday, setSelectedWeekday] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -104,7 +114,16 @@ export default function IntradayAnalysis({ ticker }: { ticker: string }) {
   const chartData = useMemo(() => {
     if (!data) return [];
     const { normalizedPrices } = data;
-    const timeMap = new Map<string, { time: string; ticker?: number; nikkei?: number; topix?: number }>();
+    type ChartPoint = {
+      time: string;
+      ticker?: number;
+      nikkei?: number;
+      topix?: number;
+      avg5d?: number;
+      avg10d?: number;
+      weekdayAvg?: number;
+    };
+    const timeMap = new Map<string, ChartPoint>();
 
     normalizedPrices.ticker.forEach((p) => {
       if (!timeMap.has(p.time)) timeMap.set(p.time, { time: p.time });
@@ -118,13 +137,34 @@ export default function IntradayAnalysis({ ticker }: { ticker: string }) {
       if (!timeMap.has(p.time)) timeMap.set(p.time, { time: p.time });
       timeMap.get(p.time)!.topix = p.value;
     });
+    normalizedPrices.avg5d?.forEach((p) => {
+      if (!timeMap.has(p.time)) timeMap.set(p.time, { time: p.time });
+      timeMap.get(p.time)!.avg5d = p.value;
+    });
+    normalizedPrices.avg10d?.forEach((p) => {
+      if (!timeMap.has(p.time)) timeMap.set(p.time, { time: p.time });
+      timeMap.get(p.time)!.avg10d = p.value;
+    });
+
+    // 曜日別平均
+    const weekdayKey = selectedWeekday
+      ? (`avg${selectedWeekday}` as keyof typeof normalizedPrices)
+      : null;
+    if (weekdayKey && normalizedPrices[weekdayKey]) {
+      (normalizedPrices[weekdayKey] as NormalizedPrice[]).forEach((p) => {
+        if (!timeMap.has(p.time)) timeMap.set(p.time, { time: p.time });
+        timeMap.get(p.time)!.weekdayAvg = p.value;
+      });
+    }
 
     return Array.from(timeMap.values()).sort((a, b) => a.time.localeCompare(b.time));
-  }, [data]);
+  }, [data, selectedWeekday]);
 
   // Y軸の範囲を計算
   const yDomain = useMemo(() => {
-    const allValues = chartData.flatMap((d) => [d.ticker, d.nikkei, d.topix].filter((v): v is number => v !== undefined));
+    const allValues = chartData.flatMap((d) =>
+      [d.ticker, d.nikkei, d.topix, d.avg5d, d.avg10d, d.weekdayAvg].filter((v): v is number => v !== undefined)
+    );
     if (allValues.length === 0) return [98, 102] as [number, number];
     const min = Math.min(...allValues);
     const max = Math.max(...allValues);
@@ -197,30 +237,65 @@ export default function IntradayAnalysis({ ticker }: { ticker: string }) {
 
         {/* Normalized Price Chart */}
         <div className="rounded-xl bg-background/40 border border-border/30 p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="text-sm font-medium">
-              前日終値=100 価格推移
-              <span className="ml-2 text-xs text-muted-foreground">({normalizedPrices.date})</span>
+          <div className="flex flex-col gap-2 mb-3">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-medium">
+                前日終値=100 価格推移
+                <span className="ml-2 text-xs text-muted-foreground">({normalizedPrices.date})</span>
+              </div>
+              <div className="flex items-center gap-4 text-xs">
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showNikkei}
+                    onChange={(e) => setShowNikkei(e.target.checked)}
+                    className="w-3 h-3 rounded accent-blue-500"
+                  />
+                  <span className="text-blue-400">日経平均</span>
+                </label>
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showTopix}
+                    onChange={(e) => setShowTopix(e.target.checked)}
+                    className="w-3 h-3 rounded accent-orange-500"
+                  />
+                  <span className="text-orange-400">TOPIX</span>
+                </label>
+              </div>
             </div>
-            <div className="flex items-center gap-4 text-xs">
+            {/* 平均線コントロール */}
+            <div className="flex items-center gap-4 text-xs flex-wrap">
               <label className="flex items-center gap-1.5 cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={showNikkei}
-                  onChange={(e) => setShowNikkei(e.target.checked)}
-                  className="w-3 h-3 rounded accent-blue-500"
+                  checked={showAvg5d}
+                  onChange={(e) => setShowAvg5d(e.target.checked)}
+                  className="w-3 h-3 rounded accent-emerald-500"
                 />
-                <span className="text-blue-400">日経平均</span>
+                <span className="text-emerald-400">5日平均</span>
               </label>
               <label className="flex items-center gap-1.5 cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={showTopix}
-                  onChange={(e) => setShowTopix(e.target.checked)}
-                  className="w-3 h-3 rounded accent-orange-500"
+                  checked={showAvg10d}
+                  onChange={(e) => setShowAvg10d(e.target.checked)}
+                  className="w-3 h-3 rounded accent-purple-500"
                 />
-                <span className="text-orange-400">TOPIX</span>
+                <span className="text-purple-400">10日平均</span>
               </label>
+              <select
+                value={selectedWeekday ?? ""}
+                onChange={(e) => setSelectedWeekday(e.target.value || null)}
+                className="bg-background/60 border border-border/30 rounded px-2 py-0.5 text-xs"
+              >
+                <option value="">曜日平均</option>
+                <option value="Mon">月曜</option>
+                <option value="Tue">火曜</option>
+                <option value="Wed">水曜</option>
+                <option value="Thu">木曜</option>
+                <option value="Fri">金曜</option>
+              </select>
             </div>
           </div>
           <div className="h-48">
@@ -278,6 +353,39 @@ export default function IntradayAnalysis({ ticker }: { ticker: string }) {
                       strokeWidth={1.5}
                       dot={false}
                       name="TOPIX"
+                    />
+                  )}
+                  {showAvg5d && (
+                    <Line
+                      type="monotone"
+                      dataKey="avg5d"
+                      stroke="#10b981"
+                      strokeWidth={2}
+                      strokeDasharray="5 5"
+                      dot={false}
+                      name="5日平均"
+                    />
+                  )}
+                  {showAvg10d && (
+                    <Line
+                      type="monotone"
+                      dataKey="avg10d"
+                      stroke="#a855f7"
+                      strokeWidth={2}
+                      strokeDasharray="5 5"
+                      dot={false}
+                      name="10日平均"
+                    />
+                  )}
+                  {selectedWeekday && (
+                    <Line
+                      type="monotone"
+                      dataKey="weekdayAvg"
+                      stroke="#f59e0b"
+                      strokeWidth={2}
+                      strokeDasharray="3 3"
+                      dot={false}
+                      name={`${selectedWeekday}曜平均`}
                     />
                   )}
                 </LineChart>
