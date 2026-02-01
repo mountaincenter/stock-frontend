@@ -155,7 +155,7 @@ const DETAIL_VIEW_LABELS: Record<DetailViewType, string> = {
   weekday: '曜日別',
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000';
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 // Price presets
 const PRICE_PRESETS = [
