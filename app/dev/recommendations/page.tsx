@@ -16,6 +16,8 @@ type DayTradeStock = {
   day_trade: boolean;
   ng: boolean;
   day_trade_available_shares: number | null;
+  margin_sell_balance: number | null;  // 売り残
+  margin_buy_balance: number | null;   // 買い残
   appearance_count: number;
   max_cost_100: number | null;
 };
@@ -64,7 +66,7 @@ export default function DayTradeListPage() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterType>("all");
   const [bulkEditMode, setBulkEditMode] = useState(false);
-  const [editedStocks, setEditedStocks] = useState<Record<string, { shortable: boolean; day_trade: boolean; ng: boolean; day_trade_available_shares: number | null }>>({});
+  const [editedStocks, setEditedStocks] = useState<Record<string, { shortable: boolean; day_trade: boolean; ng: boolean; day_trade_available_shares: number | null; margin_sell_balance: number | null; margin_buy_balance: number | null }>>({});
   const [saving, setSaving] = useState(false);
   const [expandedTicker, setExpandedTicker] = useState<string | null>(null);
   const [historyData, setHistoryData] = useState<Record<string, HistoryRecord[]>>({});
@@ -118,9 +120,9 @@ export default function DayTradeListPage() {
 
   const startBulkEdit = () => {
     // 現在の状態をコピー
-    const initial: Record<string, { shortable: boolean; day_trade: boolean; ng: boolean; day_trade_available_shares: number | null }> = {};
+    const initial: Record<string, { shortable: boolean; day_trade: boolean; ng: boolean; day_trade_available_shares: number | null; margin_sell_balance: number | null; margin_buy_balance: number | null }> = {};
     stocks.forEach((s) => {
-      initial[s.ticker] = { shortable: s.shortable, day_trade: s.day_trade, ng: s.ng, day_trade_available_shares: s.day_trade_available_shares };
+      initial[s.ticker] = { shortable: s.shortable, day_trade: s.day_trade, ng: s.ng, day_trade_available_shares: s.day_trade_available_shares, margin_sell_balance: s.margin_sell_balance, margin_buy_balance: s.margin_buy_balance };
     });
     setEditedStocks(initial);
     setBulkEditMode(true);
@@ -146,18 +148,28 @@ export default function DayTradeListPage() {
     }));
   };
 
+  const updateEditedMargin = (ticker: string, field: "margin_sell_balance" | "margin_buy_balance", value: string) => {
+    const numValue = value === "" ? null : parseInt(value, 10);
+    setEditedStocks((prev) => ({
+      ...prev,
+      [ticker]: { ...prev[ticker], [field]: isNaN(numValue as number) ? null : numValue },
+    }));
+  };
+
   const saveBulkEdit = async () => {
     setSaving(true);
     try {
       // 変更があった銘柄のみ抽出
-      const changes: { ticker: string; stockName: string; shortable: boolean; day_trade: boolean; ng: boolean; day_trade_available_shares: number | null }[] = [];
+      const changes: { ticker: string; stockName: string; shortable: boolean; day_trade: boolean; ng: boolean; day_trade_available_shares: number | null; margin_sell_balance: number | null; margin_buy_balance: number | null }[] = [];
       stocks.forEach((s) => {
         const edited = editedStocks[s.ticker];
         if (edited && (
           edited.shortable !== s.shortable ||
           edited.day_trade !== s.day_trade ||
           edited.ng !== s.ng ||
-          edited.day_trade_available_shares !== s.day_trade_available_shares
+          edited.day_trade_available_shares !== s.day_trade_available_shares ||
+          edited.margin_sell_balance !== s.margin_sell_balance ||
+          edited.margin_buy_balance !== s.margin_buy_balance
         )) {
           changes.push({ ticker: s.ticker, stockName: s.stock_name, ...edited });
         }
@@ -178,6 +190,8 @@ export default function DayTradeListPage() {
           day_trade: c.day_trade,
           ng: c.ng,
           day_trade_available_shares: c.day_trade_available_shares,
+          margin_sell_balance: c.margin_sell_balance,
+          margin_buy_balance: c.margin_buy_balance,
         }))),
       });
 
@@ -473,10 +487,16 @@ export default function DayTradeListPage() {
                       <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">いち</th>
                       <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">NG</th>
                       <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">株数</th>
+                      <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">売残</th>
+                      <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">買残</th>
                     </>
                   )}
                   {!bulkEditMode && (
-                    <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">株数</th>
+                    <>
+                      <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">株数</th>
+                      <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">売残</th>
+                      <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">買残</th>
+                    </>
                   )}
                 </tr>
               </thead>
@@ -488,7 +508,7 @@ export default function DayTradeListPage() {
                   const canExpand = !bulkEditMode && stock.appearance_count >= 1;
                   const history = historyData[stock.ticker] || [];
                   const isLoadingHistory = loadingHistory === stock.ticker;
-                  const colSpan = bulkEditMode ? 12 : 10;
+                  const colSpan = bulkEditMode ? 14 : 12;
 
                   return (
                     <React.Fragment key={stock.ticker}>
@@ -603,6 +623,32 @@ export default function DayTradeListPage() {
                                 }`}
                               />
                             </td>
+                            <td className="px-3 py-4 text-center">
+                              <input
+                                type="number"
+                                inputMode="numeric"
+                                min={0}
+                                step={1000}
+                                value={edited?.margin_sell_balance ?? ""}
+                                onChange={(e) => updateEditedMargin(stock.ticker, "margin_sell_balance", e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
+                                placeholder="-"
+                                className="w-24 px-2 py-1 text-right tabular-nums bg-muted/50 border border-border/40 rounded focus:outline-none focus:border-primary/50"
+                              />
+                            </td>
+                            <td className="px-3 py-4 text-center">
+                              <input
+                                type="number"
+                                inputMode="numeric"
+                                min={0}
+                                step={1000}
+                                value={edited?.margin_buy_balance ?? ""}
+                                onChange={(e) => updateEditedMargin(stock.ticker, "margin_buy_balance", e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
+                                placeholder="-"
+                                className="w-24 px-2 py-1 text-right tabular-nums bg-muted/50 border border-border/40 rounded focus:outline-none focus:border-primary/50"
+                              />
+                            </td>
                           </>
                         ) : (
                           <>
@@ -615,6 +661,12 @@ export default function DayTradeListPage() {
                               stock.day_trade_available_shares != null ? "text-right" : "text-center"
                             }`}>
                               {stock.day_trade_available_shares != null ? stock.day_trade_available_shares.toLocaleString() : "-"}
+                            </td>
+                            <td className="px-3 py-4 text-right tabular-nums text-muted-foreground">
+                              {stock.margin_sell_balance != null ? stock.margin_sell_balance.toLocaleString() : "-"}
+                            </td>
+                            <td className="px-3 py-4 text-right tabular-nums text-muted-foreground">
+                              {stock.margin_buy_balance != null ? stock.margin_buy_balance.toLocaleString() : "-"}
                             </td>
                           </>
                         )}
