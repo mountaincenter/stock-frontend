@@ -640,7 +640,7 @@ function AnalysisContent() {
                 </div>
               </div>
             )}
-            <DevNavLinks links={["dashboard", "recommendations", "stock-results"]} />
+            <DevNavLinks links={["dashboard", "analysis-custom", "recommendations", "stock-results"]} />
           </div>
         </header>
 
