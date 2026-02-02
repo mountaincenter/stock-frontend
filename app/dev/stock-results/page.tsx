@@ -77,11 +77,30 @@ interface DailyResponse {
   results: DailyResult[];
 }
 
+interface PriceRangeStat {
+  label: string;
+  count: number;
+  win_count: number;
+  win_rate: number;
+  profit: number;
+  avg_profit: number;
+}
+
+interface PriceRangeResponse {
+  priceRanges: string[];
+  long: PriceRangeStat[];
+  short: PriceRangeStat[];
+}
+
 type ViewType = 'daily' | 'weekly' | 'monthly' | 'bystock';
+type PriceRangePeriod = 'all' | 'recent';
 
 function StockResultsContent() {
   const [summaryData, setSummaryData] = useState<SummaryResponse | null>(null);
   const [dailyData, setDailyData] = useState<DailyResponse | null>(null);
+  const [priceRangeData, setPriceRangeData] = useState<PriceRangeResponse | null>(null);
+  const [priceRangePeriod, setPriceRangePeriod] = useState<PriceRangePeriod>('recent');
+  const [priceRangeLoading, setPriceRangeLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [tableLoading, setTableLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -97,10 +116,12 @@ function StockResultsContent() {
     Promise.all([
       fetch(`${API_BASE}/api/dev/stock-results/summary`).then(res => res.json()),
       fetch(`${API_BASE}/api/dev/stock-results/daily?view=daily`).then(res => res.json()),
+      fetch(`${API_BASE}/api/dev/stock-results/price-range?from_date=2025-12-22`).then(res => res.json()),
     ])
-      .then(([summary, daily]) => {
+      .then(([summary, daily, priceRange]) => {
         setSummaryData(summary);
         setDailyData(daily);
+        setPriceRangeData(priceRange);
         setLoading(false);
       })
       .catch(err => {
@@ -108,6 +129,23 @@ function StockResultsContent() {
         setLoading(false);
       });
   }, [API_BASE]);
+
+  // 価格帯期間切り替え
+  useEffect(() => {
+    if (loading) return;
+    setPriceRangeLoading(true);
+    const fromDate = priceRangePeriod === 'recent' ? '2025-12-22' : '';
+    const url = fromDate
+      ? `${API_BASE}/api/dev/stock-results/price-range?from_date=${fromDate}`
+      : `${API_BASE}/api/dev/stock-results/price-range`;
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
+        setPriceRangeData(data);
+        setPriceRangeLoading(false);
+      })
+      .catch(() => setPriceRangeLoading(false));
+  }, [API_BASE, priceRangePeriod, loading]);
 
   // タブ変更時はテーブルデータのみ取得
   useEffect(() => {
@@ -515,6 +553,132 @@ function StockResultsContent() {
             </div>
           </div>
         </div>
+
+        {/* Price Range Stats */}
+        {priceRangeData && (
+          <div className="mb-6">
+            {/* Period Toggle */}
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-semibold text-foreground">価格帯別損益</span>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setPriceRangePeriod('all')}
+                  className={`px-2.5 py-1 text-sm rounded border transition-colors ${
+                    priceRangePeriod === 'all'
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
+                  }`}
+                >
+                  全期間
+                </button>
+                <button
+                  onClick={() => setPriceRangePeriod('recent')}
+                  className={`px-2.5 py-1 text-sm rounded border transition-colors ${
+                    priceRangePeriod === 'recent'
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
+                  }`}
+                >
+                  12/22~
+                </button>
+              </div>
+            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 relative">
+            {priceRangeLoading && (
+              <div className="absolute inset-0 bg-card/80 backdrop-blur-sm flex items-center justify-center z-10 rounded-xl">
+                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
+            {/* ロング */}
+            <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
+              <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+              <div className="relative">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="font-semibold text-base text-orange-400">ロング</span>
+                  <span className="text-muted-foreground text-sm">価格帯別</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-muted-foreground text-sm border-b border-border/30">
+                        <th className="text-left px-2 py-2 font-medium">価格帯</th>
+                        <th className="text-right px-2 py-2 font-medium">件</th>
+                        <th className="text-right px-2 py-2 font-medium">勝率</th>
+                        <th className="text-right px-2 py-2 font-medium">損益</th>
+                        <th className="text-right px-2 py-2 font-medium">平均</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {priceRangeData.long.map((pr, idx) => {
+                        const isTotal = pr.label === '合計';
+                        return (
+                          <tr key={pr.label} className={`border-b border-border/20 ${isTotal ? 'bg-muted/20 font-semibold' : ''}`}>
+                            <td className="px-2 py-2 text-foreground whitespace-nowrap">{pr.label}</td>
+                            <td className="text-right px-2 py-2 tabular-nums text-foreground">{pr.count === 0 ? '-' : pr.count}</td>
+                            <td className={`text-right px-2 py-2 tabular-nums ${pr.count === 0 ? 'text-muted-foreground' : pr.win_rate >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                              {pr.count === 0 ? '-' : `${pr.win_rate}%`}
+                            </td>
+                            <td className={`text-right px-2 py-2 tabular-nums ${pr.count === 0 ? 'text-muted-foreground' : pr.profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                              {pr.count === 0 ? '-' : `${pr.profit >= 0 ? '+' : ''}${pr.profit.toLocaleString()}`}
+                            </td>
+                            <td className={`text-right px-2 py-2 tabular-nums ${pr.count === 0 ? 'text-muted-foreground' : pr.avg_profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                              {pr.count === 0 ? '-' : `${pr.avg_profit >= 0 ? '+' : ''}${pr.avg_profit.toLocaleString()}`}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            {/* ショート */}
+            <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
+              <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+              <div className="relative">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="font-semibold text-base text-teal-400">ショート</span>
+                  <span className="text-muted-foreground text-sm">価格帯別</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-muted-foreground text-sm border-b border-border/30">
+                        <th className="text-left px-2 py-2 font-medium">価格帯</th>
+                        <th className="text-right px-2 py-2 font-medium">件</th>
+                        <th className="text-right px-2 py-2 font-medium">勝率</th>
+                        <th className="text-right px-2 py-2 font-medium">損益</th>
+                        <th className="text-right px-2 py-2 font-medium">平均</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {priceRangeData.short.map((pr, idx) => {
+                        const isTotal = pr.label === '合計';
+                        return (
+                          <tr key={pr.label} className={`border-b border-border/20 ${isTotal ? 'bg-muted/20 font-semibold' : ''}`}>
+                            <td className="px-2 py-2 text-foreground whitespace-nowrap">{pr.label}</td>
+                            <td className="text-right px-2 py-2 tabular-nums text-foreground">{pr.count === 0 ? '-' : pr.count}</td>
+                            <td className={`text-right px-2 py-2 tabular-nums ${pr.count === 0 ? 'text-muted-foreground' : pr.win_rate >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                              {pr.count === 0 ? '-' : `${pr.win_rate}%`}
+                            </td>
+                            <td className={`text-right px-2 py-2 tabular-nums ${pr.count === 0 ? 'text-muted-foreground' : pr.profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                              {pr.count === 0 ? '-' : `${pr.profit >= 0 ? '+' : ''}${pr.profit.toLocaleString()}`}
+                            </td>
+                            <td className={`text-right px-2 py-2 tabular-nums ${pr.count === 0 ? 'text-muted-foreground' : pr.avg_profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                              {pr.count === 0 ? '-' : `${pr.avg_profit >= 0 ? '+' : ''}${pr.avg_profit.toLocaleString()}`}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+          </div>
+        )}
 
         {/* Trade List */}
         <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 shadow-xl shadow-black/5 backdrop-blur-xl">
