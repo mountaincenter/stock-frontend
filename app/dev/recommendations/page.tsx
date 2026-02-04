@@ -12,6 +12,8 @@ type DayTradeStock = {
   price_diff: number | null;
   rsi9: number | null;
   atr_pct: number | null;
+  prob_up: number | null;
+  quintile: string | null;
   shortable: boolean;
   day_trade: boolean;
   ng: boolean;
@@ -477,8 +479,8 @@ export default function DayTradeListPage() {
                   <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">登場回数</th>
                   <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">終値</th>
                   <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">前日差</th>
-                  <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">RSI</th>
-                  <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">ATR</th>
+                  <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">prob</th>
+                  <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">Q*</th>
                   <th className="px-4 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">
                     {bulkEditMode ? "制度" : "信用区分"}
                   </th>
@@ -560,22 +562,25 @@ export default function DayTradeListPage() {
                             : "-"}
                         </td>
                         <td className={`px-3 py-4 text-right tabular-nums ${
-                          stock.rsi9 !== null
-                            ? (stock.shortable && stock.rsi9 >= 70) || (!stock.shortable && stock.day_trade && stock.rsi9 >= 90)
-                              ? "text-rose-400 font-medium"
-                              : "text-muted-foreground"
-                            : "text-muted-foreground"
-                        }`}>
-                          {stock.rsi9 !== null ? stock.rsi9.toFixed(1) : "-"}
-                        </td>
-                        <td className={`px-3 py-4 text-right tabular-nums ${
-                          stock.atr_pct !== null
-                            ? (stock.shortable && stock.atr_pct >= 8) || (!stock.shortable && stock.day_trade && stock.atr_pct >= 9)
+                          stock.prob_up !== null
+                            ? stock.prob_up <= 0.32
                               ? "text-emerald-400 font-medium"
-                              : "text-muted-foreground"
+                              : stock.prob_up >= 0.55
+                                ? "text-rose-400 font-medium"
+                                : "text-muted-foreground"
                             : "text-muted-foreground"
                         }`}>
-                          {formatPercent(stock.atr_pct, 1)}
+                          {stock.prob_up !== null ? stock.prob_up.toFixed(2) : "-"}
+                        </td>
+                        <td className={`px-3 py-4 text-center tabular-nums font-medium ${
+                          stock.quintile === "Q1" ? "text-emerald-400" :
+                          stock.quintile === "Q2" ? "text-teal-400" :
+                          stock.quintile === "Q3" ? "text-muted-foreground" :
+                          stock.quintile === "Q4" ? "text-amber-400" :
+                          stock.quintile === "Q5" ? "text-rose-400" :
+                          "text-muted-foreground"
+                        }`}>
+                          {stock.quintile ?? "-"}
                         </td>
                         {bulkEditMode ? (
                           <>
@@ -737,6 +742,24 @@ export default function DayTradeListPage() {
                 })}
               </tbody>
             </table>
+          </div>
+        </div>
+
+        {/* ML Quintile Legend */}
+        <div className="relative overflow-hidden rounded-xl border border-primary/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 mt-4 px-4 py-3 shadow-lg shadow-black/5 backdrop-blur-xl">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none" />
+          <div className="relative">
+            <div className="text-xs text-muted-foreground mb-2 font-medium">ML予測 5分位（ショート戦略）</div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+              <span><span className="text-emerald-400 font-medium">Q1</span>: 積極推奨</span>
+              <span><span className="text-teal-400 font-medium">Q2</span>: 推奨</span>
+              <span><span className="text-muted-foreground font-medium">Q3</span>: 中立</span>
+              <span><span className="text-amber-400 font-medium">Q4</span>: 注意</span>
+              <span><span className="text-rose-400 font-medium">Q5</span>: 回避</span>
+            </div>
+            <div className="text-xs text-muted-foreground mt-2">
+              prob: 株価上昇確率（低いほどショート推奨）
+            </div>
           </div>
         </div>
 
