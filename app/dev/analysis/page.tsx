@@ -217,10 +217,27 @@ interface MarketData {
   changePct: number;
 }
 
+interface ViData {
+  close: number;
+  prevClose: number;
+  change: number;
+  date: string;
+  daysAbove30: number;
+}
+
+interface TopixData {
+  close: number;
+  prevClose: number;
+  changePct: number;
+  date: string;
+}
+
 interface MarketStatusResponse {
   generatedAt: string;
   nikkei: MarketData | null;
   futures: MarketData | null;
+  vi: ViData | null;
+  topix: TopixData | null;
 }
 
 type StrategyType = 'short' | 'long' | 'weekdayStrategy';
@@ -815,31 +832,57 @@ function AnalysisContent() {
         <div className="mb-6">
           <h2 className="text-sm md:text-base font-semibold text-foreground mb-3">市場騰落</h2>
           {marketLoading ? (
-            <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-xl border border-border/40 bg-card/50 p-4 h-24 animate-pulse" />
-              <div className="rounded-xl border border-border/40 bg-card/50 p-4 h-24 animate-pulse" />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="rounded-xl border border-border/40 bg-card/50 p-4 h-24 animate-pulse" />
+              ))}
             </div>
           ) : marketData ? (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {/* 日経終値 */}
               <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
                 <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
                 <div className="relative">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-muted-foreground text-sm">日経終値（15:30）</span>
+                    <span className="text-muted-foreground text-sm">日経終値</span>
                     {marketData.nikkei && (
                       <span className="text-muted-foreground text-xs">{marketData.nikkei.date}</span>
                     )}
                   </div>
                   {marketData.nikkei ? (
-                    <div className="flex items-end justify-between">
-                      <div className="text-muted-foreground text-xs">
-                        {marketData.nikkei.prevClose?.toLocaleString()} → {marketData.nikkei.close?.toLocaleString()} ({marketData.nikkei.close && marketData.nikkei.prevClose ? (marketData.nikkei.close - marketData.nikkei.prevClose >= 0 ? '+' : '') + Math.round(marketData.nikkei.close - marketData.nikkei.prevClose).toLocaleString() : ''})
-                      </div>
-                      <div className={`text-2xl font-bold tabular-nums ${profitClass(marketData.nikkei.changePct)}`}>
+                    <>
+                      <div className={`text-2xl font-bold tabular-nums text-right ${profitClass(marketData.nikkei.changePct)}`}>
                         {marketData.nikkei.changePct >= 0 ? '+' : ''}{marketData.nikkei.changePct.toFixed(2)}%
                       </div>
-                    </div>
+                      <div className="text-muted-foreground text-xs text-right mt-1">
+                        {marketData.nikkei.close?.toLocaleString()} ({marketData.nikkei.close && marketData.nikkei.prevClose ? (marketData.nikkei.close - marketData.nikkei.prevClose >= 0 ? '+' : '') + Math.round(marketData.nikkei.close - marketData.nikkei.prevClose).toLocaleString() : ''})
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-muted-foreground text-sm">データなし</div>
+                  )}
+                </div>
+              </div>
+
+              {/* TOPIX 1306 */}
+              <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+                <div className="relative">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-muted-foreground text-sm">TOPIX(1306)</span>
+                    {marketData.topix && (
+                      <span className="text-muted-foreground text-xs">{marketData.topix.date}</span>
+                    )}
+                  </div>
+                  {marketData.topix ? (
+                    <>
+                      <div className={`text-2xl font-bold tabular-nums text-right ${profitClass(marketData.topix.changePct)}`}>
+                        {marketData.topix.changePct >= 0 ? '+' : ''}{marketData.topix.changePct.toFixed(2)}%
+                      </div>
+                      <div className="text-muted-foreground text-xs text-right mt-1">
+                        {marketData.topix.close?.toLocaleString()} ({(marketData.topix.close - marketData.topix.prevClose >= 0 ? '+' : '') + Math.round(marketData.topix.close - marketData.topix.prevClose).toLocaleString()})
+                      </div>
+                    </>
                   ) : (
                     <div className="text-muted-foreground text-sm">データなし</div>
                   )}
@@ -851,20 +894,48 @@ function AnalysisContent() {
                 <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
                 <div className="relative">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-muted-foreground text-sm">先物（23:00）</span>
+                    <span className="text-muted-foreground text-sm">先物{marketData.futures?.date && marketData.futures.date.includes(' ') ? `（${marketData.futures.date.split(' ')[1].slice(0, 5)}）` : ''}</span>
                     {marketData.futures && (
-                      <span className="text-muted-foreground text-xs">{marketData.futures.date}</span>
+                      <span className="text-muted-foreground text-xs">{marketData.futures.date?.split(' ')[0]}</span>
                     )}
                   </div>
                   {marketData.futures ? (
-                    <div className="flex items-end justify-between">
-                      <div className="text-muted-foreground text-xs">
-                        {marketData.futures.prevPrice?.toLocaleString()} → {marketData.futures.price?.toLocaleString()} ({marketData.futures.price && marketData.futures.prevPrice ? (marketData.futures.price - marketData.futures.prevPrice >= 0 ? '+' : '') + Math.round(marketData.futures.price - marketData.futures.prevPrice).toLocaleString() : ''})
-                      </div>
-                      <div className={`text-2xl font-bold tabular-nums ${profitClass(marketData.futures.changePct)}`}>
+                    <>
+                      <div className={`text-2xl font-bold tabular-nums text-right ${profitClass(marketData.futures.changePct)}`}>
                         {marketData.futures.changePct >= 0 ? '+' : ''}{marketData.futures.changePct.toFixed(2)}%
                       </div>
-                    </div>
+                      <div className="text-muted-foreground text-xs text-right mt-1">
+                        {marketData.futures.price?.toLocaleString()} ({marketData.futures.price && marketData.futures.prevPrice ? (marketData.futures.price - marketData.futures.prevPrice >= 0 ? '+' : '') + Math.round(marketData.futures.price - marketData.futures.prevPrice).toLocaleString() : ''})
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-muted-foreground text-sm">データなし</div>
+                  )}
+                </div>
+              </div>
+
+              {/* 日経VI */}
+              <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+                <div className="relative">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-muted-foreground text-sm">日経VI</span>
+                    {marketData.vi && (
+                      <span className="text-muted-foreground text-xs">{marketData.vi.date}</span>
+                    )}
+                  </div>
+                  {marketData.vi ? (
+                    <>
+                      <div className={`text-2xl font-bold tabular-nums text-right ${marketData.vi.close >= 30 ? 'text-rose-400' : marketData.vi.close >= 25 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                        {marketData.vi.close.toFixed(2)}
+                      </div>
+                      <div className="text-muted-foreground text-xs text-right mt-1">
+                        {marketData.vi.change >= 0 ? '+' : ''}{marketData.vi.change.toFixed(2)}
+                        {marketData.vi.daysAbove30 > 0 && (
+                          <span className="text-rose-400 ml-1">30超{marketData.vi.daysAbove30}日</span>
+                        )}
+                      </div>
+                    </>
                   ) : (
                     <div className="text-muted-foreground text-sm">データなし</div>
                   )}
