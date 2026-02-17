@@ -14,7 +14,7 @@ import {
   ExternalLink,
   ChevronRight,
 } from "lucide-react";
-import MarketSummary from "@/components/MarketSummary";
+
 
 type Phase = "phase1" | "phase2" | "phase3";
 
@@ -506,16 +506,6 @@ export default function DailyDetailPage() {
               </div>
             </div>
           </div>
-        </motion.div>
-
-        {/* Market Summary for this date */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.7 }}
-          className="mb-4"
-        >
-          <MarketSummary date={date} />
         </motion.div>
 
         {/* Footer */}
