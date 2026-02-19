@@ -36,6 +36,10 @@ const NAV_LINKS: Record<string, NavLinkConfig> = {
     href: "/dev/election-anomaly",
     label: "Election",
   },
+  reports: {
+    href: "/dev/reports",
+    label: "Reports",
+  },
   // v3: {
   //   href: "/dev/v3",
   //   label: "v3 Analysis",

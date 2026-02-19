@@ -349,7 +349,7 @@ export default function DayTradeListPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <DevNavLinks links={["dashboard", "analysis", "stock-results"]} />
+            <DevNavLinks links={["dashboard", "analysis", "stock-results", "reports"]} />
           </div>
         </header>
 

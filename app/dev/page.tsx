@@ -17,7 +17,6 @@ import {
 } from "recharts";
 import { ChevronDown, ChevronUp, Search, ArrowUpRight, Settings, Fingerprint, Trash2, X } from "lucide-react";
 import { DashboardData } from "@/lib/grok-backtest-types";
-import MarketSummary from "@/components/MarketSummary";
 import { DevNavLinks, FilterButtonGroup } from "@/components/dev";
 import { useAuth } from "../../src/components/auth/AuthProvider";
 
@@ -346,7 +345,7 @@ export default function DevDashboard() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <DevNavLinks links={["analysis", "analysis-custom", "recommendations", "stock-results", "election-anomaly"]} />
+            <DevNavLinks links={["analysis", "analysis-custom", "recommendations", "stock-results", "election-anomaly", "reports"]} />
 
             <div className="flex items-center gap-2">
               <FilterButtonGroup
@@ -743,9 +742,6 @@ export default function DevDashboard() {
             </div>
           </div>
         </div>
-
-        {/* Market Summary */}
-        <MarketSummary className="mt-6" />
 
         {/* Footer */}
         <div className="text-center text-muted-foreground/60 text-xs mt-8 pt-6 border-t border-border/30">

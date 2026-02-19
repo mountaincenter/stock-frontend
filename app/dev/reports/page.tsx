@@ -1,0 +1,178 @@
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { Download, FileText, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { DevNavLinks } from "@/components/dev";
+import { buildApiUrl } from "@/lib/api-base";
+
+type Report = {
+  filename: string;
+  date: string;
+  title: string;
+  size_bytes: number;
+  uploaded_at: string;
+};
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatDate(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00");
+  const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
+  return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}（${weekdays[d.getDay()]}）`;
+}
+
+export default function ReportsPage() {
+  const [reports, setReports] = useState<Report[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState<string | null>(null);
+  const [expandedFilename, setExpandedFilename] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(buildApiUrl("/api/dev/reports"));
+        if (!res.ok) throw new Error("レポート一覧の取得に失敗しました");
+        const data = await res.json();
+        setReports(data.reports ?? []);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "エラー");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const toggleExpand = (filename: string) => {
+    setExpandedFilename((prev) => (prev === filename ? null : filename));
+  };
+
+  const handleDownload = async (filename: string) => {
+    setDownloading(filename);
+    try {
+      const res = await fetch(
+        buildApiUrl(`/api/dev/reports/${filename}/download`)
+      );
+      if (!res.ok) throw new Error("ダウンロードに失敗しました");
+
+      const contentType = res.headers.get("content-type") ?? "";
+      if (contentType.includes("text/html")) {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+      } else {
+        const data = await res.json();
+        window.open(data.url, "_blank");
+      }
+    } catch (err) {
+      console.error("download error:", err);
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      <div className="max-w-7xl mx-auto px-4 py-4">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-lg font-semibold tracking-tight">Reports</h1>
+          <DevNavLinks />
+        </div>
+
+        {/* Loading */}
+        {loading && (
+          <div className="flex items-center justify-center py-20 text-muted-foreground">
+            <Loader2 className="w-5 h-5 animate-spin mr-2" />
+            読み込み中...
+          </div>
+        )}
+
+        {/* Error */}
+        {error && (
+          <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {error}
+          </div>
+        )}
+
+        {/* Empty */}
+        {!loading && !error && reports.length === 0 && (
+          <div className="text-center py-20 text-muted-foreground text-sm">
+            レポートがありません
+          </div>
+        )}
+
+        {/* Report list */}
+        {!loading && !error && reports.length > 0 && (
+          <div className="space-y-2">
+            {reports.map((r) => {
+              const isExpanded = expandedFilename === r.filename;
+              return (
+                <div key={r.filename}>
+                  {/* Row */}
+                  <div
+                    className={`flex items-center justify-between rounded-lg border bg-card px-4 py-3 transition-colors cursor-pointer ${
+                      isExpanded
+                        ? "border-primary/40 bg-accent/30"
+                        : "border-border hover:bg-accent/50"
+                    }`}
+                    onClick={() => toggleExpand(r.filename)}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      {isExpanded ? (
+                        <ChevronUp className="w-4 h-4 text-primary shrink-0" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{r.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatDate(r.date)} &middot; {formatBytes(r.size_bytes)}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownload(r.filename);
+                      }}
+                      disabled={downloading === r.filename}
+                      className="shrink-0 ml-4 inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
+                    >
+                      {downloading === r.filename ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Download className="w-3.5 h-3.5" />
+                      )}
+                      DL
+                    </button>
+                  </div>
+
+                  {/* Expanded content */}
+                  {isExpanded && (
+                    <div className="mt-1 -mx-3 rounded-lg overflow-hidden">
+                      <iframe
+                        src={buildApiUrl(`/api/dev/reports/${r.filename}/view`)}
+                        className="w-full border-0"
+                        style={{ height: "80vh" }}
+                        title={r.title}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

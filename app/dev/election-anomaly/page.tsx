@@ -139,7 +139,7 @@ export default function ElectionAnomalyPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <DevNavLinks links={['dashboard', 'recommendations']} />
+            <DevNavLinks links={['dashboard', 'recommendations', 'reports']} />
           </div>
         </header>
 

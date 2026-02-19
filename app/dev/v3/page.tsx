@@ -163,7 +163,7 @@ export default function V3AnalysisPage() {
       <div className="max-w-6xl mx-auto px-4 py-4">
         {/* Header */}
         <div className="mb-4">
-          <DevNavLinks links={["dashboard"]} className="mb-3" />
+          <DevNavLinks links={["dashboard", "reports"]} className="mb-3" />
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-lg font-medium text-[var(--tv-text-primary)]">
