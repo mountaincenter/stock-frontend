@@ -77,6 +77,37 @@ interface TradesResponse {
   results: TradeGroup[];
 }
 
+interface Position {
+  ticker: string;
+  stock_name: string;
+  signal_type: string;
+  entry_date: string;
+  entry_price: number;
+  current_price: number;
+  unrealized_pct: number;
+  unrealized_yen: number;
+  sl_price: number;
+  hold_days: number;
+}
+
+interface ExitSignal {
+  ticker: string;
+  stock_name: string;
+  signal_type: string;
+  entry_date: string;
+  entry_price: number;
+  current_price: number;
+  ret_pct: number;
+  pnl_yen: number;
+  exit_type: string;
+}
+
+interface PositionsResponse {
+  positions: Position[];
+  exits: ExitSignal[];
+  as_of: string | null;
+}
+
 interface StatusResponse {
   market_uptrend: boolean | null;
   ci_expand: boolean | null;
@@ -102,6 +133,7 @@ function GranvilleContent() {
   const [signals, setSignals] = useState<SignalsResponse | null>(null);
   const [summary, setSummary] = useState<SummaryResponse | null>(null);
   const [trades, setTrades] = useState<TradesResponse | null>(null);
+  const [posData, setPosData] = useState<PositionsResponse | null>(null);
   const [tradeView, setTradeView] = useState<'daily' | 'weekly' | 'monthly' | 'by-stock'>('daily');
   const [loading, setLoading] = useState(true);
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
@@ -113,11 +145,13 @@ function GranvilleContent() {
       fetch(`${API_BASE}/api/dev/granville/signals`).then(r => r.json()).catch(() => ({ signals: [], count: 0, signal_date: null })),
       fetch(`${API_BASE}/api/dev/granville/summary`).then(r => r.json()).catch(() => ({ overall: {}, monthly: [], count: 0 })),
       fetch(`${API_BASE}/api/dev/granville/trades?view=daily`).then(r => r.json()).catch(() => ({ view: 'daily', results: [] })),
-    ]).then(([st, sig, sum, tr]) => {
+      fetch(`${API_BASE}/api/dev/granville/positions`).then(r => r.json()).catch(() => ({ positions: [], exits: [], as_of: null })),
+    ]).then(([st, sig, sum, tr, pos]) => {
       setStatus(st);
       setSignals(sig);
       setSummary(sum);
       setTrades(tr);
+      setPosData(pos);
       setLoading(false);
     });
   }, []);
@@ -185,7 +219,7 @@ function GranvilleContent() {
           <div>
             <h1 className="text-xl font-bold text-foreground">グランビルIFDロング戦略</h1>
             <p className="text-muted-foreground text-sm">
-              SL -3% / 7日引け決済 / ¥2万未満 / uptrend+CI拡大
+              SL -3% / グランビル出口 / ¥2万未満 / uptrend+CI拡大
               {status?.as_of ? ` (${status.as_of})` : ''}
             </p>
           </div>
@@ -238,7 +272,7 @@ function GranvilleContent() {
               <div className="relative">
                 <div className="text-muted-foreground text-sm mb-2">戦略パラメータ</div>
                 <div className="text-2xl font-bold text-right tabular-nums text-foreground whitespace-nowrap">SL -3%</div>
-                <div className="text-xs text-right mt-1 text-muted-foreground">7日引け / ¥2万未満</div>
+                <div className="text-xs text-right mt-1 text-muted-foreground">グランビル出口 / ¥2万未満</div>
               </div>
             </div>
           </div>
@@ -304,6 +338,122 @@ function GranvilleContent() {
             </div>
           </div>
         </section>
+
+        {/* 本日イグジット */}
+        {posData && posData.exits.length > 0 && (
+          <section className="mb-6">
+            <div className="rounded-2xl border border-amber-500/40 bg-gradient-to-br from-amber-500/5 via-card/80 to-card/50 shadow-lg shadow-black/5 backdrop-blur-xl overflow-hidden">
+              <div className="px-5 py-3 border-b border-amber-500/30">
+                <h2 className="text-sm font-semibold text-amber-400">
+                  本日イグジット — {posData.exits.length}件（翌朝寄付で成行売り）
+                </h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm min-w-[650px]">
+                  <thead>
+                    <tr className="text-muted-foreground border-b border-border/30 bg-muted/10">
+                      <th className="text-left px-4 py-2.5 font-medium">コード</th>
+                      <th className="text-left px-4 py-2.5 font-medium">銘柄</th>
+                      <th className="text-center px-4 py-2.5 font-medium">種別</th>
+                      <th className="text-right px-4 py-2.5 font-medium">エントリー日</th>
+                      <th className="text-right px-4 py-2.5 font-medium">エントリー価格</th>
+                      <th className="text-right px-4 py-2.5 font-medium">現在値</th>
+                      <th className="text-right px-4 py-2.5 font-medium">損益%</th>
+                      <th className="text-right px-4 py-2.5 font-medium">損益</th>
+                      <th className="text-left px-4 py-2.5 font-medium">決済理由</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {posData.exits.map((ex, i) => (
+                      <tr key={i} className="border-b border-border/20 hover:bg-muted/5 transition-colors">
+                        <td className="px-4 py-2.5 font-mono tabular-nums">{ex.ticker.replace('.T', '')}</td>
+                        <td className="px-4 py-2.5">{ex.stock_name}</td>
+                        <td className="px-4 py-2.5 text-center">
+                          <span className={`px-1.5 py-0.5 text-xs rounded ${ex.signal_type === 'A' ? 'bg-blue-500/20 text-blue-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                            {ex.signal_type}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-right font-mono tabular-nums text-muted-foreground">{ex.entry_date}</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums">¥{fmt(ex.entry_price)}</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums">¥{fmt(ex.current_price)}</td>
+                        <td className={`px-4 py-2.5 text-right tabular-nums ${ex.ret_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {fmtPct(ex.ret_pct, 2)}
+                        </td>
+                        <td className="px-4 py-2.5 text-right tabular-nums">{fmtPnl(ex.pnl_yen)}</td>
+                        <td className={`px-4 py-2.5 ${ex.exit_type === 'SMA20_touch' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                          {ex.exit_type === 'SMA20_touch' ? 'SMA20回帰' : 'DC撤退'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* 保有中ポジション */}
+        {posData && posData.positions.length > 0 && (
+          <section className="mb-6">
+            <div className="rounded-2xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 shadow-lg shadow-black/5 backdrop-blur-xl overflow-hidden">
+              <div className="px-5 py-3 border-b border-border/40">
+                <h2 className="text-sm font-semibold text-foreground">
+                  保有中ポジション — {posData.positions.length}件
+                  {posData.as_of ? ` (${posData.as_of})` : ''}
+                </h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm min-w-[750px]">
+                  <thead>
+                    <tr className="text-muted-foreground border-b border-border/30 bg-muted/10">
+                      <th className="text-left px-4 py-2.5 font-medium">コード</th>
+                      <th className="text-left px-4 py-2.5 font-medium">銘柄</th>
+                      <th className="text-center px-4 py-2.5 font-medium">種別</th>
+                      <th className="text-right px-4 py-2.5 font-medium">エントリー日</th>
+                      <th className="text-right px-4 py-2.5 font-medium">エントリー価格</th>
+                      <th className="text-right px-4 py-2.5 font-medium">現在値</th>
+                      <th className="text-right px-4 py-2.5 font-medium">含み損益%</th>
+                      <th className="text-right px-4 py-2.5 font-medium">含み損益</th>
+                      <th className="text-right px-4 py-2.5 font-medium">SL価格</th>
+                      <th className="text-right px-4 py-2.5 font-medium">保有日</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {posData.positions.map((pos, i) => (
+                      <tr key={i} className="border-b border-border/20 hover:bg-muted/5 transition-colors">
+                        <td className="px-4 py-2.5 font-mono tabular-nums">{pos.ticker.replace('.T', '')}</td>
+                        <td className="px-4 py-2.5">{pos.stock_name}</td>
+                        <td className="px-4 py-2.5 text-center">
+                          <span className={`px-1.5 py-0.5 text-xs rounded ${pos.signal_type === 'A' ? 'bg-blue-500/20 text-blue-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                            {pos.signal_type}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-right font-mono tabular-nums text-muted-foreground">{pos.entry_date}</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums">¥{fmt(pos.entry_price)}</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums">¥{fmt(pos.current_price)}</td>
+                        <td className={`px-4 py-2.5 text-right tabular-nums ${pos.unrealized_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {fmtPct(pos.unrealized_pct, 2)}
+                        </td>
+                        <td className="px-4 py-2.5 text-right tabular-nums">{fmtPnl(pos.unrealized_yen)}</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums text-rose-400">¥{fmt(pos.sl_price)}</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">{pos.hold_days}日</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {/* 合計行 */}
+              <div className="px-5 py-3 border-t border-border/40 flex flex-wrap gap-x-6 gap-y-1 text-sm">
+                <div>
+                  <span className="text-muted-foreground">合計含み損益:</span>
+                  <span className="ml-2 font-bold tabular-nums">
+                    {fmtPnl(posData.positions.reduce((s, p) => s + p.unrealized_yen, 0))}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* バックテスト概要 (2025/1~) */}
         {(() => {
