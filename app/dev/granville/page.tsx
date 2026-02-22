@@ -118,7 +118,6 @@ function GranvilleContent() {
   const [tradeView, setTradeView] = useState<'daily' | 'weekly' | 'monthly' | 'by-stock'>('daily');
   const [loading, setLoading] = useState(true);
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
-  const [optimSignalType, setOptimSignalType] = useState<'A' | 'B'>('A');
 
   useEffect(() => {
     setLoading(true);
@@ -396,69 +395,76 @@ function GranvilleContent() {
         {/* 保有日数×価格帯 最適化グリッド */}
         {optimGrid.length > 0 && (() => {
           const BAND_ORDER = ['~1000', '1000~3000', '3000~5000', '5000~10000', '10000~20000'];
-          const BAND_LABEL: Record<string, string> = { '~1000': '~¥1,000', '1000~3000': '¥1,000~3,000', '3000~5000': '¥3,000~5,000', '5000~10000': '¥5,000~10,000', '10000~20000': '¥10,000~20,000' };
-          const filtered = optimGrid.filter(r => r.signal_type === optimSignalType);
-          const grouped = BAND_ORDER.map(pb => ({
-            band: pb,
-            label: BAND_LABEL[pb] || pb,
-            rows: filtered.filter(r => r.price_band === pb).sort((a, b) => a.hold_days - b.hold_days),
-          })).filter(g => g.rows.length > 0);
+          const BAND_LABEL: Record<string, string> = { '~1000': '~¥1,000', '1000~3000': '¥1K~3K', '3000~5000': '¥3K~5K', '5000~10000': '¥5K~10K', '10000~20000': '¥10K~20K' };
+          const HOLD_DAYS = [3, 5, 7, 10, 14];
 
-          // 各価格帯のベストPF行を特定
-          const bestHoldByBand: Record<string, number> = {};
-          grouped.forEach(g => {
-            const best = g.rows.reduce((a, b) => a.pf > b.pf ? a : b);
-            bestHoldByBand[g.band] = best.hold_days;
-          });
+          const renderTable = (sigType: string, label: string, badgeClass: string) => {
+            const rows = optimGrid.filter(r => r.signal_type === sigType);
+            if (rows.length === 0) return null;
+
+            // 各価格帯内でPF最大のhold_daysを特定
+            const bestByBand: Record<string, number> = {};
+            BAND_ORDER.forEach(band => {
+              const bandRows = rows.filter(r => r.price_band === band);
+              if (bandRows.length > 0) {
+                const best = bandRows.reduce((a, b) => a.pf > b.pf ? a : b);
+                bestByBand[band] = best.hold_days;
+              }
+            });
+
+            const lookup = (hd: number, band: string) => rows.find(r => r.hold_days === hd && r.price_band === band);
+
+            return (
+              <div className="overflow-x-auto">
+                <div className="px-5 py-2.5 border-b border-border/30 flex items-center gap-2">
+                  <span className={`px-1.5 py-0.5 text-xs rounded ${badgeClass}`}>{sigType}</span>
+                  <span className="text-sm text-foreground font-medium">{label}</span>
+                </div>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border/50">
+                      <th className="text-left py-2 px-2 text-muted-foreground font-medium whitespace-nowrap">保有日</th>
+                      {BAND_ORDER.map(band => (
+                        <th key={band} className="text-right py-2 px-2 text-muted-foreground font-medium whitespace-nowrap">{BAND_LABEL[band]}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {HOLD_DAYS.map(hd => (
+                      <tr key={hd} className="border-b border-border/20">
+                        <td className="py-1.5 px-2 text-muted-foreground tabular-nums">{hd}日</td>
+                        {BAND_ORDER.map(band => {
+                          const cell = lookup(hd, band);
+                          if (!cell) return <td key={band} className="py-1.5 px-2 text-right text-muted-foreground/30">-</td>;
+                          const isBest = bestByBand[band] === hd;
+                          const pnlClass = cell.total_pnl > 0 ? 'text-emerald-400' : cell.total_pnl < 0 ? 'text-rose-400' : 'text-foreground';
+                          return (
+                            <td key={band} className={`py-1.5 px-2 text-right tabular-nums whitespace-nowrap ${isBest ? pnlClass + ' font-bold' : pnlClass}`}>
+                              {cell.total_pnl >= 0 ? '+' : ''}{cell.total_pnl.toLocaleString()}
+                              <span className="text-muted-foreground text-[10px] ml-1">({cell.pf.toFixed(2)})</span>
+                              {isBest && <span className="ml-0.5 text-amber-400 text-[10px]">★</span>}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            );
+          };
 
           return (
             <section className="mb-6">
               <div className="rounded-2xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 shadow-lg shadow-black/5 backdrop-blur-xl overflow-hidden">
-                <div className="px-5 py-3 border-b border-border/40 flex items-center gap-3">
-                  <h2 className="text-sm font-semibold text-foreground">保有日数×価格帯 最適化</h2>
-                  <div className="flex gap-1">
-                    {(['A', 'B'] as const).map(st => (
-                      <button key={st} onClick={() => setOptimSignalType(st)}
-                        className={`px-3 py-1 text-xs rounded-full border transition-colors ${optimSignalType === st ? (st === 'A' ? 'bg-blue-500/20 text-blue-400 border-blue-500/40' : 'bg-amber-500/20 text-amber-400 border-amber-500/40') : 'border-border/40 text-muted-foreground hover:text-foreground hover:border-border'}`}>
-                        {st === 'A' ? 'A 押し目買い' : 'B SMA支持反発'}
-                      </button>
-                    ))}
-                  </div>
+                <div className="px-5 py-3 border-b border-border/40">
+                  <h2 className="text-sm font-semibold text-foreground">保有日数×価格帯 最適化（実額PnL）</h2>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm min-w-[650px]">
-                    <thead>
-                      <tr className="text-muted-foreground border-b border-border/30 bg-muted/10">
-                        <th className="text-left px-4 py-2 font-medium">価格帯</th>
-                        <th className="text-center px-3 py-2 font-medium">保有日</th>
-                        <th className="text-right px-3 py-2 font-medium">件数</th>
-                        <th className="text-right px-3 py-2 font-medium">勝率</th>
-                        <th className="text-right px-3 py-2 font-medium">PF</th>
-                        <th className="text-right px-3 py-2 font-medium">平均PnL</th>
-                        <th className="text-right px-3 py-2 font-medium">SL率</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {grouped.map(g => g.rows.map((r, i) => {
-                        const isBest = r.hold_days === bestHoldByBand[g.band];
-                        const pfClass = r.pf >= 1.5 ? 'text-emerald-400 font-bold' : r.pf >= 1.35 ? 'text-emerald-400' : r.pf < 1.0 ? 'text-rose-400' : 'text-foreground';
-                        return (
-                          <tr key={`${g.band}-${r.hold_days}`} className={`border-b border-border/20 ${isBest ? 'bg-primary/5' : 'hover:bg-muted/5'} transition-colors`}>
-                            {i === 0 ? <td rowSpan={g.rows.length} className="px-4 py-2 font-medium text-foreground border-r border-border/20 align-top">{g.label}</td> : null}
-                            <td className="px-3 py-2 text-center tabular-nums">{r.hold_days}日{isBest ? <span className="ml-1 text-amber-400 text-xs">★</span> : ''}</td>
-                            <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{r.count.toLocaleString()}</td>
-                            <td className={`px-3 py-2 text-right tabular-nums ${r.win_rate >= 50 ? 'text-emerald-400' : 'text-foreground'}`}>{r.win_rate.toFixed(1)}%</td>
-                            <td className={`px-3 py-2 text-right tabular-nums ${pfClass}`}>{r.pf.toFixed(2)}</td>
-                            <td className={`px-3 py-2 text-right tabular-nums ${r.avg_pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>¥{r.avg_pnl >= 0 ? '+' : ''}{r.avg_pnl.toLocaleString()}</td>
-                            <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{r.sl_rate.toFixed(1)}%</td>
-                          </tr>
-                        );
-                      }))}
-                    </tbody>
-                  </table>
-                </div>
+                {renderTable('A', '押し目買い', 'bg-blue-500/20 text-blue-400')}
+                <div className="border-t border-border/40" />
+                {renderTable('B', 'SMA支持反発', 'bg-amber-500/20 text-amber-400')}
                 <div className="px-5 py-2 border-t border-border/40 text-xs text-muted-foreground">
-                  ★ = 価格帯内でPF最大の保有日数 / SL -3%固定 / 全期間データ
+                  ★ = 価格帯内でPF最大 / 括弧内 = PF / SL -3%固定 / 全期間データ / 単位: 円
                 </div>
               </div>
             </section>
