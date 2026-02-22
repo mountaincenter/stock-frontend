@@ -395,22 +395,42 @@ function GranvilleContent() {
         {/* 保有日数×価格帯 最適化グリッド */}
         {optimGrid.length > 0 && (() => {
           const BAND_ORDER = ['~1000', '1000~3000', '3000~5000', '5000~10000', '10000~20000'];
-          const BAND_LABEL: Record<string, string> = { '~1000': '~¥1,000', '1000~3000': '¥1K~3K', '3000~5000': '¥3K~5K', '5000~10000': '¥5K~10K', '10000~20000': '¥10K~20K' };
+          const BAND_LABEL: Record<string, string> = { '~1000': '~¥1,000', '1000~3000': '¥1,000~3,000', '3000~5000': '¥3,000~5,000', '5000~10000': '¥5,000~10,000', '10000~20000': '¥10,000~20,000' };
           const HOLD_DAYS = [3, 5, 7, 10, 14];
+
+          // analysis準拠: 行内の値群から色を決定（全プラス→最大緑、全マイナス→最小赤、混在→最大緑+最小赤）
+          const getRowColors = (values: number[]): string[] => {
+            const WHITE = 'text-foreground';
+            const GREEN = 'text-emerald-400';
+            const RED = 'text-rose-400';
+            const positives = values.filter(v => v > 0);
+            const negatives = values.filter(v => v < 0);
+            if (positives.length === values.length) {
+              const maxVal = Math.max(...values);
+              return values.map(v => v === maxVal ? GREEN : WHITE);
+            }
+            if (negatives.length === values.length) {
+              const minVal = Math.min(...values);
+              return values.map(v => v === minVal ? RED : WHITE);
+            }
+            if (positives.length === 0 && negatives.length === 0) {
+              return values.map(() => WHITE);
+            }
+            // 混在: プラス最大→緑、マイナス最小→赤、他→白
+            const maxPos = Math.max(...positives);
+            const minNeg = Math.min(...negatives);
+            return values.map(v => {
+              if (v > 0 && v === maxPos) return GREEN;
+              if (v < 0 && v === minNeg) return RED;
+              return WHITE;
+            });
+          };
+
+          const fmtPnlVal = (v: number) => `${v >= 0 ? '+' : ''}${v.toLocaleString()}`;
 
           const renderTable = (sigType: string, label: string, badgeClass: string) => {
             const rows = optimGrid.filter(r => r.signal_type === sigType);
             if (rows.length === 0) return null;
-
-            // 各価格帯内でPF最大のhold_daysを特定
-            const bestByBand: Record<string, number> = {};
-            BAND_ORDER.forEach(band => {
-              const bandRows = rows.filter(r => r.price_band === band);
-              if (bandRows.length > 0) {
-                const best = bandRows.reduce((a, b) => a.pf > b.pf ? a : b);
-                bestByBand[band] = best.hold_days;
-              }
-            });
 
             const lookup = (hd: number, band: string) => rows.find(r => r.hold_days === hd && r.price_band === band);
 
@@ -420,7 +440,7 @@ function GranvilleContent() {
                   <span className={`px-1.5 py-0.5 text-xs rounded ${badgeClass}`}>{sigType}</span>
                   <span className="text-sm text-foreground font-medium">{label}</span>
                 </div>
-                <table className="w-full text-sm">
+                <table className="w-full text-sm md:text-base">
                   <thead>
                     <tr className="border-b border-border/50">
                       <th className="text-left py-2 px-2 text-muted-foreground font-medium whitespace-nowrap">保有日</th>
@@ -430,24 +450,24 @@ function GranvilleContent() {
                     </tr>
                   </thead>
                   <tbody>
-                    {HOLD_DAYS.map(hd => (
-                      <tr key={hd} className="border-b border-border/20">
-                        <td className="py-1.5 px-2 text-muted-foreground tabular-nums">{hd}日</td>
-                        {BAND_ORDER.map(band => {
-                          const cell = lookup(hd, band);
-                          if (!cell) return <td key={band} className="py-1.5 px-2 text-right text-muted-foreground/30">-</td>;
-                          const isBest = bestByBand[band] === hd;
-                          const pnlClass = cell.total_pnl > 0 ? 'text-emerald-400' : cell.total_pnl < 0 ? 'text-rose-400' : 'text-foreground';
-                          return (
-                            <td key={band} className={`py-1.5 px-2 text-right tabular-nums whitespace-nowrap ${isBest ? pnlClass + ' font-bold' : pnlClass}`}>
-                              {cell.total_pnl >= 0 ? '+' : ''}{cell.total_pnl.toLocaleString()}
-                              <span className="text-muted-foreground text-[10px] ml-1">({cell.pf.toFixed(2)})</span>
-                              {isBest && <span className="ml-0.5 text-amber-400 text-[10px]">★</span>}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
+                    {HOLD_DAYS.map(hd => {
+                      const cellValues = BAND_ORDER.map(band => lookup(hd, band)?.total_pnl ?? 0);
+                      const colors = getRowColors(cellValues);
+                      return (
+                        <tr key={hd} className="border-b border-border/20">
+                          <td className="py-2.5 px-2 text-muted-foreground tabular-nums">{hd}日</td>
+                          {BAND_ORDER.map((band, idx) => {
+                            const cell = lookup(hd, band);
+                            if (!cell) return <td key={band} className="py-2.5 px-2 text-right text-muted-foreground/30">-</td>;
+                            return (
+                              <td key={band} className={`text-right px-2 py-2.5 tabular-nums whitespace-nowrap ${colors[idx]}`}>
+                                {fmtPnlVal(cell.total_pnl)}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -464,7 +484,7 @@ function GranvilleContent() {
                 <div className="border-t border-border/40" />
                 {renderTable('B', 'SMA支持反発', 'bg-amber-500/20 text-amber-400')}
                 <div className="px-5 py-2 border-t border-border/40 text-xs text-muted-foreground">
-                  ★ = 価格帯内でPF最大 / 括弧内 = PF / SL -3%固定 / 全期間データ / 単位: 円
+                  SL -3%固定 / 全期間データ / 単位: 円 / 行内で最大プラス=緑, 最大マイナス=赤
                 </div>
               </div>
             </section>
