@@ -14,7 +14,7 @@ interface Signal {
   sma20: number;
   dev_from_sma20: number;
   sl_price: number;
-  hold_days: number;
+  exit_rule: string;
 }
 
 interface SignalsResponse {
@@ -77,19 +77,6 @@ interface TradesResponse {
   results: TradeGroup[];
 }
 
-interface OptimRow {
-  signal_type: string;
-  price_band: string;
-  hold_days: number;
-  count: number;
-  win_rate: number;
-  pf: number;
-  avg_ret: number;
-  total_pnl: number;
-  avg_pnl: number;
-  sl_rate: number;
-}
-
 interface StatusResponse {
   market_uptrend: boolean | null;
   ci_expand: boolean | null;
@@ -115,7 +102,6 @@ function GranvilleContent() {
   const [signals, setSignals] = useState<SignalsResponse | null>(null);
   const [summary, setSummary] = useState<SummaryResponse | null>(null);
   const [trades, setTrades] = useState<TradesResponse | null>(null);
-  const [optimGrid, setOptimGrid] = useState<OptimRow[]>([]);
   const [tradeView, setTradeView] = useState<'daily' | 'weekly' | 'monthly' | 'by-stock'>('daily');
   const [loading, setLoading] = useState(true);
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
@@ -127,13 +113,11 @@ function GranvilleContent() {
       fetch(`${API_BASE}/api/dev/granville/signals`).then(r => r.json()).catch(() => ({ signals: [], count: 0, signal_date: null })),
       fetch(`${API_BASE}/api/dev/granville/summary`).then(r => r.json()).catch(() => ({ overall: {}, monthly: [], count: 0 })),
       fetch(`${API_BASE}/api/dev/granville/trades?view=daily`).then(r => r.json()).catch(() => ({ view: 'daily', results: [] })),
-      fetch(`${API_BASE}/api/dev/granville/optimization`).then(r => r.json()).catch(() => ({ grid: [] })),
-    ]).then(([st, sig, sum, tr, opt]) => {
+    ]).then(([st, sig, sum, tr]) => {
       setStatus(st);
       setSignals(sig);
       setSummary(sum);
       setTrades(tr);
-      setOptimGrid(opt?.grid || []);
       setLoading(false);
     });
   }, []);
@@ -281,7 +265,7 @@ function GranvilleContent() {
                       <th className="text-right px-4 py-2.5 font-medium">SMA20</th>
                       <th className="text-right px-4 py-2.5 font-medium">乖離%</th>
                       <th className="text-right px-4 py-2.5 font-medium">SL価格</th>
-                      <th className="text-right px-4 py-2.5 font-medium">保有日</th>
+                      <th className="text-right px-4 py-2.5 font-medium">出口</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -301,7 +285,7 @@ function GranvilleContent() {
                           {fmtPct(s.dev_from_sma20, 2)}
                         </td>
                         <td className="px-4 py-2.5 text-right tabular-nums text-rose-400">¥{fmt(s.sl_price)}</td>
-                        <td className="px-4 py-2.5 text-right tabular-nums text-foreground font-medium">{s.hold_days}日</td>
+                        <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">{s.exit_rule}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -314,9 +298,9 @@ function GranvilleContent() {
             )}
             {/* シグナル種別説明 */}
             <div className="px-5 py-3 border-t border-border/40 flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
-              <div><span className="inline-block px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 mr-1.5">A</span>押し目買い — SMA20から-3~-8%乖離、終値反発</div>
-              <div><span className="inline-block px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 mr-1.5">B</span>SMA支持反発 — 上昇SMA20上で乖離0-2%、前日≤0.5%から反発</div>
-              <div><span className="inline-block px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 mr-1.5">A+B</span>両条件同時成立</div>
+              <div><span className="inline-block px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 mr-1.5">A</span>押し目買い — 乖離-3~-8% → 終値≥SMA20で翌日寄付売り</div>
+              <div><span className="inline-block px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 mr-1.5">B</span>SMA支持反発 — 乖離0-2% → DC(SMA5&lt;SMA20交差)で翌日寄付売り</div>
+              <div className="text-muted-foreground/60">共通: SL -3%（IFD逆指値）/ 16:45チェック → 翌朝寄付成行売り</div>
             </div>
           </div>
         </section>
@@ -389,105 +373,6 @@ function GranvilleContent() {
                       {fmt(Math.round(rPnl / recentMonths.length))}円
                     </div>
                   </div>
-                </div>
-              </div>
-            </section>
-          );
-        })()}
-
-        {/* 保有日数×価格帯 最適化グリッド */}
-        {optimGrid.length > 0 && (() => {
-          const BAND_ORDER = ['~1000', '1000~3000', '3000~5000', '5000~10000', '10000~20000'];
-          const BAND_LABEL: Record<string, string> = { '~1000': '~¥1,000', '1000~3000': '¥1,000~3,000', '3000~5000': '¥3,000~5,000', '5000~10000': '¥5,000~10,000', '10000~20000': '¥10,000~20,000' };
-          const HOLD_DAYS = [3, 5, 7, 10, 14];
-
-          // analysis準拠: 行内の値群から色を決定（全プラス→最大緑、全マイナス→最小赤、混在→最大緑+最小赤）
-          const getRowColors = (values: number[]): string[] => {
-            const WHITE = 'text-foreground';
-            const GREEN = 'text-emerald-400';
-            const RED = 'text-rose-400';
-            const positives = values.filter(v => v > 0);
-            const negatives = values.filter(v => v < 0);
-            if (positives.length === values.length) {
-              const maxVal = Math.max(...values);
-              return values.map(v => v === maxVal ? GREEN : WHITE);
-            }
-            if (negatives.length === values.length) {
-              const minVal = Math.min(...values);
-              return values.map(v => v === minVal ? RED : WHITE);
-            }
-            if (positives.length === 0 && negatives.length === 0) {
-              return values.map(() => WHITE);
-            }
-            // 混在: プラス最大→緑、マイナス最小→赤、他→白
-            const maxPos = Math.max(...positives);
-            const minNeg = Math.min(...negatives);
-            return values.map(v => {
-              if (v > 0 && v === maxPos) return GREEN;
-              if (v < 0 && v === minNeg) return RED;
-              return WHITE;
-            });
-          };
-
-          const fmtPnlVal = (v: number) => `${v >= 0 ? '+' : ''}${v.toLocaleString()}`;
-
-          const renderTable = (sigType: string, label: string, badgeClass: string) => {
-            const rows = optimGrid.filter(r => r.signal_type === sigType);
-            if (rows.length === 0) return null;
-
-            const lookup = (hd: number, band: string) => rows.find(r => r.hold_days === hd && r.price_band === band);
-
-            return (
-              <div className="overflow-x-auto">
-                <div className="px-5 py-2.5 border-b border-border/30 flex items-center gap-2">
-                  <span className={`px-1.5 py-0.5 text-xs rounded ${badgeClass}`}>{sigType}</span>
-                  <span className="text-sm text-foreground font-medium">{label}</span>
-                </div>
-                <table className="w-full text-sm md:text-base">
-                  <thead>
-                    <tr className="border-b border-border/50">
-                      <th className="text-left py-2 px-2 text-muted-foreground font-medium whitespace-nowrap">価格帯</th>
-                      {HOLD_DAYS.map(hd => (
-                        <th key={hd} className="text-right py-2 px-2 text-muted-foreground font-medium whitespace-nowrap">{hd}日</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {BAND_ORDER.map(band => {
-                      const cellValues = HOLD_DAYS.map(hd => lookup(hd, band)?.total_pnl ?? 0);
-                      const colors = getRowColors(cellValues);
-                      return (
-                        <tr key={band} className="border-b border-border/20">
-                          <td className="py-2.5 px-2 text-muted-foreground whitespace-nowrap">{BAND_LABEL[band]}</td>
-                          {HOLD_DAYS.map((hd, idx) => {
-                            const cell = lookup(hd, band);
-                            if (!cell) return <td key={hd} className="py-2.5 px-2 text-right text-muted-foreground/30">-</td>;
-                            return (
-                              <td key={hd} className={`text-right px-2 py-2.5 tabular-nums whitespace-nowrap ${colors[idx]}`}>
-                                {fmtPnlVal(cell.total_pnl)}
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            );
-          };
-
-          return (
-            <section className="mb-6">
-              <div className="rounded-2xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 shadow-lg shadow-black/5 backdrop-blur-xl overflow-hidden">
-                <div className="px-5 py-3 border-b border-border/40">
-                  <h2 className="text-sm font-semibold text-foreground">保有日数×価格帯 最適化（実額PnL）</h2>
-                </div>
-                {renderTable('A', '押し目買い', 'bg-blue-500/20 text-blue-400')}
-                <div className="border-t border-border/40" />
-                {renderTable('B', 'SMA支持反発', 'bg-amber-500/20 text-amber-400')}
-                <div className="px-5 py-2 border-t border-border/40 text-xs text-muted-foreground">
-                  SL -3%固定 / 全期間データ / 単位: 円 / 行内で最大プラス=緑, 最大マイナス=赤
                 </div>
               </div>
             </section>
@@ -594,8 +479,8 @@ function GranvilleContent() {
                                       {fmtPct(t.ret_pct, 2)}
                                     </td>
                                     <td className="py-2 px-2 text-right tabular-nums">{fmtPnl(t.pnl_yen)}</td>
-                                    <td className={`py-2 px-2 text-center ${t.exit_type === 'SL' ? 'text-rose-400' : 'text-muted-foreground'}`}>
-                                      {t.exit_type === 'SL' ? 'SL発動' : '期限決済'}
+                                    <td className={`py-2 px-2 text-center ${t.exit_type === 'SL' ? 'text-rose-400' : t.exit_type === 'SMA20_touch' ? 'text-emerald-400' : t.exit_type === 'dead_cross' ? 'text-amber-400' : 'text-muted-foreground'}`}>
+                                      {t.exit_type === 'SL' ? 'SL' : t.exit_type === 'SMA20_touch' ? 'SMA20回帰' : t.exit_type === 'dead_cross' ? 'DC撤退' : '期限'}
                                     </td>
                                   </tr>
                                 ))}
