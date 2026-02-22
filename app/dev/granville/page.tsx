@@ -293,6 +293,12 @@ function GranvilleContent() {
                 本日のシグナルはありません
               </div>
             )}
+            {/* シグナル種別説明 */}
+            <div className="px-5 py-3 border-t border-border/40 flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
+              <div><span className="inline-block px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 mr-1.5">A</span>押し目買い — SMA20から-3~-8%乖離、終値反発</div>
+              <div><span className="inline-block px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 mr-1.5">B</span>SMA支持反発 — 上昇SMA20上で乖離0-2%、前日≤0.5%から反発</div>
+              <div><span className="inline-block px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 mr-1.5">A+B</span>両条件同時成立</div>
+            </div>
           </div>
         </section>
 
