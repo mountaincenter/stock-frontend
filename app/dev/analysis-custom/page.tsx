@@ -465,7 +465,7 @@ export default function AnalysisCustomPage() {
               />
               <span className="text-xs text-amber-400 whitespace-nowrap">異常日除外</span>
             </label>
-            <DevNavLinks links={["dashboard", "analysis", "recommendations", "reports"]} />
+            <DevNavLinks links={["dashboard", "analysis", "recommendations", "granville", "reports"]} />
           </div>
         </header>
 

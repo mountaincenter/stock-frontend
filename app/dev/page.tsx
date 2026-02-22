@@ -345,7 +345,7 @@ export default function DevDashboard() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <DevNavLinks links={["analysis", "analysis-custom", "recommendations", "stock-results", "election-anomaly", "reports"]} />
+            <DevNavLinks links={["analysis", "analysis-custom", "recommendations", "stock-results", "granville", "reports"]} />
 
             <div className="flex items-center gap-2">
               <FilterButtonGroup
