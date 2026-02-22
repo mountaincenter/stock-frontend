@@ -14,6 +14,7 @@ interface Signal {
   sma20: number;
   dev_from_sma20: number;
   sl_price: number;
+  hold_days: number;
 }
 
 interface SignalsResponse {
@@ -280,6 +281,7 @@ function GranvilleContent() {
                       <th className="text-right px-4 py-2.5 font-medium">SMA20</th>
                       <th className="text-right px-4 py-2.5 font-medium">乖離%</th>
                       <th className="text-right px-4 py-2.5 font-medium">SL価格</th>
+                      <th className="text-right px-4 py-2.5 font-medium">保有日</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -299,6 +301,7 @@ function GranvilleContent() {
                           {fmtPct(s.dev_from_sma20, 2)}
                         </td>
                         <td className="px-4 py-2.5 text-right tabular-nums text-rose-400">¥{fmt(s.sl_price)}</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums text-foreground font-medium">{s.hold_days}日</td>
                       </tr>
                     ))}
                   </tbody>
