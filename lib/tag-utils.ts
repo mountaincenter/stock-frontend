@@ -1,4 +1,4 @@
-export type CanonicalTag = "政策銘柄" | "TOPIX_CORE30" | "SCALPING_ENTRY" | "SCALPING_ACTIVE" | "GROK";
+export type CanonicalTag = "政策銘柄" | "TOPIX_CORE30" | "TOPIX_LARGE70" | "SCALPING_ENTRY" | "SCALPING_ACTIVE" | "GROK";
 
 const TAG_CANONICAL_MAP: Record<string, CanonicalTag> = {
   policy: "政策銘柄",
@@ -11,6 +11,11 @@ const TAG_CANONICAL_MAP: Record<string, CanonicalTag> = {
   topix_core30: "TOPIX_CORE30",
   topixcore30: "TOPIX_CORE30",
   TOPIX_CORE30: "TOPIX_CORE30",
+  large70: "TOPIX_LARGE70",
+  topix_large70: "TOPIX_LARGE70",
+  topixlarge70: "TOPIX_LARGE70",
+  "topix large70": "TOPIX_LARGE70",
+  TOPIX_LARGE70: "TOPIX_LARGE70",
   scalping_entry: "SCALPING_ENTRY",
   scalping_active: "SCALPING_ACTIVE",
   SCALPING_ENTRY: "SCALPING_ENTRY",
@@ -36,7 +41,7 @@ export function canonicalizeTag(tag?: string): CanonicalTag | undefined {
 
 export function normalizeSelectTag(
   value?: string
-): "policy" | "core30" | "grok" | "all" | undefined {
+): "policy" | "core30" | "large70" | "grok" | "all" | undefined {
   if (!value) return undefined;
   const trimmed = value.trim();
   if (!trimmed) return undefined;
@@ -59,6 +64,16 @@ export function normalizeSelectTag(
     trimmed === "TOPIX Core30"
   ) {
     return "core30";
+  }
+  if (
+    lower === "large70" ||
+    lower === "topix_large70" ||
+    lower === "topixlarge70" ||
+    lower === "topix large70" ||
+    trimmed === "TOPIX_LARGE70" ||
+    trimmed === "TOPIX Large70"
+  ) {
+    return "large70";
   }
   if (
     lower === "grok" ||

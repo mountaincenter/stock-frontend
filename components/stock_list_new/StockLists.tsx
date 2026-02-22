@@ -70,6 +70,12 @@ const TAG_OPTIONS = [
       "東証TOPIX構成銘柄のうち時価総額・流動性が特に高い30銘柄 - 日本を代表する超大型株",
   },
   {
+    value: "large70",
+    label: "TOPIX Large70",
+    description:
+      "東証TOPIX構成銘柄のうち時価総額・流動性が高い大型株70銘柄 - Core30に次ぐ日本の主要企業群",
+  },
+  {
     value: "grok",
     label: "GROK トレンド",
     description:
