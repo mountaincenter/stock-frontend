@@ -443,24 +443,24 @@ function GranvilleContent() {
                 <table className="w-full text-sm md:text-base">
                   <thead>
                     <tr className="border-b border-border/50">
-                      <th className="text-left py-2 px-2 text-muted-foreground font-medium whitespace-nowrap">保有日</th>
-                      {BAND_ORDER.map(band => (
-                        <th key={band} className="text-right py-2 px-2 text-muted-foreground font-medium whitespace-nowrap">{BAND_LABEL[band]}</th>
+                      <th className="text-left py-2 px-2 text-muted-foreground font-medium whitespace-nowrap">価格帯</th>
+                      {HOLD_DAYS.map(hd => (
+                        <th key={hd} className="text-right py-2 px-2 text-muted-foreground font-medium whitespace-nowrap">{hd}日</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {HOLD_DAYS.map(hd => {
-                      const cellValues = BAND_ORDER.map(band => lookup(hd, band)?.total_pnl ?? 0);
+                    {BAND_ORDER.map(band => {
+                      const cellValues = HOLD_DAYS.map(hd => lookup(hd, band)?.total_pnl ?? 0);
                       const colors = getRowColors(cellValues);
                       return (
-                        <tr key={hd} className="border-b border-border/20">
-                          <td className="py-2.5 px-2 text-muted-foreground tabular-nums">{hd}日</td>
-                          {BAND_ORDER.map((band, idx) => {
+                        <tr key={band} className="border-b border-border/20">
+                          <td className="py-2.5 px-2 text-muted-foreground whitespace-nowrap">{BAND_LABEL[band]}</td>
+                          {HOLD_DAYS.map((hd, idx) => {
                             const cell = lookup(hd, band);
-                            if (!cell) return <td key={band} className="py-2.5 px-2 text-right text-muted-foreground/30">-</td>;
+                            if (!cell) return <td key={hd} className="py-2.5 px-2 text-right text-muted-foreground/30">-</td>;
                             return (
-                              <td key={band} className={`text-right px-2 py-2.5 tabular-nums whitespace-nowrap ${colors[idx]}`}>
+                              <td key={hd} className={`text-right px-2 py-2.5 tabular-nums whitespace-nowrap ${colors[idx]}`}>
                                 {fmtPnlVal(cell.total_pnl)}
                               </td>
                             );
