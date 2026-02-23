@@ -119,6 +119,23 @@ interface StatusResponse {
   as_of: string | null;
 }
 
+interface CompStrategyRow {
+  label: string;
+  count: number;
+  pnl: number;
+  pf: number;
+  win_rate: number;
+  avg_hold: number;
+}
+
+interface ComparisonResponse {
+  strategies: {
+    all: CompStrategyRow[];
+    '14m': CompStrategyRow[];
+    '2026': CompStrategyRow[];
+  };
+}
+
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 const fmt = (v: number) => v.toLocaleString('ja-JP');
@@ -134,6 +151,7 @@ function GranvilleContent() {
   const [summary, setSummary] = useState<SummaryResponse | null>(null);
   const [trades, setTrades] = useState<TradesResponse | null>(null);
   const [posData, setPosData] = useState<PositionsResponse | null>(null);
+  const [comparison, setComparison] = useState<ComparisonResponse | null>(null);
   const [tradeView, setTradeView] = useState<'daily' | 'weekly' | 'monthly' | 'by-stock'>('daily');
   const [loading, setLoading] = useState(true);
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
@@ -146,12 +164,14 @@ function GranvilleContent() {
       fetch(`${API_BASE}/api/dev/granville/summary`).then(r => r.json()).catch(() => ({ overall: {}, monthly: [], count: 0 })),
       fetch(`${API_BASE}/api/dev/granville/trades?view=daily`).then(r => r.json()).catch(() => ({ view: 'daily', results: [] })),
       fetch(`${API_BASE}/api/dev/granville/positions`).then(r => r.json()).catch(() => ({ positions: [], exits: [], as_of: null })),
-    ]).then(([st, sig, sum, tr, pos]) => {
+      fetch(`${API_BASE}/api/dev/granville/comparison`).then(r => r.json()).catch(() => null),
+    ]).then(([st, sig, sum, tr, pos, comp]) => {
       setStatus(st);
       setSignals(sig);
       setSummary(sum);
       setTrades(tr);
       setPosData(pos);
+      setComparison(comp);
       setLoading(false);
     });
   }, []);
@@ -219,7 +239,7 @@ function GranvilleContent() {
           <div>
             <h1 className="text-xl font-bold text-foreground">グランビルIFDロング戦略</h1>
             <p className="text-muted-foreground text-sm">
-              SL -3% / グランビル出口 / ¥2万未満 / uptrend+CI拡大
+              SL -3% / TP +10% / グランビル出口 / ¥2万未満 / uptrend+CI拡大
               {status?.as_of ? ` (${status.as_of})` : ''}
             </p>
           </div>
@@ -271,7 +291,7 @@ function GranvilleContent() {
               <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
               <div className="relative">
                 <div className="text-muted-foreground text-sm mb-2">戦略パラメータ</div>
-                <div className="text-2xl font-bold text-right tabular-nums text-foreground whitespace-nowrap">SL -3%</div>
+                <div className="text-2xl font-bold text-right tabular-nums text-foreground whitespace-nowrap">SL -3% / TP +10%</div>
                 <div className="text-xs text-right mt-1 text-muted-foreground">グランビル出口 / ¥2万未満</div>
               </div>
             </div>
@@ -334,7 +354,7 @@ function GranvilleContent() {
             <div className="px-5 py-3 border-t border-border/40 flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
               <div><span className="inline-block px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 mr-1.5">A</span>押し目買い — 乖離-3~-8% → 終値≥SMA20で翌日寄付売り</div>
               <div><span className="inline-block px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 mr-1.5">B</span>SMA支持反発 — 乖離0-2% → DC(SMA5&lt;SMA20交差)で翌日寄付売り</div>
-              <div className="text-muted-foreground/60">共通: SL -3%（IFD逆指値）/ 16:45チェック → 翌朝寄付成行売り</div>
+              <div className="text-muted-foreground/60">共通: SL -3%（IFD逆指値）/ TP +10%（IFD指値）/ 16:45チェック → 翌朝寄付成行売り</div>
             </div>
           </div>
         </section>
@@ -380,8 +400,8 @@ function GranvilleContent() {
                           {fmtPct(ex.ret_pct, 2)}
                         </td>
                         <td className="px-4 py-2.5 text-right tabular-nums">{fmtPnl(ex.pnl_yen)}</td>
-                        <td className={`px-4 py-2.5 ${ex.exit_type === 'SMA20_touch' ? 'text-emerald-400' : 'text-amber-400'}`}>
-                          {ex.exit_type === 'SMA20_touch' ? 'SMA20回帰' : 'DC撤退'}
+                        <td className={`px-4 py-2.5 ${ex.exit_type === 'TP' ? 'text-emerald-400' : ex.exit_type === 'SMA20_touch' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                          {ex.exit_type === 'TP' ? 'TP+10%' : ex.exit_type === 'SMA20_touch' ? 'SMA20回帰' : 'DC撤退'}
                         </td>
                       </tr>
                     ))}
@@ -529,6 +549,63 @@ function GranvilleContent() {
           );
         })()}
 
+        {/* 戦略比較 */}
+        {comparison?.strategies && (
+          <section className="mb-6">
+            <div className="rounded-2xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 shadow-lg shadow-black/5 backdrop-blur-xl overflow-hidden">
+              <div className="px-5 py-3 border-b border-border/40">
+                <h2 className="text-sm font-semibold text-foreground">戦略比較（TP+10% vs 7日引け vs 利確なし）</h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm min-w-[800px]">
+                  <thead>
+                    <tr className="text-muted-foreground border-b border-border/30 bg-muted/10">
+                      <th className="text-left px-4 py-2.5 font-medium">期間</th>
+                      <th className="text-left px-4 py-2.5 font-medium">戦略</th>
+                      <th className="text-right px-4 py-2.5 font-medium">件数</th>
+                      <th className="text-right px-4 py-2.5 font-medium">損益</th>
+                      <th className="text-right px-4 py-2.5 font-medium">PF</th>
+                      <th className="text-right px-4 py-2.5 font-medium">勝率</th>
+                      <th className="text-right px-4 py-2.5 font-medium">平均保有日</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {([
+                      { label: '14ヶ月 (2025/1~)', key: '14m' as const },
+                      { label: '2026年', key: '2026' as const },
+                      { label: '全期間', key: 'all' as const },
+                    ] as const).map(({ label: periodLabel, key }) => {
+                      const rows = comparison.strategies[key] || [];
+                      return rows.map((r, ri) => (
+                        <tr key={`${key}-${ri}`} className={`border-b border-border/20 hover:bg-muted/5 transition-colors ${ri === 0 ? 'border-t border-border/40' : ''}`}>
+                          {ri === 0 && (
+                            <td rowSpan={rows.length} className="px-4 py-2.5 font-semibold text-foreground align-top border-r border-border/20">
+                              {periodLabel}
+                            </td>
+                          )}
+                          <td className={`px-4 py-2.5 font-medium ${r.label === 'TP+10%' ? 'text-emerald-400' : 'text-muted-foreground'}`}>
+                            {r.label}
+                          </td>
+                          <td className="px-4 py-2.5 text-right tabular-nums">{r.count}</td>
+                          <td className="px-4 py-2.5 text-right tabular-nums">{fmtPnl(r.pnl)}</td>
+                          <td className={`px-4 py-2.5 text-right tabular-nums font-bold ${r.pf >= 1.5 ? 'text-emerald-400' : r.pf >= 1.0 ? 'text-foreground' : 'text-rose-400'}`}>
+                            {r.pf}
+                          </td>
+                          <td className="px-4 py-2.5 text-right tabular-nums">{r.win_rate}%</td>
+                          <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">{r.avg_hold}日</td>
+                        </tr>
+                      ));
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="px-5 py-2.5 border-t border-border/40 text-xs text-muted-foreground">
+                TP+10%: 高値がエントリー+10%到達で利確（IFD指値） / 7日引け: 7営業日後の引けで成行決済 / 利確なし: グランビル出口のみ
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* トレード一覧 (2025/1~) */}
         {(() => {
           const CUTOFF = '2025-01';
@@ -629,8 +706,8 @@ function GranvilleContent() {
                                       {fmtPct(t.ret_pct, 2)}
                                     </td>
                                     <td className="py-2 px-2 text-right tabular-nums">{fmtPnl(t.pnl_yen)}</td>
-                                    <td className={`py-2 px-2 text-center ${t.exit_type === 'SL' ? 'text-rose-400' : t.exit_type === 'SMA20_touch' ? 'text-emerald-400' : t.exit_type === 'dead_cross' ? 'text-amber-400' : 'text-muted-foreground'}`}>
-                                      {t.exit_type === 'SL' ? 'SL' : t.exit_type === 'SMA20_touch' ? 'SMA20回帰' : t.exit_type === 'dead_cross' ? 'DC撤退' : '期限'}
+                                    <td className={`py-2 px-2 text-center ${t.exit_type === 'SL' ? 'text-rose-400' : t.exit_type === 'TP' ? 'text-emerald-400' : t.exit_type === 'SMA20_touch' ? 'text-emerald-400' : t.exit_type === 'dead_cross' ? 'text-amber-400' : 'text-muted-foreground'}`}>
+                                      {t.exit_type === 'SL' ? 'SL' : t.exit_type === 'TP' ? 'TP+10%' : t.exit_type === 'SMA20_touch' ? 'SMA20回帰' : t.exit_type === 'dead_cross' ? 'DC撤退' : '期限'}
                                     </td>
                                   </tr>
                                 ))}
