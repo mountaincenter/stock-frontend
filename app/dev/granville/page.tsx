@@ -360,7 +360,7 @@ function GranvilleContent() {
         </section>
 
         {/* 本日イグジット */}
-        {posData && posData.exits.length > 0 && (
+        {posData && posData.exits && posData.exits.length > 0 && (
           <section className="mb-6">
             <div className="rounded-2xl border border-amber-500/40 bg-gradient-to-br from-amber-500/5 via-card/80 to-card/50 shadow-lg shadow-black/5 backdrop-blur-xl overflow-hidden">
               <div className="px-5 py-3 border-b border-amber-500/30">
@@ -413,7 +413,7 @@ function GranvilleContent() {
         )}
 
         {/* 保有中ポジション */}
-        {posData && posData.positions.length > 0 && (
+        {posData && posData.positions && posData.positions.length > 0 && (
           <section className="mb-6">
             <div className="rounded-2xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 shadow-lg shadow-black/5 backdrop-blur-xl overflow-hidden">
               <div className="px-5 py-3 border-b border-border/40">
