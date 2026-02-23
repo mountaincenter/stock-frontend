@@ -400,8 +400,8 @@ function GranvilleContent() {
                           {fmtPct(ex.ret_pct, 2)}
                         </td>
                         <td className="px-4 py-2.5 text-right tabular-nums">{fmtPnl(ex.pnl_yen)}</td>
-                        <td className={`px-4 py-2.5 ${ex.exit_type === 'TP' ? 'text-emerald-400' : ex.exit_type === 'SMA20_touch' ? 'text-emerald-400' : 'text-amber-400'}`}>
-                          {ex.exit_type === 'TP' ? 'TP+10%' : ex.exit_type === 'SMA20_touch' ? 'SMA20回帰' : 'DC撤退'}
+                        <td className={`px-4 py-2.5 ${ex.exit_type === 'TP' ? 'text-emerald-400' : ex.exit_type === 'SMA20_touch' ? 'text-emerald-400' : ex.exit_type === 'time_cut' ? 'text-rose-400' : 'text-amber-400'}`}>
+                          {ex.exit_type === 'TP' ? 'TP+10%' : ex.exit_type === 'SMA20_touch' ? 'SMA20回帰' : ex.exit_type === 'time_cut' ? '7日損切' : 'DC撤退'}
                         </td>
                       </tr>
                     ))}
@@ -706,8 +706,8 @@ function GranvilleContent() {
                                       {fmtPct(t.ret_pct, 2)}
                                     </td>
                                     <td className="py-2 px-2 text-right tabular-nums">{fmtPnl(t.pnl_yen)}</td>
-                                    <td className={`py-2 px-2 text-center ${t.exit_type === 'SL' ? 'text-rose-400' : t.exit_type === 'TP' ? 'text-emerald-400' : t.exit_type === 'SMA20_touch' ? 'text-emerald-400' : t.exit_type === 'dead_cross' ? 'text-amber-400' : 'text-muted-foreground'}`}>
-                                      {t.exit_type === 'SL' ? 'SL' : t.exit_type === 'TP' ? 'TP+10%' : t.exit_type === 'SMA20_touch' ? 'SMA20回帰' : t.exit_type === 'dead_cross' ? 'DC撤退' : '期限'}
+                                    <td className={`py-2 px-2 text-center ${t.exit_type === 'SL' ? 'text-rose-400' : t.exit_type === 'TP' ? 'text-emerald-400' : t.exit_type === 'SMA20_touch' ? 'text-emerald-400' : t.exit_type === 'dead_cross' ? 'text-amber-400' : t.exit_type === 'time_cut' ? 'text-rose-400' : 'text-muted-foreground'}`}>
+                                      {t.exit_type === 'SL' ? 'SL' : t.exit_type === 'TP' ? 'TP+10%' : t.exit_type === 'SMA20_touch' ? 'SMA20回帰' : t.exit_type === 'dead_cross' ? 'DC撤退' : t.exit_type === 'time_cut' ? '7日損切' : '期限'}
                                     </td>
                                   </tr>
                                 ))}
