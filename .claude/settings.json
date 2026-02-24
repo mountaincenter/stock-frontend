@@ -1,8 +1,6 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run:*)",
-      "Bash(npm install:*)",
       "Bash(npx:*)",
       "Edit(src/**)",
       "Edit(app/**)",
