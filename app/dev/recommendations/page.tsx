@@ -563,9 +563,9 @@ export default function DayTradeListPage() {
                         </td>
                         <td className={`px-3 py-4 text-right tabular-nums ${
                           stock.prob_up !== null
-                            ? stock.prob_up <= 0.32
+                            ? stock.prob_up <= 0.16
                               ? "text-emerald-400 font-medium"
-                              : stock.prob_up >= 0.55
+                              : stock.prob_up >= 0.61
                                 ? "text-rose-400 font-medium"
                                 : "text-muted-foreground"
                             : "text-muted-foreground"
