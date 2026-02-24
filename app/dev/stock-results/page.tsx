@@ -297,7 +297,7 @@ function StockResultsContent() {
           {[
             { key: null, label: '全体' },
             { key: 'grok', label: 'Grok' },
-            { key: 'granville_ifd', label: 'Granville' },
+            { key: 'granville', label: 'Granville' },
             { key: 'llm', label: 'LLM' },
           ].map(({ key, label }) => (
             <button
@@ -323,7 +323,7 @@ function StockResultsContent() {
                 <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
                 <div className="relative">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{s.strategy === 'granville_ifd' ? 'Granville' : s.strategy}</span>
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{s.strategy}</span>
                     <span className="text-xs text-muted-foreground tabular-nums">{s.count}件</span>
                   </div>
                   <div className={`text-base tabular-nums font-bold ${s.profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
