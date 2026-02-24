@@ -45,10 +45,19 @@ interface DailyStat {
   cumulative_short: number;
 }
 
+interface StrategySummary {
+  strategy: string;
+  profit: number;
+  count: number;
+  win: number;
+  win_rate: number;
+}
+
 interface SummaryResponse {
   summary: Summary;
   daily_stats: DailyStat[];
   loss_distribution: LossDistribution[];
+  strategy_summary?: StrategySummary[];
   updated_at: string | null;
 }
 
@@ -107,6 +116,7 @@ function StockResultsContent() {
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<ViewType>('daily');
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
+  const [strategyFilter, setStrategyFilter] = useState<string | null>(null);
   const prevViewRef = useRef<ViewType>('daily');
 
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
@@ -155,7 +165,8 @@ function StockResultsContent() {
     prevViewRef.current = view;
     setTableLoading(true);
     setExpandedKeys(new Set()); // タブ切替時に展開状態をリセット
-    fetch(`${API_BASE}/api/dev/stock-results/${view === 'bystock' ? 'by-stock' : `daily?view=${view}`}`)
+    const strategyParam = strategyFilter ? `&strategy=${strategyFilter}` : '';
+    fetch(`${API_BASE}/api/dev/stock-results/${view === 'bystock' ? 'by-stock' : `daily?view=${view}${strategyParam}`}`)
       .then(res => res.json())
       .then(daily => {
         setDailyData(daily);
@@ -166,6 +177,21 @@ function StockResultsContent() {
         setTableLoading(false);
       });
   }, [API_BASE, view, loading]);
+
+  // 戦略フィルター変更時
+  useEffect(() => {
+    if (loading) return;
+    setTableLoading(true);
+    const strategyParam = strategyFilter ? `?strategy=${strategyFilter}` : '';
+    Promise.all([
+      fetch(`${API_BASE}/api/dev/stock-results/summary${strategyParam}`).then(r => r.json()),
+      fetch(`${API_BASE}/api/dev/stock-results/daily?view=${view}${strategyFilter ? `&strategy=${strategyFilter}` : ''}`).then(r => r.json()),
+    ]).then(([sum, daily]) => {
+      setSummaryData(sum);
+      setDailyData(daily);
+      setTableLoading(false);
+    }).catch(() => setTableLoading(false));
+  }, [strategyFilter]);
 
   const toggleExpand = (key: string) => {
     setExpandedKeys(prev => {
@@ -262,6 +288,54 @@ function StockResultsContent() {
             <DevNavLinks links={["dashboard", "analysis", "recommendations", "granville", "reports"]} />
           </div>
         </header>
+
+        {/* Strategy Filter */}
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <span className="text-xs text-muted-foreground mr-1">戦略:</span>
+          {[
+            { key: null, label: '全体' },
+            { key: 'grok', label: 'Grok' },
+            { key: 'granville', label: 'Granville' },
+            { key: 'llm', label: 'LLM' },
+          ].map(({ key, label }) => (
+            <button
+              key={label}
+              onClick={() => setStrategyFilter(key)}
+              className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                strategyFilter === key
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'border-border/40 text-muted-foreground hover:text-foreground hover:border-border'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+          {tableLoading && <span className="text-xs text-muted-foreground animate-pulse ml-2">更新中...</span>}
+        </div>
+
+        {/* Strategy Summary */}
+        {!strategyFilter && summaryData.strategy_summary && summaryData.strategy_summary.length > 0 && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+            {summaryData.strategy_summary.map((s) => (
+              <div key={s.strategy} className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-3 shadow-lg shadow-black/5 backdrop-blur-xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+                <div className="relative">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{s.strategy}</span>
+                    <span className="text-xs text-muted-foreground tabular-nums">{s.count}件</span>
+                  </div>
+                  <div className={`text-base tabular-nums font-bold ${s.profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {s.profit >= 0 ? '+' : ''}{s.profit.toLocaleString()}円
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs text-muted-foreground tabular-nums">{s.win}勝</span>
+                    <span className={`text-xs tabular-nums ${s.win_rate >= 50 ? 'text-emerald-400/70' : 'text-rose-400/70'}`}>{s.win_rate.toFixed(1)}%</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Summary Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
