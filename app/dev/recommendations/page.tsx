@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
-import { Pencil, Check, X, ChevronDown, ChevronUp } from "lucide-react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
+import { Pencil, Check, X, ChevronDown, ChevronUp, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { DevNavLinks, FilterButtonGroup } from "@/components/dev";
 
 type DayTradeStock = {
@@ -73,6 +73,8 @@ export default function DayTradeListPage() {
   const [expandedTicker, setExpandedTicker] = useState<string | null>(null);
   const [historyData, setHistoryData] = useState<Record<string, HistoryRecord[]>>({});
   const [loadingHistory, setLoadingHistory] = useState<string | null>(null);
+  const [sortKey, setSortKey] = useState<keyof DayTradeStock | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   const fetchData = async () => {
     try {
@@ -280,6 +282,48 @@ export default function DayTradeListPage() {
     return vol.toLocaleString();
   };
 
+  const toggleSort = (key: keyof DayTradeStock) => {
+    if (sortKey === key) {
+      if (sortDir === "asc") setSortDir("desc");
+      else { setSortKey(null); setSortDir("asc"); }
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
+
+  const SortIcon = ({ col }: { col: keyof DayTradeStock }) => {
+    if (sortKey !== col) return <ArrowUpDown className="w-3 h-3 opacity-30 ml-0.5 inline" />;
+    return sortDir === "asc"
+      ? <ArrowUp className="w-3 h-3 text-primary ml-0.5 inline" />
+      : <ArrowDown className="w-3 h-3 text-primary ml-0.5 inline" />;
+  };
+
+  const filteredStocks = useMemo(() => {
+    let list = filter === "all"
+      ? stocks
+      : filter === "unchecked"
+        ? stocks.filter((s) => !s.shortable && !s.day_trade && !s.ng)
+        : filter === "shortable"
+          ? stocks.filter((s) => s.shortable)
+          : filter === "day_trade"
+            ? stocks.filter((s) => s.day_trade && !s.shortable)
+            : stocks.filter((s) => s.ng);
+
+    if (sortKey) {
+      list = [...list].sort((a, b) => {
+        const av = a[sortKey];
+        const bv = b[sortKey];
+        if (av == null && bv == null) return 0;
+        if (av == null) return 1;
+        if (bv == null) return -1;
+        const cmp = typeof av === "string" ? av.localeCompare(bv as string) : (av as number) - (bv as number);
+        return sortDir === "asc" ? cmp : -cmp;
+      });
+    }
+    return list;
+  }, [stocks, filter, sortKey, sortDir]);
+
   if (loading) {
     return (
       <main className="relative min-h-screen">
@@ -315,17 +359,6 @@ export default function DayTradeListPage() {
       </main>
     );
   }
-
-  const filteredStocks =
-    filter === "all"
-      ? stocks
-      : filter === "unchecked"
-        ? stocks.filter((s) => !s.shortable && !s.day_trade && !s.ng)
-        : filter === "shortable"
-          ? stocks.filter((s) => s.shortable)
-          : filter === "day_trade"
-            ? stocks.filter((s) => s.day_trade && !s.shortable)
-            : stocks.filter((s) => s.ng);
 
   return (
     <main className="relative min-h-screen">
@@ -473,14 +506,14 @@ export default function DayTradeListPage() {
             <table className="w-full text-sm md:text-base">
               <thead>
                 <tr className="border-b border-border/40 bg-muted/30">
-                  <th className="px-4 py-3 text-left text-foreground font-medium text-xs whitespace-nowrap">銘柄</th>
-                  <th className="px-4 py-3 text-left text-foreground font-medium text-xs whitespace-nowrap">名称</th>
-                  <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">Rank</th>
-                  <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">登場回数</th>
-                  <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">終値</th>
-                  <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">前日差</th>
-                  <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">prob</th>
-                  <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">Q*</th>
+                  <th className="px-4 py-3 text-left text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("ticker")}>銘柄<SortIcon col="ticker" /></th>
+                  <th className="px-4 py-3 text-left text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("stock_name")}>名称<SortIcon col="stock_name" /></th>
+                  <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("grok_rank")}>Rank<SortIcon col="grok_rank" /></th>
+                  <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("appearance_count")}>登場回数<SortIcon col="appearance_count" /></th>
+                  <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("close")}>終値<SortIcon col="close" /></th>
+                  <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("price_diff")}>前日差<SortIcon col="price_diff" /></th>
+                  <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("prob_up")}>prob<SortIcon col="prob_up" /></th>
+                  <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("quintile")}>Q*<SortIcon col="quintile" /></th>
                   <th className="px-4 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">
                     {bulkEditMode ? "制度" : "信用区分"}
                   </th>
@@ -495,9 +528,9 @@ export default function DayTradeListPage() {
                   )}
                   {!bulkEditMode && (
                     <>
-                      <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">株数</th>
-                      <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">売残</th>
-                      <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">買残</th>
+                      <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("day_trade_available_shares")}>株数<SortIcon col="day_trade_available_shares" /></th>
+                      <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("margin_sell_balance")}>売残<SortIcon col="margin_sell_balance" /></th>
+                      <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("margin_buy_balance")}>買残<SortIcon col="margin_buy_balance" /></th>
                     </>
                   )}
                 </tr>
