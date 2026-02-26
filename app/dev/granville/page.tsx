@@ -13,7 +13,7 @@ interface SummaryResponse { overall: Overall; monthly: MonthlyStats[]; count: nu
 interface Trade { signal_date: string; entry_date: string; exit_date: string; ticker: string; stock_name: string; sector: string; signal_type: string; entry_price: number; exit_price: number; ret_pct: number; pnl_yen: number; exit_type: string; }
 interface TradeGroup { key: string; count: number; pnl: number; win_count: number; trades: Trade[]; }
 interface TradesResponse { view: string; results: TradeGroup[]; }
-interface Position { ticker: string; stock_name: string; signal_type: string; entry_date: string; entry_price: number; current_price: number; unrealized_pct: number; unrealized_yen: number; sl_price: number; hold_days: number; exit_type?: string; }
+interface Position { ticker: string; stock_name: string; signal_type: string; entry_date: string; entry_price: number; current_price: number; unrealized_pct: number; unrealized_yen: number; sl_price: number; trail_sl?: number; hold_days: number; exit_type?: string; }
 interface ExitSignal { ticker: string; stock_name: string; signal_type: string; entry_date: string; entry_price: number; current_price: number; ret_pct: number; pnl_yen: number; exit_type: string; }
 interface PositionsResponse { positions: Position[]; exits: ExitSignal[]; as_of: string | null; }
 interface StatusResponse { market_uptrend: boolean | null; ci_expand: boolean | null; nk225_close: number | null; nk225_sma20: number | null; nk225_diff_pct: number | null; ci_latest: number | null; ci_chg3m: number | null; as_of: string | null; }
@@ -180,7 +180,14 @@ function GranvilleContent() {
                   {signals.signals.map((s, i) => (
                     <tr key={i} className="border-b border-border/20 hover:bg-muted/5">
                       <td className="px-4 py-2.5 tabular-nums">{s.ticker.replace('.T', '')}</td>
-                      <td className="px-4 py-2.5 max-w-[140px] truncate">{s.stock_name}</td>
+                      <td className="px-4 py-2.5">
+                        <button
+                          type="button"
+                          className="hover:text-primary transition-colors block max-w-[140px] truncate text-left"
+                          title={s.stock_name}
+                          onClick={(e) => { e.stopPropagation(); window.open(`/${s.ticker.replace('.T', '')}`, 'stock-detail'); }}
+                        >{s.stock_name}</button>
+                      </td>
                       <td className="px-4 py-2.5 text-muted-foreground hidden md:table-cell">{s.sector}</td>
                       <td className="px-4 py-2.5 text-center"><TypeBadge t={s.signal_type} /></td>
                       <td className="px-4 py-2.5 text-right tabular-nums">¥{fmt(s.close)}</td>
@@ -217,7 +224,9 @@ function GranvilleContent() {
                     return (
                       <tr key={i} className="border-b border-border/20 hover:bg-muted/5">
                         <td className="px-4 py-2.5 tabular-nums">{ex.ticker.replace('.T', '')}</td>
-                        <td className="px-4 py-2.5 max-w-[140px] truncate">{ex.stock_name}</td>
+                        <td className="px-4 py-2.5">
+                          <button type="button" className="hover:text-primary transition-colors block max-w-[140px] truncate text-left" title={ex.stock_name} onClick={(e) => { e.stopPropagation(); window.open(`/${ex.ticker.replace('.T', '')}`, 'stock-detail'); }}>{ex.stock_name}</button>
+                        </td>
                         <td className="px-4 py-2.5 text-center"><TypeBadge t={ex.signal_type} /></td>
                         <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">{shortDate(ex.entry_date)}</td>
                         <td className="px-4 py-2.5 text-right tabular-nums hidden md:table-cell">¥{fmt(ex.entry_price)}</td>
@@ -245,7 +254,7 @@ function GranvilleContent() {
                   <div className="flex items-center justify-between mb-1.5">
                     <div className="flex items-center gap-2">
                       <span className="tabular-nums font-semibold">{p.ticker.replace('.T', '')}</span>
-                      <span className="truncate max-w-[140px]">{p.stock_name}</span>
+                      <button type="button" className="hover:text-primary transition-colors truncate max-w-[140px] text-left" title={p.stock_name} onClick={(e) => { e.stopPropagation(); window.open(`/${p.ticker.replace('.T', '')}`, 'stock-detail'); }}>{p.stock_name}</button>
                       <TypeBadge t={p.signal_type} />
                     </div>
                     <span className={`font-bold tabular-nums ${p.unrealized_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{fmtPct(p.unrealized_pct, 2)}</span>
@@ -256,6 +265,7 @@ function GranvilleContent() {
                   </div>
                   <div className="flex items-center justify-between text-xs mt-1">
                     <span className="text-rose-400/70">SL ¥{fmt(p.sl_price)}</span>
+                    <span className={(p.trail_sl ?? p.sl_price) > p.entry_price ? 'text-emerald-400' : (p.trail_sl ?? p.sl_price) > p.sl_price ? 'text-amber-400' : 'text-rose-400/70'}>Trail ¥{fmt(p.trail_sl ?? p.sl_price)}</span>
                     {p.exit_type ? (
                       <span className="px-1.5 py-0.5 text-xs rounded bg-amber-500/20 text-amber-400">
                         {p.exit_type === 'dead_cross' ? 'DC→翌朝売' : p.exit_type === 'SMA20_touch' ? 'SMA20→翌朝売' : p.exit_type === 'time_cut' ? '7日→翌朝売' : p.exit_type}
@@ -278,6 +288,7 @@ function GranvilleContent() {
                   <th className="text-right px-4 py-2.5 text-xs md:text-sm font-medium">含み%</th>
                   <th className="text-right px-4 py-2.5 text-xs md:text-sm font-medium">含み損益</th>
                   <th className="text-right px-4 py-2.5 text-xs md:text-sm font-medium">SL価格</th>
+                  <th className="text-right px-4 py-2.5 text-xs md:text-sm font-medium">Trail SL</th>
                   <th className="text-right px-4 py-2.5 text-xs md:text-sm font-medium">日数</th>
                   <th className="text-left px-4 py-2.5 text-xs md:text-sm font-medium">状態</th>
                 </tr></thead>
@@ -285,7 +296,9 @@ function GranvilleContent() {
                   {posData.positions.map((p, i) => (
                     <tr key={i} className="border-b border-border/20 hover:bg-muted/5">
                       <td className="px-4 py-2.5 tabular-nums">{p.ticker.replace('.T', '')}</td>
-                      <td className="px-4 py-2.5 max-w-[160px] truncate">{p.stock_name}</td>
+                      <td className="px-4 py-2.5">
+                        <button type="button" className="hover:text-primary transition-colors block max-w-[160px] truncate text-left" title={p.stock_name} onClick={(e) => { e.stopPropagation(); window.open(`/${p.ticker.replace('.T', '')}`, 'stock-detail'); }}>{p.stock_name}</button>
+                      </td>
                       <td className="px-4 py-2.5 text-center"><TypeBadge t={p.signal_type} /></td>
                       <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">{shortDate(p.entry_date)}</td>
                       <td className="px-4 py-2.5 text-right tabular-nums">¥{fmt(p.entry_price)}</td>
@@ -293,6 +306,7 @@ function GranvilleContent() {
                       <td className={`px-4 py-2.5 text-right tabular-nums ${p.unrealized_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{fmtPct(p.unrealized_pct, 2)}</td>
                       <td className="px-4 py-2.5 text-right tabular-nums">{fmtPnl(p.unrealized_yen)}</td>
                       <td className="px-4 py-2.5 text-right tabular-nums text-rose-400">¥{fmt(p.sl_price)}</td>
+                      <td className={`px-4 py-2.5 text-right tabular-nums ${(p.trail_sl ?? p.sl_price) > p.entry_price ? 'text-emerald-400' : (p.trail_sl ?? p.sl_price) > p.sl_price ? 'text-amber-400' : 'text-rose-400'}`}>¥{fmt(p.trail_sl ?? p.sl_price)}</td>
                       <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">{p.hold_days}日</td>
                       <td className="px-4 py-2.5">
                         {p.exit_type ? (
