@@ -107,7 +107,7 @@ function GranvilleContent() {
     <section className="mb-5">
       <div className={`rounded-2xl border ${border || 'border-border/40'} bg-gradient-to-br from-card/50 via-card/80 to-card/50 shadow-lg shadow-black/5 backdrop-blur-xl overflow-hidden`}>
         <div className={`px-4 md:px-5 py-3 border-b ${border || 'border-b-border/40'}`}>
-          {typeof title === 'string' ? <h2 className="text-sm md:text-base font-semibold text-foreground">{title}</h2> : title}
+          {typeof title === 'string' ? <h2 className="text-base md:text-lg font-semibold text-foreground">{title}</h2> : title}
         </div>
         {children}
         {footer && <div className="px-4 md:px-5 py-2.5 border-t border-border/40 text-xs text-muted-foreground">{footer}</div>}
@@ -142,17 +142,17 @@ function GranvilleContent() {
             <StatCard label="市場トレンド" sub={status.nk225_close != null ? `SMA20 ¥${fmt(status.nk225_sma20!)} / ${fmtPct(status.nk225_diff_pct!)}` : undefined}>
               <span className={status.market_uptrend ? 'text-emerald-400' : status.market_uptrend === false ? 'text-rose-400' : 'text-muted-foreground'}>
                 {status.market_uptrend ? '○' : status.market_uptrend === false ? '×' : '-'}
-                {status.nk225_close != null && <span className="text-lg ml-1">¥{fmt(status.nk225_close)}</span>}
+                {status.nk225_close != null && <span className="ml-1">¥{fmt(status.nk225_close)}</span>}
               </span>
             </StatCard>
             <StatCard label="CI先行指数" sub={status.ci_latest != null ? `3M変化: ${status.ci_chg3m! >= 0 ? '+' : ''}${status.ci_chg3m}` : undefined}>
               <span className={status.ci_expand ? 'text-emerald-400' : status.ci_expand === false ? 'text-rose-400' : 'text-muted-foreground'}>
                 {status.ci_expand ? '○' : status.ci_expand === false ? '×' : '-'}
-                {status.ci_latest != null && <span className="text-lg ml-1">{status.ci_latest}</span>}
+                {status.ci_latest != null && <span className="ml-1">{status.ci_latest}</span>}
               </span>
             </StatCard>
             <StatCard label="基準日"><span className="text-foreground">{status.as_of || '-'}</span></StatCard>
-            <StatCard label="パラメータ" sub="グランビル出口 / ¥2万未満"><span className="text-foreground whitespace-nowrap text-lg md:text-2xl">SL-3% / TP+10%</span></StatCard>
+            <StatCard label="パラメータ" sub="グランビル出口 / ¥2万未満"><span className="text-foreground whitespace-nowrap">SL-3% / TP+10%</span></StatCard>
           </div>
         )}
 
@@ -204,7 +204,7 @@ function GranvilleContent() {
 
         {/* ── 本日イグジット ── */}
         {posData && posData.exits.length > 0 && (
-          <Panel title={<h2 className="text-sm md:text-base font-semibold text-amber-400">本日イグジット — {posData.exits.length}件（翌朝寄付で成行売り）</h2>} border="border-amber-500/40">
+          <Panel title={<h2 className="text-base md:text-lg font-semibold text-amber-400">本日イグジット — {posData.exits.length}件（翌朝寄付で成行売り）</h2>} border="border-amber-500/40">
             <div className="overflow-x-auto">
               <table className="w-full text-sm md:text-base">
                 <thead><tr className="text-muted-foreground border-b border-border/30 bg-muted/10">
@@ -335,7 +335,7 @@ function GranvilleContent() {
           const wrCls = wr >= 55 ? 'text-emerald-400' : wr >= 45 ? 'text-amber-400' : 'text-rose-400';
           return (
             <section className="mb-5">
-              <h2 className="text-sm md:text-base font-semibold text-foreground mb-2">バックテスト概要 (2025/1~)</h2>
+              <h2 className="text-base md:text-lg font-semibold text-foreground mb-2">バックテスト概要 (2025/1~)</h2>
               <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
                 <StatCard label="取引数" sub={`${months.length}ヶ月`}><span className="text-foreground">{cnt}</span></StatCard>
                 <StatCard label="損益合計"><span className={`whitespace-nowrap ${pnlCls}`}>{pnl >= 0 ? '+' : ''}{fmt(pnl)}円</span></StatCard>
@@ -405,7 +405,7 @@ function GranvilleContent() {
               <section className="mb-5">
                 <div className="rounded-2xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 shadow-lg shadow-black/5 backdrop-blur-xl overflow-hidden">
                   <div className="px-4 md:px-5 py-3 border-b border-border/40 flex flex-wrap items-center gap-3">
-                    <h2 className="text-sm md:text-base font-semibold text-foreground">トレード一覧 (2025/1~ 決済日基準)</h2>
+                    <h2 className="text-base md:text-lg font-semibold text-foreground">トレード一覧 (2025/1~ 決済日基準)</h2>
                     <div className="flex gap-1">
                       {(['daily', 'weekly', 'monthly', 'by-stock'] as const).map(v => (
                         <button key={v} onClick={() => setTradeView(v)}
