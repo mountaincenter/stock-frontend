@@ -50,7 +50,7 @@ function GranvilleContent() {
   const [trades, setTrades] = useState<TradesResponse | null>(null);
   const [posData, setPosData] = useState<PositionsResponse | null>(null);
   const [comparison, setComparison] = useState<ComparisonResponse | null>(null);
-  const [tradeView, setTradeView] = useState<'daily' | 'weekly' | 'monthly' | 'by-stock'>('daily');
+  const [tradeView, setTradeView] = useState<'daily' | 'weekly' | 'monthly' | 'by-stock'>('weekly');
   const [loading, setLoading] = useState(true);
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
 
@@ -60,7 +60,7 @@ function GranvilleContent() {
       fetch(`${API_BASE}/api/dev/granville/status`).then(r => r.json()).catch(() => null),
       fetch(`${API_BASE}/api/dev/granville/signals`).then(r => r.json()).catch(() => ({ signals: [], count: 0, signal_date: null })),
       fetch(`${API_BASE}/api/dev/granville/summary`).then(r => r.json()).catch(() => ({ overall: {}, monthly: [], count: 0 })),
-      fetch(`${API_BASE}/api/dev/granville/trades?view=daily`).then(r => r.json()).catch(() => ({ view: 'daily', results: [] })),
+      fetch(`${API_BASE}/api/dev/granville/trades?view=weekly`).then(r => r.json()).catch(() => ({ view: 'weekly', results: [] })),
       fetch(`${API_BASE}/api/dev/granville/positions`).then(r => r.json()).catch(() => ({ positions: [], exits: [], as_of: null })),
       fetch(`${API_BASE}/api/dev/granville/comparison`).then(r => r.json()).catch(() => null),
     ]).then(([st, sig, sum, tr, pos, comp]) => {
