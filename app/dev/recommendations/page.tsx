@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { Pencil, Check, X, ChevronDown, ChevronUp, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { Pencil, Check, X, ChevronDown, ChevronUp, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw } from "lucide-react";
 import { DevNavLinks, FilterButtonGroup } from "@/components/dev";
 
 type DayTradeStock = {
@@ -76,6 +76,11 @@ export default function DayTradeListPage() {
   const [sortKey, setSortKey] = useState<keyof DayTradeStock | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
+  // リアルタイム寄付価格
+  const [realtimeData, setRealtimeData] = useState<Record<string, { open: number | null; marketState: string | null }>>({});
+  const [realtimeLoading, setRealtimeLoading] = useState(false);
+  const [realtimeTimestamp, setRealtimeTimestamp] = useState<string | null>(null);
+
   const fetchData = async () => {
     try {
       const res = await fetch("/api/dev/day-trade-list");
@@ -93,6 +98,28 @@ export default function DayTradeListPage() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const fetchRealtime = useCallback(async (force: boolean = false) => {
+    if (stocks.length === 0) return;
+    setRealtimeLoading(true);
+    try {
+      const tickers = stocks.map((s) => s.ticker).join(",");
+      const url = `/api/realtime?tickers=${encodeURIComponent(tickers)}${force ? "&force=true" : ""}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("リアルタイムデータ取得失敗");
+      const json = await res.json();
+      const map: Record<string, { open: number | null; marketState: string | null }> = {};
+      for (const q of json.data) {
+        map[q.ticker] = { open: q.open ?? null, marketState: q.marketState ?? null };
+      }
+      setRealtimeData(map);
+      setRealtimeTimestamp(json.timestamp ? new Date(json.timestamp).toLocaleTimeString("ja-JP") : null);
+    } catch (err) {
+      console.error("リアルタイム取得エラー:", err);
+    } finally {
+      setRealtimeLoading(false);
+    }
+  }, [stocks]);
 
   const fetchHistory = useCallback(async (ticker: string) => {
     if (historyData[ticker]) return; // キャッシュがあればスキップ
@@ -462,6 +489,18 @@ export default function DayTradeListPage() {
             />
           </div>
           <div className="flex items-center gap-2 sm:gap-3 sm:ml-auto">
+            <button
+              type="button"
+              disabled={realtimeLoading}
+              onClick={() => fetchRealtime(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-500/20 text-sky-400 text-xs font-medium hover:bg-sky-500/30 transition-colors whitespace-nowrap disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${realtimeLoading ? "animate-spin" : ""}`} />
+              寄付
+              {realtimeTimestamp && (
+                <span className="text-sky-400/60 ml-1">{realtimeTimestamp}</span>
+              )}
+            </button>
             {bulkEditMode ? (
               <div className="flex items-center gap-2">
                 <button
@@ -512,6 +551,7 @@ export default function DayTradeListPage() {
                   <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("appearance_count")}>登場回数<SortIcon col="appearance_count" /></th>
                   <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("close")}>終値<SortIcon col="close" /></th>
                   <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("price_diff")}>前日差<SortIcon col="price_diff" /></th>
+                  <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">寄付差</th>
                   <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("prob_up")}>prob<SortIcon col="prob_up" /></th>
                   <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("grade")}>Grade<SortIcon col="grade" /></th>
                   <th className="px-4 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">
@@ -543,7 +583,7 @@ export default function DayTradeListPage() {
                   const canExpand = !bulkEditMode && stock.appearance_count >= 1;
                   const history = historyData[stock.ticker] || [];
                   const isLoadingHistory = loadingHistory === stock.ticker;
-                  const colSpan = bulkEditMode ? 14 : 12;
+                  const colSpan = bulkEditMode ? 15 : 13;
 
                   return (
                     <React.Fragment key={stock.ticker}>
@@ -593,6 +633,25 @@ export default function DayTradeListPage() {
                           {stock.price_diff !== null
                             ? (stock.price_diff > 0 ? "+" : "") + stock.price_diff.toLocaleString()
                             : "-"}
+                        </td>
+                        {/* 寄付差: open - prev_close (ショート視点: GU=赤, GD=緑) */}
+                        <td className={`px-3 py-4 text-right tabular-nums whitespace-nowrap ${
+                          (() => {
+                            const rt = realtimeData[stock.ticker];
+                            if (!rt || rt.open === null || stock.close === null) return "text-muted-foreground";
+                            const diff = rt.open - stock.close;
+                            return diff > 0 ? "text-rose-400" : diff < 0 ? "text-emerald-400" : "text-muted-foreground";
+                          })()
+                        }`}>
+                          {(() => {
+                            const rt = realtimeData[stock.ticker];
+                            if (!rt || rt.open === null || stock.close === null) return "-";
+                            // marketState: PRE=寄付前, REGULAR=取引中, POST/POSTPOST/CLOSED=取引後
+                            // openが0やnullなら未寄付
+                            if (rt.open <= 0) return "-";
+                            const diff = rt.open - stock.close;
+                            return (diff > 0 ? "+" : "") + diff.toLocaleString();
+                          })()}
                         </td>
                         <td className={`px-3 py-4 text-right tabular-nums ${
                           stock.prob_up !== null
