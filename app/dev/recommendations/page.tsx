@@ -77,7 +77,7 @@ export default function DayTradeListPage() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   // リアルタイム寄付価格
-  const [realtimeData, setRealtimeData] = useState<Record<string, { open: number | null; marketState: string | null }>>({});
+  const [realtimeData, setRealtimeData] = useState<Record<string, { price: number | null; open: number | null; marketState: string | null }>>({});
   const [realtimeLoading, setRealtimeLoading] = useState(false);
   const [realtimeTimestamp, setRealtimeTimestamp] = useState<string | null>(null);
 
@@ -108,9 +108,9 @@ export default function DayTradeListPage() {
       const res = await fetch(url);
       if (!res.ok) throw new Error("リアルタイムデータ取得失敗");
       const json = await res.json();
-      const map: Record<string, { open: number | null; marketState: string | null }> = {};
+      const map: Record<string, { price: number | null; open: number | null; marketState: string | null }> = {};
       for (const q of json.data) {
-        map[q.ticker] = { open: q.open ?? null, marketState: q.marketState ?? null };
+        map[q.ticker] = { price: q.price ?? null, open: q.open ?? null, marketState: q.marketState ?? null };
       }
       setRealtimeData(map);
       setRealtimeTimestamp(json.timestamp ? new Date(json.timestamp).toLocaleTimeString("ja-JP") : null);
@@ -634,22 +634,19 @@ export default function DayTradeListPage() {
                             ? (stock.price_diff > 0 ? "+" : "") + stock.price_diff.toLocaleString()
                             : "-"}
                         </td>
-                        {/* 寄付差: open - prev_close (ショート視点: GU=赤, GD=緑) */}
+                        {/* 寄付差: 現在値 - 始値 (ymnk.jpの寄付比と同じロジック) */}
                         <td className={`px-3 py-4 text-right tabular-nums whitespace-nowrap ${
                           (() => {
                             const rt = realtimeData[stock.ticker];
-                            if (!rt || rt.open === null || stock.close === null) return "text-muted-foreground";
-                            const diff = rt.open - stock.close;
-                            return diff > 0 ? "text-rose-400" : diff < 0 ? "text-emerald-400" : "text-muted-foreground";
+                            if (!rt || rt.price === null || rt.open === null || rt.open <= 0) return "text-muted-foreground";
+                            const diff = rt.price - rt.open;
+                            return diff > 0 ? "text-emerald-400" : diff < 0 ? "text-rose-400" : "text-muted-foreground";
                           })()
                         }`}>
                           {(() => {
                             const rt = realtimeData[stock.ticker];
-                            if (!rt || rt.open === null || stock.close === null) return "-";
-                            // marketState: PRE=寄付前, REGULAR=取引中, POST/POSTPOST/CLOSED=取引後
-                            // openが0やnullなら未寄付
-                            if (rt.open <= 0) return "-";
-                            const diff = rt.open - stock.close;
+                            if (!rt || rt.price === null || rt.open === null || rt.open <= 0) return "-";
+                            const diff = rt.price - rt.open;
                             return (diff > 0 ? "+" : "") + diff.toLocaleString();
                           })()}
                         </td>
