@@ -5,7 +5,7 @@ import { DevNavLinks } from '../../../components/dev';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 
 // Types
-interface Signal { ticker: string; stock_name: string; sector: string; signal_type: string; close: number; sma20: number; dev_from_sma20: number; sl_price: number; exit_rule: string; }
+interface Signal { ticker: string; stock_name: string; sector: string; signal_type: string; tier: string; close: number; sma20: number; dev_from_sma20: number; sma20_slope: number; sl_price: number; exit_rule: string; }
 interface SignalsResponse { signals: Signal[]; count: number; signal_date: string | null; }
 interface Overall { count: number; total_pnl: number; win_rate: number; pf: number; avg_ret: number; sl_count: number; sl_rate: number; }
 interface MonthlyStats { month: string; count: number; pnl: number; win_rate: number; pf: number; sl_count: number; uptrend_pct: number; }
@@ -30,8 +30,12 @@ const shortDate = (d: string) => { const m = d.match(/\d{4}-(\d{2})-(\d{2})/); r
 
 /* ── 種別バッジ ── */
 const TypeBadge = ({ t }: { t: string }) => (
-  <span className={`inline-block px-1.5 py-0.5 text-xs rounded leading-none ${t === 'A' ? 'bg-blue-500/20 text-blue-400' : t === 'B' ? 'bg-amber-500/20 text-amber-400' : 'bg-purple-500/20 text-purple-400'}`}>{t}</span>
+  <span className={`inline-block px-1.5 py-0.5 text-xs rounded leading-none ${t === 'B4' ? 'bg-rose-500/20 text-rose-400' : t === 'A' ? 'bg-blue-500/20 text-blue-400' : t === 'B' ? 'bg-amber-500/20 text-amber-400' : 'bg-purple-500/20 text-purple-400'}`}>{t}</span>
 );
+const TierBadge = ({ t }: { t: string }) => {
+  const cls = t === 'T1' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' : t === 'T2' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : t === 'T3' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : 'bg-muted/20 text-muted-foreground border-border/30';
+  return <span className={`inline-block px-1.5 py-0.5 text-xs rounded leading-none border ${cls}`}>{t}</span>;
+};
 
 /* ── 決済理由ラベル ── */
 const exitLabel = (t: string) => {
@@ -129,7 +133,7 @@ function GranvilleContent() {
           <div>
             <h1 className="text-xl font-bold text-foreground">グランビルIFDロング</h1>
             <p className="text-muted-foreground text-xs mt-0.5">
-              SL-3% / TP+10% / グランビル出口 / ¥2万未満 / uptrend+CI
+              SL-3% / 7日引け / ¥2万未満 / {status?.market_uptrend === false ? 'Downtrend(B4+sigA)' : 'Uptrend(sigA+sigB)+CI'}
               {status?.as_of ? ` (${status.as_of})` : ''}
             </p>
           </div>
@@ -159,14 +163,20 @@ function GranvilleContent() {
         {/* ── シグナル ── */}
         <Panel title={`シグナル (${signals?.signal_date || '-'}) — ${signals?.count || 0}件`}
           footer={<div className="flex flex-wrap gap-x-5 gap-y-1">
-            <span><TypeBadge t="A" /> 押し目買い(乖離-3~-8%)</span>
-            <span><TypeBadge t="B" /> SMA支持反発(乖離0-2%)</span>
-            <span className="text-muted-foreground/60">SL-3%(IFD) / TP+10%(IFD) / 翌朝売り</span>
+            <span><TierBadge t="T1" /> B4深い逆張り</span>
+            <span><TierBadge t="T2" /> sigA深(-5~-8%)</span>
+            <span><TierBadge t="T3" /> sigA浅(-3~-5%)</span>
+            <span><TierBadge t="T4" /> sigB(uptrend)</span>
+            <span className="text-muted-foreground/60 ml-2">|</span>
+            <span><TypeBadge t="B4" /> SMA20下降+乖離{'<'}-8%</span>
+            <span><TypeBadge t="A" /> 押し目買い(-3~-8%)</span>
+            <span><TypeBadge t="B" /> SMA支持反発(0~2%)</span>
           </div>}>
           {signals && signals.signals.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm md:text-base">
                 <thead><tr className="text-muted-foreground border-b border-border/30 bg-muted/10">
+                  <th className="text-center px-3 py-2.5 text-xs md:text-sm font-medium">Tier</th>
                   <th className="text-left px-4 py-2.5 text-xs md:text-sm font-medium">コード</th>
                   <th className="text-left px-4 py-2.5 text-xs md:text-sm font-medium">銘柄</th>
                   <th className="text-left px-4 py-2.5 text-xs md:text-sm font-medium hidden md:table-cell">セクター</th>
@@ -179,6 +189,7 @@ function GranvilleContent() {
                 <tbody>
                   {signals.signals.map((s, i) => (
                     <tr key={i} className="border-b border-border/20 hover:bg-muted/5">
+                      <td className="px-3 py-2.5 text-center"><TierBadge t={s.tier} /></td>
                       <td className="px-4 py-2.5 tabular-nums">{s.ticker.replace('.T', '')}</td>
                       <td className="px-4 py-2.5">
                         <button
