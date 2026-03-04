@@ -357,7 +357,7 @@ export default function DayTradeListPage() {
         <div className="fixed inset-0 -z-10 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20" />
         </div>
-        <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className="max-w-[1600px] mx-auto px-4 py-4">
           <div className="mb-6">
             <div className="h-4 w-24 bg-muted/50 rounded mb-3 animate-pulse" />
             <div className="h-6 w-64 bg-muted/50 rounded mb-2 animate-pulse" />
@@ -397,7 +397,7 @@ export default function DayTradeListPage() {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.03)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.03)_1px,transparent_1px)] bg-[size:4rem_4rem]" />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-4 leading-[1.8] tracking-[0.02em] font-sans">
+      <div className="max-w-[1600px] mx-auto px-4 py-4 leading-[1.8] tracking-[0.02em] font-sans">
         {/* Header */}
         <header className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4 pb-3 border-b border-border/30">
           <div>
