@@ -44,6 +44,10 @@ const NAV_LINKS: Record<string, NavLinkConfig> = {
     href: "/dev/granville",
     label: "Granville",
   },
+  strategy: {
+    href: "/dev/strategy/granville",
+    label: "Strategy",
+  },
   // v3: {
   //   href: "/dev/v3",
   //   label: "v3 Analysis",
