@@ -9,14 +9,14 @@ interface Recommendation {
   ticker: string; stock_name: string; sector: string; rule: string;
   close: number; entry_price_est: number; sma20: number; dev_from_sma20: number;
   margin: number; concentration_pct: number; max_hold: number;
-  ml_score?: number;
+  rsi14: number;
 }
 interface RecommendationsResponse { recommendations: Recommendation[]; count: number; total_margin: number; date: string | null; }
 
 interface Signal {
   ticker: string; stock_name: string; sector: string; rule: string;
   close: number; sma20: number; dev_from_sma20: number; sma20_slope: number;
-  entry_price_est: number; ml_score?: number;
+  entry_price_est: number; rsi14: number;
 }
 interface SignalsResponse { signals: Signal[]; count: number; signal_date: string | null; }
 
@@ -246,7 +246,7 @@ function GranvilleContent() {
                         </button>
                         <span className="truncate max-w-[120px]">{r.stock_name}</span>
                       </div>
-                      {r.ml_score !== undefined && <span className="text-xs text-muted-foreground">ML {r.ml_score.toFixed(1)}</span>}
+                      <span className="text-xs text-muted-foreground">RSI {r.rsi14.toFixed(1)}</span>
                     </div>
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <span>¥{fmt(r.entry_price_est)} / 証拠金 ¥{fmt(r.margin)} ({r.concentration_pct}%)</span>
@@ -272,7 +272,7 @@ function GranvilleContent() {
                     <th className="text-right px-4 py-2.5 text-xs font-medium">証拠金</th>
                     <th className="text-right px-4 py-2.5 text-xs font-medium">集中%</th>
                     <th className="text-right px-4 py-2.5 text-xs font-medium">MAX_HOLD</th>
-                    <th className="text-right px-4 py-2.5 text-xs font-medium">ML</th>
+                    <th className="text-right px-4 py-2.5 text-xs font-medium">RSI14</th>
                   </tr></thead>
                   <tbody>
                     {recommendations.recommendations.map((r, i) => (
@@ -291,7 +291,7 @@ function GranvilleContent() {
                         <td className="px-4 py-2.5 text-right tabular-nums">¥{fmt(r.margin)}</td>
                         <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">{r.concentration_pct}%</td>
                         <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">{r.max_hold}日</td>
-                        <td className="px-4 py-2.5 text-right tabular-nums">{r.ml_score !== undefined ? r.ml_score.toFixed(1) : '-'}</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums">{r.rsi14.toFixed(1)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -385,7 +385,7 @@ function GranvilleContent() {
                     <th className="text-right px-4 py-2.5 text-xs font-medium">終値</th>
                     <th className="text-right px-4 py-2.5 text-xs font-medium hidden md:table-cell">SMA20</th>
                     <th className="text-right px-4 py-2.5 text-xs font-medium">乖離%</th>
-                    <th className="text-right px-4 py-2.5 text-xs font-medium">ML</th>
+                    <th className="text-right px-4 py-2.5 text-xs font-medium">RSI14</th>
                   </tr></thead>
                   <tbody>
                     {signals.signals.map((s, i) => (
@@ -401,7 +401,7 @@ function GranvilleContent() {
                         <td className="px-4 py-2.5 text-right tabular-nums">¥{fmt(s.close)}</td>
                         <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground hidden md:table-cell">¥{fmt(s.sma20)}</td>
                         <td className={`px-4 py-2.5 text-right tabular-nums ${s.dev_from_sma20 < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>{fmtPct(s.dev_from_sma20, 2)}</td>
-                        <td className="px-4 py-2.5 text-right tabular-nums">{s.ml_score !== undefined ? s.ml_score.toFixed(1) : '-'}</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums">{s.rsi14.toFixed(1)}</td>
                       </tr>
                     ))}
                   </tbody>
