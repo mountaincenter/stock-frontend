@@ -22,6 +22,8 @@ type DayTradeStock = {
   margin_buy_balance: number | null;   // 買い残
   appearance_count: number;
   max_cost_100: number | null;
+  short_recommended: boolean;
+  reason_category: string | null;
 };
 
 type HistoryRecord = {
@@ -611,6 +613,14 @@ export default function DayTradeListPage() {
                           >
                             {stock.stock_name}
                           </button>
+                          <div className="flex gap-1 mt-0.5">
+                            {stock.short_recommended && (
+                              <span className="text-[10px] px-1 py-0 rounded bg-emerald-500/20 text-emerald-400 font-medium">SHORT推奨</span>
+                            )}
+                            {stock.reason_category && (
+                              <span className="text-[10px] px-1 py-0 rounded bg-white/5 text-muted-foreground">{stock.reason_category}</span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-3 py-4 text-center tabular-nums text-foreground">
                           {stock.grok_rank ?? "-"}
@@ -845,7 +855,7 @@ export default function DayTradeListPage() {
               <span><span className="text-rose-400 font-medium">G4</span>: SKIP</span>
             </div>
             <div className="text-xs text-muted-foreground mt-2">
-              prob: 株価上昇確率（低いほどショート推奨）
+              prob: 株価上昇確率（低いほどショート推奨） / <span className="text-emerald-400 bg-emerald-500/20 px-1 rounded">SHORT推奨</span> = G1 × ATR≧6%
             </div>
           </div>
         </div>
