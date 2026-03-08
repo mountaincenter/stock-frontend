@@ -16,10 +16,6 @@ const NAV_LINKS: Record<string, NavLinkConfig> = {
     href: "/dev",
     label: "Dashboard",
   },
-  analysis: {
-    href: "/dev/analysis",
-    label: "Analysis",
-  },
   "analysis-custom": {
     href: "/dev/analysis-custom",
     label: "Custom",
