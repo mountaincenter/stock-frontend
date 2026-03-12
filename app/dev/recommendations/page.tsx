@@ -547,32 +547,33 @@ export default function DayTradeListPage() {
             <table className="w-full text-sm md:text-base">
               <thead>
                 <tr className="border-b border-border/40 bg-muted/30">
-                  <th className="px-4 py-3 text-left text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("ticker")}>銘柄<SortIcon col="ticker" /></th>
-                  <th className="px-4 py-3 text-left text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("stock_name")}>名称<SortIcon col="stock_name" /></th>
-                  <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("grok_rank")}>Rank<SortIcon col="grok_rank" /></th>
-                  <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("appearance_count")}>登場回数<SortIcon col="appearance_count" /></th>
-                  <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("close")}>終値<SortIcon col="close" /></th>
-                  <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("price_diff")}>前日差<SortIcon col="price_diff" /></th>
-                  <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">寄付差</th>
-                  <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("prob_up")}>prob<SortIcon col="prob_up" /></th>
-                  <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("grade")}>Grade<SortIcon col="grade" /></th>
-                  <th className="px-4 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">
+                  <th className="px-2 py-3 text-left text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("ticker")}>銘柄<SortIcon col="ticker" /></th>
+                  <th className="px-2 py-3 text-left text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("stock_name")}>名称<SortIcon col="stock_name" /></th>
+                  <th className="px-2 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("grok_rank")}>Rank<SortIcon col="grok_rank" /></th>
+                  <th className="px-2 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("appearance_count")}>登場<SortIcon col="appearance_count" /></th>
+                  <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("close")}>終値<SortIcon col="close" /></th>
+                  <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("price_diff")}>前日差<SortIcon col="price_diff" /></th>
+                  <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">寄付差</th>
+                  <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("prob_up")}>prob<SortIcon col="prob_up" /></th>
+                  <th className="px-2 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("grade")}>Grade<SortIcon col="grade" /></th>
+                  <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("atr_pct")}>ATR%<SortIcon col="atr_pct" /></th>
+                  <th className="px-2 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">
                     {bulkEditMode ? "制度" : "信用区分"}
                   </th>
                   {bulkEditMode && (
                     <>
-                      <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">いち</th>
-                      <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">NG</th>
-                      <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">株数</th>
-                      <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">売残</th>
-                      <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">買残</th>
+                      <th className="px-2 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">いち</th>
+                      <th className="px-2 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">NG</th>
+                      <th className="px-2 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">株数</th>
+                      <th className="px-2 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">売残</th>
+                      <th className="px-2 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">買残</th>
                     </>
                   )}
                   {!bulkEditMode && (
                     <>
-                      <th className="px-3 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("day_trade_available_shares")}>株数<SortIcon col="day_trade_available_shares" /></th>
-                      <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("margin_sell_balance")}>売残<SortIcon col="margin_sell_balance" /></th>
-                      <th className="px-3 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("margin_buy_balance")}>買残<SortIcon col="margin_buy_balance" /></th>
+                      <th className="px-2 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("day_trade_available_shares")}>株数<SortIcon col="day_trade_available_shares" /></th>
+                      <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("margin_sell_balance")}>売残<SortIcon col="margin_sell_balance" /></th>
+                      <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("margin_buy_balance")}>買残<SortIcon col="margin_buy_balance" /></th>
                     </>
                   )}
                 </tr>
@@ -585,7 +586,7 @@ export default function DayTradeListPage() {
                   const canExpand = !bulkEditMode && stock.appearance_count >= 1;
                   const history = historyData[stock.ticker] || [];
                   const isLoadingHistory = loadingHistory === stock.ticker;
-                  const colSpan = bulkEditMode ? 15 : 13;
+                  const colSpan = bulkEditMode ? 16 : 14;
 
                   return (
                     <React.Fragment key={stock.ticker}>
@@ -593,18 +594,18 @@ export default function DayTradeListPage() {
                         className={`hover:bg-primary/5 transition-colors ${canExpand ? "cursor-pointer" : ""} ${isExpanded ? "bg-primary/5" : ""}`}
                         onClick={() => canExpand && toggleExpand(stock.ticker, stock.appearance_count)}
                       >
-                        <td className="px-4 py-4 tabular-nums text-foreground whitespace-nowrap">
-                          <div className="flex items-center gap-1.5">
+                        <td className="px-2 py-4 tabular-nums text-foreground whitespace-nowrap">
+                          <div className="flex items-center gap-1">
                             {canExpand && (
-                              isExpanded ? <ChevronUp className="w-4 h-4 text-primary" /> : <ChevronDown className="w-4 h-4 text-muted-foreground/50" />
+                              isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-primary" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground/50" />
                             )}
                             {stock.ticker}
                           </div>
                         </td>
-                        <td className="px-4 py-4 text-foreground">
+                        <td className="px-2 py-4 text-foreground">
                           <button
                             type="button"
-                            className="hover:text-primary transition-colors block max-w-[12em] truncate text-left"
+                            className="hover:text-primary transition-colors block max-w-[9em] truncate text-left"
                             title={stock.stock_name}
                             onClick={(e) => {
                               e.stopPropagation();
@@ -622,16 +623,16 @@ export default function DayTradeListPage() {
                             )}
                           </div>
                         </td>
-                        <td className="px-3 py-4 text-center tabular-nums text-foreground">
+                        <td className="px-2 py-4 text-center tabular-nums text-foreground">
                           {stock.grok_rank ?? "-"}
                         </td>
-                        <td className={`px-3 py-4 text-center tabular-nums ${stock.appearance_count > 1 ? "text-primary font-medium" : "text-muted-foreground"}`}>
+                        <td className={`px-2 py-4 text-center tabular-nums ${stock.appearance_count > 1 ? "text-primary font-medium" : "text-muted-foreground"}`}>
                           {stock.appearance_count}
                         </td>
-                        <td className="px-3 py-4 text-right tabular-nums whitespace-nowrap text-muted-foreground">
+                        <td className="px-2 py-4 text-right tabular-nums whitespace-nowrap text-muted-foreground">
                           {formatPrice(stock.close)}
                         </td>
-                        <td className={`px-3 py-4 text-right tabular-nums whitespace-nowrap ${
+                        <td className={`px-2 py-4 text-right tabular-nums whitespace-nowrap ${
                           stock.price_diff !== null
                             ? stock.price_diff > 0
                               ? "text-emerald-400"
@@ -645,7 +646,7 @@ export default function DayTradeListPage() {
                             : "-"}
                         </td>
                         {/* 寄付差: 現在値 - 始値 (ymnk.jpの寄付比と同じロジック) */}
-                        <td className={`px-3 py-4 text-right tabular-nums whitespace-nowrap ${
+                        <td className={`px-2 py-4 text-right tabular-nums whitespace-nowrap ${
                           (() => {
                             const rt = realtimeData[stock.ticker];
                             if (!rt || rt.price === null || rt.open === null || rt.open <= 0) return "text-muted-foreground";
@@ -660,7 +661,7 @@ export default function DayTradeListPage() {
                             return (diff > 0 ? "+" : "") + diff.toLocaleString();
                           })()}
                         </td>
-                        <td className={`px-3 py-4 text-right tabular-nums ${
+                        <td className={`px-2 py-4 text-right tabular-nums ${
                           stock.prob_up !== null
                             ? stock.prob_up <= 0.16
                               ? "text-emerald-400 font-medium"
@@ -671,7 +672,7 @@ export default function DayTradeListPage() {
                         }`}>
                           {stock.prob_up !== null ? stock.prob_up.toFixed(2) : "-"}
                         </td>
-                        <td className={`px-3 py-4 text-center tabular-nums font-medium ${
+                        <td className={`px-2 py-4 text-center tabular-nums font-medium ${
                           stock.grade === "G1" ? "text-emerald-400" :
                           stock.grade === "G2" ? "text-teal-400" :
                           stock.grade === "G3" ? "text-amber-400" :
@@ -680,9 +681,16 @@ export default function DayTradeListPage() {
                         }`}>
                           {stock.grade ?? "-"}
                         </td>
+                        <td className={`px-2 py-4 text-right tabular-nums whitespace-nowrap ${
+                          stock.atr_pct !== null && stock.atr_pct >= 6
+                            ? "text-emerald-400 font-medium"
+                            : "text-muted-foreground"
+                        }`}>
+                          {stock.atr_pct !== null ? stock.atr_pct.toFixed(1) : "-"}
+                        </td>
                         {bulkEditMode ? (
                           <>
-                            <td className="px-3 py-4 text-center">
+                            <td className="px-2 py-4 text-center">
                               <input
                                 type="checkbox"
                                 checked={edited?.shortable ?? stock.shortable}
@@ -691,7 +699,7 @@ export default function DayTradeListPage() {
                                 className="w-4 h-4 accent-teal-500"
                               />
                             </td>
-                            <td className="px-3 py-4 text-center">
+                            <td className="px-2 py-4 text-center">
                               <input
                                 type="checkbox"
                                 checked={edited?.day_trade ?? stock.day_trade}
@@ -700,7 +708,7 @@ export default function DayTradeListPage() {
                                 className="w-4 h-4 accent-orange-500"
                               />
                             </td>
-                            <td className="px-3 py-4 text-center">
+                            <td className="px-2 py-4 text-center">
                               <input
                                 type="checkbox"
                                 checked={edited?.ng ?? stock.ng}
@@ -709,7 +717,7 @@ export default function DayTradeListPage() {
                                 className="w-4 h-4 accent-rose-500"
                               />
                             </td>
-                            <td className="px-3 py-4 text-center">
+                            <td className="px-2 py-4 text-center">
                               <input
                                 type="number"
                                 inputMode="numeric"
@@ -726,7 +734,7 @@ export default function DayTradeListPage() {
                                 }`}
                               />
                             </td>
-                            <td className="px-3 py-4 text-center">
+                            <td className="px-2 py-4 text-center">
                               <input
                                 type="number"
                                 inputMode="numeric"
@@ -739,7 +747,7 @@ export default function DayTradeListPage() {
                                 className="w-24 px-2 py-1 text-right tabular-nums bg-muted/50 border border-border/40 rounded focus:outline-none focus:border-primary/50"
                               />
                             </td>
-                            <td className="px-3 py-4 text-center">
+                            <td className="px-2 py-4 text-center">
                               <input
                                 type="number"
                                 inputMode="numeric"
@@ -760,15 +768,15 @@ export default function DayTradeListPage() {
                                 {status.label}
                               </span>
                             </td>
-                            <td className={`px-3 py-4 tabular-nums text-muted-foreground ${
+                            <td className={`px-2 py-4 tabular-nums text-muted-foreground ${
                               stock.day_trade_available_shares != null ? "text-right" : "text-center"
                             }`}>
                               {stock.day_trade_available_shares != null ? stock.day_trade_available_shares.toLocaleString() : "-"}
                             </td>
-                            <td className="px-3 py-4 text-right tabular-nums text-muted-foreground">
+                            <td className="px-2 py-4 text-right tabular-nums text-muted-foreground">
                               {stock.margin_sell_balance != null ? stock.margin_sell_balance.toLocaleString() : "-"}
                             </td>
-                            <td className="px-3 py-4 text-right tabular-nums text-muted-foreground">
+                            <td className="px-2 py-4 text-right tabular-nums text-muted-foreground">
                               {stock.margin_buy_balance != null ? stock.margin_buy_balance.toLocaleString() : "-"}
                             </td>
                           </>
