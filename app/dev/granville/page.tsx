@@ -137,7 +137,7 @@ function GranvilleContent() {
               {status?.as_of ? ` (${status.as_of})` : ''}
             </p>
           </div>
-          <DevNavLinks links={["dashboard", "analysis", "recommendations", "stock-results", "reports"]} />
+          <DevNavLinks />
         </header>
 
         {/* ── フィルター状態 ── */}

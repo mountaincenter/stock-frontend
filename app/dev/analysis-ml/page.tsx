@@ -339,7 +339,7 @@ export default function AnalysisMlPage() {
               <span className="ml-2">{data.modelInfo.featureCount}特徴量</span>
             </p>
           </div>
-          <DevNavLinks links={["dashboard", "analysis", "analysis-custom", "recommendations", "stock-results", "granville", "reports"]} />
+          <DevNavLinks />
         </header>
 
         {/* G1+G2 サマリーカード (analysis の総件数+4seg と同じ5カード横並び) */}
