@@ -21,15 +21,19 @@ interface Signal {
 interface SignalsResponse { signals: Signal[]; count: number; signal_date: string | null; }
 
 interface Position {
-  ticker: string; stock_name: string; rule: string; entry_date: string; entry_price: number;
-  current_price: number; high_20d: number; atr10: number; gap_to_high: number;
+  ticker: string; stock_name: string; rule: string; direction: string;
+  margin_type: string; deadline: string;
+  entry_date: string; entry_price: number;
+  current_price: number; quantity: number; cost_total: number; market_value: number;
+  high_20d: number; atr10: number; gap_to_high: number;
   unrealized_pct: number; unrealized_yen: number;
   hold_days: number; max_hold: number; remaining_days: number; exit_type: string;
 }
 interface PositionsResponse { positions: Position[]; exits: Position[]; as_of: string | null; }
 
 interface StatusResponse {
-  available_margin: number; total_margin_used: number;
+  cash_margin: number; credit_capacity: number; position_value: number;
+  total_margin_used: number;
   signal_count: number; signal_date: string | null;
   open_positions: number; exit_candidates: number;
   recommendation_count: number;
@@ -191,7 +195,7 @@ function GranvilleContent() {
     );
   }
 
-  const marginPct = status ? (status.total_margin_used / status.available_margin * 100) : 0;
+  const marginPct = status && status.credit_capacity > 0 ? (status.total_margin_used / status.credit_capacity * 100) : 0;
 
   return (
     <main className="relative min-h-screen">
@@ -216,9 +220,12 @@ function GranvilleContent() {
 
         {/* Status Bar */}
         {status && (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
-            <StatCard label="利用可能証拠金" sub={`使用率 ${marginPct.toFixed(1)}%`}>
-              <span className="text-foreground">¥{fmt(status.available_margin)}</span>
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-5">
+            <StatCard label="現金保証金" sub={`建玉評価 ¥${fmt(status.position_value)}`}>
+              <span className="text-foreground">¥{fmt(status.cash_margin)}</span>
+            </StatCard>
+            <StatCard label="信用余力" sub={`使用率 ${marginPct.toFixed(1)}%`}>
+              <span className="text-foreground">¥{fmt(status.credit_capacity)}</span>
             </StatCard>
             <StatCard label="推奨銘柄" sub={status.total_margin_used > 0 ? `証拠金 ¥${fmt(status.total_margin_used)}` : undefined}>
               <span className="text-foreground">{status.recommendation_count}</span>
@@ -380,7 +387,9 @@ function GranvilleContent() {
                 <div key={i} className="px-4 py-3">
                   <div className="flex items-center justify-between mb-1.5">
                     <div className="flex items-center gap-2">
-                      <RuleBadge rule={p.rule} />
+                      <span className={`inline-block px-1.5 py-0.5 text-xs rounded leading-none border ${p.direction === '売建' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'}`}>
+                        {p.direction || '-'}
+                      </span>
                       <button type="button" className="font-semibold tabular-nums hover:text-primary" onClick={() => window.open(`/${p.ticker.replace('.T', '')}`, 'stock-detail')}>
                         {p.ticker.replace('.T', '')}
                       </button>
@@ -389,12 +398,12 @@ function GranvilleContent() {
                     <span className={`font-bold tabular-nums ${p.unrealized_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{fmtPct(p.unrealized_pct, 2)}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>{shortDate(p.entry_date)} / ¥{fmt(p.entry_price)} → ¥{fmt(p.current_price)}</span>
+                    <span>{p.margin_type} / ¥{fmt(p.entry_price)} → ¥{fmt(p.current_price)}</span>
                     <span className="tabular-nums">{fmtPnl(p.unrealized_yen)}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs mt-1 text-muted-foreground/60">
-                    <span>{p.hold_days}/{p.max_hold}日 (残{p.remaining_days}日)</span>
-                    <span>20日高値 ¥{fmt(p.high_20d)} (差{fmt(p.gap_to_high)})</span>
+                    <span>建玉 ¥{fmt(p.cost_total)} / 時価 ¥{fmt(p.market_value)}</span>
+                    <span>{p.deadline}</span>
                   </div>
                 </div>
               ))}
@@ -403,39 +412,40 @@ function GranvilleContent() {
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead><tr className="text-muted-foreground border-b border-border/30 bg-muted/10">
-                  <SortHeader<Position> label="ルール" field="rule" {...posSort} className="text-center px-3 py-2.5 text-xs font-medium" />
+                  <th className="text-center px-3 py-2.5 text-xs font-medium">売買</th>
                   <th className="text-left px-4 py-2.5 text-xs font-medium">コード</th>
                   <th className="text-left px-4 py-2.5 text-xs font-medium">銘柄</th>
-                  <SortHeader<Position> label="IN日" field="entry_date" {...posSort} className="text-right px-4 py-2.5 text-xs font-medium" />
-                  <th className="text-right px-4 py-2.5 text-xs font-medium">IN価格</th>
+                  <th className="text-center px-3 py-2.5 text-xs font-medium">信用区分</th>
+                  <th className="text-right px-4 py-2.5 text-xs font-medium">建単価</th>
                   <th className="text-right px-4 py-2.5 text-xs font-medium">現在値</th>
-                  <th className="text-right px-4 py-2.5 text-xs font-medium">20日高値</th>
+                  <th className="text-right px-4 py-2.5 text-xs font-medium">建玉金額</th>
+                  <th className="text-right px-4 py-2.5 text-xs font-medium">時価評価額</th>
                   <SortHeader<Position> label="含み%" field="unrealized_pct" {...posSort} className="text-right px-4 py-2.5 text-xs font-medium" />
                   <SortHeader<Position> label="含み損益" field="unrealized_yen" {...posSort} className="text-right px-4 py-2.5 text-xs font-medium" />
-                  <SortHeader<Position> label="保有日" field="hold_days" {...posSort} className="text-right px-4 py-2.5 text-xs font-medium" />
-                  <SortHeader<Position> label="残日数" field="remaining_days" {...posSort} className="text-right px-4 py-2.5 text-xs font-medium" />
+                  <th className="text-right px-4 py-2.5 text-xs font-medium">弁済期限</th>
                 </tr></thead>
                 <tbody>
                   {posSort.sorted.map((p, i) => (
                     <tr key={i} className="border-b border-border/20 hover:bg-muted/5">
-                      <td className="px-3 py-2.5 text-center"><RuleBadge rule={p.rule} /></td>
+                      <td className="px-3 py-2.5 text-center">
+                        <span className={`inline-block px-1.5 py-0.5 text-xs rounded leading-none border ${p.direction === '売建' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'}`}>
+                          {p.direction || '-'}
+                        </span>
+                      </td>
                       <td className="px-4 py-2.5 tabular-nums">
                         <button type="button" className="hover:text-primary font-semibold" onClick={() => window.open(`/${p.ticker.replace('.T', '')}`, 'stock-detail')}>
                           {p.ticker.replace('.T', '')}
                         </button>
                       </td>
                       <td className="px-4 py-2.5 max-w-[120px] truncate">{p.stock_name}</td>
-                      <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">{shortDate(p.entry_date)}</td>
+                      <td className="px-3 py-2.5 text-center text-xs text-muted-foreground">{p.margin_type}</td>
                       <td className="px-4 py-2.5 text-right tabular-nums">¥{fmt(p.entry_price)}</td>
                       <td className="px-4 py-2.5 text-right tabular-nums">¥{fmt(p.current_price)}</td>
-                      <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">
-                        ¥{fmt(p.high_20d)}
-                        <span className="text-[10px] ml-1 text-muted-foreground/60">({fmt(p.gap_to_high)})</span>
-                      </td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">¥{fmt(p.cost_total)}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">¥{fmt(p.market_value)}</td>
                       <td className={`px-4 py-2.5 text-right tabular-nums ${p.unrealized_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{fmtPct(p.unrealized_pct, 2)}</td>
                       <td className="px-4 py-2.5 text-right tabular-nums">{fmtPnl(p.unrealized_yen)}</td>
-                      <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">{p.hold_days}/{p.max_hold}</td>
-                      <td className={`px-4 py-2.5 text-right tabular-nums ${p.remaining_days <= 2 ? 'text-amber-400 font-semibold' : 'text-muted-foreground'}`}>{p.remaining_days}日</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground text-xs">{p.deadline}</td>
                     </tr>
                   ))}
                 </tbody>
