@@ -111,6 +111,11 @@ interface ApiResponse {
     priceMin: number;
     priceMax: number;
     priceStep: number;
+    grades: string[];
+  };
+  gradeInfo?: {
+    available: boolean;
+    grades: string[];
   };
 }
 
@@ -251,6 +256,11 @@ export default function AnalysisCustomPage() {
   const [detailFilter, setDetailFilter] = useState<FilterType>('all');
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
 
+  // Grade filters
+  const GRADE_LABELS = ['G1', 'G2', 'G3', 'G4'] as const;
+  const [selectedGrades, setSelectedGrades] = useState<Set<string>>(new Set());
+  const [gradesAvailable, setGradesAvailable] = useState(false);
+
   // Detail filters
   const PRICE_RANGE_LABELS = ['~1,000円', '1,000~3,000円', '3,000~5,000円', '5,000~10,000円', '10,000円~'];
   const MARGIN_TYPE_LABELS = ['制度信用', 'いちにち信用'];
@@ -267,16 +277,22 @@ export default function AnalysisCustomPage() {
         price_max: priceMax.toString(),
         price_step: priceStep.toString(),
       });
+      if (selectedGrades.size > 0) {
+        params.set('grades', Array.from(selectedGrades).join(','));
+      }
       const res = await fetch(`${API_BASE}/dev/analysis-custom/summary?${params}`);
       if (!res.ok) throw new Error(`API error: ${res.status}`);
       const json = await res.json();
       setData(json);
+      if (json.gradeInfo) {
+        setGradesAvailable(json.gradeInfo.available);
+      }
     } catch (err) {
       setError((err as Error).message);
     } finally {
       setLoading(false);
     }
-  }, [excludeExtreme, priceMin, priceMax, priceStep]);
+  }, [excludeExtreme, priceMin, priceMax, priceStep, selectedGrades]);
 
   useEffect(() => {
     fetchData();
@@ -294,6 +310,9 @@ export default function AnalysisCustomPage() {
         price_max: priceMax.toString(),
         price_step: priceStep.toString(),
       });
+      if (selectedGrades.size > 0) {
+        params.set('grades', Array.from(selectedGrades).join(','));
+      }
       const res = await fetch(`${API_BASE}/dev/analysis-custom/details?${params}`);
       if (!res.ok) {
         console.error('API error:', res.status);
@@ -307,7 +326,7 @@ export default function AnalysisCustomPage() {
     } finally {
       setDetailLoading(false);
     }
-  }, [excludeExtreme, priceMin, priceMax, priceStep]);
+  }, [excludeExtreme, priceMin, priceMax, priceStep, selectedGrades]);
 
   useEffect(() => {
     if (!loading && data) {
@@ -465,7 +484,39 @@ export default function AnalysisCustomPage() {
               />
               <span className="text-xs text-amber-400 whitespace-nowrap">異常日除外</span>
             </label>
-            <DevNavLinks links={["dashboard", "analysis", "recommendations", "granville", "reports"]} />
+            {/* Grade フィルター */}
+            {gradesAvailable && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-muted-foreground">Grade:</span>
+                {GRADE_LABELS.map((g) => (
+                  <label key={g} className="flex items-center gap-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedGrades.has(g)}
+                      onChange={() => {
+                        setSelectedGrades(prev => {
+                          const next = new Set(prev);
+                          if (next.has(g)) next.delete(g);
+                          else next.add(g);
+                          return next;
+                        });
+                      }}
+                      className="w-3.5 h-3.5 rounded border-cyan-500/50 bg-muted/30 text-cyan-500 focus:ring-cyan-500/50"
+                    />
+                    <span className={`text-xs ${selectedGrades.has(g) ? 'text-cyan-400' : 'text-muted-foreground'}`}>{g}</span>
+                  </label>
+                ))}
+                {selectedGrades.size > 0 && (
+                  <button
+                    onClick={() => setSelectedGrades(new Set())}
+                    className="text-xs text-muted-foreground hover:text-foreground ml-1"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            )}
+            <DevNavLinks />
           </div>
         </header>
 

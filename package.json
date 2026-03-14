@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:staging": "mv .env.local .env.local.bak 2>/dev/null; NEXT_PUBLIC_API_BASE_URL=http://localhost:8001 next dev -p 3001; mv .env.local.bak .env.local 2>/dev/null",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
