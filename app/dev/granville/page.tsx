@@ -1,8 +1,48 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { DevNavLinks } from '../../../components/dev';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+
+// === localStorage チェック状態管理 ===
+function useCheckedState(prefix: string, date: string | null) {
+  const key = `granville_${prefix}_${date || 'none'}`;
+  const [checked, setChecked] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(key);
+      if (stored) setChecked(new Set(JSON.parse(stored)));
+    } catch { /* ignore */ }
+  }, [key]);
+
+  const toggle = useCallback((ticker: string) => {
+    setChecked(prev => {
+      const next = new Set(prev);
+      if (next.has(ticker)) next.delete(ticker); else next.add(ticker);
+      try { localStorage.setItem(key, JSON.stringify([...next])); } catch { /* ignore */ }
+      return next;
+    });
+  }, [key]);
+
+  const toggleAll = useCallback((tickers: string[]) => {
+    setChecked(prev => {
+      const allChecked = tickers.every(t => prev.has(t));
+      const next = allChecked ? new Set<string>() : new Set(tickers);
+      try { localStorage.setItem(key, JSON.stringify([...next])); } catch { /* ignore */ }
+      return next;
+    });
+  }, [key]);
+
+  return { checked, toggle, toggleAll };
+}
+
+const Checkbox = ({ checked, onChange, className }: { checked: boolean; onChange: () => void; className?: string }) => (
+  <button type="button" onClick={onChange}
+    className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${checked ? 'bg-primary border-primary text-primary-foreground' : 'border-border/60 hover:border-primary/50'} ${className || ''}`}>
+    {checked && <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+  </button>
+);
 
 // === Types (backend dev_granville.py 準拠) ===
 interface Recommendation {
@@ -162,6 +202,7 @@ function GranvilleContent() {
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAllSignals, setShowAllSignals] = useState(false);
+  const [statsMode, setStatsMode] = useState<'expected' | 'actual'>('expected');
 
   useEffect(() => {
     setLoading(true);
@@ -175,6 +216,10 @@ function GranvilleContent() {
       setStatus(st); setRecommendations(rec); setSignals(sig); setPosData(pos); setStats(sta); setLoading(false);
     });
   }, []);
+
+  // チェック状態（localStorage永続化）
+  const entryChecks = useCheckedState('entry', recommendations?.date ?? null);
+  const exitChecks = useCheckedState('exit', posData?.as_of ?? null);
 
   // Sortable hooks
   const recSort = useSortable<Recommendation>(recommendations?.recommendations || [], 'rank_score');
@@ -251,10 +296,19 @@ function GranvilleContent() {
 
         {/* Exit Candidates Alert */}
         {posData && posData.exits.length > 0 && (
-          <Panel title={<h2 className="text-base md:text-lg font-semibold text-amber-400">Exit候補 - {posData.exits.length}件（翌朝寄付で決済）</h2>} border="border-amber-500/40">
+          <Panel title={
+            <div className="flex items-center justify-between">
+              <h2 className="text-base md:text-lg font-semibold text-amber-400">Exit候補 - {posData.exits.length}件（翌朝寄付で決済）</h2>
+              <span className="text-xs text-muted-foreground tabular-nums">{exitChecks.checked.size}/{posData.exits.length} 決済済み</span>
+            </div>
+          } border="border-amber-500/40">
             <div className="overflow-x-auto">
               <table className="w-full text-sm md:text-base">
                 <thead><tr className="text-muted-foreground border-b border-border/30 bg-muted/10">
+                  <th className="px-3 py-2.5 text-xs font-medium w-8">
+                    <Checkbox checked={posData.exits.length > 0 && posData.exits.every(p => exitChecks.checked.has(p.ticker))}
+                      onChange={() => exitChecks.toggleAll(posData.exits.map(p => p.ticker))} />
+                  </th>
                   <th className="text-left px-4 py-2.5 text-xs font-medium">コード</th>
                   <th className="text-left px-4 py-2.5 text-xs font-medium">銘柄</th>
                   <th className="text-center px-3 py-2.5 text-xs font-medium">ルール</th>
@@ -269,8 +323,10 @@ function GranvilleContent() {
                 <tbody>
                   {posData.exits.map((p, i) => {
                     const el = exitLabel(p.exit_type);
+                    const isExited = exitChecks.checked.has(p.ticker);
                     return (
-                      <tr key={i} className="border-b border-border/20 hover:bg-muted/5">
+                      <tr key={i} className={`border-b border-border/20 hover:bg-muted/5 ${isExited ? 'opacity-50' : ''}`}>
+                        <td className="px-3 py-2.5"><Checkbox checked={isExited} onChange={() => exitChecks.toggle(p.ticker)} /></td>
                         <td className="px-4 py-2.5 tabular-nums font-semibold">
                           <button type="button" className="hover:text-primary" onClick={() => window.open(`/${p.ticker.replace('.T', '')}`, 'stock-detail')}>
                             {p.ticker.replace('.T', '')}
@@ -295,7 +351,12 @@ function GranvilleContent() {
         )}
 
         {/* Recommendations */}
-        <Panel title={`推奨銘柄 (${recommendations?.date || '-'}) - ${recommendations?.count || 0}件`}
+        <Panel title={
+          <div className="flex items-center justify-between">
+            <h2 className="text-base md:text-lg font-semibold text-foreground">推奨銘柄 ({recommendations?.date || '-'}) - {recommendations?.count || 0}件</h2>
+            <span className="text-xs text-muted-foreground tabular-nums">{entryChecks.checked.size}/{recommendations?.count || 0} エントリー済み</span>
+          </div>
+        }
           footer={<div className="flex flex-wrap gap-x-5 gap-y-1">
             <span><RuleBadge rule="B4" /> {ruleLabel('B4')} 乖離{'<'}-8%</span>
             <span><RuleBadge rule="B1" /> {ruleLabel('B1')} prev{'<'}SMA20, now{'>'}SMA20</span>
@@ -306,10 +367,13 @@ function GranvilleContent() {
             <>
               {/* Mobile Cards */}
               <div className="md:hidden divide-y divide-border/20">
-                {recSort.sorted.map((r, i) => (
-                  <div key={i} className="px-4 py-3">
+                {recSort.sorted.map((r, i) => {
+                  const isEntered = entryChecks.checked.has(r.ticker);
+                  return (
+                  <div key={i} className={`px-4 py-3 ${isEntered ? 'bg-primary/5' : ''}`}>
                     <div className="flex items-center justify-between mb-1.5">
                       <div className="flex items-center gap-2">
+                        <Checkbox checked={isEntered} onChange={() => entryChecks.toggle(r.ticker)} />
                         <RuleBadge rule={r.rule} />
                         <GradeBadge score={r.rank_score} />
                         <button type="button" className="font-semibold tabular-nums hover:text-primary" onClick={() => window.open(`/${r.ticker.replace('.T', '')}`, 'stock-detail')}>
@@ -327,12 +391,17 @@ function GranvilleContent() {
                       <span>期待利益 ¥{fmt(r.expected_profit)} / {r.max_hold}日</span>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
               {/* Desktop Table */}
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead><tr className="text-muted-foreground border-b border-border/30 bg-muted/10">
+                    <th className="px-3 py-2.5 text-xs font-medium w-8">
+                      <Checkbox checked={(recommendations?.recommendations.length ?? 0) > 0 && recommendations!.recommendations.every(r => entryChecks.checked.has(r.ticker))}
+                        onChange={() => entryChecks.toggleAll(recommendations!.recommendations.map(r => r.ticker))} />
+                    </th>
                     <SortHeader<Recommendation> label="ルール" field="rule" {...recSort} className="text-center px-3 py-2.5 text-xs font-medium" />
                     <th className="text-left px-4 py-2.5 text-xs font-medium">コード</th>
                     <th className="text-left px-4 py-2.5 text-xs font-medium">銘柄</th>
@@ -347,8 +416,11 @@ function GranvilleContent() {
                     <th className="text-right px-4 py-2.5 text-xs font-medium">HOLD</th>
                   </tr></thead>
                   <tbody>
-                    {recSort.sorted.map((r, i) => (
-                      <tr key={i} className="border-b border-border/20 hover:bg-muted/5">
+                    {recSort.sorted.map((r, i) => {
+                      const isEntered = entryChecks.checked.has(r.ticker);
+                      return (
+                      <tr key={i} className={`border-b border-border/20 hover:bg-muted/5 ${isEntered ? 'bg-primary/5' : ''}`}>
+                        <td className="px-3 py-2.5"><Checkbox checked={isEntered} onChange={() => entryChecks.toggle(r.ticker)} /></td>
                         <td className="px-3 py-2.5 text-center"><RuleBadge rule={r.rule} /></td>
                         <td className="px-4 py-2.5 tabular-nums">
                           <button type="button" className="hover:text-primary font-semibold" onClick={() => window.open(`/${r.ticker.replace('.T', '')}`, 'stock-detail')}>
@@ -369,7 +441,8 @@ function GranvilleContent() {
                         </td>
                         <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">{r.max_hold}日</td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -506,7 +579,22 @@ function GranvilleContent() {
           <>
             {/* Rule Performance */}
             {Object.keys(stats.by_rule).length > 0 && (
-              <Panel title={`ルール別パフォーマンス (${fmt(stats.total_trades)}トレード)`}>
+              <Panel title={
+                <div className="flex items-center justify-between">
+                  <h2 className="text-base md:text-lg font-semibold text-foreground">ルール別パフォーマンス ({fmt(stats.total_trades)}トレード)</h2>
+                  <div className="flex items-center gap-1 text-xs">
+                    <button type="button" onClick={() => setStatsMode('expected')}
+                      className={`px-2.5 py-1 rounded-l border ${statsMode === 'expected' ? 'bg-primary/20 text-primary border-primary/40' : 'border-border/40 text-muted-foreground hover:text-foreground'}`}>想定</button>
+                    <button type="button" onClick={() => setStatsMode('actual')}
+                      className={`px-2.5 py-1 rounded-r border border-l-0 ${statsMode === 'actual' ? 'bg-primary/20 text-primary border-primary/40' : 'border-border/40 text-muted-foreground hover:text-foreground'}`}>実際</button>
+                  </div>
+                </div>
+              }>
+                {statsMode === 'actual' && (
+                  <div className="px-4 md:px-5 py-2 text-xs text-muted-foreground bg-muted/5 border-b border-border/20">
+                    エントリー済みチェック: {entryChecks.checked.size}件 / 決済済みチェック: {exitChecks.checked.size}件で集計
+                  </div>
+                )}
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead><tr className="text-muted-foreground border-b border-border/30 bg-muted/10">
