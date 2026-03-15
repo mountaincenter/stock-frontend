@@ -473,49 +473,53 @@ export default function AnalysisCustomPage() {
               {excludeExtreme && <span className="ml-2 text-amber-400">（異常日除外中）</span>}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             {/* 異常日除外トグル */}
-            <label className="flex items-center gap-2 cursor-pointer">
+            <label className="flex items-center gap-1.5 cursor-pointer">
               <input
                 type="checkbox"
                 checked={excludeExtreme}
                 onChange={(e) => setExcludeExtreme(e.target.checked)}
-                className="w-4 h-4 rounded border-amber-500/50 bg-muted/30 text-amber-500 focus:ring-amber-500/50"
+                className="w-3.5 h-3.5 rounded border-amber-500/50 bg-muted/30 text-amber-500 focus:ring-amber-500/50"
               />
               <span className="text-xs text-amber-400 whitespace-nowrap">異常日除外</span>
             </label>
             {/* Grade フィルター */}
             {gradesAvailable && (
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-muted-foreground">Grade:</span>
-                {GRADE_LABELS.map((g) => (
-                  <label key={g} className="flex items-center gap-1 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={selectedGrades.has(g)}
-                      onChange={() => {
-                        setSelectedGrades(prev => {
-                          const next = new Set(prev);
-                          if (next.has(g)) next.delete(g);
-                          else next.add(g);
-                          return next;
-                        });
-                      }}
-                      className="w-3.5 h-3.5 rounded border-cyan-500/50 bg-muted/30 text-cyan-500 focus:ring-cyan-500/50"
-                    />
-                    <span className={`text-xs ${selectedGrades.has(g) ? 'text-cyan-400' : 'text-muted-foreground'}`}>{g}</span>
-                  </label>
-                ))}
-                {selectedGrades.size > 0 && (
-                  <button
-                    onClick={() => setSelectedGrades(new Set())}
-                    className="text-xs text-muted-foreground hover:text-foreground ml-1"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
+              <>
+                <span className="text-border">|</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-muted-foreground">Grade:</span>
+                  {GRADE_LABELS.map((g) => (
+                    <label key={g} className="flex items-center gap-1 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedGrades.has(g)}
+                        onChange={() => {
+                          setSelectedGrades(prev => {
+                            const next = new Set(prev);
+                            if (next.has(g)) next.delete(g);
+                            else next.add(g);
+                            return next;
+                          });
+                        }}
+                        className="w-3.5 h-3.5 rounded border-cyan-500/50 bg-muted/30 text-cyan-500 focus:ring-cyan-500/50"
+                      />
+                      <span className={`text-xs ${selectedGrades.has(g) ? 'text-cyan-400' : 'text-muted-foreground'}`}>{g}</span>
+                    </label>
+                  ))}
+                  {selectedGrades.size > 0 && (
+                    <button
+                      onClick={() => setSelectedGrades(new Set())}
+                      className="text-xs text-muted-foreground hover:text-foreground ml-1"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              </>
             )}
+            <span className="text-border">|</span>
             <DevNavLinks />
           </div>
         </header>
