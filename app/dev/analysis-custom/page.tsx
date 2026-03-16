@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { DevNavLinks } from '../../../components/dev';
 
 // Types
@@ -267,8 +267,13 @@ export default function AnalysisCustomPage() {
   const [priceRangeFilters, setPriceRangeFilters] = useState<Set<string>>(new Set(PRICE_RANGE_LABELS));
   const [marginTypeFilters, setMarginTypeFilters] = useState<Set<string>>(new Set(MARGIN_TYPE_LABELS));
 
+  // Grade変更時はフルローディングを出さない（数字だけ差し替え）
+  const isInitialLoad = useRef(true);
   const fetchData = useCallback(async () => {
-    setLoading(true);
+    const isGradeOnlyChange = !isInitialLoad.current && data !== null;
+    if (!isGradeOnlyChange) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const params = new URLSearchParams({
@@ -287,6 +292,7 @@ export default function AnalysisCustomPage() {
       if (json.gradeInfo) {
         setGradesAvailable(json.gradeInfo.available);
       }
+      isInitialLoad.current = false;
     } catch (err) {
       setError((err as Error).message);
     } finally {
