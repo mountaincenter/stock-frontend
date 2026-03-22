@@ -97,7 +97,7 @@ export default function ClaudeDashboard() {
   })), [filtered]);
 
   const tableData = useMemo(() => {
-    let rows = filtered.filter((s) => s.date.includes(search));
+    const rows = filtered.filter((s) => s.date.includes(search));
     rows.sort((a, b) => {
       const av = a[sortField] ?? 0, bv = b[sortField] ?? 0;
       return typeof av === "string" && typeof bv === "string"
