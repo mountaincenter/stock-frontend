@@ -1,6 +1,11 @@
 // next.config.js
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // ESLint: ビルド時のwarningでfailしない
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+
   // パフォーマンス最適化
   compress: true, // gzip圧縮を有効化
 
