@@ -475,8 +475,8 @@ function GranvilleContent() {
                     <span className="tabular-nums">{fmtPnl(p.unrealized_yen)}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs mt-1 text-muted-foreground/60">
-                    <span>建玉 ¥{fmt(p.cost_total)} / 時価 ¥{fmt(p.market_value)}</span>
-                    <span>{p.deadline}</span>
+                    <span>{p.entry_date || '-'} ({p.hold_days}日)</span>
+                    <span className="text-amber-400 font-semibold">Exit: {p.high_20d > 0 ? `¥${fmt(p.high_20d)}` : '-'}</span>
                   </div>
                 </div>
               ))}
@@ -489,13 +489,14 @@ function GranvilleContent() {
                   <th className="text-left px-4 py-2.5 text-xs font-medium">コード</th>
                   <th className="text-left px-4 py-2.5 text-xs font-medium">銘柄</th>
                   <th className="text-center px-3 py-2.5 text-xs font-medium">信用区分</th>
+                  <th className="text-right px-4 py-2.5 text-xs font-medium">建日</th>
+                  <th className="text-right px-4 py-2.5 text-xs font-medium">保有日数</th>
                   <th className="text-right px-4 py-2.5 text-xs font-medium">建単価</th>
                   <th className="text-right px-4 py-2.5 text-xs font-medium">現在値</th>
-                  <th className="text-right px-4 py-2.5 text-xs font-medium">建玉金額</th>
-                  <th className="text-right px-4 py-2.5 text-xs font-medium">時価評価額</th>
+                  <th className="text-right px-4 py-2.5 text-xs font-medium">Exit指値</th>
+                  <th className="text-right px-4 py-2.5 text-xs font-medium">指値差</th>
                   <SortHeader<Position> label="含み%" field="unrealized_pct" {...posSort} className="text-right px-4 py-2.5 text-xs font-medium" />
                   <SortHeader<Position> label="含み損益" field="unrealized_yen" {...posSort} className="text-right px-4 py-2.5 text-xs font-medium" />
-                  <th className="text-right px-4 py-2.5 text-xs font-medium">弁済期限</th>
                 </tr></thead>
                 <tbody>
                   {posSort.sorted.map((p, i) => (
@@ -512,13 +513,14 @@ function GranvilleContent() {
                       </td>
                       <td className="px-4 py-2.5 max-w-[120px] truncate">{p.stock_name}</td>
                       <td className="px-3 py-2.5 text-center text-xs text-muted-foreground">{p.margin_type}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-xs text-muted-foreground">{p.entry_date || '-'}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums">{p.hold_days}日</td>
                       <td className="px-4 py-2.5 text-right tabular-nums">¥{fmt(p.entry_price)}</td>
                       <td className="px-4 py-2.5 text-right tabular-nums">¥{fmt(p.current_price)}</td>
-                      <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">¥{fmt(p.cost_total)}</td>
-                      <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">¥{fmt(p.market_value)}</td>
+                      <td className={`px-4 py-2.5 text-right tabular-nums font-semibold ${p.high_20d > 0 ? 'text-amber-400' : 'text-muted-foreground'}`}>{p.high_20d > 0 ? `¥${fmt(p.high_20d)}` : '-'}</td>
+                      <td className={`px-4 py-2.5 text-right tabular-nums text-xs ${p.gap_to_high > 0 ? 'text-emerald-400' : p.gap_to_high < 0 ? 'text-rose-400' : 'text-muted-foreground'}`}>{p.gap_to_high !== 0 ? `${p.gap_to_high > 0 ? '+' : ''}¥${fmt(Math.abs(p.gap_to_high))}` : '-'}</td>
                       <td className={`px-4 py-2.5 text-right tabular-nums ${p.unrealized_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{fmtPct(p.unrealized_pct, 2)}</td>
                       <td className="px-4 py-2.5 text-right tabular-nums">{fmtPnl(p.unrealized_yen)}</td>
-                      <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground text-xs">{p.deadline}</td>
                     </tr>
                   ))}
                 </tbody>
