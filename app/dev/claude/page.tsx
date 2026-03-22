@@ -294,7 +294,7 @@ export default function ClaudeDashboard() {
                     <Tooltip
                       contentStyle={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 0, fontSize: 12, boxShadow: "0 2px 8px rgba(0,0,0,.08)" }}
                       labelStyle={{ color: C.sub, fontSize: 11 }}
-                      formatter={(v: number, name: string) => [`¥${v.toLocaleString()}`, name === "cum" ? "全体" : "Top5"]}
+                      formatter={(v?: number, name?: string) => [`¥${(v ?? 0).toLocaleString()}`, name === "cum" ? "全体" : "Top5"]}
                     />
                     <Area type="monotone" dataKey="cum" stroke={C.line1} strokeWidth={1.5} fill="url(#gA)" name="cum" dot={false} />
                     <Area type="monotone" dataKey="t5c" stroke={C.line2} strokeWidth={1.5} fill="url(#gT)" name="t5" dot={false} />
@@ -307,7 +307,7 @@ export default function ClaudeDashboard() {
                     <ReferenceLine y={0} stroke={C.axis} strokeDasharray="3 3" />
                     <Tooltip
                       contentStyle={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 0, fontSize: 12, boxShadow: "0 2px 8px rgba(0,0,0,.08)" }}
-                      formatter={(v: number, name: string) => [`${v.toFixed(2)}%`, name === "avg" ? "全体" : "Top5"]}
+                      formatter={(v?: number, name?: string) => [`${(v ?? 0).toFixed(2)}%`, name === "avg" ? "全体" : "Top5"]}
                     />
                     <Area type="monotone" dataKey="avg" stroke={C.line1} strokeWidth={1.5} fill="none" name="avg" dot={false} />
                     <Area type="monotone" dataKey="t5" stroke={C.line2} strokeWidth={1.5} fill="none" name="t5" dot={false} />
@@ -320,7 +320,7 @@ export default function ClaudeDashboard() {
                     <ReferenceLine y={50} stroke={C.accent} strokeDasharray="4 4" strokeWidth={0.5} />
                     <Tooltip
                       contentStyle={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 0, fontSize: 12, boxShadow: "0 2px 8px rgba(0,0,0,.08)" }}
-                      formatter={(v: number) => [`${v.toFixed(1)}%`, "勝率"]}
+                      formatter={(v?: number) => [`${(v ?? 0).toFixed(1)}%`, "勝率"]}
                     />
                     <Bar dataKey="wr" maxBarSize={16}>
                       {chartData.map((e, i) => (
