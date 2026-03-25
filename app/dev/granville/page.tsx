@@ -178,12 +178,12 @@ const SortHeader = <T,>({ label, field, sortKey, sortDir, toggle, className }: {
 
 // === Layout Components ===
 const StatCard = ({ label, children, sub }: { label: string; children: React.ReactNode; sub?: React.ReactNode }) => (
-  <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
+  <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 px-5 py-4 shadow-lg shadow-black/5 backdrop-blur-xl">
     <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
     <div className="relative">
-      <div className="text-muted-foreground text-xs mb-2">{label}</div>
-      <div className="text-2xl font-bold text-right tabular-nums">{children}</div>
-      {sub && <div className="text-xs text-right mt-1 text-muted-foreground tabular-nums">{sub}</div>}
+      <div className="text-muted-foreground text-sm mb-2">{label}</div>
+      <div className="text-xl font-bold text-right tabular-nums">{children}</div>
+      {sub && <div className="text-sm text-right mt-1 text-muted-foreground tabular-nums">{sub}</div>}
     </div>
   </div>
 );
@@ -276,34 +276,38 @@ function GranvilleContent() {
           const sigBg = (s: string) => s === 'green' ? 'border-emerald-500/30 bg-emerald-500/5' : s === 'yellow' ? 'border-amber-500/30 bg-amber-500/5' : s === 'red' ? 'border-rose-500/30 bg-rose-500/5' : 'border-border/40';
           const strategyColor = t.strategy === '積極' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : t.strategy === '消極' ? 'text-rose-400 bg-rose-500/10 border-rose-500/30' : t.strategy === '限定エントリー' ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' : 'text-muted-foreground bg-muted/10 border-border/40';
           return (
-            <div className={`rounded-xl border-2 ${strategyColor} p-4 mb-5`}>
-              <div className="flex items-center gap-6 flex-wrap">
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-muted-foreground">判定</span>
-                  <span className="text-2xl font-bold">{t.strategy}</span>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+              {/* 結論 */}
+              <div className={`rounded-xl border-2 ${strategyColor} px-5 py-4`}>
+                <div className="text-sm text-muted-foreground mb-2">Strategy</div>
+                <div className="text-xl font-bold">{t.strategy}</div>
+              </div>
+              {/* CME Gap */}
+              <div className={`rounded-xl border ${sigBg(t.cme_signal)} px-5 py-4`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-muted-foreground">CME Gap</span>
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${t.cme_signal === 'green' ? 'bg-emerald-500/20 text-emerald-400' : t.cme_signal === 'red' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'}`}>{t.cme_signal === 'green' ? 'GO' : t.cme_signal === 'red' ? 'SKIP' : 'HOLD'}</span>
                 </div>
-                <div className="h-8 w-px bg-border/40 hidden md:block" />
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">CME Gap</span>
-                  <span className={`text-lg font-bold tabular-nums ${sigColor(t.cme_signal)}`}>{t.cme_gap != null ? `${t.cme_gap > 0 ? '+' : ''}${t.cme_gap.toFixed(2)}%` : '-'}</span>
-                  <span className={`text-xs px-1.5 py-0.5 rounded ${t.cme_signal === 'green' ? 'bg-emerald-500/15 text-emerald-400' : t.cme_signal === 'red' ? 'bg-rose-500/15 text-rose-400' : 'bg-amber-500/15 text-amber-400'}`}>{t.cme_signal === 'green' ? 'GO' : t.cme_signal === 'red' ? 'SKIP' : '検討'}</span>
+                <div className={`text-xl font-bold tabular-nums text-right ${sigColor(t.cme_signal)}`}>{t.cme_gap != null ? `${t.cme_gap > 0 ? '+' : ''}${t.cme_gap.toFixed(2)}%` : '-'}</div>
+                <div className="text-sm text-muted-foreground text-right mt-1 tabular-nums">N225 ¥{t.nk_close ? fmt(t.nk_close) : '-'} → CME ¥{t.cme_close ? fmt(t.cme_close) : '-'}</div>
+              </div>
+              {/* SMA乖離 */}
+              <div className={`rounded-xl border ${sigBg(t.sma_signal)} px-5 py-4`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-muted-foreground">SMA 20/60</span>
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${t.sma_signal === 'green' ? 'bg-emerald-500/20 text-emerald-400' : t.sma_signal === 'red' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'}`}>{t.sma_signal === 'green' ? 'BEST' : t.sma_signal === 'yellow' ? 'DC' : 'WAIT'}</span>
                 </div>
-                <div className="h-8 w-px bg-border/40 hidden md:block" />
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">SMA乖離</span>
-                  <span className={`text-lg font-bold tabular-nums ${sigColor(t.sma_signal)}`}>{t.sma20_60_gap != null ? `${t.sma20_60_gap > 0 ? '+' : ''}${t.sma20_60_gap.toFixed(2)}%` : '-'}</span>
+                <div className={`text-xl font-bold tabular-nums text-right ${sigColor(t.sma_signal)}`}>{t.sma20_60_gap != null ? `${t.sma20_60_gap > 0 ? '+' : ''}${t.sma20_60_gap.toFixed(2)}%` : '-'}</div>
+                <div className="text-sm text-muted-foreground text-right mt-1">B4最強 &lt;-3% / DC 0% / 現在 +1〜3%</div>
+              </div>
+              {/* VIX */}
+              <div className={`rounded-xl border ${sigBg(t.vix_signal)} px-5 py-4`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-muted-foreground">VIX</span>
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${t.vix_signal === 'green' ? 'bg-emerald-500/20 text-emerald-400' : t.vix_signal === 'red' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'}`}>{t.vix_signal === 'green' ? 'CLEAR' : t.vix_signal === 'yellow' ? 'CAUTION' : 'HIGH'}</span>
                 </div>
-                <div className="h-8 w-px bg-border/40 hidden md:block" />
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">VIX</span>
-                  <span className={`text-lg font-bold tabular-nums ${sigColor(t.vix_signal)}`}>{t.vix != null ? t.vix.toFixed(1) : '-'}</span>
-                </div>
-                <div className="h-8 w-px bg-border/40 hidden md:block" />
-                <div className="flex items-center gap-2 ml-auto">
-                  <span className="text-sm font-bold tabular-nums">N225 ¥{t.nk_close ? fmt(t.nk_close) : '-'}</span>
-                  <span className="text-muted-foreground">/</span>
-                  <span className="text-sm font-bold tabular-nums">CME ¥{t.cme_close ? fmt(t.cme_close) : '-'}</span>
-                </div>
+                <div className={`text-xl font-bold tabular-nums text-right ${sigColor(t.vix_signal)}`}>{t.vix != null ? t.vix.toFixed(1) : '-'}</div>
+                <div className="text-sm text-muted-foreground text-right mt-1">&lt;20 安全 / 20-30 警戒 / &gt;30 高</div>
               </div>
             </div>
           );
