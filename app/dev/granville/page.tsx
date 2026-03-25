@@ -71,7 +71,13 @@ interface Position {
 }
 interface PositionsResponse { positions: Position[]; exits: Position[]; as_of: string | null; }
 
+interface Triggers {
+  cme_gap: number | null; cme_signal: string; cme_close: number | null;
+  nk_close: number | null; sma20_60_gap: number | null; sma_signal: string;
+  vix: number | null; vix_signal: string; strategy: string;
+}
 interface StatusResponse {
+  triggers?: Triggers;
   cash_margin: number; credit_capacity: number; position_value: number;
   total_margin_used: number;
   signal_count: number; signal_date: string | null;
@@ -262,6 +268,46 @@ function GranvilleContent() {
           </div>
           <DevNavLinks />
         </header>
+
+        {/* Trigger Cards */}
+        {status?.triggers && (() => {
+          const t = status.triggers;
+          const sigColor = (s: string) => s === 'green' ? 'text-emerald-400' : s === 'yellow' ? 'text-amber-400' : s === 'red' ? 'text-rose-400' : 'text-muted-foreground';
+          const sigBg = (s: string) => s === 'green' ? 'border-emerald-500/30 bg-emerald-500/5' : s === 'yellow' ? 'border-amber-500/30 bg-amber-500/5' : s === 'red' ? 'border-rose-500/30 bg-rose-500/5' : 'border-border/40';
+          const strategyColor = t.strategy === '積極' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : t.strategy === '消極' ? 'text-rose-400 bg-rose-500/10 border-rose-500/30' : t.strategy === '限定エントリー' ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' : 'text-muted-foreground bg-muted/10 border-border/40';
+          return (
+            <div className={`rounded-xl border-2 ${strategyColor} p-4 mb-5`}>
+              <div className="flex items-center gap-6 flex-wrap">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-muted-foreground">判定</span>
+                  <span className="text-2xl font-bold">{t.strategy}</span>
+                </div>
+                <div className="h-8 w-px bg-border/40 hidden md:block" />
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">CME Gap</span>
+                  <span className={`text-lg font-bold tabular-nums ${sigColor(t.cme_signal)}`}>{t.cme_gap != null ? `${t.cme_gap > 0 ? '+' : ''}${t.cme_gap.toFixed(2)}%` : '-'}</span>
+                  <span className={`text-xs px-1.5 py-0.5 rounded ${t.cme_signal === 'green' ? 'bg-emerald-500/15 text-emerald-400' : t.cme_signal === 'red' ? 'bg-rose-500/15 text-rose-400' : 'bg-amber-500/15 text-amber-400'}`}>{t.cme_signal === 'green' ? 'GO' : t.cme_signal === 'red' ? 'SKIP' : '検討'}</span>
+                </div>
+                <div className="h-8 w-px bg-border/40 hidden md:block" />
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">SMA乖離</span>
+                  <span className={`text-lg font-bold tabular-nums ${sigColor(t.sma_signal)}`}>{t.sma20_60_gap != null ? `${t.sma20_60_gap > 0 ? '+' : ''}${t.sma20_60_gap.toFixed(2)}%` : '-'}</span>
+                </div>
+                <div className="h-8 w-px bg-border/40 hidden md:block" />
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">VIX</span>
+                  <span className={`text-lg font-bold tabular-nums ${sigColor(t.vix_signal)}`}>{t.vix != null ? t.vix.toFixed(1) : '-'}</span>
+                </div>
+                <div className="h-8 w-px bg-border/40 hidden md:block" />
+                <div className="flex items-center gap-2 ml-auto">
+                  <span className="text-sm font-bold tabular-nums">N225 ¥{t.nk_close ? fmt(t.nk_close) : '-'}</span>
+                  <span className="text-muted-foreground">/</span>
+                  <span className="text-sm font-bold tabular-nums">CME ¥{t.cme_close ? fmt(t.cme_close) : '-'}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Status Bar */}
         {status && (
