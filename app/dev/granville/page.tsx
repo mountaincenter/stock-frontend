@@ -479,7 +479,7 @@ function GranvilleContent() {
                   </div>
                   <div className="flex items-center justify-between text-xs mt-1 text-muted-foreground/60">
                     <span>{p.entry_date || '-'} ({p.hold_days}日)</span>
-                    <span className="text-amber-400 font-semibold">Exit: {p.high_20d > 0 ? `¥${fmt(p.high_20d)}` : '-'}</span>
+                    <span className="text-amber-400 font-semibold">発火ライン: {p.high_20d > 0 ? `¥${fmt(p.high_20d)}` : '-'}</span>
                   </div>
                 </div>
               ))}
@@ -496,7 +496,7 @@ function GranvilleContent() {
                   <th className="text-right px-4 py-2.5 text-xs font-medium">保有日数</th>
                   <th className="text-right px-4 py-2.5 text-xs font-medium">建単価</th>
                   <th className="text-right px-4 py-2.5 text-xs font-medium">現在値</th>
-                  <th className="text-right px-4 py-2.5 text-xs font-medium">Exit指値</th>
+                  <th className="text-right px-4 py-2.5 text-xs font-medium">発火ライン</th>
                   <th className="text-right px-4 py-2.5 text-xs font-medium">指値差</th>
                   <SortHeader<Position> label="含み%" field="unrealized_pct" {...posSort} className="text-right px-4 py-2.5 text-xs font-medium" />
                   <SortHeader<Position> label="含み損益" field="unrealized_yen" {...posSort} className="text-right px-4 py-2.5 text-xs font-medium" />
