@@ -44,6 +44,21 @@ const Checkbox = ({ checked, onChange, className }: { checked: boolean; onChange
   </button>
 );
 
+// === B4 Entry Types ===
+interface B4Candidate {
+  ticker: string; stock_name: string; sector: string;
+  close: number; entry_price_est: number;
+  dev_from_sma20: number; atr_pct: number; ret5d: number;
+  good_count: number; max_cost: number;
+}
+interface B4EntryResponse {
+  decision: string; vi: number | null;
+  total_b4_signals: number;
+  candidates: B4Candidate[]; selected: B4Candidate[];
+  selected_cost: number; budget_remaining: number;
+  date: string | null;
+}
+
 // === Types (backend dev_granville.py 準拠) ===
 interface Recommendation {
   ticker: string; stock_name: string; sector: string; rule: string;
@@ -88,7 +103,7 @@ interface StatusResponse {
 
 interface RuleStats {
   count: number; win_rate: number; total_pnl: number; avg_pnl: number;
-  avg_pct: number; exit_20d_high: number; exit_max_hold: number;
+  avg_pct: number; exit_high_update: number; exit_max_hold: number;
 }
 interface MonthlyStats { month: string; count: number; pnl: number; win_rate: number; }
 interface StatsResponse { by_rule: Record<string, RuleStats>; monthly: MonthlyStats[]; total_trades: number; }
@@ -119,8 +134,9 @@ const ruleLabel = (r: string) => {
 };
 
 const exitLabel = (t: string) => {
-  if (t === '20d_high') return { text: '20日高値', cls: 'text-emerald-400' };
-  if (t === 'max_hold') return { text: 'MAX_HOLD', cls: 'text-amber-400' };
+  if (t === 'high_update') return { text: '直近高値更新→翌寄付', cls: 'text-emerald-400' };
+  if (t === '20d_high') return { text: '直近高値更新→翌寄付', cls: 'text-emerald-400' };
+  if (t === 'max_hold') return { text: 'MAX_HOLD→翌寄付', cls: 'text-amber-400' };
   return { text: t || '保有中', cls: 'text-muted-foreground' };
 };
 
@@ -206,6 +222,7 @@ function GranvilleContent() {
   const [signals, setSignals] = useState<SignalsResponse | null>(null);
   const [posData, setPosData] = useState<PositionsResponse | null>(null);
   const [stats, setStats] = useState<StatsResponse | null>(null);
+  const [b4Entry, setB4Entry] = useState<B4EntryResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAllSignals, setShowAllSignals] = useState(false);
   const [statsMode, setStatsMode] = useState<'expected' | 'actual'>('expected');
@@ -218,8 +235,9 @@ function GranvilleContent() {
       fetch(`${API_BASE}/api/dev/granville/signals`).then(r => r.json()).catch(() => ({ signals: [], count: 0, signal_date: null })),
       fetch(`${API_BASE}/api/dev/granville/positions`).then(r => r.json()).catch(() => ({ positions: [], exits: [], as_of: null })),
       fetch(`${API_BASE}/api/dev/granville/stats`).then(r => r.json()).catch(() => null),
-    ]).then(([st, rec, sig, pos, sta]) => {
-      setStatus(st); setRecommendations(rec); setSignals(sig); setPosData(pos); setStats(sta); setLoading(false);
+      fetch(`${API_BASE}/api/dev/granville/b4_entry`).then(r => r.json()).catch(() => null),
+    ]).then(([st, rec, sig, pos, sta, b4]) => {
+      setStatus(st); setRecommendations(rec); setSignals(sig); setPosData(pos); setStats(sta); setB4Entry(b4); setLoading(false);
     });
   }, []);
 
@@ -262,56 +280,12 @@ function GranvilleContent() {
           <div>
             <h1 className="text-xl font-bold text-foreground">Granville B1-B4</h1>
             <p className="text-muted-foreground text-xs mt-0.5">
-              TOPIX 1,660銘柄 / 20日高値Exit / 証拠金管理
+              TOPIX 1,660銘柄 / 直近高値更新→翌寄付Exit
               {status?.signal_date ? ` (${status.signal_date})` : ''}
             </p>
           </div>
           <DevNavLinks />
         </header>
-
-        {/* Trigger Cards */}
-        {status?.triggers && (() => {
-          const t = status.triggers;
-          const sigColor = (s: string) => s === 'green' ? 'text-emerald-400' : s === 'yellow' ? 'text-amber-400' : s === 'red' ? 'text-rose-400' : 'text-muted-foreground';
-          const sigBg = (s: string) => s === 'green' ? 'border-emerald-500/30 bg-emerald-500/5' : s === 'yellow' ? 'border-amber-500/30 bg-amber-500/5' : s === 'red' ? 'border-rose-500/30 bg-rose-500/5' : 'border-border/40';
-          const strategyColor = t.strategy === '積極' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : t.strategy === '消極' ? 'text-rose-400 bg-rose-500/10 border-rose-500/30' : t.strategy === '限定エントリー' ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' : 'text-muted-foreground bg-muted/10 border-border/40';
-          return (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-              {/* 結論 */}
-              <div className={`rounded-xl border-2 ${strategyColor} px-5 py-4`}>
-                <div className="text-sm text-muted-foreground mb-2">Strategy</div>
-                <div className="text-xl font-bold">{t.strategy}</div>
-              </div>
-              {/* CME Gap */}
-              <div className={`rounded-xl border ${sigBg(t.cme_signal)} px-5 py-4`}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-muted-foreground">CME Gap</span>
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${t.cme_signal === 'green' ? 'bg-emerald-500/20 text-emerald-400' : t.cme_signal === 'red' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'}`}>{t.cme_signal === 'green' ? 'GO' : t.cme_signal === 'red' ? 'SKIP' : 'HOLD'}</span>
-                </div>
-                <div className={`text-xl font-bold tabular-nums text-right ${sigColor(t.cme_signal)}`}>{t.cme_gap != null ? `${t.cme_gap > 0 ? '+' : ''}${t.cme_gap.toFixed(2)}%` : '-'}</div>
-                <div className="text-sm text-muted-foreground text-right mt-1 tabular-nums">N225 ¥{t.nk_close ? fmt(t.nk_close) : '-'} → CME ¥{t.cme_close ? fmt(t.cme_close) : '-'}</div>
-              </div>
-              {/* SMA乖離 */}
-              <div className={`rounded-xl border ${sigBg(t.sma_signal)} px-5 py-4`}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-muted-foreground">SMA 20/60</span>
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${t.sma_signal === 'green' ? 'bg-emerald-500/20 text-emerald-400' : t.sma_signal === 'red' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'}`}>{t.sma_signal === 'green' ? 'BEST' : t.sma_signal === 'yellow' ? 'DC' : 'WAIT'}</span>
-                </div>
-                <div className={`text-xl font-bold tabular-nums text-right ${sigColor(t.sma_signal)}`}>{t.sma20_60_gap != null ? `${t.sma20_60_gap > 0 ? '+' : ''}${t.sma20_60_gap.toFixed(2)}%` : '-'}</div>
-                <div className="text-sm text-muted-foreground text-right mt-1">B4最強 &lt;-3% / DC 0% / 現在 +1〜3%</div>
-              </div>
-              {/* VIX */}
-              <div className={`rounded-xl border ${sigBg(t.vix_signal)} px-5 py-4`}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-muted-foreground">VIX</span>
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${t.vix_signal === 'green' ? 'bg-emerald-500/20 text-emerald-400' : t.vix_signal === 'red' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'}`}>{t.vix_signal === 'green' ? 'CLEAR' : t.vix_signal === 'yellow' ? 'CAUTION' : 'HIGH'}</span>
-                </div>
-                <div className={`text-xl font-bold tabular-nums text-right ${sigColor(t.vix_signal)}`}>{t.vix != null ? t.vix.toFixed(1) : '-'}</div>
-                <div className="text-sm text-muted-foreground text-right mt-1">&lt;20 安全 / 20-30 警戒 / &gt;30 高</div>
-              </div>
-            </div>
-          );
-        })()}
 
         {/* Status Bar */}
         {status && (
@@ -322,8 +296,8 @@ function GranvilleContent() {
             <StatCard label="信用余力" sub={`使用率 ${marginPct.toFixed(1)}%`}>
               <span className="text-foreground">¥{fmt(status.credit_capacity)}</span>
             </StatCard>
-            <StatCard label="推奨銘柄" sub={status.total_margin_used > 0 ? `証拠金 ¥${fmt(status.total_margin_used)}` : undefined}>
-              <span className="text-foreground">{status.recommendation_count}</span>
+            <StatCard label="B4選定" sub={b4Entry ? `取引上限 ¥${fmt(b4Entry.selected_cost)}` : undefined}>
+              <span className="text-foreground">{b4Entry?.selected.length ?? 0}</span>
             </StatCard>
             <StatCard label="シグナル数" sub={
               <span className="flex gap-2 justify-end">
@@ -342,6 +316,85 @@ function GranvilleContent() {
               <span className="text-foreground text-lg">{status.signal_date || '-'}</span>
             </StatCard>
           </div>
+        )}
+
+        {/* B4 Entry Decision */}
+        {b4Entry && (
+          <Panel title={
+            <div className="flex items-center justify-between">
+              <h2 className="text-base md:text-lg font-semibold">
+                B4 エントリー判定
+                {b4Entry.vi != null && (
+                  <span className={`ml-2 text-sm font-normal ${b4Entry.vi >= 30 ? 'text-emerald-400' : b4Entry.vi >= 25 ? 'text-amber-400' : 'text-muted-foreground'}`}>
+                    VI={b4Entry.vi}
+                  </span>
+                )}
+              </h2>
+              <span className={`px-3 py-1 rounded-full text-sm font-bold border ${
+                b4Entry.decision === 'entry' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' :
+                b4Entry.decision === 'consider' ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' :
+                'text-muted-foreground bg-muted/10 border-border/40'
+              }`}>
+                {b4Entry.decision === 'entry' ? 'エントリー' :
+                 b4Entry.decision === 'consider' ? '検討' :
+                 b4Entry.decision === 'wait' ? '待機' :
+                 b4Entry.decision === 'no_b4' ? 'B4なし' :
+                 b4Entry.decision === 'no_signal' ? 'シグナルなし' : '候補なし'}
+              </span>
+            </div>
+          } border={b4Entry.decision === 'entry' ? 'border-emerald-500/40' : 'border-border/40'}>
+            {b4Entry.selected.length > 0 && (
+              <>
+                <div className="px-4 py-2 text-xs text-muted-foreground">
+                  B4シグナル {b4Entry.total_b4_signals}件 → 上位3件選定（取引上限100万枠）| 取引上限 ¥{fmt(b4Entry.selected_cost)} | 残枠 ¥{fmt(b4Entry.budget_remaining)} | 直近高値更新→翌寄付Exit
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead><tr className="text-muted-foreground border-b border-border/30 bg-muted/10">
+                      <th className="text-center px-3 py-2 text-xs font-medium">#</th>
+                      <th className="text-left px-3 py-2 text-xs font-medium">コード</th>
+                      <th className="text-left px-3 py-2 text-xs font-medium">銘柄</th>
+                      <th className="text-right px-3 py-2 text-xs font-medium">終値</th>
+                      <th className="text-right px-3 py-2 text-xs font-medium">乖離%</th>
+                      <th className="text-right px-3 py-2 text-xs font-medium">ATR%</th>
+                      <th className="text-right px-3 py-2 text-xs font-medium">ret5d%</th>
+                      <th className="text-center px-3 py-2 text-xs font-medium">スコア</th>
+                      <th className="text-right px-3 py-2 text-xs font-medium">取引上限</th>
+                    </tr></thead>
+                    <tbody>
+                      {b4Entry.selected.map((c, i) => (
+                        <tr key={c.ticker} className="border-b border-border/20 hover:bg-muted/10">
+                          <td className="text-center px-3 py-2.5 text-muted-foreground">{i + 1}</td>
+                          <td className="px-3 py-2.5 tabular-nums">{c.ticker.replace('.T', '')}</td>
+                          <td className="px-3 py-2.5">{c.stock_name}</td>
+                          <td className="text-right px-3 py-2.5 tabular-nums">¥{fmt(c.close)}</td>
+                          <td className="text-right px-3 py-2.5 tabular-nums text-rose-400">{c.dev_from_sma20.toFixed(1)}%</td>
+                          <td className="text-right px-3 py-2.5 tabular-nums">{c.atr_pct.toFixed(1)}%</td>
+                          <td className="text-right px-3 py-2.5 tabular-nums text-rose-400">{c.ret5d.toFixed(1)}%</td>
+                          <td className="text-center px-3 py-2.5">
+                            <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${
+                              c.good_count === 3 ? 'bg-emerald-500/20 text-emerald-400' :
+                              c.good_count === 2 ? 'bg-amber-500/20 text-amber-400' :
+                              'bg-zinc-500/20 text-zinc-400'
+                            }`}>{c.good_count}/3</span>
+                          </td>
+                          <td className="text-right px-3 py-2.5 tabular-nums">¥{fmt(c.max_cost)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+            {b4Entry.selected.length === 0 && (
+              <div className="px-4 py-6 text-center text-muted-foreground text-sm">
+                {b4Entry.decision === 'no_b4' ? '本日B4シグナルなし' :
+                 b4Entry.decision === 'no_signal' ? 'シグナル未生成' :
+                 b4Entry.decision === 'wait' ? `VI=${b4Entry.vi} < 25: 待機` :
+                 '該当なし'}
+              </div>
+            )}
+          </Panel>
         )}
 
         {/* Exit Candidates Alert */}
@@ -399,106 +452,6 @@ function GranvilleContent() {
             </div>
           </Panel>
         )}
-
-        {/* Recommendations */}
-        <Panel title={
-          <div className="flex items-center justify-between">
-            <h2 className="text-base md:text-lg font-semibold text-foreground">推奨銘柄 ({recommendations?.date || '-'}) - {recommendations?.count || 0}件</h2>
-            <span className="text-xs text-muted-foreground tabular-nums">{entryChecks.checked.size}/{recommendations?.count || 0} エントリー済み</span>
-          </div>
-        }
-          footer={<div className="flex flex-wrap gap-x-5 gap-y-1">
-            <span><RuleBadge rule="B4" /> {ruleLabel('B4')} 乖離{'<'}-8%</span>
-            <span><RuleBadge rule="B1" /> {ruleLabel('B1')} prev{'<'}SMA20, now{'>'}SMA20</span>
-            <span><RuleBadge rule="B3" /> {ruleLabel('B3')} 乖離0-3%縮小</span>
-            <span><RuleBadge rule="B2" /> {ruleLabel('B2')} 乖離-5~0%</span>
-          </div>}>
-          {recommendations && recommendations.recommendations.length > 0 ? (
-            <>
-              {/* Mobile Cards */}
-              <div className="md:hidden divide-y divide-border/20">
-                {recSort.sorted.map((r, i) => {
-                  const isEntered = entryChecks.checked.has(r.ticker);
-                  return (
-                  <div key={i} className={`px-4 py-3 ${isEntered ? 'bg-primary/5' : ''}`}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-2">
-                        <Checkbox checked={isEntered} onChange={() => entryChecks.toggle(r.ticker)} />
-                        <RuleBadge rule={r.rule} />
-                        <GradeBadge score={r.rank_score} />
-                        <button type="button" className="font-semibold tabular-nums hover:text-primary" onClick={() => window.open(`/${r.ticker.replace('.T', '')}`, 'stock-detail')}>
-                          {r.ticker.replace('.T', '')}
-                        </button>
-                        <span className="truncate max-w-[100px] text-sm">{r.stock_name}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>¥{fmt(r.entry_price_est)} / 証拠金 ¥{fmt(r.margin)} ({r.margin_pct}%)</span>
-                      <span className={r.dev_from_sma20 < 0 ? 'text-rose-400' : 'text-emerald-400'}>{fmtPct(r.dev_from_sma20, 2)}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground/60 mt-0.5">
-                      <span>ATR {r.atr10_pct}% / 出来高比 {r.vol_ratio}x</span>
-                      <span>期待利益 ¥{fmt(r.expected_profit)} / {r.max_hold}日</span>
-                    </div>
-                  </div>
-                  );
-                })}
-              </div>
-              {/* Desktop Table */}
-              <div className="hidden md:block overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead><tr className="text-muted-foreground border-b border-border/30 bg-muted/10">
-                    <th className="px-3 py-2.5 text-xs font-medium w-8">
-                      <Checkbox checked={(recommendations?.recommendations.length ?? 0) > 0 && recommendations!.recommendations.every(r => entryChecks.checked.has(r.ticker))}
-                        onChange={() => entryChecks.toggleAll(recommendations!.recommendations.map(r => r.ticker))} />
-                    </th>
-                    <SortHeader<Recommendation> label="ルール" field="rule" {...recSort} className="text-center px-3 py-2.5 text-xs font-medium" />
-                    <th className="text-left px-4 py-2.5 text-xs font-medium">コード</th>
-                    <th className="text-left px-4 py-2.5 text-xs font-medium">銘柄</th>
-                    <th className="text-left px-4 py-2.5 text-xs font-medium">セクター</th>
-                    <SortHeader<Recommendation> label="Entry" field="entry_price_est" {...recSort} className="text-right px-4 py-2.5 text-xs font-medium" />
-                    <SortHeader<Recommendation> label="乖離%" field="dev_from_sma20" {...recSort} className="text-right px-4 py-2.5 text-xs font-medium" />
-                    <SortHeader<Recommendation> label="ATR%" field="atr10_pct" {...recSort} className="text-right px-4 py-2.5 text-xs font-medium" />
-                    <SortHeader<Recommendation> label="出来高比" field="vol_ratio" {...recSort} className="text-right px-4 py-2.5 text-xs font-medium" />
-                    <SortHeader<Recommendation> label="期待利益" field="expected_profit" {...recSort} className="text-right px-4 py-2.5 text-xs font-medium" />
-                    <th className="text-right px-4 py-2.5 text-xs font-medium">証拠金</th>
-                    <SortHeader<Recommendation> label="Score" field="rank_score" {...recSort} className="text-right px-4 py-2.5 text-xs font-medium" />
-                    <th className="text-right px-4 py-2.5 text-xs font-medium">HOLD</th>
-                  </tr></thead>
-                  <tbody>
-                    {recSort.sorted.map((r, i) => {
-                      const isEntered = entryChecks.checked.has(r.ticker);
-                      return (
-                      <tr key={i} className={`border-b border-border/20 hover:bg-muted/5 ${isEntered ? 'bg-primary/5' : ''}`}>
-                        <td className="px-3 py-2.5"><Checkbox checked={isEntered} onChange={() => entryChecks.toggle(r.ticker)} /></td>
-                        <td className="px-3 py-2.5 text-center"><RuleBadge rule={r.rule} /></td>
-                        <td className="px-4 py-2.5 tabular-nums">
-                          <button type="button" className="hover:text-primary font-semibold" onClick={() => window.open(`/${r.ticker.replace('.T', '')}`, 'stock-detail')}>
-                            {r.ticker.replace('.T', '')}
-                          </button>
-                        </td>
-                        <td className="px-4 py-2.5 max-w-[120px] truncate">{r.stock_name}</td>
-                        <td className="px-4 py-2.5 text-muted-foreground max-w-[100px] truncate">{r.sector}</td>
-                        <td className="px-4 py-2.5 text-right tabular-nums">¥{fmt(r.entry_price_est)}</td>
-                        <td className={`px-4 py-2.5 text-right tabular-nums ${r.dev_from_sma20 < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>{fmtPct(r.dev_from_sma20, 2)}</td>
-                        <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">{r.atr10_pct}%</td>
-                        <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">{r.vol_ratio}x</td>
-                        <td className="px-4 py-2.5 text-right tabular-nums">{fmtPnl(r.expected_profit)}</td>
-                        <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">¥{fmt(r.margin)}</td>
-                        <td className="px-4 py-2.5 text-right">
-                          <GradeBadge score={r.rank_score} />
-                          <span className="ml-1 text-xs tabular-nums text-muted-foreground">{r.rank_score}</span>
-                        </td>
-                        <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">{r.max_hold}日</td>
-                      </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          ) : <div className="text-muted-foreground text-sm py-8 text-center">推奨銘柄はありません</div>}
-        </Panel>
 
         {/* Positions */}
         {posData && posData.positions.length > 0 && (
@@ -657,7 +610,7 @@ function GranvilleContent() {
                       <th className="text-right px-4 py-2.5 text-xs font-medium">平均%</th>
                       <th className="text-right px-4 py-2.5 text-xs font-medium">合計PnL</th>
                       <th className="text-right px-4 py-2.5 text-xs font-medium">平均PnL</th>
-                      <th className="text-right px-4 py-2.5 text-xs font-medium hidden md:table-cell">20日高値</th>
+                      <th className="text-right px-4 py-2.5 text-xs font-medium hidden md:table-cell">高値更新</th>
                       <th className="text-right px-4 py-2.5 text-xs font-medium hidden md:table-cell">MAX_HOLD</th>
                     </tr></thead>
                     <tbody>
@@ -673,7 +626,7 @@ function GranvilleContent() {
                             <td className={`px-4 py-2.5 text-right tabular-nums ${s.avg_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{fmtPct(s.avg_pct, 2)}</td>
                             <td className="px-4 py-2.5 text-right tabular-nums">{fmtPnl(s.total_pnl)}</td>
                             <td className="px-4 py-2.5 text-right tabular-nums">{fmtPnl(s.avg_pnl)}</td>
-                            <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground hidden md:table-cell">{s.exit_20d_high}</td>
+                            <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground hidden md:table-cell">{s.exit_high_update}</td>
                             <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground hidden md:table-cell">{s.exit_max_hold}</td>
                           </tr>
                         );
@@ -698,19 +651,22 @@ function GranvilleContent() {
                     </tr></thead>
                     <tbody>
                       {(() => {
+                        // 累計は古い順で計算、表示は新しい順
+                        const withCum: { m: MonthlyStats; cum: number }[] = [];
                         let cumPnl = 0;
-                        return stats.monthly.map((m) => {
+                        for (const m of stats.monthly) {
                           cumPnl += m.pnl;
-                          return (
+                          withCum.push({ m, cum: cumPnl });
+                        }
+                        return withCum.reverse().map(({ m, cum }) => (
                             <tr key={m.month} className="border-b border-border/20 hover:bg-muted/5">
                               <td className="px-4 py-2.5 tabular-nums font-semibold">{m.month}</td>
                               <td className="px-4 py-2.5 text-right tabular-nums">{m.count}</td>
                               <td className="px-4 py-2.5 text-right tabular-nums">{fmtPnl(m.pnl)}</td>
                               <td className={`px-4 py-2.5 text-right tabular-nums ${m.win_rate >= 55 ? 'text-emerald-400' : m.win_rate >= 45 ? 'text-amber-400' : 'text-rose-400'}`}>{m.win_rate.toFixed(1)}%</td>
-                              <td className="px-4 py-2.5 text-right tabular-nums hidden md:table-cell">{fmtPnl(cumPnl)}</td>
+                              <td className="px-4 py-2.5 text-right tabular-nums hidden md:table-cell">{fmtPnl(cum)}</td>
                             </tr>
-                          );
-                        });
+                        ));
                       })()}
                     </tbody>
                   </table>
