@@ -346,7 +346,7 @@ function GranvilleContent() {
             {b4Entry.selected.length > 0 && (
               <>
                 <div className="px-4 py-2 text-xs text-muted-foreground">
-                  B4シグナル {b4Entry.total_b4_signals}件 → 上位3件選定（取引上限100万枠）| 取引上限 ¥{fmt(b4Entry.selected_cost)} | 残枠 ¥{fmt(b4Entry.budget_remaining)} | 直近高値更新→翌寄付Exit
+                  B4シグナル {b4Entry.total_b4_signals}件 → 上位3件選定（取引上限100万枠）| 取引上限 ¥{fmt(b4Entry.selected_cost)} | 残枠 ¥{fmt(b4Entry.budget_remaining)} | 出口: 直近高値更新→翌寄付 / MH15→翌寄付損切り
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
@@ -478,9 +478,14 @@ function GranvilleContent() {
                     <span className="tabular-nums">{fmtPnl(p.unrealized_yen)}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs mt-1 text-muted-foreground/60">
-                    <span>{p.entry_date || '-'} ({p.hold_days}日)</span>
+                    <span>{p.entry_date || '-'} ({p.hold_days}日 / MH{p.max_hold || 15})</span>
                     <span className="text-amber-400 font-semibold">発火ライン: {p.high_20d > 0 ? `¥${fmt(p.high_20d)}` : '-'}</span>
                   </div>
+                  {p.hold_days >= (p.max_hold || 15) ? (
+                    <div className="mt-1 px-2 py-1 rounded bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold">→ MH到達: 翌朝寄付で損切り</div>
+                  ) : p.exit_type === 'high_update' ? (
+                    <div className="mt-1 px-2 py-1 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold">→ 発火済み: 翌朝寄付で利確</div>
+                  ) : null}
                 </div>
               ))}
             </div>
@@ -493,13 +498,13 @@ function GranvilleContent() {
                   <th className="text-left px-4 py-2.5 text-xs font-medium">銘柄</th>
                   <th className="text-center px-3 py-2.5 text-xs font-medium">信用区分</th>
                   <th className="text-right px-4 py-2.5 text-xs font-medium">建日</th>
-                  <th className="text-right px-4 py-2.5 text-xs font-medium">保有日数</th>
+                  <th className="text-right px-4 py-2.5 text-xs font-medium">日数/MH</th>
                   <th className="text-right px-4 py-2.5 text-xs font-medium">建単価</th>
                   <th className="text-right px-4 py-2.5 text-xs font-medium">現在値</th>
                   <th className="text-right px-4 py-2.5 text-xs font-medium">発火ライン</th>
-                  <th className="text-right px-4 py-2.5 text-xs font-medium">指値差</th>
                   <SortHeader<Position> label="含み%" field="unrealized_pct" {...posSort} className="text-right px-4 py-2.5 text-xs font-medium" />
                   <SortHeader<Position> label="含み損益" field="unrealized_yen" {...posSort} className="text-right px-4 py-2.5 text-xs font-medium" />
+                  <th className="text-center px-4 py-2.5 text-xs font-medium">アクション</th>
                 </tr></thead>
                 <tbody>
                   {posSort.sorted.map((p, i) => (
@@ -517,13 +522,21 @@ function GranvilleContent() {
                       <td className="px-4 py-2.5 max-w-[120px] truncate">{p.stock_name}</td>
                       <td className="px-3 py-2.5 text-center text-xs text-muted-foreground">{p.margin_type}</td>
                       <td className="px-4 py-2.5 text-right tabular-nums text-xs text-muted-foreground">{p.entry_date || '-'}</td>
-                      <td className="px-4 py-2.5 text-right tabular-nums">{p.hold_days}日</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums">{p.hold_days}/{p.max_hold || 15}</td>
                       <td className="px-4 py-2.5 text-right tabular-nums">¥{fmt(p.entry_price)}</td>
                       <td className="px-4 py-2.5 text-right tabular-nums">¥{fmt(p.current_price)}</td>
                       <td className={`px-4 py-2.5 text-right tabular-nums font-semibold ${p.high_20d > 0 ? 'text-amber-400' : 'text-muted-foreground'}`}>{p.high_20d > 0 ? `¥${fmt(p.high_20d)}` : '-'}</td>
-                      <td className={`px-4 py-2.5 text-right tabular-nums text-xs ${p.gap_to_high > 0 ? 'text-emerald-400' : p.gap_to_high < 0 ? 'text-rose-400' : 'text-muted-foreground'}`}>{p.gap_to_high !== 0 ? `${p.gap_to_high > 0 ? '+' : ''}¥${fmt(Math.abs(p.gap_to_high))}` : '-'}</td>
                       <td className={`px-4 py-2.5 text-right tabular-nums ${p.unrealized_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{fmtPct(p.unrealized_pct, 2)}</td>
                       <td className="px-4 py-2.5 text-right tabular-nums">{fmtPnl(p.unrealized_yen)}</td>
+                      <td className="px-4 py-2.5 text-center">
+                        {p.hold_days >= (p.max_hold || 15) ? (
+                          <span className="px-2 py-0.5 rounded text-xs font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">損切り</span>
+                        ) : p.exit_type === 'high_update' ? (
+                          <span className="px-2 py-0.5 rounded text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">利確</span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">保有中</span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
