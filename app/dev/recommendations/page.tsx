@@ -645,11 +645,20 @@ export default function DayTradeListPage() {
                             ? (stock.price_diff > 0 ? "+" : "") + stock.price_diff.toLocaleString()
                             : "-"}
                         </td>
-                        {/* 寄付差: 現在値 - 始値 (ymnk.jpの寄付比と同じロジック) */}
+                        {/* 寄付差: ザラ場中は現在値-始値、ザラ場外は「-」 */}
                         <td className={`px-2 py-4 text-right tabular-nums whitespace-nowrap ${
                           (() => {
                             const rt = realtimeData[stock.ticker];
                             if (!rt || rt.price === null || rt.open === null || rt.open <= 0) return "text-muted-foreground";
+                            // JST時刻で営業時間判定（9:00-15:30）
+                            const now = new Date();
+                            const jstHour = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' })).getHours();
+                            const jstMin = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' })).getMinutes();
+                            const jstTime = jstHour * 60 + jstMin;
+                            const jstDay = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' })).getDay();
+                            const isWeekday = jstDay >= 1 && jstDay <= 5;
+                            const isZaraba = isWeekday && jstTime >= 540 && jstTime <= 930; // 平日9:00-15:30
+                            if (!isZaraba) return "text-muted-foreground";
                             const diff = rt.price - rt.open;
                             return diff > 0 ? "text-emerald-400" : diff < 0 ? "text-rose-400" : "text-muted-foreground";
                           })()
@@ -657,6 +666,12 @@ export default function DayTradeListPage() {
                           {(() => {
                             const rt = realtimeData[stock.ticker];
                             if (!rt || rt.price === null || rt.open === null || rt.open <= 0) return "-";
+                            const now = new Date();
+                            const jstHour = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' })).getHours();
+                            const jstMin = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' })).getMinutes();
+                            const jstTime = jstHour * 60 + jstMin;
+                            const isZaraba = jstTime >= 540 && jstTime <= 930;
+                            if (!isZaraba) return "-";
                             const diff = rt.price - rt.open;
                             return (diff > 0 ? "+" : "") + diff.toLocaleString();
                           })()}
