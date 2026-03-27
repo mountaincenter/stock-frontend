@@ -69,6 +69,7 @@ export default function DayTradeListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterType>("all");
+  const [excludeZeroShares, setExcludeZeroShares] = useState(false);
   const [bulkEditMode, setBulkEditMode] = useState(false);
   const [editedStocks, setEditedStocks] = useState<Record<string, { shortable: boolean; day_trade: boolean; ng: boolean; day_trade_available_shares: number | null; margin_sell_balance: number | null; margin_buy_balance: number | null }>>({});
   const [saving, setSaving] = useState(false);
@@ -339,6 +340,11 @@ export default function DayTradeListPage() {
             ? stocks.filter((s) => s.day_trade && !s.shortable)
             : stocks.filter((s) => s.ng);
 
+    // 除0: いちにち信用かつ株数0を除外（制度信用は常に表示）
+    if (excludeZeroShares) {
+      list = list.filter(s => s.shortable || (s.day_trade_available_shares != null && s.day_trade_available_shares > 0));
+    }
+
     if (sortKey) {
       list = [...list].sort((a, b) => {
         const av = a[sortKey];
@@ -351,7 +357,7 @@ export default function DayTradeListPage() {
       });
     }
     return list;
-  }, [stocks, filter, sortKey, sortDir]);
+  }, [stocks, filter, sortKey, sortDir, excludeZeroShares]);
 
   if (loading) {
     return (
@@ -490,6 +496,15 @@ export default function DayTradeListPage() {
               onChange={(v) => setFilter(v as FilterType)}
             />
           </div>
+          <label className="flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={excludeZeroShares}
+                onChange={(e) => setExcludeZeroShares(e.target.checked)}
+                className="w-3.5 h-3.5 rounded border-amber-500/50 bg-muted/30 text-amber-500 focus:ring-amber-500/50"
+              />
+              <span className="text-xs text-amber-400 whitespace-nowrap">除0株</span>
+            </label>
           <div className="flex items-center gap-2 sm:gap-3 sm:ml-auto">
             <button
               type="button"
