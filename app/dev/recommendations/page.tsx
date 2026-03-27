@@ -79,7 +79,7 @@ export default function DayTradeListPage() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   // リアルタイム寄付価格
-  const [realtimeData, setRealtimeData] = useState<Record<string, { price: number | null; open: number | null; marketState: string | null }>>({});
+  const [realtimeData, setRealtimeData] = useState<Record<string, { price: number | null; open: number | null; marketState: string | null; marketTime: string | null }>>({});
   const [realtimeLoading, setRealtimeLoading] = useState(false);
   const [realtimeTimestamp, setRealtimeTimestamp] = useState<string | null>(null);
 
@@ -110,9 +110,9 @@ export default function DayTradeListPage() {
       const res = await fetch(url);
       if (!res.ok) throw new Error("リアルタイムデータ取得失敗");
       const json = await res.json();
-      const map: Record<string, { price: number | null; open: number | null; marketState: string | null }> = {};
+      const map: Record<string, { price: number | null; open: number | null; marketState: string | null; marketTime: string | null }> = {};
       for (const q of json.data) {
-        map[q.ticker] = { price: q.price ?? null, open: q.open ?? null, marketState: q.marketState ?? null };
+        map[q.ticker] = { price: q.price ?? null, open: q.open ?? null, marketState: q.marketState ?? null, marketTime: q.marketTime ?? null };
       }
       setRealtimeData(map);
       setRealtimeTimestamp(json.timestamp ? new Date(json.timestamp).toLocaleTimeString("ja-JP") : null);
@@ -645,20 +645,26 @@ export default function DayTradeListPage() {
                             ? (stock.price_diff > 0 ? "+" : "") + stock.price_diff.toLocaleString()
                             : "-"}
                         </td>
-                        {/* 寄付差: ザラ場中は現在値-始値、ザラ場外は「-」 */}
+                        {/* 寄付差: price - open
+                            常に表示。未寄付時（ザラ場中にmarketTimeが当日でない）のみ"-"
+                        */}
                         <td className={`px-2 py-4 text-right tabular-nums whitespace-nowrap ${
                           (() => {
                             const rt = realtimeData[stock.ticker];
                             if (!rt || rt.price === null || rt.open === null || rt.open <= 0) return "text-muted-foreground";
-                            // JST時刻で営業時間判定（9:00-15:30）
+                            // 未寄付判定: ザラ場中にmarketTimeが当日9:00以降でなければ未寄付
                             const now = new Date();
-                            const jstHour = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' })).getHours();
-                            const jstMin = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' })).getMinutes();
-                            const jstTime = jstHour * 60 + jstMin;
-                            const jstDay = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' })).getDay();
+                            const jst = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' }));
+                            const jstTime = jst.getHours() * 60 + jst.getMinutes();
+                            const jstDay = jst.getDay();
                             const isWeekday = jstDay >= 1 && jstDay <= 5;
-                            const isZaraba = isWeekday && jstTime >= 540 && jstTime <= 930; // 平日9:00-15:30
-                            if (!isZaraba) return "text-muted-foreground";
+                            const isZaraba = isWeekday && jstTime >= 540 && jstTime <= 930;
+                            if (isZaraba && rt.marketTime) {
+                              const mt = new Date(rt.marketTime);
+                              const mtJst = new Date(mt.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' }));
+                              const today = jst.toDateString();
+                              if (mtJst.toDateString() !== today) return "text-muted-foreground"; // 未寄付
+                            }
                             const diff = rt.price - rt.open;
                             return diff > 0 ? "text-emerald-400" : diff < 0 ? "text-rose-400" : "text-muted-foreground";
                           })()
@@ -667,11 +673,17 @@ export default function DayTradeListPage() {
                             const rt = realtimeData[stock.ticker];
                             if (!rt || rt.price === null || rt.open === null || rt.open <= 0) return "-";
                             const now = new Date();
-                            const jstHour = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' })).getHours();
-                            const jstMin = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' })).getMinutes();
-                            const jstTime = jstHour * 60 + jstMin;
-                            const isZaraba = jstTime >= 540 && jstTime <= 930;
-                            if (!isZaraba) return "-";
+                            const jst = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' }));
+                            const jstTime = jst.getHours() * 60 + jst.getMinutes();
+                            const jstDay = jst.getDay();
+                            const isWeekday = jstDay >= 1 && jstDay <= 5;
+                            const isZaraba = isWeekday && jstTime >= 540 && jstTime <= 930;
+                            if (isZaraba && rt.marketTime) {
+                              const mt = new Date(rt.marketTime);
+                              const mtJst = new Date(mt.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' }));
+                              const today = jst.toDateString();
+                              if (mtJst.toDateString() !== today) return "-"; // 未寄付
+                            }
                             const diff = rt.price - rt.open;
                             return (diff > 0 ? "+" : "") + diff.toLocaleString();
                           })()}
