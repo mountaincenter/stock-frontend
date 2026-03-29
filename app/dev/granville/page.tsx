@@ -49,10 +49,13 @@ interface B4Candidate {
   ticker: string; stock_name: string; sector: string;
   close: number; entry_price_est: number;
   dev_from_sma20: number; atr_pct: number; ret5d: number;
-  good_count: number; max_cost: number;
+  max_cost: number;
 }
 interface B4EntryResponse {
   decision: string; vi: number | null;
+  cme_gap: number | null; n225_chg: number | null;
+  excluded_rules: string[];
+  weekday: string | null; weekday_warning: boolean;
   total_b4_signals: number;
   candidates: B4Candidate[]; selected: B4Candidate[];
   selected_cost: number; budget_remaining: number;
@@ -280,7 +283,7 @@ function GranvilleContent() {
           <div>
             <h1 className="text-xl font-bold text-foreground">Granville B1-B4</h1>
             <p className="text-muted-foreground text-xs mt-0.5">
-              TOPIX 1,660銘柄 / 直近高値更新→翌寄付Exit
+              B4(-15%) / 急騰フィルター / MH15 / 翌寄付Exit
               {status?.signal_date ? ` (${status.signal_date})` : ''}
             </p>
           </div>
@@ -324,29 +327,72 @@ function GranvilleContent() {
             <div className="flex items-center justify-between">
               <h2 className="text-base md:text-lg font-semibold">
                 B4 エントリー判定
-                {b4Entry.vi != null && (
-                  <span className={`ml-2 text-sm font-normal ${b4Entry.vi >= 30 ? 'text-emerald-400' : b4Entry.vi >= 25 ? 'text-amber-400' : 'text-muted-foreground'}`}>
-                    VI={b4Entry.vi}
-                  </span>
-                )}
+                {b4Entry.date && <span className="ml-2 text-sm font-normal text-muted-foreground">({b4Entry.date} {b4Entry.weekday})</span>}
               </h2>
               <span className={`px-3 py-1 rounded-full text-sm font-bold border ${
+                b4Entry.decision === 'strong_entry' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' :
                 b4Entry.decision === 'entry' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' :
                 b4Entry.decision === 'consider' ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' :
+                b4Entry.decision === 'excluded' ? 'text-rose-400 bg-rose-500/10 border-rose-500/30' :
                 'text-muted-foreground bg-muted/10 border-border/40'
               }`}>
-                {b4Entry.decision === 'entry' ? 'エントリー' :
+                {b4Entry.decision === 'strong_entry' ? '強エントリー' :
+                 b4Entry.decision === 'entry' ? 'エントリー' :
                  b4Entry.decision === 'consider' ? '検討' :
+                 b4Entry.decision === 'excluded' ? '回避' :
                  b4Entry.decision === 'wait' ? '待機' :
                  b4Entry.decision === 'no_b4' ? 'B4なし' :
                  b4Entry.decision === 'no_signal' ? 'シグナルなし' : '候補なし'}
               </span>
             </div>
-          } border={b4Entry.decision === 'entry' ? 'border-emerald-500/40' : 'border-border/40'}>
+          } border={
+            b4Entry.decision === 'strong_entry' ? 'border-emerald-500/40' :
+            b4Entry.decision === 'entry' ? 'border-emerald-500/40' :
+            b4Entry.decision === 'excluded' ? 'border-rose-500/40' :
+            'border-border/40'
+          }>
+            {/* 市場環境カード */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 px-4 py-3">
+              <div className="rounded-lg border border-border/40 px-3 py-2">
+                <div className="text-xs text-muted-foreground">日経VI</div>
+                <div className={`text-lg font-bold tabular-nums ${b4Entry.vi && b4Entry.vi >= 40 ? 'text-emerald-400' : b4Entry.vi && b4Entry.vi >= 30 ? 'text-amber-400' : 'text-muted-foreground'}`}>
+                  {b4Entry.vi ?? '-'}
+                </div>
+              </div>
+              <div className="rounded-lg border border-border/40 px-3 py-2">
+                <div className="text-xs text-muted-foreground">CMEギャップ</div>
+                <div className={`text-lg font-bold tabular-nums ${b4Entry.cme_gap != null && Math.abs(b4Entry.cme_gap) > 1 ? (b4Entry.cme_gap < 0 ? 'text-rose-400' : 'text-emerald-400') : 'text-muted-foreground'}`}>
+                  {b4Entry.cme_gap != null ? `${b4Entry.cme_gap > 0 ? '+' : ''}${b4Entry.cme_gap.toFixed(2)}%` : '-'}
+                </div>
+              </div>
+              <div className="rounded-lg border border-border/40 px-3 py-2">
+                <div className="text-xs text-muted-foreground">N225変化</div>
+                <div className={`text-lg font-bold tabular-nums ${b4Entry.n225_chg != null ? (b4Entry.n225_chg >= 0 ? 'text-emerald-400' : 'text-rose-400') : 'text-muted-foreground'}`}>
+                  {b4Entry.n225_chg != null ? `${b4Entry.n225_chg > 0 ? '+' : ''}${b4Entry.n225_chg.toFixed(2)}%` : '-'}
+                </div>
+              </div>
+              <div className="rounded-lg border border-border/40 px-3 py-2">
+                <div className="text-xs text-muted-foreground">B4シグナル</div>
+                <div className="text-lg font-bold tabular-nums">{b4Entry.total_b4_signals}件</div>
+              </div>
+            </div>
+
+            {/* 警告表示 */}
+            {b4Entry.excluded_rules.length > 0 && (
+              <div className="mx-4 mb-2 px-3 py-2 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-sm">
+                除外ルール該当: {b4Entry.excluded_rules.join(', ')}
+              </div>
+            )}
+            {b4Entry.weekday_warning && (
+              <div className="mx-4 mb-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 text-sm">
+                金曜シグナル注意: PF1.89（他曜日の半分）。週末リスクあり。
+              </div>
+            )}
+
             {b4Entry.selected.length > 0 && (
               <>
                 <div className="px-4 py-2 text-xs text-muted-foreground">
-                  B4シグナル {b4Entry.total_b4_signals}件 → 上位3件選定（取引上限100万枠）| 取引上限 ¥{fmt(b4Entry.selected_cost)} | 残枠 ¥{fmt(b4Entry.budget_remaining)} | 出口: 直近高値更新→翌寄付 / MH15→翌寄付損切り
+                  B4(-15%) {b4Entry.total_b4_signals}件 → {b4Entry.selected.length}件選定（乖離深い順）| 取引上限合計 {fmt(b4Entry.selected_cost)} | 出口: 直近高値更新→翌寄付 / MH15
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
@@ -356,29 +402,21 @@ function GranvilleContent() {
                       <th className="text-left px-3 py-2 text-xs font-medium">銘柄</th>
                       <th className="text-right px-3 py-2 text-xs font-medium">終値</th>
                       <th className="text-right px-3 py-2 text-xs font-medium">乖離%</th>
-                      <th className="text-right px-3 py-2 text-xs font-medium">ATR%</th>
-                      <th className="text-right px-3 py-2 text-xs font-medium">ret5d%</th>
-                      <th className="text-center px-3 py-2 text-xs font-medium">スコア</th>
                       <th className="text-right px-3 py-2 text-xs font-medium">取引上限</th>
                     </tr></thead>
                     <tbody>
                       {b4Entry.selected.map((c, i) => (
                         <tr key={c.ticker} className="border-b border-border/20 hover:bg-muted/10">
                           <td className="text-center px-3 py-2.5 text-muted-foreground">{i + 1}</td>
-                          <td className="px-3 py-2.5 tabular-nums">{c.ticker.replace('.T', '')}</td>
-                          <td className="px-3 py-2.5">{c.stock_name}</td>
-                          <td className="text-right px-3 py-2.5 tabular-nums">¥{fmt(c.close)}</td>
-                          <td className="text-right px-3 py-2.5 tabular-nums text-rose-400">{c.dev_from_sma20.toFixed(1)}%</td>
-                          <td className="text-right px-3 py-2.5 tabular-nums">{c.atr_pct.toFixed(1)}%</td>
-                          <td className="text-right px-3 py-2.5 tabular-nums text-rose-400">{c.ret5d.toFixed(1)}%</td>
-                          <td className="text-center px-3 py-2.5">
-                            <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${
-                              c.good_count === 3 ? 'bg-emerald-500/20 text-emerald-400' :
-                              c.good_count === 2 ? 'bg-amber-500/20 text-amber-400' :
-                              'bg-zinc-500/20 text-zinc-400'
-                            }`}>{c.good_count}/3</span>
+                          <td className="px-3 py-2.5 tabular-nums">
+                            <button type="button" className="hover:text-primary font-semibold" onClick={() => window.open(`/${c.ticker.replace('.T', '')}`, 'stock-detail')}>
+                              {c.ticker.replace('.T', '')}
+                            </button>
                           </td>
-                          <td className="text-right px-3 py-2.5 tabular-nums">¥{fmt(c.max_cost)}</td>
+                          <td className="px-3 py-2.5">{c.stock_name}</td>
+                          <td className="text-right px-3 py-2.5 tabular-nums">{fmt(c.close)}</td>
+                          <td className="text-right px-3 py-2.5 tabular-nums text-rose-400">{c.dev_from_sma20.toFixed(1)}%</td>
+                          <td className="text-right px-3 py-2.5 tabular-nums">{fmt(c.max_cost)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -388,7 +426,8 @@ function GranvilleContent() {
             )}
             {b4Entry.selected.length === 0 && (
               <div className="px-4 py-6 text-center text-muted-foreground text-sm">
-                {b4Entry.decision === 'no_b4' ? '本日B4シグナルなし' :
+                {b4Entry.decision === 'excluded' ? '除外ルール該当のためエントリー回避' :
+                 b4Entry.decision === 'no_b4' ? '本日B4(-15%)シグナルなし' :
                  b4Entry.decision === 'no_signal' ? 'シグナル未生成' :
                  b4Entry.decision === 'wait' ? `VI=${b4Entry.vi} < 25: 待機` :
                  '該当なし'}
