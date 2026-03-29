@@ -109,7 +109,7 @@ interface RuleStats {
   avg_pct: number; exit_high_update: number; exit_max_hold: number;
 }
 interface MonthlyStats { month: string; count: number; pnl: number; win_rate: number; }
-interface StatsResponse { by_rule: Record<string, RuleStats>; monthly: MonthlyStats[]; total_trades: number; }
+interface StatsResponse { by_rule: Record<string, RuleStats>; monthly: MonthlyStats[]; total_trades: number; total_pnl?: number; win_rate?: number; pf?: number; rule_filter?: string | null; }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
@@ -237,7 +237,7 @@ function GranvilleContent() {
       fetch(`${API_BASE}/api/dev/granville/recommendations`).then(r => r.json()).catch(() => ({ recommendations: [], count: 0, total_margin: 0, date: null })),
       fetch(`${API_BASE}/api/dev/granville/signals`).then(r => r.json()).catch(() => ({ signals: [], count: 0, signal_date: null })),
       fetch(`${API_BASE}/api/dev/granville/positions`).then(r => r.json()).catch(() => ({ positions: [], exits: [], as_of: null })),
-      fetch(`${API_BASE}/api/dev/granville/stats`).then(r => r.json()).catch(() => null),
+      fetch(`${API_BASE}/api/dev/granville/stats?rule=B4`).then(r => r.json()).catch(() => null),
       fetch(`${API_BASE}/api/dev/granville/b4_entry`).then(r => r.json()).catch(() => null),
     ]).then(([st, rec, sig, pos, sta, b4]) => {
       setStatus(st); setRecommendations(rec); setSignals(sig); setPosData(pos); setStats(sta); setB4Entry(b4); setLoading(false);
@@ -691,7 +691,21 @@ function GranvilleContent() {
 
             {/* Monthly PnL */}
             {stats.monthly.length > 0 && (
-              <Panel title="月別パフォーマンス">
+              <Panel title={
+                <div className="flex items-center justify-between">
+                  <h2 className="text-base md:text-lg font-semibold">B4(-15%) 月別パフォーマンス</h2>
+                  {stats.total_pnl != null && (
+                    <div className="flex gap-4 text-sm tabular-nums">
+                      <span>{stats.total_trades}件</span>
+                      <span>WR {stats.win_rate?.toFixed(0)}%</span>
+                      <span>PF {stats.pf?.toFixed(2)}</span>
+                      <span className={stats.total_pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
+                        {stats.total_pnl >= 0 ? '+' : ''}{fmt(stats.total_pnl)}円
+                      </span>
+                    </div>
+                  )}
+                </div>
+              }>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead><tr className="text-muted-foreground border-b border-border/30 bg-muted/10">
