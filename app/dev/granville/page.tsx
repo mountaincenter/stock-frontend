@@ -55,7 +55,7 @@ interface B4EntryResponse {
   decision: string; vi: number | null;
   cme_gap: number | null; n225_chg: number | null;
   excluded_rules: string[];
-  weekday: string | null; weekday_warning: boolean;
+  weekday: string | null;
   total_b4_signals: number;
   candidates: B4Candidate[]; selected: B4Candidate[];
   selected_cost: number; budget_remaining: number;
@@ -114,9 +114,9 @@ interface StatsResponse { by_rule: Record<string, RuleStats>; monthly: MonthlySt
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 // === Helpers ===
-const fmt = (v: number) => v.toLocaleString('ja-JP');
-const fmtPnl = (v: number) => <span className={v >= 0 ? 'text-emerald-400' : 'text-rose-400'}>{v >= 0 ? '+' : ''}{fmt(v)}円</span>;
-const fmtPct = (v: number, d = 1) => `${v >= 0 ? '+' : ''}${v.toFixed(d)}%`;
+const fmt = (v: number | null | undefined) => (v ?? 0).toLocaleString('ja-JP');
+const fmtPnl = (v: number | null | undefined) => { const n = v ?? 0; return <span className={n >= 0 ? 'text-emerald-400' : 'text-rose-400'}>{n >= 0 ? '+' : ''}{fmt(n)}円</span>; };
+const fmtPct = (v: number | null | undefined, d = 1) => { const n = v ?? 0; return `${n >= 0 ? '+' : ''}${n.toFixed(d)}%`; };
 const shortDate = (d: string) => { const m = d.match(/\d{4}-(\d{2})-(\d{2})/); return m ? `${m[1]}/${m[2]}` : d; };
 
 // === Rule Badge ===
@@ -383,11 +383,6 @@ function GranvilleContent() {
                 除外ルール該当: {b4Entry.excluded_rules.join(', ')}
               </div>
             )}
-            {b4Entry.weekday_warning && (
-              <div className="mx-4 mb-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 text-sm">
-                金曜シグナル注意: PF1.89（他曜日の半分）。週末リスクあり。
-              </div>
-            )}
 
             {b4Entry.selected.length > 0 && (
               <>
@@ -634,61 +629,6 @@ function GranvilleContent() {
         {/* Stats */}
         {stats && stats.total_trades > 0 && (
           <>
-            {/* Rule Performance */}
-            {Object.keys(stats.by_rule).length > 0 && (
-              <Panel title={
-                <div className="flex items-center justify-between">
-                  <h2 className="text-base md:text-lg font-semibold text-foreground">ルール別パフォーマンス ({fmt(stats.total_trades)}トレード)</h2>
-                  <div className="flex items-center gap-1 text-xs">
-                    <button type="button" onClick={() => setStatsMode('expected')}
-                      className={`px-2.5 py-1 rounded-l border ${statsMode === 'expected' ? 'bg-primary/20 text-primary border-primary/40' : 'border-border/40 text-muted-foreground hover:text-foreground'}`}>想定</button>
-                    <button type="button" onClick={() => setStatsMode('actual')}
-                      className={`px-2.5 py-1 rounded-r border border-l-0 ${statsMode === 'actual' ? 'bg-primary/20 text-primary border-primary/40' : 'border-border/40 text-muted-foreground hover:text-foreground'}`}>実際</button>
-                  </div>
-                </div>
-              }>
-                {statsMode === 'actual' && (
-                  <div className="px-4 md:px-5 py-2 text-xs text-muted-foreground bg-muted/5 border-b border-border/20">
-                    エントリー済みチェック: {entryChecks.checked.size}件 / 決済済みチェック: {exitChecks.checked.size}件で集計
-                  </div>
-                )}
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead><tr className="text-muted-foreground border-b border-border/30 bg-muted/10">
-                      <th className="text-center px-4 py-2.5 text-xs font-medium">ルール</th>
-                      <th className="text-left px-3 py-2.5 text-xs font-medium hidden md:table-cell">名称</th>
-                      <th className="text-right px-4 py-2.5 text-xs font-medium">件数</th>
-                      <th className="text-right px-4 py-2.5 text-xs font-medium">勝率</th>
-                      <th className="text-right px-4 py-2.5 text-xs font-medium">平均%</th>
-                      <th className="text-right px-4 py-2.5 text-xs font-medium">合計PnL</th>
-                      <th className="text-right px-4 py-2.5 text-xs font-medium">平均PnL</th>
-                      <th className="text-right px-4 py-2.5 text-xs font-medium hidden md:table-cell">高値更新</th>
-                      <th className="text-right px-4 py-2.5 text-xs font-medium hidden md:table-cell">MAX_HOLD</th>
-                    </tr></thead>
-                    <tbody>
-                      {['B4', 'B1', 'B3', 'B2'].map(rule => {
-                        const s = stats.by_rule[rule];
-                        if (!s || s.count === 0) return null;
-                        return (
-                          <tr key={rule} className="border-b border-border/20 hover:bg-muted/5">
-                            <td className="px-4 py-2.5 text-center"><RuleBadge rule={rule} /></td>
-                            <td className="px-3 py-2.5 text-muted-foreground hidden md:table-cell">{ruleLabel(rule)}</td>
-                            <td className="px-4 py-2.5 text-right tabular-nums">{fmt(s.count)}</td>
-                            <td className={`px-4 py-2.5 text-right tabular-nums font-semibold ${s.win_rate >= 55 ? 'text-emerald-400' : s.win_rate >= 45 ? 'text-amber-400' : 'text-rose-400'}`}>{s.win_rate.toFixed(1)}%</td>
-                            <td className={`px-4 py-2.5 text-right tabular-nums ${s.avg_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{fmtPct(s.avg_pct, 2)}</td>
-                            <td className="px-4 py-2.5 text-right tabular-nums">{fmtPnl(s.total_pnl)}</td>
-                            <td className="px-4 py-2.5 text-right tabular-nums">{fmtPnl(s.avg_pnl)}</td>
-                            <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground hidden md:table-cell">{s.exit_high_update}</td>
-                            <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground hidden md:table-cell">{s.exit_max_hold}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </Panel>
-            )}
-
             {/* Monthly PnL */}
             {stats.monthly.length > 0 && (
               <Panel title={
