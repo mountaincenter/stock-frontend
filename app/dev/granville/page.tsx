@@ -513,7 +513,7 @@ function GranvilleContent() {
                   </div>
                   <div className="flex items-center justify-between text-xs mt-1 text-muted-foreground/60">
                     <span>{p.entry_date || '-'} ({p.hold_days}日 / MH{p.max_hold || 15})</span>
-                    <span className="text-amber-400 font-semibold">発火ライン: {p.high_20d > 0 ? `¥${fmt(p.high_20d)}` : '-'}</span>
+                    <span className="text-amber-400 font-semibold">発火ライン: {p.high_20d > 0 ? `¥${fmt(Math.round(p.high_20d))}` : '-'}</span>
                   </div>
                   {p.hold_days >= (p.max_hold || 15) ? (
                     <div className="mt-1 px-2 py-1 rounded bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold">→ MH到達: 翌朝寄付で損切り</div>
@@ -559,7 +559,7 @@ function GranvilleContent() {
                       <td className="px-4 py-2.5 text-right tabular-nums">{p.hold_days}/{p.max_hold || 15}</td>
                       <td className="px-4 py-2.5 text-right tabular-nums">¥{fmt(p.entry_price)}</td>
                       <td className="px-4 py-2.5 text-right tabular-nums">¥{fmt(p.current_price)}</td>
-                      <td className={`px-4 py-2.5 text-right tabular-nums font-semibold ${p.high_20d > 0 ? 'text-amber-400' : 'text-muted-foreground'}`}>{p.high_20d > 0 ? `¥${fmt(p.high_20d)}` : '-'}</td>
+                      <td className={`px-4 py-2.5 text-right tabular-nums font-semibold ${p.high_20d > 0 ? 'text-amber-400' : 'text-muted-foreground'}`}>{p.high_20d > 0 ? `¥${fmt(Math.round(p.high_20d))}` : '-'}</td>
                       <td className={`px-4 py-2.5 text-right tabular-nums ${p.unrealized_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{fmtPct(p.unrealized_pct, 2)}</td>
                       <td className="px-4 py-2.5 text-right tabular-nums">{fmtPnl(p.unrealized_yen)}</td>
                       <td className="px-4 py-2.5 text-center">
@@ -611,7 +611,7 @@ function GranvilleContent() {
                         <td className="px-4 py-2.5 max-w-[140px] truncate">{s.stock_name}</td>
                         <td className="px-4 py-2.5 text-muted-foreground hidden md:table-cell">{s.sector}</td>
                         <td className="px-4 py-2.5 text-right tabular-nums">¥{fmt(s.close)}</td>
-                        <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground hidden md:table-cell">¥{fmt(s.sma20)}</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground hidden md:table-cell">¥{fmt(Math.round(s.sma20))}</td>
                         <td className={`px-4 py-2.5 text-right tabular-nums ${s.dev_from_sma20 < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>{fmtPct(s.dev_from_sma20, 2)}</td>
                         <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground hidden md:table-cell">{s.sma20_slope.toFixed(1)}</td>
                       </tr>
