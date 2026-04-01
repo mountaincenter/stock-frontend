@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
- 
+
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -82,13 +82,13 @@ const WEEKDAY_SLUG_MAP: Record<string, number> = {
 };
 const PRICE_RANGE_LABELS = ['~1,000円', '1,000~3,000円', '3,000~5,000円', '5,000~10,000円', '10,000円~'];
 const MARGIN_TYPES = ['制度信用', 'いちにち信用'];
-const GRADE_LABELS = ['G1', 'G2', 'G3', 'G4'] as const;
+const GRADE_SECTIONS = ['全体', 'G1', 'G2', 'G3', 'G4'] as const;
 
 type DisplayMode = 'amount' | 'pct';
 type SegmentMode = '4seg' | '11seg';
 type FilterType = 'all' | 'ex0';
 
-// ===== Helpers (from analysis-custom) =====
+// ===== Helpers =====
 function percentile(arr: number[], p: number): number {
   if (arr.length === 0) return 0;
   const sorted = [...arr].sort((a, b) => a - b);
@@ -102,10 +102,6 @@ function percentile(arr: number[], p: number): number {
 function fmt(v: number): string {
   if (Math.abs(v) >= 10000) return `${(v / 10000).toFixed(1)}万`;
   return v.toLocaleString();
-}
-
-function fmtPct(v: number): string {
-  return `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`;
 }
 
 const formatProfit = (val: number) => {
@@ -145,6 +141,74 @@ const getSegmentClasses = (
 const winrateClass = (rate: number) =>
   rate > 50 ? 'text-emerald-400' : rate < 50 ? 'text-rose-400' : 'text-foreground';
 
+// filteredStocksからサマリーテーブル用の集計を行う
+function aggregateStocks(
+  stocks: DetailStock[],
+  timeSegments: TimeSegment[],
+) {
+  const buildMarginGroup = (marginType: string, filterEx0 = false) => {
+    let filtered = stocks.filter(s => s.marginType === marginType);
+    if (filterEx0) filtered = filtered.filter(s => (s.shares ?? 0) > 0);
+    const count = filtered.length;
+
+    const computeSegStats = (items: DetailStock[]): Record<string, SegmentStats> => {
+      const result: Record<string, SegmentStats> = {};
+      for (const seg of timeSegments) {
+        const vals = items.map(s => s.segments[seg.key]).filter((v): v is number => v !== null);
+        const profit = vals.reduce((a, b) => a + b, 0);
+        const wins = vals.filter(v => v > 0).length;
+        result[seg.key] = {
+          profit,
+          winRate: vals.length > 0 ? (wins / vals.length) * 100 : 0,
+          count: vals.length,
+          mean: vals.length > 0 ? profit / vals.length : 0,
+        };
+      }
+      return result;
+    };
+
+    const computeSegStatsPct = (items: DetailStock[]): Record<string, SegmentStatsPct> => {
+      const result: Record<string, SegmentStatsPct> = {};
+      for (const seg of timeSegments) {
+        const vals = items
+          .filter(s => s.segments[seg.key] !== null && s.buyPrice && s.buyPrice > 0)
+          .map(s => ((s.segments[seg.key]! / (s.buyPrice! * (s.shares ?? 100))) * 100));
+        const pctReturn = vals.reduce((a, b) => a + b, 0);
+        const wins = vals.filter(v => v > 0).length;
+        result[seg.key] = {
+          pctReturn,
+          winRate: vals.length > 0 ? (wins / vals.length) * 100 : 0,
+          count: vals.length,
+          meanPct: vals.length > 0 ? pctReturn / vals.length : 0,
+        };
+      }
+      return result;
+    };
+
+    const segments = computeSegStats(filtered);
+    const pctSegments = computeSegStatsPct(filtered);
+
+    // 価格帯別
+    const priceRanges = PRICE_RANGE_LABELS.map(pr => {
+      const prItems = filtered.filter(s => s.priceRange === pr);
+      return {
+        label: pr,
+        count: prItems.length,
+        segments: computeSegStats(prItems),
+        pctSegments: computeSegStatsPct(prItems),
+      };
+    }).filter(pr => pr.count > 0);
+
+    return { count, segments, pctSegments, priceRanges };
+  };
+
+  return {
+    seido: buildMarginGroup('制度信用'),
+    ichinichiAll: buildMarginGroup('いちにち信用', false),
+    ichinichiEx0: buildMarginGroup('いちにち信用', true),
+  };
+}
+
 // ===== Component =====
 export default function WeekdayAnalysisPage() {
   const params = useParams();
@@ -158,17 +222,33 @@ export default function WeekdayAnalysisPage() {
 
   // Filters
   const [excludeExtreme, setExcludeExtreme] = useState(false);
-  const [selectedGrades, setSelectedGrades] = useState<Set<string>>(new Set());
   const [selectedPriceRanges, setSelectedPriceRanges] = useState<Set<string>>(new Set(PRICE_RANGE_LABELS));
   const [selectedMarginTypes, setSelectedMarginTypes] = useState<Set<string>>(new Set(MARGIN_TYPES));
-  const [displayMode, setDisplayMode] = useState<'amount' | 'pct'>('amount');
-  const [segmentMode, setSegmentMode] = useState<'4seg' | '11seg'>('11seg');
-  const [gradesAvailable, setGradesAvailable] = useState(false);
+  const [displayMode, setDisplayMode] = useState<DisplayMode>('amount');
+  const [segmentMode] = useState<SegmentMode>('11seg');
   const [summaryData, setSummaryData] = useState<SummaryResponse | null>(null);
-  const [ichFilter, setIchFilter] = useState<'all' | 'ex0'>('all');
-  const [ichChartFilter, setIchChartFilter] = useState<'all' | 'ex0'>('all');
+  const [ichFilter, setIchFilter] = useState<FilterType>('all');
+  const [ichChartFilter, setIchChartFilter] = useState<FilterType>('all');
 
-  // Fetch data (gradesなしで全データ取得、クライアントでフィルタリング)
+  // アコーディオン state
+  const [openSections, setOpenSections] = useState<Set<string>>(new Set(['全体']));
+  const toggleSection = (key: string) => {
+    setOpenSections(prev => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  };
+  const allOpen = openSections.size === GRADE_SECTIONS.length;
+  const toggleAll = () => {
+    if (allOpen) {
+      setOpenSections(new Set());
+    } else {
+      setOpenSections(new Set(GRADE_SECTIONS));
+    }
+  };
+
+  // Fetch data
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -183,10 +263,6 @@ export default function WeekdayAnalysisPage() {
       if (!detailRes.ok) throw new Error(`API error: ${detailRes.status}`);
       const detailJson: DetailResponse = await detailRes.json();
       setData(detailJson);
-
-      // mlGradeの有無をdetailデータから判定
-      const hasGrades = detailJson.results.some(r => r.stocks.some(s => s.mlGrade !== null));
-      setGradesAvailable(hasGrades);
 
       if (summaryRes.ok) {
         const summaryJson: SummaryResponse = await summaryRes.json();
@@ -207,21 +283,42 @@ export default function WeekdayAnalysisPage() {
     return data.results.find(r => r.key === WEEKDAYS[selectedDay]) || null;
   }, [data, selectedDay]);
 
-  // Filter stocks
+  // Filter stocks (no grade filter — grade is handled per section)
   const filteredStocks = useMemo(() => {
     if (!weekdayGroup) return [];
     return weekdayGroup.stocks.filter(s => {
       if (!selectedPriceRanges.has(s.priceRange)) return false;
       if (!selectedMarginTypes.has(s.marginType)) return false;
-      if (selectedGrades.size > 0 && !selectedGrades.has(s.mlGrade || '')) return false;
       return true;
     });
-  }, [weekdayGroup, selectedPriceRanges, selectedMarginTypes, selectedGrades]);
+  }, [weekdayGroup, selectedPriceRanges, selectedMarginTypes]);
 
   const segments = data?.timeSegments || [];
+  const timeSegments = useMemo(() => {
+    if (!summaryData) return segments;
+    return segmentMode === '11seg' ? summaryData.timeSegments11 : summaryData.timeSegments4;
+  }, [summaryData, segmentMode, segments]);
 
-  // ===== Pareto data (P&L contribution at selected segment) =====
-  const [paretoSegIdx, setParetoSegIdx] = useState(4); // default: seg_1130 (前場引け)
+  // グレード別に銘柄を分類
+  const stocksByGrade = useMemo(() => {
+    const result: Record<string, DetailStock[]> = { '全体': filteredStocks };
+    for (const g of ['G1', 'G2', 'G3', 'G4']) {
+      result[g] = filteredStocks.filter(s => s.mlGrade === g);
+    }
+    return result;
+  }, [filteredStocks]);
+
+  // グレード別の集計
+  const aggregationByGrade = useMemo(() => {
+    const result: Record<string, ReturnType<typeof aggregateStocks>> = {};
+    for (const key of GRADE_SECTIONS) {
+      result[key] = aggregateStocks(stocksByGrade[key] || [], timeSegments);
+    }
+    return result;
+  }, [stocksByGrade, timeSegments]);
+
+  // ===== Pareto data =====
+  const [paretoSegIdx, setParetoSegIdx] = useState(4);
   const paretoData = useMemo(() => {
     const segKey = segments[paretoSegIdx]?.key;
     if (!segKey) return [];
@@ -235,24 +332,22 @@ export default function WeekdayAnalysisPage() {
       }))
       .sort((a, b) => b.pnl - a.pnl);
 
-    const totalPnl = items.reduce((sum, i) => sum + Math.abs(i.pnl), 0);
-    let cumAbs = 0;
-
+    const totalPositive = items.filter(i => i.pnl > 0).reduce((a, i) => a + i.pnl, 0);
+    let cumulative = 0;
     return items.map((item, idx) => {
-      cumAbs += Math.abs(item.pnl);
+      cumulative += item.pnl;
       return {
         ...item,
         rank: idx + 1,
-        cumPct: totalPnl > 0 ? (cumAbs / totalPnl) * 100 : 0,
+        cumPct: totalPositive > 0 ? (cumulative / totalPositive) * 100 : 0,
       };
     });
-  }, [segments, filteredStocks, paretoSegIdx]);
+  }, [filteredStocks, segments, paretoSegIdx]);
 
-  // ===== Render =====
-  if (loading && !data) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-background p-6 flex items-center justify-center">
-        <div className="text-muted-foreground">読み込み中...</div>
+        <div className="text-muted-foreground">データ読み込み中...</div>
       </div>
     );
   }
@@ -266,6 +361,159 @@ export default function WeekdayAnalysisPage() {
   }
 
   const stockCount = filteredStocks.length;
+
+  // ===== サマリーテーブル描画関数 =====
+  const renderGradeSection = (gradeKey: string) => {
+    const agg = aggregationByGrade[gradeKey];
+    if (!agg) return null;
+    const stocks = stocksByGrade[gradeKey] || [];
+    if (stocks.length === 0) return null;
+
+    const ichData = ichFilter === 'ex0' ? agg.ichinichiEx0 : agg.ichinichiAll;
+
+    const getSegs = (segs: Record<string, SegmentStats>, pctSegs: Record<string, SegmentStatsPct>) =>
+      displayMode === 'amount' ? segs : pctSegs;
+
+    const seidoSegs = getSegs(agg.seido.segments, agg.seido.pctSegments);
+    const ichiSegs = getSegs(ichData.segments, ichData.pctSegments);
+
+    const renderSummaryRow = (segs: Record<string, SegmentStats | SegmentStatsPct>) => {
+      const classes = getSegmentClasses(segs, timeSegments, displayMode);
+      return (
+        <div className="overflow-x-auto mb-3 pb-3 border-b border-border/30">
+          <div className="flex justify-end gap-5 min-w-[900px]">
+            {timeSegments.map(seg => {
+              const stats = segs[seg.key];
+              const value = displayMode === 'amount'
+                ? (stats as SegmentStats)?.profit ?? 0
+                : (stats as SegmentStatsPct)?.meanPct ?? 0;
+              return (
+                <div key={seg.key} className="text-right min-w-[70px]">
+                  <div className="text-muted-foreground text-sm">{seg.label}</div>
+                  <div className={`text-xl font-bold tabular-nums ${classes[seg.key]}`}>
+                    {displayMode === 'amount' ? formatProfit(value) : formatPctLabel(value)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    };
+
+    const renderPriceTable = (priceRanges: { label: string; count: number; segments: Record<string, SegmentStats>; pctSegments: Record<string, SegmentStatsPct> }[]) => (
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[900px]">
+          <thead>
+            <tr className="text-muted-foreground text-sm border-b border-border/30">
+              <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">価格帯</th>
+              <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">件</th>
+              {timeSegments.map(seg => (
+                <th key={seg.key} className="text-right px-2 py-2.5 font-medium whitespace-nowrap">{seg.label}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {priceRanges.map(pr => {
+              const prSegs = getSegs(pr.segments, pr.pctSegments);
+              const classes = getSegmentClasses(prSegs, timeSegments, displayMode);
+              return (
+                <tr key={pr.label} className="border-b border-border/20">
+                  <td className="text-right px-2 py-2.5 tabular-nums text-foreground whitespace-nowrap">{pr.label}</td>
+                  <td className="text-right px-2 py-2.5 tabular-nums text-foreground">{pr.count}</td>
+                  {timeSegments.map(seg => {
+                    const stats = prSegs[seg.key];
+                    const value = displayMode === 'amount'
+                      ? (stats as SegmentStats)?.profit ?? 0
+                      : (stats as SegmentStatsPct)?.meanPct ?? 0;
+                    const winRate = (stats as SegmentStats)?.winRate ?? (stats as SegmentStatsPct)?.winRate ?? 0;
+                    return (
+                      <td key={seg.key} className="text-right px-2 py-2.5">
+                        <div className={`tabular-nums whitespace-nowrap ${classes[seg.key]}`}>
+                          {displayMode === 'amount' ? formatProfit(value) : formatPctLabel(value)}
+                        </div>
+                        <div className={`text-xs ${winrateClass(winRate)}`}>{Math.round(winRate)}%</div>
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+
+    const isOpen = openSections.has(gradeKey);
+
+    return (
+      <div key={gradeKey} className="mb-3">
+        {/* アコーディオンヘッダー */}
+        <button
+          onClick={() => toggleSection(gradeKey)}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-border/40 bg-card/80 hover:bg-card transition-colors"
+        >
+          <span className={`text-xs transition-transform ${isOpen ? 'rotate-90' : ''}`}>▶</span>
+          <span className="font-semibold text-foreground">{gradeKey}</span>
+          <span className="text-sm text-muted-foreground">{stocks.length}件</span>
+          {agg.seido.count > 0 && (
+            <span className="text-xs text-muted-foreground">制度{agg.seido.count}</span>
+          )}
+          {agg.ichinichiAll.count > 0 && (
+            <span className="text-xs text-muted-foreground">いちにち{agg.ichinichiAll.count}</span>
+          )}
+        </button>
+
+        {isOpen && (
+          <div className="mt-2 space-y-4">
+            {/* 制度信用 */}
+            {agg.seido.count > 0 && (
+              <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+                <div className="relative">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="font-semibold text-lg text-foreground">制度信用</span>
+                    <span className="text-muted-foreground text-base">{agg.seido.count}件</span>
+                  </div>
+                  {renderSummaryRow(seidoSegs)}
+                  {renderPriceTable(agg.seido.priceRanges)}
+                </div>
+              </div>
+            )}
+
+            {/* いちにち信用 */}
+            {agg.ichinichiAll.count > 0 && (
+              <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+                <div className="relative">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="font-semibold text-lg text-foreground">いちにち信用</span>
+                    <span className="text-muted-foreground text-base">{ichData.count}件</span>
+                    <div className="flex gap-1 ml-auto">
+                      <button
+                        onClick={() => setIchFilter('all')}
+                        className={`px-2.5 py-1 text-sm rounded border transition-colors ${
+                          ichFilter === 'all' ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
+                        }`}
+                      >全数</button>
+                      <button
+                        onClick={() => setIchFilter('ex0')}
+                        className={`px-2.5 py-1 text-sm rounded border transition-colors ${
+                          ichFilter === 'ex0' ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
+                        }`}
+                      >除0株</button>
+                    </div>
+                  </div>
+                  {renderSummaryRow(ichiSegs)}
+                  {renderPriceTable(ichData.priceRanges)}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground p-4 max-w-[1600px] mx-auto">
@@ -281,10 +529,10 @@ export default function WeekdayAnalysisPage() {
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             {/* 曜日タブ */}
-            {(['mon', 'tue', 'wed', 'thu', 'fri'] as const).map((slug, i) => (
+            {(['mon', 'tue', 'wed', 'thu', 'fri'] as const).map((s, i) => (
               <Link
-                key={slug}
-                href={`/dev/analysis/${slug}`}
+                key={s}
+                href={`/dev/analysis/${s}`}
                 className={`px-3 py-1 text-xs rounded-md border transition-colors ${
                   selectedDay === i
                     ? 'bg-primary text-primary-foreground border-primary'
@@ -312,41 +560,13 @@ export default function WeekdayAnalysisPage() {
               />
               <span className="text-xs text-amber-400">異常日除外</span>
             </label>
-            {/* Grade */}
-            {gradesAvailable && (
-              <>
-                <span className="text-border">|</span>
-                <div className="flex items-center gap-1">
-                  <span className="text-xs text-muted-foreground">Grade:</span>
-                  {GRADE_LABELS.map((g) => (
-                    <label key={g} className="flex items-center gap-0.5 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={selectedGrades.has(g)}
-                        onChange={() => {
-                          setSelectedGrades(prev => {
-                            const next = new Set(prev);
-                            next.has(g) ? next.delete(g) : next.add(g);
-                            return next;
-                          });
-                        }}
-                        className="w-3 h-3 rounded border-cyan-500/50 bg-muted/30 text-cyan-500"
-                      />
-                      <span className={`text-xs ${selectedGrades.has(g) ? 'text-cyan-400' : 'text-muted-foreground'}`}>{g}</span>
-                    </label>
-                  ))}
-                </div>
-              </>
-            )}
             <span className="text-border">|</span>
             <Link href="/dev/analysis" className="text-xs text-muted-foreground hover:text-foreground">
               ← Analysis
             </Link>
-            <DevNavLinks />
+            <DevNavLinks className="ml-2" />
           </div>
         </div>
-
-        {/* Sub filters */}
         <div className="flex flex-wrap gap-2 mt-2">
           {/* 信用区分 */}
           <div className="flex items-center gap-1">
@@ -398,232 +618,26 @@ export default function WeekdayAnalysisPage() {
         </div>
       </header>
 
-      {/* ===== Summary Table (same as analysis-custom) ===== */}
-      {summaryData && (() => {
-        const wd = summaryData.weekdays[selectedDay];
-        if (!wd) return null;
-        const timeSegments = segmentMode === '11seg' ? summaryData.timeSegments11 : summaryData.timeSegments4;
+      {/* ===== Grade別サマリーテーブル（アコーディオン） ===== */}
+      <div className="mb-4">
+        <div className="flex items-center gap-2 mb-2">
+          <button
+            onClick={toggleAll}
+            className="px-2.5 py-1 text-xs rounded border border-border/40 bg-muted/30 text-muted-foreground hover:bg-muted/50 transition-colors"
+          >
+            {allOpen ? '全て閉じる' : '全て開く'}
+          </button>
+        </div>
+        {GRADE_SECTIONS.map(g => renderGradeSection(g))}
+      </div>
 
-        const getSegmentsData = (
-          data11: Record<string, SegmentStats>, data4: Record<string, SegmentStats>,
-          pct11: Record<string, SegmentStatsPct>, pct4: Record<string, SegmentStatsPct>
-        ) => displayMode === 'amount' ? (segmentMode === '11seg' ? data11 : data4) : (segmentMode === '11seg' ? pct11 : pct4);
-
-        const seidoSegs = getSegmentsData(wd.seido.segments11, wd.seido.segments4, wd.seido.pctSegments11, wd.seido.pctSegments4);
-        const ichiSegs = getSegmentsData(
-          ichFilter === 'ex0' ? wd.ichinichi.segments11.ex0 : wd.ichinichi.segments11.all,
-          ichFilter === 'ex0' ? wd.ichinichi.segments4.ex0 : wd.ichinichi.segments4.all,
-          ichFilter === 'ex0' ? wd.ichinichi.pctSegments11.ex0 : wd.ichinichi.pctSegments11.all,
-          ichFilter === 'ex0' ? wd.ichinichi.pctSegments4.ex0 : wd.ichinichi.pctSegments4.all,
-        );
-        const ichiPriceRanges = ichFilter === 'ex0' ? wd.ichinichi.priceRanges.ex0 : wd.ichinichi.priceRanges.all;
-        const ichiCount = ichFilter === 'ex0' ? wd.ichinichi.count.ex0 : wd.ichinichi.count.all;
-
-        return (
-          <div className="mb-4">
-            <div className="grid grid-cols-1 gap-4">
-              {/* Seido Card */}
-              <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
-                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
-                <div className="relative">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="font-semibold text-lg text-foreground">制度信用</span>
-                    <span className="text-muted-foreground text-base">{wd.seido.count}件</span>
-                  </div>
-                  {/* Summary row */}
-                  <div className="overflow-x-auto mb-3 pb-3 border-b border-border/30">
-                    <div className="flex justify-end gap-5 min-w-[900px]">
-                      {(() => {
-                        const classes = getSegmentClasses(seidoSegs, timeSegments, displayMode);
-                        return timeSegments.map(seg => {
-                          const stats = seidoSegs[seg.key];
-                          const value = displayMode === 'amount'
-                            ? (stats as SegmentStats)?.profit ?? 0
-                            : (stats as SegmentStatsPct)?.meanPct ?? 0;
-                          return (
-                            <div key={seg.key} className="text-right min-w-[70px]">
-                              <div className="text-muted-foreground text-sm">{seg.label}</div>
-                              <div className={`text-xl font-bold tabular-nums ${classes[seg.key]}`}>
-                                {displayMode === 'amount' ? formatProfit(value) : formatPctLabel(value)}
-                              </div>
-                            </div>
-                          );
-                        });
-                      })()}
-                    </div>
-                  </div>
-                  {/* Price range table */}
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm min-w-[900px]">
-                      <thead>
-                        <tr className="text-muted-foreground text-sm border-b border-border/30">
-                          <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">価格帯</th>
-                          <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">件</th>
-                          {timeSegments.map(seg => (
-                            <th key={seg.key} className="text-right px-2 py-2.5 font-medium whitespace-nowrap">{seg.label}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {wd.seido.priceRanges.map(pr => {
-                          const prSegs = getSegmentsData(pr.segments11, pr.segments4, pr.pctSegments11, pr.pctSegments4);
-                          const classes = getSegmentClasses(prSegs, timeSegments, displayMode);
-                          return (
-                            <tr key={pr.label} className="border-b border-border/20">
-                              <td className="text-right px-2 py-2.5 tabular-nums text-foreground whitespace-nowrap">{pr.label}</td>
-                              <td className="text-right px-2 py-2.5 tabular-nums text-foreground">{pr.count}</td>
-                              {timeSegments.map(seg => {
-                                const stats = prSegs[seg.key];
-                                const value = displayMode === 'amount'
-                                  ? (stats as SegmentStats)?.profit ?? 0
-                                  : (stats as SegmentStatsPct)?.meanPct ?? 0;
-                                const winRate = stats?.winRate ?? 0;
-                                return (
-                                  <td key={seg.key} className="text-right px-2 py-2.5">
-                                    <div className={`tabular-nums whitespace-nowrap ${classes[seg.key]}`}>
-                                      {displayMode === 'amount' ? formatProfit(value) : formatPctLabel(value)}
-                                    </div>
-                                    <div className={`text-xs ${winrateClass(winRate)}`}>{Math.round(winRate)}%</div>
-                                  </td>
-                                );
-                              })}
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-
-              {/* Ichinichi Card */}
-              <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
-                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
-                <div className="relative">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="font-semibold text-lg text-foreground">いちにち信用</span>
-                    <span className="text-muted-foreground text-base">{ichiCount}件</span>
-                    <div className="flex gap-1 ml-auto">
-                      <button
-                        onClick={() => setIchFilter('all')}
-                        className={`px-2.5 py-1 text-sm rounded border transition-colors ${
-                          ichFilter === 'all' ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
-                        }`}
-                      >全数</button>
-                      <button
-                        onClick={() => setIchFilter('ex0')}
-                        className={`px-2.5 py-1 text-sm rounded border transition-colors ${
-                          ichFilter === 'ex0' ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
-                        }`}
-                      >除0株</button>
-                    </div>
-                  </div>
-                  {/* Summary row */}
-                  <div className="overflow-x-auto mb-3 pb-3 border-b border-border/30">
-                    <div className="flex justify-end gap-5 min-w-[900px]">
-                      {(() => {
-                        const classes = getSegmentClasses(ichiSegs, timeSegments, displayMode);
-                        return timeSegments.map(seg => {
-                          const stats = ichiSegs[seg.key];
-                          const value = displayMode === 'amount'
-                            ? (stats as SegmentStats)?.profit ?? 0
-                            : (stats as SegmentStatsPct)?.meanPct ?? 0;
-                          return (
-                            <div key={seg.key} className="text-right min-w-[70px]">
-                              <div className="text-muted-foreground text-sm">{seg.label}</div>
-                              <div className={`text-xl font-bold tabular-nums ${classes[seg.key]}`}>
-                                {displayMode === 'amount' ? formatProfit(value) : formatPctLabel(value)}
-                              </div>
-                            </div>
-                          );
-                        });
-                      })()}
-                    </div>
-                  </div>
-                  {/* Price range table */}
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm min-w-[900px]">
-                      <thead>
-                        <tr className="text-muted-foreground text-sm border-b border-border/30">
-                          <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">価格帯</th>
-                          <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">件</th>
-                          {timeSegments.map(seg => (
-                            <th key={seg.key} className="text-right px-2 py-2.5 font-medium whitespace-nowrap">{seg.label}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {ichiPriceRanges.map(pr => {
-                          const prSegs = getSegmentsData(pr.segments11, pr.segments4, pr.pctSegments11, pr.pctSegments4);
-                          const classes = getSegmentClasses(prSegs, timeSegments, displayMode);
-                          return (
-                            <tr key={pr.label} className="border-b border-border/20">
-                              <td className="text-right px-2 py-2.5 tabular-nums text-foreground whitespace-nowrap">{pr.label}</td>
-                              <td className="text-right px-2 py-2.5 tabular-nums text-foreground">{pr.count}</td>
-                              {timeSegments.map(seg => {
-                                const stats = prSegs[seg.key];
-                                const value = displayMode === 'amount'
-                                  ? (stats as SegmentStats)?.profit ?? 0
-                                  : (stats as SegmentStatsPct)?.meanPct ?? 0;
-                                const winRate = stats?.winRate ?? 0;
-                                return (
-                                  <td key={seg.key} className="text-right px-2 py-2.5">
-                                    <div className={`tabular-nums whitespace-nowrap ${classes[seg.key]}`}>
-                                      {displayMode === 'amount' ? formatProfit(value) : formatPctLabel(value)}
-                                    </div>
-                                    <div className={`text-xs ${winrateClass(winRate)}`}>{Math.round(winRate)}%</div>
-                                  </td>
-                                );
-                              })}
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* ===== Charts: 制度信用 ===== */}
+      {/* ===== Charts: 制度信用 / いちにち信用 分布 ===== */}
       {summaryData && (() => {
         const wd = summaryData.weekdays[selectedDay];
         if (!wd) return null;
         const tSegs = segmentMode === '11seg' ? summaryData.timeSegments11 : summaryData.timeSegments4;
 
-        const getSegs = (s11: Record<string, SegmentStats>, s4: Record<string, SegmentStats>,
-                         p11: Record<string, SegmentStatsPct>, p4: Record<string, SegmentStatsPct>) =>
-          displayMode === 'amount' ? (segmentMode === '11seg' ? s11 : s4) : (segmentMode === '11seg' ? p11 : p4);
-
-        const seidoSegs = getSegs(wd.seido.segments11, wd.seido.segments4, wd.seido.pctSegments11, wd.seido.pctSegments4);
-
-        // テーブルと同じデータからチャートデータを作成
-        const buildChartData = (segs: Record<string, SegmentStats | SegmentStatsPct>, priceRanges: PriceRangeData[]) => {
-          return tSegs.map(seg => {
-            const stats = segs[seg.key];
-            const value = displayMode === 'amount'
-              ? (stats as SegmentStats)?.profit ?? 0
-              : (stats as SegmentStatsPct)?.meanPct ?? 0;
-            const winRate = stats?.winRate ?? 0;
-
-            // 価格帯別内訳
-            const byPR: Record<string, number> = {};
-            priceRanges.forEach(pr => {
-              const prSegs = getSegs(pr.segments11, pr.segments4, pr.pctSegments11, pr.pctSegments4);
-              const prStats = prSegs[seg.key];
-              byPR[pr.label] = displayMode === 'amount'
-                ? (prStats as SegmentStats)?.profit ?? 0
-                : (prStats as SegmentStatsPct)?.meanPct ?? 0;
-            });
-
-            return { time: seg.label, value, winRate, ...byPR };
-          });
-        };
-
-        // 個別銘柄データから分布を計算（信用区分×価格帯別）
+        // 個別銘柄データから分布を計算
         const buildDistribution = (marginType: string, filterFn?: (s: DetailStock) => boolean) => {
           const stocks = filteredStocks.filter(s => {
             if (s.marginType !== marginType) return false;
@@ -631,7 +645,6 @@ export default function WeekdayAnalysisPage() {
             return true;
           });
 
-          // 価格帯別に分布を計算
           const priceRangeGroups = PRICE_RANGE_LABELS.map(pr => {
             const prStocks = stocks.filter(s => s.priceRange === pr);
             const segData = tSegs.map(seg => {
@@ -654,7 +667,6 @@ export default function WeekdayAnalysisPage() {
             return { label: pr, count: prStocks.length, data: segData };
           }).filter(g => g.count > 0);
 
-          // 全体の分布
           const allSegData = tSegs.map(seg => {
             const values = stocks
               .map(s => s.segments[seg.key])
@@ -673,11 +685,8 @@ export default function WeekdayAnalysisPage() {
             };
           });
 
-          // 価格帯ごとの全時間帯まとめた分布（箱ひげ1本ずつ）
           const summaryByPR = PRICE_RANGE_LABELS.map(pr => {
             const prStocks = stocks.filter(s => s.priceRange === pr);
-            // 全時間帯の全値を1つにまとめる（銘柄×セグメントのフラット配列）
-            // ここでは「最終損益（最後のseg）」を代表値とする
             const lastSegKey = tSegs[tSegs.length - 1]?.key;
             const values = prStocks
               .map(s => lastSegKey ? s.segments[lastSegKey] : null)
@@ -710,13 +719,12 @@ export default function WeekdayAnalysisPage() {
         const tooltipItemStyle = { color: '#fafafa', fontSize: 13 };
 
         const bandColors = {
-          p90: 'rgba(251,113,133,0.35)',   // 即利確ゾーン
-          q3:  'rgba(251,191,36,0.25)',     // 利確検討ゾーン
-          median: 'rgba(255,255,255,0.1)', // 平均的ゾーン
-          q1:  'rgba(96,165,250,0.2)',     // 静観ゾーン
+          p90: 'rgba(251,113,133,0.35)',
+          q3:  'rgba(251,191,36,0.25)',
+          median: 'rgba(255,255,255,0.1)',
+          q1:  'rgba(96,165,250,0.2)',
         };
 
-         
         type DistSegData = typeof seidoDist.all;
 
         const renderDistChart = (segData: DistSegData, _label: string) => (
@@ -737,13 +745,11 @@ export default function WeekdayAnalysisPage() {
                     return [`¥${formatProfit(Math.round(value))}`, name];
                   }}
                 />
-                {/* 分布バンド: P10-P90 */}
                 <Bar yAxisId="val" dataKey="p10" stackId="band" fill="transparent" />
                 <Bar yAxisId="val" dataKey={(d: DistSegData[0]) => d.q1 - d.p10} stackId="band" fill={bandColors.q1} name="P10-Q1（損切り検討）" />
                 <Bar yAxisId="val" dataKey={(d: DistSegData[0]) => d.median - d.q1} stackId="band" fill={bandColors.median} name="Q1-中央値（静観）" />
                 <Bar yAxisId="val" dataKey={(d: DistSegData[0]) => d.q3 - d.median} stackId="band" fill={bandColors.q3} name="中央値-Q3（利確検討）" />
                 <Bar yAxisId="val" dataKey={(d: DistSegData[0]) => d.p90 - d.q3} stackId="band" fill={bandColors.p90} name="Q3-P90（即利確）" />
-                {/* Key lines */}
                 <Line yAxisId="val" type="monotone" dataKey="mean" stroke="#60a5fa" strokeWidth={2.5} dot={{ fill: '#60a5fa', r: 4 }} name="平均" />
                 <Line yAxisId="val" type="monotone" dataKey="median" stroke="#fbbf24" strokeWidth={2.5} strokeDasharray="5 3" dot={{ fill: '#fbbf24', r: 4 }} name="中央値" />
                 <Line yAxisId="val" type="monotone" dataKey="p90" stroke="#fb7185" strokeWidth={1.5} strokeDasharray="4 2" dot={{ fill: '#fb7185', r: 2 }} name="P90" />
@@ -753,7 +759,6 @@ export default function WeekdayAnalysisPage() {
                 <Line yAxisId="wr" type="monotone" dataKey="winRate" stroke="#34d399" strokeWidth={2.5} dot={{ fill: '#34d399', r: 4 }} name="勝率" />
               </ComposedChart>
             </ResponsiveContainer>
-            {/* 分布テーブル */}
             <div className="overflow-x-auto mt-2">
               <table className="w-full text-sm">
                 <thead>
@@ -797,7 +802,6 @@ export default function WeekdayAnalysisPage() {
               {extraHeader}
             </div>
 
-            {/* 価格帯別 P&L分布サマリー（箱ひげ1本ずつ） */}
             <h3 className="text-xs text-muted-foreground mb-2">価格帯別 P&L分布（大引け基準）</h3>
             <ResponsiveContainer width="100%" height={Math.max(200, dist.summaryByPR.length * 50 + 40)}>
               <ComposedChart data={dist.summaryByPR} layout="vertical" margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
@@ -813,7 +817,6 @@ export default function WeekdayAnalysisPage() {
                     return [`¥${formatProfit(Math.round(value))}`, name];
                   }}
                 />
-                {/* 箱ひげの帯: P10→Q1→中央値→Q3→P90 */}
                 <Bar dataKey="p10" stackId="box" fill="transparent" name="P10" />
                 <Bar dataKey={(d: typeof dist.summaryByPR[0]) => d.q1 - d.p10} stackId="box" fill={bandColors.q1} name="P10-Q1（損切り検討）" />
                 <Bar dataKey={(d: typeof dist.summaryByPR[0]) => d.median - d.q1} stackId="box" fill={bandColors.median} name="Q1-中央値（静観）" />
@@ -822,7 +825,6 @@ export default function WeekdayAnalysisPage() {
               </ComposedChart>
             </ResponsiveContainer>
 
-            {/* 分布サマリーテーブル */}
             <div className="overflow-x-auto mt-2 mb-6">
               <table className="w-full text-sm">
                 <thead>
@@ -861,7 +863,6 @@ export default function WeekdayAnalysisPage() {
               </table>
             </div>
 
-            {/* 時間帯別の分布（折りたたみ） */}
             <details className="mt-4">
               <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
                 時間帯別分布を表示 ▶
@@ -872,7 +873,6 @@ export default function WeekdayAnalysisPage() {
                 </p>
                 {renderDistChart(dist.all, '全体')}
 
-                {/* 価格帯別の時間帯分布 */}
                 {dist.byPriceRange.map(pr => (
                   <div key={pr.label}>
                     <h3 className="text-xs text-muted-foreground mb-1 mt-4">{pr.label}（{pr.count}件）</h3>
@@ -905,7 +905,6 @@ export default function WeekdayAnalysisPage() {
             特定銘柄依存 or 均等分散を判定
           </span>
         </h2>
-        {/* Segment selector for Pareto */}
         <div className="flex gap-1 mb-3">
           {segments.map((seg, i) => (
             <button
@@ -952,7 +951,6 @@ export default function WeekdayAnalysisPage() {
           </ComposedChart>
         </ResponsiveContainer>
 
-        {/* Pareto insight */}
         {paretoData.length > 0 && (() => {
           const top3Pct = paretoData.length >= 3 ? paretoData[2].cumPct : 0;
           const top5Pct = paretoData.length >= 5 ? paretoData[4].cumPct : 0;
@@ -1116,7 +1114,6 @@ export default function WeekdayAnalysisPage() {
             finalPnl: s.segments[lastKey]!,
           }));
 
-        // 前場でプラス/マイナスに分類
         const amPlus = stocksWithAM.filter(s => s.amPnl > 0);
         const amMinus = stocksWithAM.filter(s => s.amPnl < 0);
         const amZero = stocksWithAM.filter(s => s.amPnl === 0);
@@ -1131,7 +1128,6 @@ export default function WeekdayAnalysisPage() {
           const avgFinal = group.length > 0 ? group.reduce((a, s) => a + s.finalPnl, 0) / group.length : 0;
           const medianFinal = percentile(group.map(s => s.finalPnl), 50);
 
-          // 時間帯別推移
           const segTransition = segments.map(seg => {
             const vals = group.map(s => s.segments[seg.key]).filter((v): v is number => v !== null);
             return {
@@ -1171,7 +1167,6 @@ export default function WeekdayAnalysisPage() {
               11:30時点の損益で分類し、大引けまでの維持率・反転率を分析。
             </p>
 
-            {/* 遷移サマリーテーブル */}
             <div className="overflow-x-auto mb-4">
               <table className="w-full text-sm">
                 <thead>
@@ -1205,7 +1200,6 @@ export default function WeekdayAnalysisPage() {
               </table>
             </div>
 
-            {/* 前場プラス/マイナスの時間帯別推移チャート */}
             {transitions.filter(t => t.count > 0).map(t => (
               <div key={t.label} className="mb-4">
                 <h3 className="text-sm text-foreground mb-2 font-semibold">{t.label}（{t.count}件）→ 時間帯別推移</h3>
