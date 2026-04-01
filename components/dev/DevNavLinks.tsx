@@ -20,6 +20,10 @@ const NAV_LINKS: Record<string, NavLinkConfig> = {
     href: "/dev/analysis-custom",
     label: "Custom",
   },
+  "analysis-ml": {
+    href: "/dev/analysis-ml",
+    label: "ML",
+  },
   recommendations: {
     href: "/dev/recommendations",
     label: "Recommendations",
@@ -35,6 +39,10 @@ const NAV_LINKS: Record<string, NavLinkConfig> = {
   granville: {
     href: "/dev/granville",
     label: "Granville",
+  },
+  strategy: {
+    href: "/dev/strategy/granville",
+    label: "Strategy",
   },
   // v3: {
   //   href: "/dev/v3",
