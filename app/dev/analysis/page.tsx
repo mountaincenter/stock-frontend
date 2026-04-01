@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
+import Link from 'next/link';
 import { DevNavLinks } from '../../../components/dev';
 
 // Types
@@ -720,7 +721,11 @@ export default function AnalysisCustomPage() {
 
           return (
             <div key={wd.weekday} className="mb-6">
-              <h2 className="text-sm font-semibold text-foreground mb-3">{wd.weekday}</h2>
+              <h2 className="text-sm font-semibold text-foreground mb-3">
+                <Link href={`/dev/analysis/${['mon','tue','wed','thu','fri'][idx]}`} className="hover:text-primary transition-colors">
+                  {wd.weekday} →
+                </Link>
+              </h2>
               <div className="grid grid-cols-1 gap-4">
                 {/* Seido Card */}
                 <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl">

@@ -284,7 +284,7 @@ export default function WeekdayAnalysisPage() {
             {(['mon', 'tue', 'wed', 'thu', 'fri'] as const).map((slug, i) => (
               <Link
                 key={slug}
-                href={`/dev/analysis-custom/${slug}`}
+                href={`/dev/analysis/${slug}`}
                 className={`px-3 py-1 text-xs rounded-md border transition-colors ${
                   selectedDay === i
                     ? 'bg-primary text-primary-foreground border-primary'
@@ -339,8 +339,8 @@ export default function WeekdayAnalysisPage() {
               </>
             )}
             <span className="text-border">|</span>
-            <Link href="/dev/analysis-custom" className="text-xs text-muted-foreground hover:text-foreground">
-              ← カスタム分析
+            <Link href="/dev/analysis" className="text-xs text-muted-foreground hover:text-foreground">
+              ← Analysis
             </Link>
             <DevNavLinks />
           </div>

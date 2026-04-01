@@ -16,9 +16,9 @@ const NAV_LINKS: Record<string, NavLinkConfig> = {
     href: "/dev",
     label: "Dashboard",
   },
-  "analysis-custom": {
-    href: "/dev/analysis-custom",
-    label: "Custom",
+  analysis: {
+    href: "/dev/analysis",
+    label: "Analysis",
   },
   "analysis-ml": {
     href: "/dev/analysis-ml",
