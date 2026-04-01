@@ -637,7 +637,7 @@ export default function WeekdayAnalysisPage() {
 
       {/* ===== チャート用グレード切替タブ ===== */}
       <div className="flex items-center gap-2 mb-4">
-        <span className="text-xs text-muted-foreground">チャート:</span>
+        <span className="text-xs text-muted-foreground">グラフ:</span>
         {GRADE_SECTIONS.map(g => (
           <button
             key={g}
