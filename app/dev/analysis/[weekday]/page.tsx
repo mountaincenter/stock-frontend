@@ -317,13 +317,17 @@ export default function WeekdayAnalysisPage() {
     return result;
   }, [stocksByGrade, timeSegments]);
 
+  // ===== チャート用グレード切替 =====
+  const [chartGrade, setChartGrade] = useState<string>('全体');
+  const chartStocks = useMemo(() => stocksByGrade[chartGrade] || [], [stocksByGrade, chartGrade]);
+
   // ===== Pareto data =====
   const [paretoSegIdx, setParetoSegIdx] = useState(4);
   const paretoData = useMemo(() => {
     const segKey = segments[paretoSegIdx]?.key;
     if (!segKey) return [];
 
-    const items = filteredStocks
+    const items = chartStocks
       .map(s => ({
         ticker: s.ticker,
         name: s.stockName,
@@ -342,7 +346,7 @@ export default function WeekdayAnalysisPage() {
         cumPct: totalPositive > 0 ? (cumulative / totalPositive) * 100 : 0,
       };
     });
-  }, [filteredStocks, segments, paretoSegIdx]);
+  }, [chartStocks, segments, paretoSegIdx]);
 
   if (loading) {
     return (
@@ -631,6 +635,24 @@ export default function WeekdayAnalysisPage() {
         {GRADE_SECTIONS.map(g => renderGradeSection(g))}
       </div>
 
+      {/* ===== チャート用グレード切替タブ ===== */}
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-xs text-muted-foreground">チャート:</span>
+        {GRADE_SECTIONS.map(g => (
+          <button
+            key={g}
+            onClick={() => setChartGrade(g)}
+            className={`px-3 py-1 text-xs rounded-md border transition-colors ${
+              chartGrade === g
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
+            }`}
+          >
+            {g}{stocksByGrade[g]?.length ? ` (${stocksByGrade[g].length})` : ''}
+          </button>
+        ))}
+      </div>
+
       {/* ===== Charts: 制度信用 / いちにち信用 分布 ===== */}
       {summaryData && (() => {
         const wd = summaryData.weekdays[selectedDay];
@@ -639,7 +661,7 @@ export default function WeekdayAnalysisPage() {
 
         // 個別銘柄データから分布を計算
         const buildDistribution = (marginType: string, filterFn?: (s: DetailStock) => boolean) => {
-          const stocks = filteredStocks.filter(s => {
+          const stocks = chartStocks.filter(s => {
             if (s.marginType !== marginType) return false;
             if (filterFn && !filterFn(s)) return false;
             return true;
@@ -993,7 +1015,7 @@ export default function WeekdayAnalysisPage() {
           { label: '+3%以上', min: 3, max: Infinity },
         ];
 
-        const stocksWithGap = filteredStocks
+        const stocksWithGap = chartStocks
           .filter(s => s.buyPrice && s.prevClose && s.prevClose > 0)
           .map(s => ({
             ...s,
@@ -1105,7 +1127,7 @@ export default function WeekdayAnalysisPage() {
         const lastKey = segments[segments.length - 1]?.key;
         if (!lastKey) return null;
 
-        const stocksWithAM = filteredStocks
+        const stocksWithAM = chartStocks
           .filter(s => s.segments[amKey] !== null && s.segments[amKey] !== undefined
                     && s.segments[lastKey] !== null && s.segments[lastKey] !== undefined)
           .map(s => ({
