@@ -20,6 +20,10 @@ const NAV_LINKS: Record<string, NavLinkConfig> = {
     href: "/dev/analysis",
     label: "Analysis",
   },
+  "exit-lab": {
+    href: "/dev/analysis/exit",
+    label: "Exit Lab",
+  },
   "analysis-ml": {
     href: "/dev/analysis-ml",
     label: "ML",
