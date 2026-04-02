@@ -96,8 +96,6 @@ interface Triggers {
 }
 interface StatusResponse {
   triggers?: Triggers;
-  cash_margin: number; credit_capacity: number; position_value: number;
-  received_margin: number; required_margin: number; eval_total: number;
   total_margin_used: number;
   signal_count: number; signal_date: string | null;
   open_positions: number; exit_candidates: number;
@@ -268,8 +266,6 @@ function GranvilleContent() {
     );
   }
 
-  const marginPct = status && status.credit_capacity > 0 ? (status.total_margin_used / status.credit_capacity * 100) : 0;
-
   return (
     <main className="relative min-h-screen">
       <div className="fixed inset-0 -z-10 overflow-hidden">
@@ -293,13 +289,7 @@ function GranvilleContent() {
 
         {/* Status Bar */}
         {status && (
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-5">
-            <StatCard label="現金保証金" sub={`評価損益 ¥${fmt(status.eval_total ?? 0)} / 受入 ¥${fmt(status.received_margin ?? 0)}`}>
-              <span className="text-foreground">¥{fmt(status.cash_margin)}</span>
-            </StatCard>
-            <StatCard label="信用新規建余力" sub={`必要保証金 ¥${fmt(status.required_margin ?? 0)} / 使用率 ${marginPct.toFixed(1)}%`}>
-              <span className="text-foreground">¥{fmt(status.credit_capacity)}</span>
-            </StatCard>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
             <StatCard label="B4選定" sub={b4Entry ? `取引上限 ¥${fmt(b4Entry.selected_cost)}` : undefined}>
               <span className="text-foreground">{b4Entry?.selected.length ?? 0}</span>
             </StatCard>
