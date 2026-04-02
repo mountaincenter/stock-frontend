@@ -1253,6 +1253,253 @@ export default function WeekdayAnalysisPage() {
           </section>
         );
       })()}
+
+      {/* ===== ピークタイミング分析 ===== */}
+      {(() => {
+        if (segments.length === 0 || chartStocks.length === 0) return null;
+
+        // 各銘柄の最大含み益セグメントを特定
+        const peakAnalysis = chartStocks.map(s => {
+          let peakSeg = segments[0]?.key || '';
+          let peakVal = -Infinity;
+          let peakIdx = 0;
+          segments.forEach((seg, i) => {
+            const v = s.segments[seg.key] ?? -Infinity;
+            if (v > peakVal) { peakVal = v; peakSeg = seg.key; peakIdx = i; }
+          });
+          const lastKey = segments[segments.length - 1]?.key;
+          const finalVal = lastKey ? (s.segments[lastKey] ?? 0) : 0;
+          const givenBack = peakVal > 0 ? peakVal - finalVal : 0;
+          const retentionRate = peakVal > 0 ? (finalVal / peakVal) * 100 : (finalVal <= 0 ? 0 : 100);
+          return { ...s, peakSeg, peakVal, peakIdx, finalVal, givenBack, retentionRate };
+        });
+
+        // セグメント別のピーク集計
+        const peakBySegment = segments.map((seg) => {
+          const peaked = peakAnalysis.filter(s => s.peakSeg === seg.key);
+          const avgPeak = peaked.length > 0 ? peaked.reduce((a, s) => a + s.peakVal, 0) / peaked.length : 0;
+          const avgFinal = peaked.length > 0 ? peaked.reduce((a, s) => a + s.finalVal, 0) / peaked.length : 0;
+          const avgGivenBack = peaked.length > 0 ? peaked.reduce((a, s) => a + s.givenBack, 0) / peaked.length : 0;
+          const avgRetention = peaked.length > 0 ? peaked.reduce((a, s) => a + s.retentionRate, 0) / peaked.length : 0;
+          return {
+            time: seg.label,
+            key: seg.key,
+            count: peaked.length,
+            pct: chartStocks.length > 0 ? (peaked.length / chartStocks.length) * 100 : 0,
+            avgPeak: Math.round(avgPeak),
+            avgFinal: Math.round(avgFinal),
+            avgGivenBack: Math.round(avgGivenBack),
+            avgRetention,
+          };
+        });
+
+        // 全体の利益還元率統計
+        const profitStocks = peakAnalysis.filter(s => s.peakVal > 0);
+        const avgRetentionAll = profitStocks.length > 0
+          ? profitStocks.reduce((a, s) => a + s.retentionRate, 0) / profitStocks.length : 0;
+        const medianRetention = percentile(profitStocks.map(s => s.retentionRate), 50);
+
+        return (
+          <section className="bg-card border border-border rounded-xl p-4 mb-4">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="font-semibold text-foreground">ピークタイミング分析</span>
+              <span className="text-muted-foreground text-sm">{chartStocks.length}件</span>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3">
+              日中最大含み益がどの時間帯で発生するか。ピーク後に利益をどれだけ吐き出しているかを可視化。
+            </p>
+
+            {/* サマリーカード */}
+            <div className="flex gap-4 mb-4 text-xs">
+              <div className="bg-muted/20 rounded-lg px-3 py-2">
+                <span className="text-muted-foreground">平均利益還元率:</span>
+                <span className={`ml-1 font-semibold ${avgRetentionAll >= 60 ? 'text-emerald-400' : avgRetentionAll >= 30 ? 'text-amber-400' : 'text-rose-400'}`}>
+                  {avgRetentionAll.toFixed(1)}%
+                </span>
+              </div>
+              <div className="bg-muted/20 rounded-lg px-3 py-2">
+                <span className="text-muted-foreground">中央値:</span>
+                <span className={`ml-1 font-semibold ${medianRetention >= 60 ? 'text-emerald-400' : medianRetention >= 30 ? 'text-amber-400' : 'text-rose-400'}`}>
+                  {medianRetention.toFixed(1)}%
+                </span>
+              </div>
+              <div className="bg-muted/20 rounded-lg px-3 py-2 text-muted-foreground">
+                {avgRetentionAll < 50 ? '⚠ ピーク後の吐き出しが大きい → 早期利確検討' : '✓ 利益維持率は良好'}
+              </div>
+            </div>
+
+            {/* ピーク分布チャート */}
+            <ResponsiveContainer width="100%" height={280}>
+              <ComposedChart data={peakBySegment} margin={{ top: 5, right: 40, bottom: 5, left: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                <XAxis dataKey="time" tick={{ fill: '#a1a1aa', fontSize: 12 }} />
+                <YAxis yAxisId="cnt" tick={{ fill: '#a1a1aa', fontSize: 12 }} />
+                <YAxis yAxisId="pct" orientation="right" domain={[0, 100]} tick={{ fill: '#a1a1aa', fontSize: 12 }} tickFormatter={(v) => `${v}%`} />
+                <ReferenceLine yAxisId="pct" y={50} stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
+                <Tooltip
+                  contentStyle={{ background: '#18181b', border: '1px solid #27272a', borderRadius: 8, fontSize: 13, color: '#fafafa' }}
+                  labelStyle={{ color: '#a1a1aa' }}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  formatter={(value: any, name: any) => {
+                    if (name === '利益還元率') return [`${Number(value).toFixed(1)}%`, name];
+                    if (name === '割合') return [`${Number(value).toFixed(1)}%`, name];
+                    return [name === 'ピーク件数' ? `${value}件` : `¥${formatProfit(value)}`, name];
+                  }}
+                />
+                <Bar yAxisId="cnt" dataKey="count" name="ピーク件数" radius={[3, 3, 0, 0]}>
+                  {peakBySegment.map((_, i) => (
+                    <Cell key={i} fill={i <= 4 ? 'rgba(251,191,36,0.5)' : 'rgba(96,165,250,0.5)'} />
+                  ))}
+                </Bar>
+                <Line yAxisId="pct" type="monotone" dataKey="avgRetention" stroke="#34d399" strokeWidth={2.5} dot={{ fill: '#34d399', r: 4 }} name="利益還元率" />
+                <Line yAxisId="pct" type="monotone" dataKey="pct" stroke="#a78bfa" strokeWidth={2} strokeDasharray="4 2" dot={{ fill: '#a78bfa', r: 3 }} name="割合" />
+              </ComposedChart>
+            </ResponsiveContainer>
+
+            {/* テーブル */}
+            <div className="overflow-x-auto mt-2">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-muted-foreground text-sm border-b border-border/30">
+                    <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">時刻</th>
+                    <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">ピーク件数</th>
+                    <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">割合</th>
+                    <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">平均ピーク</th>
+                    <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">平均大引け</th>
+                    <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">吐き出し</th>
+                    <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">還元率</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {peakBySegment.map(d => (
+                    <tr key={d.key} className="border-b border-border/20">
+                      <td className="text-right px-2 py-2.5 tabular-nums text-foreground whitespace-nowrap">{d.time}</td>
+                      <td className="text-right px-2 py-2.5 tabular-nums text-foreground">{d.count}</td>
+                      <td className="text-right px-2 py-2.5 tabular-nums text-muted-foreground">{d.pct.toFixed(1)}%</td>
+                      <td className={`text-right px-2 py-2.5 tabular-nums ${d.avgPeak >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatProfit(d.avgPeak)}</td>
+                      <td className={`text-right px-2 py-2.5 tabular-nums font-semibold ${d.avgFinal >= 0 ? 'text-blue-400' : 'text-rose-400'}`}>{formatProfit(d.avgFinal)}</td>
+                      <td className={`text-right px-2 py-2.5 tabular-nums ${d.avgGivenBack > 0 ? 'text-rose-400' : 'text-foreground'}`}>{d.avgGivenBack > 0 ? `-${formatProfit(d.avgGivenBack)}` : '0'}</td>
+                      <td className={`text-right px-2 py-2.5 tabular-nums font-semibold ${d.avgRetention >= 60 ? 'text-emerald-400' : d.avgRetention >= 30 ? 'text-amber-400' : 'text-rose-400'}`}>
+                        {d.count > 0 ? `${d.avgRetention.toFixed(1)}%` : '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        );
+      })()}
+
+      {/* ===== 条件付きイグジット分析 ===== */}
+      {(() => {
+        if (segments.length < 3 || chartStocks.length === 0) return null;
+
+        // 判定時刻の候補（前場中盤〜引け）
+        const checkpoints = segments
+          .filter(seg => ['seg_1030', 'seg_1130', 'seg_1300', 'seg_1430'].includes(seg.key))
+          .map(seg => ({ ...seg, idx: segments.findIndex(s => s.key === seg.key) }))
+          .filter(seg => seg.idx >= 0);
+
+        if (checkpoints.length === 0) return null;
+
+        const lastKey = segments[segments.length - 1]?.key;
+        if (!lastKey) return null;
+
+        // 含み益バケット（金額ベース）
+        const PNL_BUCKETS = [
+          { label: '損失 (<0)', min: -Infinity, max: 0 },
+          { label: '微益 (0~+500)', min: 0, max: 500 },
+          { label: '小益 (+500~+2000)', min: 500, max: 2000 },
+          { label: '中益 (+2000~+5000)', min: 2000, max: 5000 },
+          { label: '大益 (+5000~)', min: 5000, max: Infinity },
+        ];
+
+        const checkpointData = checkpoints.map(cp => {
+          const buckets = PNL_BUCKETS.map(bucket => {
+            const group = chartStocks.filter(s => {
+              const cpVal = s.segments[cp.key] ?? 0;
+              return cpVal >= bucket.min && cpVal < bucket.max;
+            });
+
+            if (group.length === 0) return { ...bucket, count: 0, avgAtCP: 0, avgFinal: 0, delta: 0, holdBetter: 0, exitBetter: 0, holdBetterPct: 0 };
+
+            const avgAtCP = group.reduce((a, s) => a + (s.segments[cp.key] ?? 0), 0) / group.length;
+            const avgFinal = group.reduce((a, s) => a + (s.segments[lastKey] ?? 0), 0) / group.length;
+            const delta = avgFinal - avgAtCP;
+            const holdBetter = group.filter(s => (s.segments[lastKey] ?? 0) > (s.segments[cp.key] ?? 0)).length;
+            const exitBetter = group.length - holdBetter;
+
+            return {
+              ...bucket,
+              count: group.length,
+              avgAtCP: Math.round(avgAtCP),
+              avgFinal: Math.round(avgFinal),
+              delta: Math.round(delta),
+              holdBetter,
+              exitBetter,
+              holdBetterPct: (holdBetter / group.length) * 100,
+            };
+          }).filter(b => b.count > 0);
+
+          return { ...cp, buckets };
+        });
+
+        return (
+          <section className="bg-card border border-border rounded-xl p-4 mb-4">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="font-semibold text-foreground">条件付きイグジット分析</span>
+              <span className="text-muted-foreground text-sm">{chartStocks.length}件</span>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3">
+              特定時刻の含み益レベル別に「その時点で利確 vs 大引けまで持ち越し」の期待値を比較。
+              δ &gt; 0 なら持ち越し有利、δ &lt; 0 なら利確有利。
+            </p>
+
+            {checkpointData.map(cp => (
+              <div key={cp.key} className="mb-6">
+                <h3 className="text-sm font-semibold text-foreground mb-2">
+                  {cp.label} 時点の判断
+                </h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-muted-foreground text-sm border-b border-border/30">
+                        <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">含み益レベル</th>
+                        <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">件数</th>
+                        <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">時点P&L</th>
+                        <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">大引けP&L</th>
+                        <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">δ (持越し効果)</th>
+                        <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">判定</th>
+                        <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">持越し勝率</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {cp.buckets.map(b => {
+                        const verdict = b.delta > 100 ? '持越し◎' : b.delta > 0 ? '持越し○' : b.delta > -100 ? '微妙' : '利確◎';
+                        const verdictClass = b.delta > 100 ? 'text-emerald-400' : b.delta > 0 ? 'text-emerald-500' : b.delta > -100 ? 'text-amber-400' : 'text-rose-400';
+                        return (
+                          <tr key={b.label} className="border-b border-border/20">
+                            <td className="text-right px-2 py-2.5 tabular-nums text-foreground whitespace-nowrap">{b.label}</td>
+                            <td className="text-right px-2 py-2.5 tabular-nums text-foreground">{b.count}</td>
+                            <td className={`text-right px-2 py-2.5 tabular-nums ${b.avgAtCP >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatProfit(b.avgAtCP)}</td>
+                            <td className={`text-right px-2 py-2.5 tabular-nums font-semibold ${b.avgFinal >= 0 ? 'text-blue-400' : 'text-rose-400'}`}>{formatProfit(b.avgFinal)}</td>
+                            <td className={`text-right px-2 py-2.5 tabular-nums font-semibold ${b.delta >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatProfit(b.delta)}</td>
+                            <td className={`text-right px-2 py-2.5 font-semibold ${verdictClass}`}>{verdict}</td>
+                            <td className={`text-right px-2 py-2.5 tabular-nums ${b.holdBetterPct >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                              {b.holdBetterPct.toFixed(0)}%
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
+          </section>
+        );
+      })()}
     </div>
   );
 }
