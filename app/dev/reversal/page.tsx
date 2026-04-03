@@ -55,7 +55,7 @@ const StrategyBadge = ({ strategy }: { strategy: string }) => {
 };
 
 const exitLabel = (t: string) => {
-  if (t === 'sma20_return') return { text: 'SMA20回帰→翌寄付', cls: 'text-emerald-400' };
+  if (t === 'sma20_return') return { text: 'SMA20回帰→SMA20指値', cls: 'text-emerald-400' };
   if (t === 'stop_loss') return { text: 'Day3損切り→翌寄付', cls: 'text-rose-400' };
   if (t === 'max_hold') return { text: 'MAX_HOLD→翌寄付', cls: 'text-amber-400' };
   if (t === 'high_update') return { text: '高値更新→翌寄付', cls: 'text-emerald-400' };
@@ -236,7 +236,7 @@ export default function ReversalPage() {
         {posData && posData.exits.length > 0 && (
           <Panel title={
             <h2 className="text-base md:text-lg font-semibold text-amber-400">
-              Exit候補 — {posData.exits.length}件（翌朝寄付で決済）
+              Exit候補 — {posData.exits.length}件
             </h2>
           } border="border-amber-500/40">
             <div className="overflow-x-auto">
@@ -252,10 +252,13 @@ export default function ReversalPage() {
                   <th className="text-right px-3 py-2 text-xs font-medium">損益</th>
                   <th className="text-right px-3 py-2 text-xs font-medium">日数</th>
                   <th className="text-left px-3 py-2 text-xs font-medium">理由</th>
+                  <th className="text-right px-3 py-2 text-xs font-medium">指値</th>
                 </tr></thead>
                 <tbody>
                   {posData.exits.map((p, i) => {
                     const el = exitLabel(p.exit_type);
+                    const limitPrice = p.strategy === 'bearish' && p.exit_type === 'sma20_return' && p.sma20 > 0
+                      ? Math.round(p.sma20) : null;
                     return (
                       <tr key={i} className="border-b border-border/20 hover:bg-muted/5">
                         <td className="px-3 py-2.5 text-center"><StrategyBadge strategy={p.strategy} /></td>
@@ -272,6 +275,9 @@ export default function ReversalPage() {
                         <td className="px-3 py-2.5 text-right tabular-nums">{fmtPnl(p.pnl)}</td>
                         <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">{p.hold_days}/{p.max_hold}</td>
                         <td className={`px-3 py-2.5 ${el.cls}`}>{el.text}</td>
+                        <td className="px-3 py-2.5 text-right tabular-nums text-amber-400 font-semibold">
+                          {limitPrice ? `¥${fmt(limitPrice)}` : '-'}
+                        </td>
                       </tr>
                     );
                   })}
@@ -291,7 +297,7 @@ export default function ReversalPage() {
           {signals && signals.bearish.length > 0 ? (
             <>
               <div className="px-4 py-2 text-xs text-muted-foreground">
-                出口: SMA20回帰(終値&gt;SMA20)→翌寄付 / Day3損切り(-3%) / MAX_HOLD 30日
+                出口: SMA20回帰→SMA20指値（GD時は翌日指値+大引不成） / Day3損切り(-3%) / MAX_HOLD 30日
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -442,7 +448,7 @@ export default function ReversalPage() {
                   ['対象', 'TOPIX 1,660銘柄', 'Core+Large 100銘柄'],
                   ['株価制限', 'なし', '≤ ¥15,000'],
                   ['エントリー', '翌営業日寄付', '翌営業日寄付'],
-                  ['Exit (利確)', '20日高値更新→翌寄付', 'SMA20回帰→翌寄付'],
+                  ['Exit (利確)', '20日高値更新→翌寄付', 'SMA20回帰→SMA20指値'],
                   ['Exit (損切)', 'なし', 'Day3終値 ≤ -3%→翌寄付'],
                   ['MAX_HOLD', '15日', '30日'],
                   ['BT: PF', '4.13', '5.40'],
