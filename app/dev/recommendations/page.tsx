@@ -1010,15 +1010,15 @@ export default function DayTradeListPage() {
                 <div className="text-xs text-muted-foreground">{metaFn(data as any)}</div>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full text-sm md:text-base">
                   <thead>
-                    <tr className="border-b border-border/30">
-                      <th className="px-2 py-2 text-left text-xs text-muted-foreground font-medium">{colLabel}</th>
-                      <th className="px-2 py-2 text-center text-xs font-medium"><span className="text-emerald-400">G1</span><span className="text-muted-foreground text-[10px] ml-0.5">SHORT</span></th>
-                      <th className="px-2 py-2 text-center text-xs font-medium"><span className="text-teal-400">G2</span><span className="text-muted-foreground text-[10px] ml-0.5">SHORT</span></th>
-                      <th className="px-2 py-2 text-center text-xs font-medium"><span className="text-amber-400">G3</span><span className="text-muted-foreground text-[10px] ml-0.5">SHORT</span></th>
-                      <th className="px-2 py-2 text-center text-xs font-medium"><span className="text-amber-400">G3</span><span className="text-muted-foreground text-[10px] ml-0.5">LONG</span></th>
-                      <th className="px-2 py-2 text-center text-xs font-medium"><span className="text-rose-400">G4</span><span className="text-muted-foreground text-[10px] ml-0.5">LONG</span></th>
+                    <tr className="border-b border-border/40 bg-muted/30">
+                      <th className="px-2 py-3 text-left text-foreground font-medium text-xs whitespace-nowrap">{colLabel}</th>
+                      <th className="px-2 py-3 text-center font-medium text-xs whitespace-nowrap"><span className="text-emerald-400">G1</span><span className="text-muted-foreground text-[10px] ml-0.5">SHORT</span></th>
+                      <th className="px-2 py-3 text-center font-medium text-xs whitespace-nowrap"><span className="text-teal-400">G2</span><span className="text-muted-foreground text-[10px] ml-0.5">SHORT</span></th>
+                      <th className="px-2 py-3 text-center font-medium text-xs whitespace-nowrap"><span className="text-amber-400">G3</span><span className="text-muted-foreground text-[10px] ml-0.5">SHORT</span></th>
+                      <th className="px-2 py-3 text-center font-medium text-xs whitespace-nowrap"><span className="text-amber-400">G3</span><span className="text-muted-foreground text-[10px] ml-0.5">LONG</span></th>
+                      <th className="px-2 py-3 text-center font-medium text-xs whitespace-nowrap"><span className="text-rose-400">G4</span><span className="text-muted-foreground text-[10px] ml-0.5">LONG</span></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1032,7 +1032,7 @@ export default function DayTradeListPage() {
                       ];
                       return (
                         <tr key={row.label} className="border-b border-border/20 hover:bg-muted/30">
-                          <td className="px-2 py-2 text-xs font-medium text-foreground">{row.label}</td>
+                          <td className="px-2 py-3 font-medium text-foreground whitespace-nowrap">{row.label}</td>
                           {cells.map(({ key, data: cellData }) => {
                             const pf = cellData.pf;
                             const color = pf === null || cellData.n === 0
@@ -1042,11 +1042,11 @@ export default function DayTradeListPage() {
                               : pf >= 1 ? "text-muted-foreground"
                               : "text-rose-400";
                             return (
-                              <td key={key} className={`px-2 py-2 text-center text-xs tabular-nums ${color}`}>
+                              <td key={key} className={`px-2 py-3 text-center tabular-nums ${color}`}>
                                 {cellData.n === 0 ? "-" : (
                                   <span title={`勝率${cellData.winRate}% avg${cellData.avg >= 0 ? "+" : ""}${cellData.avg.toLocaleString()}円`}>
                                     {pf !== null ? pf.toFixed(2) : "-"}
-                                    <span className="text-muted-foreground text-[10px] ml-0.5">({cellData.n})</span>
+                                    <span className="text-muted-foreground text-xs ml-0.5">({cellData.n})</span>
                                   </span>
                                 )}
                               </td>
