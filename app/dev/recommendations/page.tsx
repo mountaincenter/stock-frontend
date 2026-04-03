@@ -73,6 +73,12 @@ type LendingRatioData = {
   totalAll: number;
 };
 
+type FuturesGapData = {
+  rows: LendingRatioRow[];
+  dataRange: { start: string | null; end: string | null; tradingDays: number };
+  total: number;
+};
+
 type FilterType = "all" | "unchecked" | "shortable" | "day_trade" | "ng";
 
 const FILTER_OPTIONS = [
@@ -110,6 +116,12 @@ export default function DayTradeListPage() {
   // 貸借倍率×Grade PFテーブル
   const [lendingRatioData, setLendingRatioData] = useState<LendingRatioData | null>(null);
 
+  // マーケット指標（先物変化率等）
+  const [marketData, setMarketData] = useState<{ futures_change_pct: number | null; nikkei_change_pct: number | null } | null>(null);
+
+  // 先物gap×Grade PFテーブル
+  const [futuresGapData, setFuturesGapData] = useState<FuturesGapData | null>(null);
+
   const fetchData = async () => {
     try {
       const res = await fetch("/api/dev/day-trade-list");
@@ -117,6 +129,7 @@ export default function DayTradeListPage() {
       const data = await res.json();
       setStocks(data.stocks);
       setSummary(data.summary);
+      if (data.market) setMarketData(data.market);
       setLoading(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "エラー");
@@ -126,6 +139,11 @@ export default function DayTradeListPage() {
 
   useEffect(() => {
     fetchData();
+    // 先物gap PFテーブル取得
+    fetch("/api/dev/futures-gap-pf")
+      .then(res => res.ok ? res.json() : null)
+      .then(data => { if (data) setFuturesGapData(data); })
+      .catch(() => {});
     // 貸借倍率PFテーブル取得
     fetch("/api/dev/lending-ratio-pf")
       .then(res => res.ok ? res.json() : null)
@@ -518,6 +536,32 @@ export default function DayTradeListPage() {
         </div>
 
         {/* Filter */}
+        {/* マーケット指標カード */}
+        {marketData && (
+          <div className="flex items-center gap-3 mb-4">
+            {marketData.futures_change_pct !== null && (() => {
+              const v = marketData.futures_change_pct;
+              const isWarning = v > -0.5 && v <= 0;
+              const color = isWarning ? "border-amber-500/60 bg-amber-500/10" : v > 0 ? "border-emerald-500/40 bg-emerald-500/10" : "border-rose-500/40 bg-rose-500/10";
+              const textColor = isWarning ? "text-amber-400" : v > 0 ? "text-emerald-400" : "text-rose-400";
+              return (
+                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${color}`}>
+                  <span className="text-xs text-muted-foreground">先物gap</span>
+                  <span className={`text-sm font-medium tabular-nums ${textColor}`}>{v >= 0 ? "+" : ""}{v.toFixed(2)}%</span>
+                  {isWarning && <span className="text-[10px] text-amber-400/80">⚠ G2ロング域</span>}
+                </div>
+              );
+            })()}
+            {marketData.nikkei_change_pct !== null && (
+              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${marketData.nikkei_change_pct > 1 ? "border-amber-500/60 bg-amber-500/10" : "border-border/40 bg-muted/20"}`}>
+                <span className="text-xs text-muted-foreground">N225前日比</span>
+                <span className={`text-sm font-medium tabular-nums ${marketData.nikkei_change_pct > 1 ? "text-amber-400" : marketData.nikkei_change_pct >= 0 ? "text-emerald-400" : "text-rose-400"}`}>{marketData.nikkei_change_pct >= 0 ? "+" : ""}{marketData.nikkei_change_pct.toFixed(2)}%</span>
+                {marketData.nikkei_change_pct > 1 && <span className="text-[10px] text-amber-400/80">⚠ G2除外域</span>}
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-4">
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground whitespace-nowrap">フィルター</span>
@@ -953,22 +997,23 @@ export default function DayTradeListPage() {
           </div>
         </div>
 
-        {/* 貸借倍率×Grade PFテーブル */}
-        {lendingRatioData && lendingRatioData.rows.length > 0 && (
-          <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 mt-4 shadow-lg shadow-black/5 backdrop-blur-xl">
+        {/* Grade×指標 PFテーブル群 */}
+        {[
+          { data: futuresGapData, title: "先物gap帯 × Grade別 PF", colLabel: "gap帯", note: null, metaFn: (d: FuturesGapData) => `${d.dataRange.start}～${d.dataRange.end}（${d.dataRange.tradingDays}日 / n=${d.total}）` },
+          { data: lendingRatioData, title: "貸借倍率（買残/売残）× Grade別 PF", colLabel: "倍率帯", note: "ホバーで勝率・平均損益表示 / 楽天証券の売買残を手入力で蓄積", metaFn: (d: LendingRatioData) => `${d.dataRange.start}～${d.dataRange.end}（${d.dataRange.tradingDays}日 / n=${d.totalWithBalance}）` },
+        ].map(({ data, title, colLabel, note, metaFn }) => data && data.rows.length > 0 && (
+          <div key={title} className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 mt-4 shadow-lg shadow-black/5 backdrop-blur-xl">
             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
             <div className="relative px-4 py-3">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-xs text-muted-foreground font-medium">貸借倍率（買残/売残）× Grade別 PF</div>
-                <div className="text-xs text-muted-foreground">
-                  {lendingRatioData.dataRange.start}～{lendingRatioData.dataRange.end}（{lendingRatioData.dataRange.tradingDays}日 / n={lendingRatioData.totalWithBalance}）
-                </div>
+                <div className="text-xs text-muted-foreground font-medium">{title}</div>
+                <div className="text-xs text-muted-foreground">{metaFn(data as any)}</div>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border/30">
-                      <th className="px-2 py-2 text-left text-xs text-muted-foreground font-medium">倍率帯</th>
+                      <th className="px-2 py-2 text-left text-xs text-muted-foreground font-medium">{colLabel}</th>
                       <th className="px-2 py-2 text-center text-xs font-medium"><span className="text-emerald-400">G1</span><span className="text-muted-foreground text-[10px] ml-0.5">SHORT</span></th>
                       <th className="px-2 py-2 text-center text-xs font-medium"><span className="text-teal-400">G2</span><span className="text-muted-foreground text-[10px] ml-0.5">SHORT</span></th>
                       <th className="px-2 py-2 text-center text-xs font-medium"><span className="text-amber-400">G3</span><span className="text-muted-foreground text-[10px] ml-0.5">SHORT</span></th>
@@ -977,7 +1022,7 @@ export default function DayTradeListPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {lendingRatioData.rows.map((row) => {
+                    {data.rows.map((row) => {
                       const cells = [
                         { key: "G1", data: row.G1 },
                         { key: "G2", data: row.G2 },
@@ -988,9 +1033,9 @@ export default function DayTradeListPage() {
                       return (
                         <tr key={row.label} className="border-b border-border/20 hover:bg-muted/30">
                           <td className="px-2 py-2 text-xs font-medium text-foreground">{row.label}</td>
-                          {cells.map(({ key, data }) => {
-                            const pf = data.pf;
-                            const color = pf === null || data.n === 0
+                          {cells.map(({ key, data: cellData }) => {
+                            const pf = cellData.pf;
+                            const color = pf === null || cellData.n === 0
                               ? "text-muted-foreground"
                               : pf >= 3 ? "text-emerald-400 font-medium"
                               : pf >= 1.5 ? "text-teal-400"
@@ -998,10 +1043,10 @@ export default function DayTradeListPage() {
                               : "text-rose-400";
                             return (
                               <td key={key} className={`px-2 py-2 text-center text-xs tabular-nums ${color}`}>
-                                {data.n === 0 ? "-" : (
-                                  <span title={`勝率${data.winRate}% avg${data.avg >= 0 ? "+" : ""}${data.avg.toLocaleString()}円`}>
+                                {cellData.n === 0 ? "-" : (
+                                  <span title={`勝率${cellData.winRate}% avg${cellData.avg >= 0 ? "+" : ""}${cellData.avg.toLocaleString()}円`}>
                                     {pf !== null ? pf.toFixed(2) : "-"}
-                                    <span className="text-muted-foreground text-[10px] ml-0.5">({data.n})</span>
+                                    <span className="text-muted-foreground text-[10px] ml-0.5">({cellData.n})</span>
                                   </span>
                                 )}
                               </td>
@@ -1013,12 +1058,10 @@ export default function DayTradeListPage() {
                   </tbody>
                 </table>
               </div>
-              <div className="text-[10px] text-muted-foreground mt-1">
-                ホバーで勝率・平均損益表示 / 楽天証券の売買残を手入力で蓄積
-              </div>
+              {note && <div className="text-[10px] text-muted-foreground mt-1">{note}</div>}
             </div>
           </div>
-        )}
+        ))}
       </div>
     </main>
   );
