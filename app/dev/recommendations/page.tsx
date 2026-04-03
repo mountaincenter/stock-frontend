@@ -50,6 +50,29 @@ type Summary = {
   total_required_funds: number;
 };
 
+type LendingRatioPfCell = {
+  pf: number | null;
+  n: number;
+  avg: number;
+  winRate: number;
+};
+
+type LendingRatioRow = {
+  label: string;
+  G1: LendingRatioPfCell;
+  G2: LendingRatioPfCell;
+  G3: LendingRatioPfCell;
+  G3_SHORT: LendingRatioPfCell;
+  G4: LendingRatioPfCell;
+};
+
+type LendingRatioData = {
+  rows: LendingRatioRow[];
+  dataRange: { start: string | null; end: string | null; tradingDays: number };
+  totalWithBalance: number;
+  totalAll: number;
+};
+
 type FilterType = "all" | "unchecked" | "shortable" | "day_trade" | "ng";
 
 const FILTER_OPTIONS = [
@@ -84,6 +107,9 @@ export default function DayTradeListPage() {
   const [realtimeLoading, setRealtimeLoading] = useState(false);
   const [realtimeTimestamp, setRealtimeTimestamp] = useState<string | null>(null);
 
+  // 貸借倍率×Grade PFテーブル
+  const [lendingRatioData, setLendingRatioData] = useState<LendingRatioData | null>(null);
+
   const fetchData = async () => {
     try {
       const res = await fetch("/api/dev/day-trade-list");
@@ -100,6 +126,11 @@ export default function DayTradeListPage() {
 
   useEffect(() => {
     fetchData();
+    // 貸借倍率PFテーブル取得
+    fetch("/api/dev/lending-ratio-pf")
+      .then(res => res.ok ? res.json() : null)
+      .then(data => { if (data) setLendingRatioData(data); })
+      .catch(() => {});
   }, []);
 
   const fetchRealtime = useCallback(async (force: boolean = false) => {
@@ -724,9 +755,11 @@ export default function DayTradeListPage() {
                           {stock.grade ?? "-"}
                         </td>
                         <td className={`px-2 py-4 text-right tabular-nums whitespace-nowrap ${
-                          stock.atr_pct !== null && stock.atr_pct >= 6
-                            ? "text-emerald-400 font-medium"
-                            : "text-muted-foreground"
+                          stock.atr_pct !== null && stock.atr_pct < 3
+                            ? "text-rose-400 font-medium"
+                            : stock.atr_pct !== null && stock.atr_pct >= 6
+                              ? "text-emerald-400 font-medium"
+                              : "text-muted-foreground"
                         }`}>
                           {stock.atr_pct !== null ? stock.atr_pct.toFixed(1) : "-"}
                         </td>
@@ -905,7 +938,7 @@ export default function DayTradeListPage() {
               <span><span className="text-rose-400 font-medium">G4</span>: SKIP</span>
             </div>
             <div className="text-xs text-muted-foreground mt-2">
-              prob: 株価上昇確率（低いほどショート推奨） / <span className="text-emerald-400 bg-emerald-500/20 px-1 rounded">SHORT推奨</span> = G1 × ATR≧6%
+              prob: 株価上昇確率（低いほどショート推奨） / ATR: <span className="text-rose-400">3%未満</span>=負け傾向 <span className="text-emerald-400">6%以上</span>=高ボラ
             </div>
           </div>
         </div>
@@ -919,6 +952,73 @@ export default function DayTradeListPage() {
             <p><span className="text-rose-400 font-medium">NG</span>: トレード対象外</p>
           </div>
         </div>
+
+        {/* 貸借倍率×Grade PFテーブル */}
+        {lendingRatioData && lendingRatioData.rows.length > 0 && (
+          <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 mt-4 shadow-lg shadow-black/5 backdrop-blur-xl">
+            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+            <div className="relative px-4 py-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-xs text-muted-foreground font-medium">貸借倍率（買残/売残）× Grade別 PF</div>
+                <div className="text-xs text-muted-foreground">
+                  {lendingRatioData.dataRange.start}～{lendingRatioData.dataRange.end}（{lendingRatioData.dataRange.tradingDays}日 / n={lendingRatioData.totalWithBalance}）
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border/30">
+                      <th className="px-2 py-2 text-left text-xs text-muted-foreground font-medium">倍率帯</th>
+                      <th className="px-2 py-2 text-center text-xs font-medium"><span className="text-emerald-400">G1</span><span className="text-muted-foreground text-[10px] ml-0.5">SHORT</span></th>
+                      <th className="px-2 py-2 text-center text-xs font-medium"><span className="text-teal-400">G2</span><span className="text-muted-foreground text-[10px] ml-0.5">SHORT</span></th>
+                      <th className="px-2 py-2 text-center text-xs font-medium"><span className="text-amber-400">G3</span><span className="text-muted-foreground text-[10px] ml-0.5">SHORT</span></th>
+                      <th className="px-2 py-2 text-center text-xs font-medium"><span className="text-amber-400">G3</span><span className="text-muted-foreground text-[10px] ml-0.5">LONG</span></th>
+                      <th className="px-2 py-2 text-center text-xs font-medium"><span className="text-rose-400">G4</span><span className="text-muted-foreground text-[10px] ml-0.5">LONG</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lendingRatioData.rows.map((row) => {
+                      const cells = [
+                        { key: "G1", data: row.G1 },
+                        { key: "G2", data: row.G2 },
+                        { key: "G3S", data: row.G3_SHORT },
+                        { key: "G3L", data: row.G3 },
+                        { key: "G4", data: row.G4 },
+                      ];
+                      return (
+                        <tr key={row.label} className="border-b border-border/20 hover:bg-muted/30">
+                          <td className="px-2 py-2 text-xs font-medium text-foreground">{row.label}</td>
+                          {cells.map(({ key, data }) => {
+                            const pf = data.pf;
+                            const color = pf === null || data.n === 0
+                              ? "text-muted-foreground"
+                              : pf >= 3 ? "text-emerald-400 font-medium"
+                              : pf >= 1.5 ? "text-teal-400"
+                              : pf >= 1 ? "text-muted-foreground"
+                              : "text-rose-400";
+                            return (
+                              <td key={key} className={`px-2 py-2 text-center text-xs tabular-nums ${color}`}>
+                                {data.n === 0 ? "-" : (
+                                  <span title={`勝率${data.winRate}% avg${data.avg >= 0 ? "+" : ""}${data.avg.toLocaleString()}円`}>
+                                    {pf !== null ? pf.toFixed(2) : "-"}
+                                    <span className="text-muted-foreground text-[10px] ml-0.5">({data.n})</span>
+                                  </span>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="text-[10px] text-muted-foreground mt-1">
+                ホバーで勝率・平均損益表示 / 楽天証券の売買残を手入力で蓄積
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );
