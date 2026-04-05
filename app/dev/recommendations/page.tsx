@@ -59,11 +59,9 @@ type LendingRatioPfCell = {
 
 type LendingRatioRow = {
   label: string;
-  G1: LendingRatioPfCell;
-  G2: LendingRatioPfCell;
-  G3: LendingRatioPfCell;
-  G3_SHORT: LendingRatioPfCell;
-  G4: LendingRatioPfCell;
+  SHORT: LendingRatioPfCell;
+  DISC: LendingRatioPfCell;
+  LONG: LendingRatioPfCell;
 };
 
 type LendingRatioData = {
@@ -113,13 +111,13 @@ export default function DayTradeListPage() {
   const [realtimeLoading, setRealtimeLoading] = useState(false);
   const [realtimeTimestamp, setRealtimeTimestamp] = useState<string | null>(null);
 
-  // 貸借倍率×Grade PFテーブル
+  // 貸借倍率×Bucket PFテーブル
   const [lendingRatioData, setLendingRatioData] = useState<LendingRatioData | null>(null);
 
   // マーケット指標（先物変化率等）
   const [marketData, setMarketData] = useState<{ futures_change_pct: number | null; nikkei_change_pct: number | null } | null>(null);
 
-  // 先物gap×Grade PFテーブル
+  // 先物gap×Bucket PFテーブル
   const [futuresGapData, setFuturesGapData] = useState<FuturesGapData | null>(null);
 
   const fetchData = async () => {
@@ -548,7 +546,7 @@ export default function DayTradeListPage() {
                 <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${color}`}>
                   <span className="text-xs text-muted-foreground">先物gap</span>
                   <span className={`text-sm font-medium tabular-nums ${textColor}`}>{v >= 0 ? "+" : ""}{v.toFixed(2)}%</span>
-                  {isWarning && <span className="text-[10px] text-amber-400/80">⚠ G2ロング域</span>}
+                  {isWarning && <span className="text-[10px] text-amber-400/80">⚠ DISC域</span>}
                 </div>
               );
             })()}
@@ -556,7 +554,7 @@ export default function DayTradeListPage() {
               <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${marketData.nikkei_change_pct > 1 ? "border-amber-500/60 bg-amber-500/10" : "border-border/40 bg-muted/20"}`}>
                 <span className="text-xs text-muted-foreground">N225前日比</span>
                 <span className={`text-sm font-medium tabular-nums ${marketData.nikkei_change_pct > 1 ? "text-amber-400" : marketData.nikkei_change_pct >= 0 ? "text-emerald-400" : "text-rose-400"}`}>{marketData.nikkei_change_pct >= 0 ? "+" : ""}{marketData.nikkei_change_pct.toFixed(2)}%</span>
-                {marketData.nikkei_change_pct > 1 && <span className="text-[10px] text-amber-400/80">⚠ G2除外域</span>}
+                {marketData.nikkei_change_pct > 1 && <span className="text-[10px] text-amber-400/80">⚠ DISC除外域</span>}
               </div>
             )}
           </div>
@@ -970,19 +968,18 @@ export default function DayTradeListPage() {
           </div>
         </div>
 
-        {/* ML Grade Legend */}
+        {/* ML Bucket Legend */}
         <div className="relative overflow-hidden rounded-xl border border-primary/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 mt-4 px-4 py-3 shadow-lg shadow-black/5 backdrop-blur-xl">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none" />
           <div className="relative">
-            <div className="text-xs text-muted-foreground mb-2 font-medium">ML予測 Grade 4分類（ショート戦略）</div>
+            <div className="text-xs text-muted-foreground mb-2 font-medium">ML予測 閾値区分（PFテーブル用）</div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-              <span><span className="text-emerald-400 font-medium">G1</span>: 機械的SHORT推奨</span>
-              <span><span className="text-teal-400 font-medium">G2</span>: SHORT推奨</span>
-              <span><span className="text-amber-400 font-medium">G3</span>: 裁量判断</span>
-              <span><span className="text-rose-400 font-medium">G4</span>: SKIP</span>
+              <span><span className="text-rose-400 font-medium">SHORT</span>: prob &lt; 0.45</span>
+              <span><span className="text-amber-400 font-medium">DISC</span>: 0.45 ≤ prob ≤ 0.70</span>
+              <span><span className="text-emerald-400 font-medium">LONG</span>: prob &gt; 0.70</span>
             </div>
             <div className="text-xs text-muted-foreground mt-2">
-              prob: 株価上昇確率（低いほどショート推奨） / ATR: <span className="text-rose-400">3%未満</span>=負け傾向 <span className="text-emerald-400">6%以上</span>=高ボラ
+              prob: 株価上昇確率 / Grade: G1-G4は銘柄分類（4分位） / ATR: <span className="text-rose-400">3%未満</span>=負け傾向 <span className="text-emerald-400">6%以上</span>=高ボラ
             </div>
           </div>
         </div>
@@ -997,10 +994,10 @@ export default function DayTradeListPage() {
           </div>
         </div>
 
-        {/* Grade×指標 PFテーブル群 */}
+        {/* Bucket×指標 PFテーブル群 */}
         {[
-          { data: futuresGapData, title: "先物gap帯 × Grade別 PF", colLabel: "gap帯", note: null, metaFn: (d: FuturesGapData) => `${d.dataRange.start}～${d.dataRange.end}（${d.dataRange.tradingDays}日 / n=${d.total}）` },
-          { data: lendingRatioData, title: "貸借倍率（買残/売残）× Grade別 PF", colLabel: "倍率帯", note: "ホバーで勝率・平均損益表示 / 楽天証券の売買残を手入力で蓄積", metaFn: (d: LendingRatioData) => `${d.dataRange.start}～${d.dataRange.end}（${d.dataRange.tradingDays}日 / n=${d.totalWithBalance}）` },
+          { data: futuresGapData, title: "先物gap帯 × Bucket別 PF", colLabel: "gap帯", note: null, metaFn: (d: FuturesGapData) => `${d.dataRange.start}～${d.dataRange.end}（${d.dataRange.tradingDays}日 / n=${d.total}）` },
+          { data: lendingRatioData, title: "貸借倍率（買残/売残）× Bucket別 PF", colLabel: "倍率帯", note: "ホバーで勝率・平均損益表示 / 楽天証券の売買残を手入力で蓄積", metaFn: (d: LendingRatioData) => `${d.dataRange.start}～${d.dataRange.end}（${d.dataRange.tradingDays}日 / n=${d.totalWithBalance}）` },
         ].map(({ data, title, colLabel, note, metaFn }) => data && data.rows.length > 0 && (
           <div key={title} className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 mt-4 shadow-lg shadow-black/5 backdrop-blur-xl">
             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
@@ -1014,21 +1011,17 @@ export default function DayTradeListPage() {
                   <thead>
                     <tr className="border-b border-border/40 bg-muted/30">
                       <th className="px-2 py-3 text-left text-foreground font-medium text-xs whitespace-nowrap">{colLabel}</th>
-                      <th className="px-2 py-3 text-center font-medium text-xs whitespace-nowrap"><span className="text-emerald-400">G1</span><span className="text-muted-foreground text-[10px] ml-0.5">SHORT</span></th>
-                      <th className="px-2 py-3 text-center font-medium text-xs whitespace-nowrap"><span className="text-teal-400">G2</span><span className="text-muted-foreground text-[10px] ml-0.5">SHORT</span></th>
-                      <th className="px-2 py-3 text-center font-medium text-xs whitespace-nowrap"><span className="text-amber-400">G3</span><span className="text-muted-foreground text-[10px] ml-0.5">SHORT</span></th>
-                      <th className="px-2 py-3 text-center font-medium text-xs whitespace-nowrap"><span className="text-amber-400">G3</span><span className="text-muted-foreground text-[10px] ml-0.5">LONG</span></th>
-                      <th className="px-2 py-3 text-center font-medium text-xs whitespace-nowrap"><span className="text-rose-400">G4</span><span className="text-muted-foreground text-[10px] ml-0.5">LONG</span></th>
+                      <th className="px-2 py-3 text-center font-medium text-xs whitespace-nowrap"><span className="text-rose-400">SHORT</span><span className="text-muted-foreground text-[10px] ml-0.5">&lt;0.45</span></th>
+                      <th className="px-2 py-3 text-center font-medium text-xs whitespace-nowrap"><span className="text-amber-400">DISC</span><span className="text-muted-foreground text-[10px] ml-0.5">0.45-0.70</span></th>
+                      <th className="px-2 py-3 text-center font-medium text-xs whitespace-nowrap"><span className="text-emerald-400">LONG</span><span className="text-muted-foreground text-[10px] ml-0.5">&gt;0.70</span></th>
                     </tr>
                   </thead>
                   <tbody>
                     {data.rows.map((row) => {
                       const cells = [
-                        { key: "G1", data: row.G1 },
-                        { key: "G2", data: row.G2 },
-                        { key: "G3S", data: row.G3_SHORT },
-                        { key: "G3L", data: row.G3 },
-                        { key: "G4", data: row.G4 },
+                        { key: "SHORT", data: row.SHORT },
+                        { key: "DISC", data: row.DISC },
+                        { key: "LONG", data: row.LONG },
                       ];
                       return (
                         <tr key={row.label} className="border-b border-border/20 hover:bg-muted/30">
