@@ -13,7 +13,7 @@ type DayTradeStock = {
   rsi9: number | null;
   atr_pct: number | null;
   prob_up: number | null;
-  grade: string | null;
+  bucket: string | null;
   shortable: boolean;
   day_trade: boolean;
   ng: boolean;
@@ -643,7 +643,7 @@ export default function DayTradeListPage() {
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("price_diff")}>前日差<SortIcon col="price_diff" /></th>
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">寄付差</th>
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("prob_up")}>prob<SortIcon col="prob_up" /></th>
-                  <th className="px-2 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("grade")}>Grade<SortIcon col="grade" /></th>
+                  <th className="px-2 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("bucket")}>Bucket<SortIcon col="bucket" /></th>
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("atr_pct")}>ATR%<SortIcon col="atr_pct" /></th>
                   <th className="px-2 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">
                     {bulkEditMode ? "制度" : "信用区分"}
@@ -788,13 +788,12 @@ export default function DayTradeListPage() {
                           {stock.prob_up !== null ? stock.prob_up.toFixed(2) : "-"}
                         </td>
                         <td className={`px-2 py-4 text-center tabular-nums font-medium ${
-                          stock.grade === "G1" ? "text-emerald-400" :
-                          stock.grade === "G2" ? "text-teal-400" :
-                          stock.grade === "G3" ? "text-amber-400" :
-                          stock.grade === "G4" ? "text-rose-400" :
+                          stock.bucket === "SHORT" ? "text-rose-400" :
+                          stock.bucket === "DISC" ? "text-amber-400" :
+                          stock.bucket === "LONG" ? "text-emerald-400" :
                           "text-muted-foreground"
                         }`}>
-                          {stock.grade ?? "-"}
+                          {stock.bucket ?? "-"}
                         </td>
                         <td className={`px-2 py-4 text-right tabular-nums whitespace-nowrap ${
                           stock.atr_pct !== null && stock.atr_pct < 3
@@ -979,7 +978,7 @@ export default function DayTradeListPage() {
               <span><span className="text-emerald-400 font-medium">LONG</span>: prob &gt; 0.70</span>
             </div>
             <div className="text-xs text-muted-foreground mt-2">
-              prob: 株価上昇確率 / Grade: G1-G4は銘柄分類（4分位） / ATR: <span className="text-rose-400">3%未満</span>=負け傾向 <span className="text-emerald-400">6%以上</span>=高ボラ
+              prob: 株価上昇確率 / ATR: <span className="text-rose-400">3%未満</span>=負け傾向 <span className="text-emerald-400">6%以上</span>=高ボラ
             </div>
           </div>
         </div>
