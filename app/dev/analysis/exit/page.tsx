@@ -19,14 +19,15 @@ interface DetailStock {
   prevClose: number | null;
   buyPrice: number | null;
   shares: number | null;
-  mlGrade: string | null;
+  mlProb: number | null;
+  bucket: string | null;
   segments: Record<string, number | null>;
 }
 
 interface DetailGroup {
   key: string;
-  count: { all: number; ex0: number };
-  segments: { all: Record<string, number>; ex0: Record<string, number> };
+  count: number;
+  segments: Record<string, number>;
   stocks: DetailStock[];
 }
 
@@ -41,7 +42,7 @@ interface DetailResponse {
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 const WEEKDAYS = ['月曜日', '火曜日', '水曜日', '木曜日', '金曜日'] as const;
 const WEEKDAY_SHORT = ['月', '火', '水', '木', '金'] as const;
-const GRADE_OPTIONS = ['全体', 'G1', 'G2', 'G3', 'G4'] as const;
+const BUCKET_OPTIONS = ['全体', 'SHORT', 'DISC', 'LONG'] as const;
 const PRICE_RANGE_LABELS = ['~1,000円', '1,000~3,000円', '3,000~5,000円', '5,000~10,000円', '10,000円~'];
 
 // P&Lバケット（金額ベース）
@@ -79,7 +80,7 @@ export default function ExitStrategyPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [selectedDay, setSelectedDay] = useState(0);
-  const [selectedGrade, setSelectedGrade] = useState<string>('全体');
+  const [selectedBucket, setSelectedBucket] = useState<string>('全体');
   const [excludeExtreme, setExcludeExtreme] = useState(false);
 
   // Fetch
@@ -106,11 +107,11 @@ export default function ExitStrategyPage() {
     const weekdayGroup = data.results.find(r => r.key === WEEKDAYS[selectedDay]);
     if (!weekdayGroup) return [];
     let filtered = weekdayGroup.stocks;
-    if (selectedGrade !== '全体') {
-      filtered = filtered.filter(s => s.mlGrade === selectedGrade);
+    if (selectedBucket !== '全体') {
+      filtered = filtered.filter(s => s.bucket === selectedBucket);
     }
     return filtered;
-  }, [data, selectedDay, selectedGrade]);
+  }, [data, selectedDay, selectedBucket]);
 
   const segments = data?.timeSegments || [];
 
@@ -290,9 +291,9 @@ export default function ExitStrategyPage() {
             ))}
             <span className="text-border">|</span>
             {/* グレード */}
-            {GRADE_OPTIONS.map(g => (
-              <button key={g} onClick={() => setSelectedGrade(g)}
-                className={`px-3 py-1 text-xs rounded-md border transition-colors ${selectedGrade === g ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'}`}
+            {BUCKET_OPTIONS.map(g => (
+              <button key={g} onClick={() => setSelectedBucket(g)}
+                className={`px-3 py-1 text-xs rounded-md border transition-colors ${selectedBucket === g ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'}`}
               >{g}</button>
             ))}
             <span className="text-border">|</span>

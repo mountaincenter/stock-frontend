@@ -26,14 +26,15 @@ interface DetailStock {
   prevClose: number | null;
   buyPrice: number | null;
   shares: number | null;
-  mlGrade: string | null;
+  mlProb: number | null;
+  bucket: string | null;
   segments: Record<string, number | null>;
 }
 
 interface DetailGroup {
   key: string;
-  count: { all: number; ex0: number };
-  segments: { all: Record<string, number>; ex0: Record<string, number> };
+  count: number;
+  segments: Record<string, number>;
   stocks: DetailStock[];
 }
 
@@ -58,18 +59,18 @@ interface SeidoData {
   priceRanges: PriceRangeData[];
 }
 interface IchinichiData {
-  type: string; count: { all: number; ex0: number };
-  segments11: { all: Record<string, SegmentStats>; ex0: Record<string, SegmentStats> };
-  segments4: { all: Record<string, SegmentStats>; ex0: Record<string, SegmentStats> };
-  pctSegments11: { all: Record<string, SegmentStatsPct>; ex0: Record<string, SegmentStatsPct> };
-  pctSegments4: { all: Record<string, SegmentStatsPct>; ex0: Record<string, SegmentStatsPct> };
-  priceRanges: { all: PriceRangeData[]; ex0: PriceRangeData[] };
+  type: string; count: number;
+  segments11: Record<string, SegmentStats>;
+  segments4: Record<string, SegmentStats>;
+  pctSegments11: Record<string, SegmentStatsPct>;
+  pctSegments4: Record<string, SegmentStatsPct>;
+  priceRanges: PriceRangeData[];
 }
 interface WeekdayData { weekday: string; seido: SeidoData; ichinichi: IchinichiData; }
 interface SummaryResponse {
   timeSegments11: TimeSegment[]; timeSegments4: TimeSegment[];
   weekdays: WeekdayData[];
-  gradeInfo?: { available: boolean; grades: string[] };
+  bucketInfo?: { available: boolean; buckets: string[]; thresholds: { short: number; long: number } };
 }
 
 // ===== Constants =====
@@ -82,7 +83,7 @@ const WEEKDAY_SLUG_MAP: Record<string, number> = {
 };
 const PRICE_RANGE_LABELS = ['~1,000円', '1,000~3,000円', '3,000~5,000円', '5,000~10,000円', '10,000円~'];
 const MARGIN_TYPES = ['制度信用', 'いちにち信用'];
-const GRADE_SECTIONS = ['全体', 'G1', 'G2', 'G3', 'G4'] as const;
+const BUCKET_SECTIONS = ['全体', 'SHORT', 'DISC', 'LONG'] as const;
 
 type DisplayMode = 'amount' | 'pct';
 type SegmentMode = '4seg' | '11seg';
@@ -172,7 +173,7 @@ function aggregateStocks(
       for (const seg of timeSegments) {
         const vals = items
           .filter(s => s.segments[seg.key] !== null && s.buyPrice && s.buyPrice > 0)
-          .map(s => ((s.segments[seg.key]! / (s.buyPrice! * (s.shares ?? 100))) * 100));
+          .map(s => ((s.segments[seg.key]! / (s.buyPrice! * 100)) * 100));
         const pctReturn = vals.reduce((a, b) => a + b, 0);
         const wins = vals.filter(v => v > 0).length;
         result[seg.key] = {
@@ -239,12 +240,12 @@ export default function WeekdayAnalysisPage() {
       return next;
     });
   };
-  const allOpen = openSections.size === GRADE_SECTIONS.length;
+  const allOpen = openSections.size === BUCKET_SECTIONS.length;
   const toggleAll = () => {
     if (allOpen) {
       setOpenSections(new Set());
     } else {
-      setOpenSections(new Set(GRADE_SECTIONS));
+      setOpenSections(new Set(BUCKET_SECTIONS));
     }
   };
 
@@ -299,27 +300,27 @@ export default function WeekdayAnalysisPage() {
     return segmentMode === '11seg' ? summaryData.timeSegments11 : summaryData.timeSegments4;
   }, [summaryData, segmentMode, segments]);
 
-  // グレード別に銘柄を分類
-  const stocksByGrade = useMemo(() => {
+  // Bucket別に銘柄を分類
+  const stocksByBucket = useMemo(() => {
     const result: Record<string, DetailStock[]> = { '全体': filteredStocks };
-    for (const g of ['G1', 'G2', 'G3', 'G4']) {
-      result[g] = filteredStocks.filter(s => s.mlGrade === g);
+    for (const b of ['SHORT', 'DISC', 'LONG']) {
+      result[b] = filteredStocks.filter(s => s.bucket === b);
     }
     return result;
   }, [filteredStocks]);
 
-  // グレード別の集計
-  const aggregationByGrade = useMemo(() => {
+  // Bucket別の集計
+  const aggregationByBucket = useMemo(() => {
     const result: Record<string, ReturnType<typeof aggregateStocks>> = {};
-    for (const key of GRADE_SECTIONS) {
-      result[key] = aggregateStocks(stocksByGrade[key] || [], timeSegments);
+    for (const key of BUCKET_SECTIONS) {
+      result[key] = aggregateStocks(stocksByBucket[key] || [], timeSegments);
     }
     return result;
-  }, [stocksByGrade, timeSegments]);
+  }, [stocksByBucket, timeSegments]);
 
   // ===== チャート用グレード切替 =====
-  const [chartGrade, setChartGrade] = useState<string>('全体');
-  const chartStocks = useMemo(() => stocksByGrade[chartGrade] || [], [stocksByGrade, chartGrade]);
+  const [chartBucket, setChartGrade] = useState<string>('全体');
+  const chartStocks = useMemo(() => stocksByBucket[chartBucket] || [], [stocksByBucket, chartBucket]);
 
   // ===== Pareto data =====
   const [paretoSegIdx, setParetoSegIdx] = useState(4);
@@ -367,10 +368,10 @@ export default function WeekdayAnalysisPage() {
   const stockCount = filteredStocks.length;
 
   // ===== サマリーテーブル描画関数 =====
-  const renderGradeSection = (gradeKey: string) => {
-    const agg = aggregationByGrade[gradeKey];
+  const renderBucketSection = (bucketKey: string) => {
+    const agg = aggregationByBucket[bucketKey];
     if (!agg) return null;
-    const stocks = stocksByGrade[gradeKey] || [];
+    const stocks = stocksByBucket[bucketKey] || [];
     if (stocks.length === 0) return null;
 
     const ichData = ichFilter === 'ex0' ? agg.ichinichiEx0 : agg.ichinichiAll;
@@ -448,17 +449,17 @@ export default function WeekdayAnalysisPage() {
       </div>
     );
 
-    const isOpen = openSections.has(gradeKey);
+    const isOpen = openSections.has(bucketKey);
 
     return (
-      <div key={gradeKey} className="mb-3">
+      <div key={bucketKey} className="mb-3">
         {/* アコーディオンヘッダー */}
         <button
-          onClick={() => toggleSection(gradeKey)}
+          onClick={() => toggleSection(bucketKey)}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-border/40 bg-card/80 hover:bg-card transition-colors"
         >
           <span className={`text-xs transition-transform ${isOpen ? 'rotate-90' : ''}`}>▶</span>
-          <span className="font-semibold text-foreground">{gradeKey}</span>
+          <span className="font-semibold text-foreground">{bucketKey}</span>
           <span className="text-sm text-muted-foreground">{stocks.length}件</span>
           {agg.seido.count > 0 && (
             <span className="text-xs text-muted-foreground">制度{agg.seido.count}</span>
@@ -632,23 +633,23 @@ export default function WeekdayAnalysisPage() {
             {allOpen ? '全て閉じる' : '全て開く'}
           </button>
         </div>
-        {GRADE_SECTIONS.map(g => renderGradeSection(g))}
+        {BUCKET_SECTIONS.map(g => renderBucketSection(g))}
       </div>
 
       {/* ===== チャート用グレード切替タブ ===== */}
       <div className="flex items-center gap-2 mb-4">
         <span className="text-xs text-muted-foreground">グラフ:</span>
-        {GRADE_SECTIONS.map(g => (
+        {BUCKET_SECTIONS.map(g => (
           <button
             key={g}
             onClick={() => setChartGrade(g)}
             className={`px-3 py-1 text-xs rounded-md border transition-colors ${
-              chartGrade === g
+              chartBucket === g
                 ? 'bg-primary text-primary-foreground border-primary'
                 : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
             }`}
           >
-            {g}{stocksByGrade[g]?.length ? ` (${stocksByGrade[g].length})` : ''}
+            {g}{stocksByBucket[g]?.length ? ` (${stocksByBucket[g].length})` : ''}
           </button>
         ))}
       </div>

@@ -7,16 +7,18 @@ import { DevNavLinks } from '../../../components/dev';
 // Types
 interface SegmentStats {
   profit: number;
-  winRate: number;
+  winRate: number | null;
   count: number;
-  mean: number;
+  mean: number | null;
+  pf: number | null;
 }
 
 interface SegmentStatsPct {
   pctReturn: number;
-  winRate: number;
+  winRate: number | null;
   count: number;
-  meanPct: number;
+  meanPct: number | null;
+  pf: number | null;
 }
 
 interface TimeSegment {
@@ -34,7 +36,7 @@ interface PriceRangeData {
   pctSegments4: Record<string, SegmentStatsPct>;
 }
 
-interface SeidoData {
+interface MarginData {
   type: string;
   count: number;
   segments11: Record<string, SegmentStats>;
@@ -44,35 +46,10 @@ interface SeidoData {
   priceRanges: PriceRangeData[];
 }
 
-interface IchinichiData {
-  type: string;
-  count: { all: number; ex0: number };
-  segments11: {
-    all: Record<string, SegmentStats>;
-    ex0: Record<string, SegmentStats>;
-  };
-  segments4: {
-    all: Record<string, SegmentStats>;
-    ex0: Record<string, SegmentStats>;
-  };
-  pctSegments11: {
-    all: Record<string, SegmentStatsPct>;
-    ex0: Record<string, SegmentStatsPct>;
-  };
-  pctSegments4: {
-    all: Record<string, SegmentStatsPct>;
-    ex0: Record<string, SegmentStatsPct>;
-  };
-  priceRanges: {
-    all: PriceRangeData[];
-    ex0: PriceRangeData[];
-  };
-}
-
 interface WeekdayData {
   weekday: string;
-  seido: SeidoData;
-  ichinichi: IchinichiData;
+  seido: MarginData;
+  ichinichi: MarginData;
 }
 
 interface ApiResponse {
@@ -86,44 +63,34 @@ interface ApiResponse {
     tradingDays: number;
   };
   overall: {
-    count: { all: number; ex0: number };
+    count: number;
     seidoCount: number;
-    ichinichiCount: { all: number; ex0: number };
-    segments11: {
-      all: Record<string, SegmentStats>;
-      ex0: Record<string, SegmentStats>;
-    };
-    segments4: {
-      all: Record<string, SegmentStats>;
-      ex0: Record<string, SegmentStats>;
-    };
-    pctSegments11: {
-      all: Record<string, SegmentStatsPct>;
-      ex0: Record<string, SegmentStatsPct>;
-    };
-    pctSegments4: {
-      all: Record<string, SegmentStatsPct>;
-      ex0: Record<string, SegmentStatsPct>;
-    };
+    ichinichiCount: number;
+    segments11: Record<string, SegmentStats>;
+    segments4: Record<string, SegmentStats>;
+    pctSegments11: Record<string, SegmentStatsPct>;
+    pctSegments4: Record<string, SegmentStatsPct>;
   };
   weekdays: WeekdayData[];
   excludeExtreme: boolean;
+  direction: string;
   filters: {
     priceMin: number;
     priceMax: number;
     priceStep: number;
-    grades: string[];
+    buckets: string[];
   };
-  gradeInfo?: {
+  bucketInfo?: {
     available: boolean;
-    grades: string[];
+    buckets: string[];
+    thresholds: { short: number; long: number };
   };
 }
 
-type FilterType = 'all' | 'ex0';
 type SegmentMode = '4seg' | '11seg';
 type DisplayMode = 'amount' | 'pct';
 type DetailViewType = 'daily' | 'weekly' | 'monthly' | 'weekday';
+type Direction = 'short' | 'long';
 
 interface DetailStock {
   date: string;
@@ -134,22 +101,22 @@ interface DetailStock {
   prevClose: number | null;
   buyPrice: number | null;
   shares: number | null;
+  mlProb: number | null;
+  bucket: string | null;
   segments: Record<string, number | null>;
 }
 
 interface DetailGroup {
   key: string;
-  count: { all: number; ex0: number };
-  segments: {
-    all: Record<string, number>;
-    ex0: Record<string, number>;
-  };
+  count: number;
+  segments: Record<string, number>;
   stocks: DetailStock[];
 }
 
 interface DetailResponse {
   view: string;
   excludeExtreme: boolean;
+  direction: string;
   timeSegments: TimeSegment[];
   results: DetailGroup[];
 }
@@ -159,6 +126,13 @@ const DETAIL_VIEW_LABELS: Record<DetailViewType, string> = {
   weekly: '週別',
   monthly: '月別',
   weekday: '曜日別',
+};
+
+const BUCKET_LABELS = ['SHORT', 'DISC', 'LONG'] as const;
+const BUCKET_COLORS: Record<string, string> = {
+  SHORT: 'text-rose-400',
+  DISC: 'text-amber-400',
+  LONG: 'text-emerald-400',
 };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
@@ -174,16 +148,28 @@ const PRICE_PRESETS = [
 
 const STEP_OPTIONS = [500, 1000];
 
-// Format profit (amount)
 const formatProfit = (val: number) => {
   const sign = val >= 0 ? '+' : '';
   return `${sign}${val.toLocaleString()}`;
 };
 
-// Format pct return (平均)
 const formatPct = (val: number) => {
   const sign = val >= 0 ? '+' : '';
   return `${sign}${val.toFixed(2)}%`;
+};
+
+const formatPF = (pf: number | null) => {
+  if (pf === null) return '-';
+  return pf.toFixed(2);
+};
+
+const pfClass = (pf: number | null) => {
+  if (pf === null) return 'text-muted-foreground';
+  if (pf >= 2.0) return 'text-emerald-400 font-bold';
+  if (pf >= 1.5) return 'text-emerald-400';
+  if (pf >= 1.0) return 'text-foreground';
+  if (pf >= 0.7) return 'text-rose-400';
+  return 'text-rose-400 font-bold';
 };
 
 // Color classes for segments
@@ -202,32 +188,28 @@ const getSegmentClasses = (
   const positives = values.filter(v => v.value > 0).sort((a, b) => b.value - a.value);
   const negatives = values.filter(v => v.value < 0).sort((a, b) => a.value - b.value);
 
-  const WHITE = 'text-foreground';
-  const GREEN_1 = 'text-emerald-400';
-  const GREEN_2 = 'text-emerald-500';
-  const RED_1 = 'text-rose-400';
-  const RED_2 = 'text-rose-500';
-
   const result: Record<string, string> = {};
   values.forEach(v => {
     if (positives.length >= 1 && v.value === positives[0].value) {
-      result[v.key] = GREEN_1;
+      result[v.key] = 'text-emerald-400';
     } else if (positives.length >= 2 && v.value === positives[1].value) {
-      result[v.key] = GREEN_2;
+      result[v.key] = 'text-emerald-500';
     } else if (negatives.length >= 1 && v.value === negatives[0].value) {
-      result[v.key] = RED_1;
+      result[v.key] = 'text-rose-400';
     } else if (negatives.length >= 2 && v.value === negatives[1].value) {
-      result[v.key] = RED_2;
+      result[v.key] = 'text-rose-500';
     } else {
-      result[v.key] = WHITE;
+      result[v.key] = 'text-foreground';
     }
   });
 
   return result;
 };
 
-const winrateClass = (rate: number) =>
-  rate > 50 ? 'text-emerald-400' : rate < 50 ? 'text-rose-400' : 'text-foreground';
+const winrateClass = (rate: number | null) => {
+  if (rate === null) return 'text-muted-foreground';
+  return rate > 50 ? 'text-emerald-400' : rate < 50 ? 'text-rose-400' : 'text-foreground';
+};
 
 export default function AnalysisCustomPage() {
   const [data, setData] = useState<ApiResponse | null>(null);
@@ -235,11 +217,10 @@ export default function AnalysisCustomPage() {
   const [error, setError] = useState<string | null>(null);
 
   // UI State
-  const [segmentMode, setSegmentMode] = useState<SegmentMode>('11seg');
+  const [segmentMode, setSegmentMode] = useState<SegmentMode>('4seg');
   const [displayMode, setDisplayMode] = useState<DisplayMode>('amount');
   const [excludeExtreme, setExcludeExtreme] = useState(false);
-  const [overallFilter, setOverallFilter] = useState<FilterType>('all');
-  const [ichinichiFilters, setIchinichiFilters] = useState<Record<number, FilterType>>({});
+  const [direction, setDirection] = useState<Direction>('short');
 
   // Price filters
   const [priceMin, setPriceMin] = useState(0);
@@ -254,25 +235,21 @@ export default function AnalysisCustomPage() {
   const [detailView, setDetailView] = useState<DetailViewType>('daily');
   const [detailData, setDetailData] = useState<DetailResponse | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [detailFilter, setDetailFilter] = useState<FilterType>('all');
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
 
-  // Grade filters
-  const GRADE_LABELS = ['G1', 'G2', 'G3', 'G4'] as const;
-  const [selectedGrades, setSelectedGrades] = useState<Set<string>>(new Set());
-  const [gradesAvailable, setGradesAvailable] = useState(false);
+  // Bucket filters
+  const [selectedBuckets, setSelectedBuckets] = useState<Set<string>>(new Set());
+  const [bucketsAvailable, setBucketsAvailable] = useState(false);
 
   // Detail filters
-  const PRICE_RANGE_LABELS = ['~1,000円', '1,000~3,000円', '3,000~5,000円', '5,000~10,000円', '10,000円~'];
   const MARGIN_TYPE_LABELS = ['制度信用', 'いちにち信用'];
-  const [priceRangeFilters, setPriceRangeFilters] = useState<Set<string>>(new Set(PRICE_RANGE_LABELS));
+  const [priceRangeFilters, setPriceRangeFilters] = useState<Set<string>>(new Set());
   const [marginTypeFilters, setMarginTypeFilters] = useState<Set<string>>(new Set(MARGIN_TYPE_LABELS));
 
-  // Grade変更時はフルローディングを出さない（数字だけ差し替え）
   const isInitialLoad = useRef(true);
   const fetchData = useCallback(async () => {
-    const isGradeOnlyChange = !isInitialLoad.current && data !== null;
-    if (!isGradeOnlyChange) {
+    const isBucketOnlyChange = !isInitialLoad.current && data !== null;
+    if (!isBucketOnlyChange) {
       setLoading(true);
     }
     setError(null);
@@ -282,16 +259,21 @@ export default function AnalysisCustomPage() {
         price_min: priceMin.toString(),
         price_max: priceMax.toString(),
         price_step: priceStep.toString(),
+        direction,
       });
-      if (selectedGrades.size > 0) {
-        params.set('grades', Array.from(selectedGrades).join(','));
+      if (selectedBuckets.size > 0) {
+        params.set('buckets', Array.from(selectedBuckets).join(','));
       }
       const res = await fetch(`${API_BASE}/dev/analysis-custom/summary?${params}`);
       if (!res.ok) throw new Error(`API error: ${res.status}`);
       const json = await res.json();
       setData(json);
-      if (json.gradeInfo) {
-        setGradesAvailable(json.gradeInfo.available);
+      if (json.bucketInfo) {
+        setBucketsAvailable(json.bucketInfo.available);
+      }
+      // 価格帯フィルターをAPIレスポンスから初期化
+      if (isInitialLoad.current && json.priceRanges) {
+        setPriceRangeFilters(new Set(json.priceRanges));
       }
       isInitialLoad.current = false;
     } catch (err) {
@@ -299,7 +281,7 @@ export default function AnalysisCustomPage() {
     } finally {
       setLoading(false);
     }
-  }, [excludeExtreme, priceMin, priceMax, priceStep, selectedGrades]);
+  }, [excludeExtreme, priceMin, priceMax, priceStep, selectedBuckets, direction]);
 
   useEffect(() => {
     fetchData();
@@ -316,9 +298,10 @@ export default function AnalysisCustomPage() {
         price_min: priceMin.toString(),
         price_max: priceMax.toString(),
         price_step: priceStep.toString(),
+        direction,
       });
-      if (selectedGrades.size > 0) {
-        params.set('grades', Array.from(selectedGrades).join(','));
+      if (selectedBuckets.size > 0) {
+        params.set('buckets', Array.from(selectedBuckets).join(','));
       }
       const res = await fetch(`${API_BASE}/dev/analysis-custom/details?${params}`);
       if (!res.ok) {
@@ -333,16 +316,15 @@ export default function AnalysisCustomPage() {
     } finally {
       setDetailLoading(false);
     }
-  }, [excludeExtreme, priceMin, priceMax, priceStep, selectedGrades]);
+  }, [excludeExtreme, priceMin, priceMax, priceStep, selectedBuckets, direction]);
 
   useEffect(() => {
     if (!loading && data) {
       fetchDetailData(detailView);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, detailView, excludeExtreme, priceMin, priceMax, priceStep]);
+  }, [loading, detailView, excludeExtreme, priceMin, priceMax, priceStep, direction]);
 
-  // Filter toggles
   const togglePriceRange = (label: string) => {
     setPriceRangeFilters(prev => {
       const next = new Set(prev);
@@ -351,8 +333,6 @@ export default function AnalysisCustomPage() {
       return next;
     });
   };
-  const selectAllPriceRanges = () => setPriceRangeFilters(new Set(PRICE_RANGE_LABELS));
-  const selectNonePriceRanges = () => setPriceRangeFilters(new Set());
   const toggleMarginType = (label: string) => {
     setMarginTypeFilters(prev => {
       const next = new Set(prev);
@@ -390,11 +370,6 @@ export default function AnalysisCustomPage() {
     setPriceMax(max);
     setPriceStep(shouldUseStep ? customStep : 0);
     setActivePreset(-1);
-  };
-
-  const getIchinichiFilter = (idx: number): FilterType => ichinichiFilters[idx] || 'all';
-  const setIchinichiFilter = (idx: number, f: FilterType) => {
-    setIchinichiFilters(prev => ({ ...prev, [idx]: f }));
   };
 
   const getTimeSegments = (): TimeSegment[] => {
@@ -451,14 +426,13 @@ export default function AnalysisCustomPage() {
 
   const timeSegments = getTimeSegments();
   const { weekdays, overall, dateRange } = data;
+  const directionLabel = direction === 'short' ? 'SHORT' : 'LONG';
   const overallSegs = getSegmentsData(
-    overallFilter === 'ex0' ? overall.segments11.ex0 : overall.segments11.all,
-    overallFilter === 'ex0' ? overall.segments4.ex0 : overall.segments4.all,
-    overallFilter === 'ex0' ? overall.pctSegments11.ex0 : overall.pctSegments11.all,
-    overallFilter === 'ex0' ? overall.pctSegments4.ex0 : overall.pctSegments4.all
+    overall.segments11,
+    overall.segments4,
+    overall.pctSegments11,
+    overall.pctSegments4
   );
-  const overallCount = overallFilter === 'ex0' ? overall.count.ex0 : overall.count.all;
-  const ichinichiCount = overallFilter === 'ex0' ? overall.ichinichiCount.ex0 : overall.ichinichiCount.all;
   const segClasses = getSegmentClasses(overallSegs, timeSegments, displayMode);
 
   return (
@@ -474,13 +448,44 @@ export default function AnalysisCustomPage() {
         {/* Header */}
         <header className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4 pb-3 border-b border-border/30">
           <div>
-            <h1 className="text-xl font-bold text-foreground">カスタム分析</h1>
+            <h1 className="text-xl font-bold text-foreground">
+              カスタム分析
+              <span className={`ml-2 text-base ${direction === 'short' ? 'text-rose-400' : 'text-emerald-400'}`}>
+                {directionLabel}
+              </span>
+            </h1>
             <p className="text-muted-foreground text-sm">
-              {dateRange.from} ~ {dateRange.to} ({dateRange.tradingDays}営業日) | ショート基準
-              {excludeExtreme && <span className="ml-2 text-amber-400">（異常日除外中）</span>}
+              {dateRange.from} ~ {dateRange.to} ({dateRange.tradingDays}営業日)
+              {direction === 'short' && ' | 制度+いちにち残あり'}
+              {direction === 'long' && ' | 制度+いちにち全部'}
+              {excludeExtreme && <span className="ml-2 text-amber-400">(異常日除外中)</span>}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            {/* Direction toggle */}
+            <div className="flex gap-1">
+              <button
+                onClick={() => setDirection('short')}
+                className={`px-3 py-1 text-xs rounded-md border transition-colors ${
+                  direction === 'short'
+                    ? 'bg-rose-500/20 text-rose-400 border-rose-500/50'
+                    : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
+                }`}
+              >
+                SHORT
+              </button>
+              <button
+                onClick={() => setDirection('long')}
+                className={`px-3 py-1 text-xs rounded-md border transition-colors ${
+                  direction === 'long'
+                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50'
+                    : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
+                }`}
+              >
+                LONG
+              </button>
+            </div>
+            <span className="text-border">|</span>
             {/* 異常日除外トグル */}
             <label className="flex items-center gap-1.5 cursor-pointer">
               <input
@@ -491,36 +496,36 @@ export default function AnalysisCustomPage() {
               />
               <span className="text-xs text-amber-400 whitespace-nowrap">異常日除外</span>
             </label>
-            {/* Grade フィルター */}
-            {gradesAvailable && (
+            {/* Bucket フィルター */}
+            {bucketsAvailable && (
               <>
                 <span className="text-border">|</span>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs text-muted-foreground">Grade:</span>
-                  {GRADE_LABELS.map((g) => (
-                    <label key={g} className="flex items-center gap-1 cursor-pointer">
+                  <span className="text-xs text-muted-foreground">Bucket:</span>
+                  {BUCKET_LABELS.map((b) => (
+                    <label key={b} className="flex items-center gap-1 cursor-pointer">
                       <input
                         type="checkbox"
-                        checked={selectedGrades.has(g)}
+                        checked={selectedBuckets.has(b)}
                         onChange={() => {
-                          setSelectedGrades(prev => {
+                          setSelectedBuckets(prev => {
                             const next = new Set(prev);
-                            if (next.has(g)) next.delete(g);
-                            else next.add(g);
+                            if (next.has(b)) next.delete(b);
+                            else next.add(b);
                             return next;
                           });
                         }}
                         className="w-3.5 h-3.5 rounded border-cyan-500/50 bg-muted/30 text-cyan-500 focus:ring-cyan-500/50"
                       />
-                      <span className={`text-xs ${selectedGrades.has(g) ? 'text-cyan-400' : 'text-muted-foreground'}`}>{g}</span>
+                      <span className={`text-xs ${selectedBuckets.has(b) ? BUCKET_COLORS[b] : 'text-muted-foreground'}`}>{b}</span>
                     </label>
                   ))}
-                  {selectedGrades.size > 0 && (
+                  {selectedBuckets.size > 0 && (
                     <button
-                      onClick={() => setSelectedGrades(new Set())}
+                      onClick={() => setSelectedBuckets(new Set())}
                       className="text-xs text-muted-foreground hover:text-foreground ml-1"
                     >
-                      ×
+                      x
                     </button>
                   )}
                 </div>
@@ -640,32 +645,10 @@ export default function AnalysisCustomPage() {
             <div className="relative">
               <div className="flex items-center mb-2">
                 <span className="text-muted-foreground text-sm">総件数</span>
-                <div className="flex gap-1 ml-auto">
-                  <button
-                    onClick={() => setOverallFilter('all')}
-                    className={`px-2 py-0.5 text-xs rounded border transition-colors ${
-                      overallFilter === 'all'
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
-                    }`}
-                  >
-                    全
-                  </button>
-                  <button
-                    onClick={() => setOverallFilter('ex0')}
-                    className={`px-2 py-0.5 text-xs rounded border transition-colors ${
-                      overallFilter === 'ex0'
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
-                    }`}
-                  >
-                    除0
-                  </button>
-                </div>
               </div>
-              <div className="text-2xl font-bold text-right tabular-nums text-foreground">{overallCount}</div>
+              <div className="text-2xl font-bold text-right tabular-nums text-foreground">{overall.count}</div>
               <div className="text-muted-foreground text-xs text-right mt-1">
-                制度{overall.seidoCount} / いちにち{ichinichiCount}
+                制度{overall.seidoCount} / いちにち{overall.ichinichiCount}
               </div>
             </div>
           </div>
@@ -676,19 +659,21 @@ export default function AnalysisCustomPage() {
             const value = displayMode === 'amount'
               ? (stats as SegmentStats)?.profit ?? 0
               : (stats as SegmentStatsPct)?.meanPct ?? 0;
-            const winRate = stats?.winRate ?? 0;
+            const winRate = stats?.winRate ?? null;
+            const pf = stats?.pf ?? null;
             return (
               <div key={seg.key} className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-5 shadow-lg shadow-black/5 backdrop-blur-xl">
                 <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
                 <div className="relative">
                   <div className="flex items-center mb-2">
                     <span className="text-muted-foreground text-sm whitespace-nowrap">{seg.label}</span>
+                    <span className={`ml-auto text-xs ${pfClass(pf)}`}>PF {formatPF(pf)}</span>
                   </div>
                   <div className={`text-2xl font-bold text-right tabular-nums whitespace-nowrap ${segClasses[seg.key]}`}>
                     {displayMode === 'amount' ? `${formatProfit(value)}円` : formatPct(value)}
                   </div>
                   <div className={`text-xs text-right mt-1 ${winrateClass(winRate)}`}>
-                    勝率 {Math.round(winRate)}%
+                    勝率 {winRate !== null ? `${Math.round(winRate)}%` : '-'}
                   </div>
                 </div>
               </div>
@@ -698,26 +683,18 @@ export default function AnalysisCustomPage() {
 
         {/* Weekday Cards */}
         {weekdays.map((wd, idx) => {
-          const ichFilter = getIchinichiFilter(idx);
-
           const seidoSegs = getSegmentsData(
             wd.seido.segments11,
             wd.seido.segments4,
             wd.seido.pctSegments11,
             wd.seido.pctSegments4
           );
-
           const ichiSegs = getSegmentsData(
-            ichFilter === 'ex0' ? wd.ichinichi.segments11.ex0 : wd.ichinichi.segments11.all,
-            ichFilter === 'ex0' ? wd.ichinichi.segments4.ex0 : wd.ichinichi.segments4.all,
-            ichFilter === 'ex0' ? wd.ichinichi.pctSegments11.ex0 : wd.ichinichi.pctSegments11.all,
-            ichFilter === 'ex0' ? wd.ichinichi.pctSegments4.ex0 : wd.ichinichi.pctSegments4.all
+            wd.ichinichi.segments11,
+            wd.ichinichi.segments4,
+            wd.ichinichi.pctSegments11,
+            wd.ichinichi.pctSegments4
           );
-
-          const ichiPriceRanges = ichFilter === 'ex0'
-            ? wd.ichinichi.priceRanges.ex0
-            : wd.ichinichi.priceRanges.all;
-          const ichiCount = ichFilter === 'ex0' ? wd.ichinichi.count.ex0 : wd.ichinichi.count.all;
 
           return (
             <div key={wd.weekday} className="mb-6">
@@ -745,12 +722,14 @@ export default function AnalysisCustomPage() {
                             const value = displayMode === 'amount'
                               ? (stats as SegmentStats)?.profit ?? 0
                               : (stats as SegmentStatsPct)?.meanPct ?? 0;
+                            const pf = stats?.pf ?? null;
                             return (
                               <div key={seg.key} className="text-right min-w-[70px]">
                                 <div className="text-muted-foreground text-sm">{seg.label}</div>
                                 <div className={`text-xl font-bold tabular-nums ${classes[seg.key]}`}>
                                   {displayMode === 'amount' ? formatProfit(value) : formatPct(value)}
                                 </div>
+                                <div className={`text-xs ${pfClass(pf)}`}>PF {formatPF(pf)}</div>
                               </div>
                             );
                           });
@@ -773,12 +752,7 @@ export default function AnalysisCustomPage() {
                         </thead>
                         <tbody>
                           {wd.seido.priceRanges.map(pr => {
-                            const prSegs = getSegmentsData(
-                              pr.segments11,
-                              pr.segments4,
-                              pr.pctSegments11,
-                              pr.pctSegments4
-                            );
+                            const prSegs = getSegmentsData(pr.segments11, pr.segments4, pr.pctSegments11, pr.pctSegments4);
                             const classes = getSegmentClasses(prSegs, timeSegments, displayMode);
                             return (
                               <tr key={pr.label} className="border-b border-border/20">
@@ -789,14 +763,20 @@ export default function AnalysisCustomPage() {
                                   const value = displayMode === 'amount'
                                     ? (stats as SegmentStats)?.profit ?? 0
                                     : (stats as SegmentStatsPct)?.meanPct ?? 0;
-                                  const winRate = stats?.winRate ?? 0;
+                                  const winRate = stats?.winRate ?? null;
+                                  const pf = stats?.pf ?? null;
                                   return (
                                     <td key={seg.key} className="text-right px-2 py-2.5">
                                       <div className={`tabular-nums whitespace-nowrap ${classes[seg.key]}`}>
                                         {displayMode === 'amount' ? formatProfit(value) : formatPct(value)}
                                       </div>
-                                      <div className={`text-xs ${winrateClass(winRate)}`}>
-                                        {Math.round(winRate)}%
+                                      <div className="flex justify-end gap-2">
+                                        <span className={`text-xs ${winrateClass(winRate)}`}>
+                                          {winRate !== null ? `${Math.round(winRate)}%` : '-'}
+                                        </span>
+                                        <span className={`text-xs ${pfClass(pf)}`}>
+                                          {formatPF(pf)}
+                                        </span>
                                       </div>
                                     </td>
                                   );
@@ -816,29 +796,7 @@ export default function AnalysisCustomPage() {
                   <div className="relative">
                     <div className="flex items-center gap-2 mb-3">
                       <span className="font-semibold text-lg text-foreground">いちにち信用</span>
-                      <span className="text-muted-foreground text-base">{ichiCount}件</span>
-                      <div className="flex gap-1 ml-auto">
-                        <button
-                          onClick={() => setIchinichiFilter(idx, 'all')}
-                          className={`px-2.5 py-1 text-sm rounded border transition-colors ${
-                            ichFilter === 'all'
-                              ? 'bg-primary text-primary-foreground border-primary'
-                              : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
-                          }`}
-                        >
-                          全数
-                        </button>
-                        <button
-                          onClick={() => setIchinichiFilter(idx, 'ex0')}
-                          className={`px-2.5 py-1 text-sm rounded border transition-colors ${
-                            ichFilter === 'ex0'
-                              ? 'bg-primary text-primary-foreground border-primary'
-                              : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
-                          }`}
-                        >
-                          除0株
-                        </button>
-                      </div>
+                      <span className="text-muted-foreground text-base">{wd.ichinichi.count}件</span>
                     </div>
                     {/* Summary row */}
                     <div className="overflow-x-auto mb-3 pb-3 border-b border-border/30">
@@ -850,12 +808,14 @@ export default function AnalysisCustomPage() {
                             const value = displayMode === 'amount'
                               ? (stats as SegmentStats)?.profit ?? 0
                               : (stats as SegmentStatsPct)?.meanPct ?? 0;
+                            const pf = stats?.pf ?? null;
                             return (
                               <div key={seg.key} className="text-right min-w-[70px]">
                                 <div className="text-muted-foreground text-sm">{seg.label}</div>
                                 <div className={`text-xl font-bold tabular-nums ${classes[seg.key]}`}>
                                   {displayMode === 'amount' ? formatProfit(value) : formatPct(value)}
                                 </div>
+                                <div className={`text-xs ${pfClass(pf)}`}>PF {formatPF(pf)}</div>
                               </div>
                             );
                           });
@@ -877,13 +837,8 @@ export default function AnalysisCustomPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {ichiPriceRanges.map(pr => {
-                            const prSegs = getSegmentsData(
-                              pr.segments11,
-                              pr.segments4,
-                              pr.pctSegments11,
-                              pr.pctSegments4
-                            );
+                          {wd.ichinichi.priceRanges.map(pr => {
+                            const prSegs = getSegmentsData(pr.segments11, pr.segments4, pr.pctSegments11, pr.pctSegments4);
                             const classes = getSegmentClasses(prSegs, timeSegments, displayMode);
                             return (
                               <tr key={pr.label} className="border-b border-border/20">
@@ -894,14 +849,20 @@ export default function AnalysisCustomPage() {
                                   const value = displayMode === 'amount'
                                     ? (stats as SegmentStats)?.profit ?? 0
                                     : (stats as SegmentStatsPct)?.meanPct ?? 0;
-                                  const winRate = stats?.winRate ?? 0;
+                                  const winRate = stats?.winRate ?? null;
+                                  const pf = stats?.pf ?? null;
                                   return (
                                     <td key={seg.key} className="text-right px-2 py-2.5">
                                       <div className={`tabular-nums whitespace-nowrap ${classes[seg.key]}`}>
                                         {displayMode === 'amount' ? formatProfit(value) : formatPct(value)}
                                       </div>
-                                      <div className={`text-xs ${winrateClass(winRate)}`}>
-                                        {Math.round(winRate)}%
+                                      <div className="flex justify-end gap-2">
+                                        <span className={`text-xs ${winrateClass(winRate)}`}>
+                                          {winRate !== null ? `${Math.round(winRate)}%` : '-'}
+                                        </span>
+                                        <span className={`text-xs ${pfClass(pf)}`}>
+                                          {formatPF(pf)}
+                                        </span>
                                       </div>
                                     </td>
                                   );
@@ -923,47 +884,25 @@ export default function AnalysisCustomPage() {
         <div className="mt-8 mb-6">
           <div className="flex flex-wrap items-center gap-4 mb-4">
             <h2 className="text-sm md:text-base font-semibold text-foreground">詳細</h2>
-            <div className="flex gap-1">
-              <button
-                onClick={() => setDetailFilter('all')}
-                className={`px-2 py-0.5 text-[10px] md:text-xs rounded border transition-colors ${
-                  detailFilter === 'all'
-                    ? 'bg-primary text-primary-foreground border-primary'
-                    : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
-                }`}
-              >
-                全数
-              </button>
-              <button
-                onClick={() => setDetailFilter('ex0')}
-                className={`px-2 py-0.5 text-[10px] md:text-xs rounded border transition-colors ${
-                  detailFilter === 'ex0'
-                    ? 'bg-primary text-primary-foreground border-primary'
-                    : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
-                }`}
-              >
-                除0株
-              </button>
-            </div>
             {/* Price Range Filter */}
             <div className="flex items-center gap-2 border-l border-border/40 pl-4">
               <span className="text-xs md:text-sm text-muted-foreground">価格帯:</span>
               <div className="flex gap-1">
                 <button
-                  onClick={selectAllPriceRanges}
+                  onClick={() => data?.priceRanges && setPriceRangeFilters(new Set(data.priceRanges))}
                   className="px-1.5 py-0.5 text-[9px] md:text-[10px] rounded border bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50"
                 >
                   全
                 </button>
                 <button
-                  onClick={selectNonePriceRanges}
+                  onClick={() => setPriceRangeFilters(new Set())}
                   className="px-1.5 py-0.5 text-[9px] md:text-[10px] rounded border bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50"
                 >
                   解除
                 </button>
               </div>
               <div className="flex gap-1 md:gap-1.5 flex-wrap">
-                {PRICE_RANGE_LABELS.map(label => (
+                {data.priceRanges.map(label => (
                   <label key={label} className="flex items-center gap-1 cursor-pointer">
                     <input
                       type="checkbox"
@@ -1022,16 +961,13 @@ export default function AnalysisCustomPage() {
               )}
               {detailData?.results?.map(group => {
                 const isExpanded = expandedDays.has(group.key);
-                // Filter stocks by detailFilter, priceRangeFilters, and marginTypeFilters
                 const filteredStocks = group.stocks.filter(s => {
-                  const passDetailFilter = detailFilter === 'all' || s.marginType === '制度信用' || s.shares === null || (s.shares ?? 0) > 0;
                   const passPriceRange = priceRangeFilters.has(s.priceRange);
                   const passMarginType = marginTypeFilters.has(s.marginType);
-                  return passDetailFilter && passPriceRange && passMarginType;
+                  return passPriceRange && passMarginType;
                 });
                 const grpCount = filteredStocks.length;
 
-                // Calculate group totals for displayed segments
                 const displaySegs = segmentMode === '11seg' ? data?.timeSegments11 : data?.timeSegments4;
                 const grpSegTotals: Record<string, number> = {};
                 if (displaySegs) {
@@ -1040,7 +976,6 @@ export default function AnalysisCustomPage() {
                   });
                 }
 
-                // Color classes for group totals
                 const values = displaySegs?.map(seg => ({ key: seg.key, value: grpSegTotals[seg.key] ?? 0 })) ?? [];
                 const positives = values.filter(v => v.value > 0).sort((a, b) => b.value - a.value);
                 const negatives = values.filter(v => v.value < 0).sort((a, b) => a.value - b.value);
@@ -1093,6 +1028,7 @@ export default function AnalysisCustomPage() {
                             )}
                             <th className="text-left py-2.5 font-medium whitespace-nowrap">銘柄</th>
                             <th className="text-left py-2.5 font-medium whitespace-nowrap">区分</th>
+                            <th className="text-right py-2.5 font-medium whitespace-nowrap">prob</th>
                             <th className="text-right py-2.5 font-medium whitespace-nowrap">前終</th>
                             <th className="text-right py-2.5 font-medium whitespace-nowrap">始値</th>
                             {displaySegs?.map(seg => (
@@ -1104,12 +1040,10 @@ export default function AnalysisCustomPage() {
                           {filteredStocks
                             .sort((a, b) => b.date.localeCompare(a.date))
                             .map((s, idx) => {
-                            // GU（始値>前終）は赤、GD（始値<前終）は緑
                             const openColor = s.buyPrice !== null && s.prevClose !== null
                               ? s.buyPrice > s.prevClose ? 'text-rose-400' : s.buyPrice < s.prevClose ? 'text-emerald-400' : 'text-foreground'
                               : 'text-foreground';
 
-                            // Stock segment color classes
                             const sValues = displaySegs?.map(seg => ({ key: seg.key, value: s.segments[seg.key] ?? 0 })) ?? [];
                             const sPositives = sValues.filter(v => v.value > 0).sort((a, b) => b.value - a.value);
                             const sNegatives = sValues.filter(v => v.value < 0).sort((a, b) => a.value - b.value);
@@ -1141,6 +1075,13 @@ export default function AnalysisCustomPage() {
                                 </td>
                                 <td className="py-2.5 text-sm text-foreground whitespace-nowrap">
                                   {s.marginType === '制度信用' ? '制度' : 'いちにち'}
+                                </td>
+                                <td className="py-2.5 text-right text-sm whitespace-nowrap">
+                                  {s.mlProb !== null ? (
+                                    <span className={BUCKET_COLORS[s.bucket ?? ''] || 'text-foreground'}>
+                                      {s.mlProb.toFixed(2)}
+                                    </span>
+                                  ) : '-'}
                                 </td>
                                 <td className="py-2.5 text-right tabular-nums text-foreground whitespace-nowrap">
                                   {s.prevClose?.toLocaleString() ?? '-'}
