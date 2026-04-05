@@ -546,7 +546,7 @@ export default function DayTradeListPage() {
                 <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${color}`}>
                   <span className="text-xs text-muted-foreground">先物gap</span>
                   <span className={`text-sm font-medium tabular-nums ${textColor}`}>{v >= 0 ? "+" : ""}{v.toFixed(2)}%</span>
-                  {isWarning && <span className="text-[10px] text-amber-400/80">⚠ DISC域</span>}
+                  {isWarning && <span className="text-[10px] text-amber-400/80">⚠ SHORT注意</span>}
                 </div>
               );
             })()}
@@ -554,7 +554,7 @@ export default function DayTradeListPage() {
               <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${marketData.nikkei_change_pct > 1 ? "border-amber-500/60 bg-amber-500/10" : "border-border/40 bg-muted/20"}`}>
                 <span className="text-xs text-muted-foreground">N225前日比</span>
                 <span className={`text-sm font-medium tabular-nums ${marketData.nikkei_change_pct > 1 ? "text-amber-400" : marketData.nikkei_change_pct >= 0 ? "text-emerald-400" : "text-rose-400"}`}>{marketData.nikkei_change_pct >= 0 ? "+" : ""}{marketData.nikkei_change_pct.toFixed(2)}%</span>
-                {marketData.nikkei_change_pct > 1 && <span className="text-[10px] text-amber-400/80">⚠ DISC除外域</span>}
+                {marketData.nikkei_change_pct > 1 && <span className="text-[10px] text-amber-400/80">⚠ SHORT注意</span>}
               </div>
             )}
           </div>
