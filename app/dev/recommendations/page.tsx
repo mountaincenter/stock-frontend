@@ -53,8 +53,8 @@ type Summary = {
 type LendingRatioPfCell = {
   pf: number | null;
   n: number;
-  avg: number;
-  winRate: number;
+  avg: number | null;
+  winRate: number | null;
 };
 
 type LendingRatioRow = {
@@ -1037,7 +1037,7 @@ export default function DayTradeListPage() {
                             return (
                               <td key={key} className={`px-2 py-3 text-center tabular-nums ${color}`}>
                                 {cellData.n === 0 ? "-" : (
-                                  <span title={`勝率${cellData.winRate}% avg${cellData.avg >= 0 ? "+" : ""}${cellData.avg.toLocaleString()}円`}>
+                                  <span title={cellData.avg !== null && cellData.winRate !== null ? `勝率${cellData.winRate}% avg${cellData.avg >= 0 ? "+" : ""}${cellData.avg.toLocaleString()}円` : `n=${cellData.n} (n<10)`}>
                                     {pf !== null ? pf.toFixed(2) : "-"}
                                     <span className="text-muted-foreground text-xs ml-0.5">({cellData.n})</span>
                                   </span>
