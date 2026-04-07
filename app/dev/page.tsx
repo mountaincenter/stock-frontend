@@ -12,7 +12,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
   Cell,
 } from "recharts";
 import { ChevronDown, ChevronUp, Search, ArrowUpRight, Settings, Fingerprint, Trash2, X } from "lucide-react";
@@ -219,11 +218,8 @@ export default function DevDashboard() {
     return filteredDailyStats.map((s) => ({
       date: new Date(s.date).toLocaleDateString("ja-JP", { month: "short", day: "numeric" }),
       avg: s.avg_return ?? 0,
-      top5: s.top5_avg_return ?? 0,
       winRate: s.win_rate ?? 0,
-      top5WinRate: s.top5_win_rate ?? 0,
       cumulative: s.cumulative_profit_per_100 ?? 0,
-      top5Cumulative: s.cumulative_top5_profit_per_100 ?? 0,
     }));
   }, [filteredDailyStats]);
 
@@ -231,24 +227,13 @@ export default function DevDashboard() {
   const filteredStats = useMemo(() => {
     if (filteredDailyStats.length === 0) return null;
 
-    // 全体統計
     const totalCount = filteredDailyStats.reduce((sum, s) => sum + (s.count ?? 0), 0);
-    // win_countはないのでwin_rateとcountから計算
     const winCount = filteredDailyStats.reduce((sum, s) => {
       const count = s.count ?? 0;
       const winRate = s.win_rate ?? 0;
       return sum + Math.round(count * winRate / 100);
     }, 0);
     const totalProfit = filteredDailyStats.reduce((sum, s) => sum + (s.total_profit_per_100 ?? 0), 0);
-
-    // Top5統計
-    const top5TotalProfit = filteredDailyStats.reduce((sum, s) => sum + (s.top5_total_profit_per_100 ?? 0), 0);
-    // top5_win_countはないのでtop5_win_rateから計算（各日5銘柄）
-    const top5WinCount = filteredDailyStats.reduce((sum, s) => {
-      const top5WinRate = s.top5_win_rate ?? 0;
-      return sum + Math.round(5 * top5WinRate / 100);
-    }, 0);
-    const top5Count = filteredDailyStats.length * 5; // 各日5銘柄
 
     return {
       overall: {
@@ -258,12 +243,33 @@ export default function DevDashboard() {
         total_profit_per_100_shares: totalProfit,
         total_days: filteredDailyStats.length,
       },
-      top5: {
-        win_rate: top5Count > 0 ? (top5WinCount / top5Count) * 100 : 0,
-        avg_profit_per_100_shares: top5Count > 0 ? top5TotalProfit / top5Count : 0,
-        total_profit_per_100_shares: top5TotalProfit,
-      },
     };
+  }, [filteredDailyStats]);
+
+  // PF (Profit Factor): 日次利益合計 / |日次損失合計|
+  const profitFactor = useMemo(() => {
+    const grossWin = filteredDailyStats.reduce((sum, s) => {
+      const p = s.total_profit_per_100 ?? 0;
+      return p > 0 ? sum + p : sum;
+    }, 0);
+    const grossLoss = filteredDailyStats.reduce((sum, s) => {
+      const p = s.total_profit_per_100 ?? 0;
+      return p < 0 ? sum + Math.abs(p) : sum;
+    }, 0);
+    return grossLoss > 0 ? grossWin / grossLoss : grossWin > 0 ? Infinity : 0;
+  }, [filteredDailyStats]);
+
+  // DD (Max Drawdown): 累計損益のピークからの最大下落
+  const maxDrawdown = useMemo(() => {
+    let peak = 0;
+    let maxDD = 0;
+    for (const s of filteredDailyStats) {
+      const cum = s.cumulative_profit_per_100 ?? 0;
+      if (cum > peak) peak = cum;
+      const dd = peak - cum;
+      if (dd > maxDD) maxDD = dd;
+    }
+    return maxDD;
   }, [filteredDailyStats]);
 
   const handleSort = (field: SortField) => {
@@ -293,16 +299,15 @@ export default function DevDashboard() {
             </div>
           </div>
           {/* KPI Grid skeleton */}
-          <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-6">
-            {[...Array(6)].map((_, i) => (
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+            {[...Array(5)].map((_, i) => (
               <div key={i} className="rounded-xl border border-border/40 bg-card/50 p-4 h-24 animate-pulse" />
             ))}
           </div>
-          {/* Chart + Table skeleton */}
-          <div className="grid lg:grid-cols-2 gap-4 mb-6">
-            <div className="rounded-2xl border border-border/40 bg-card/50 h-[340px] animate-pulse" />
-            <div className="rounded-2xl border border-border/40 bg-card/50 h-[340px] animate-pulse" />
-          </div>
+          {/* Chart skeleton */}
+          <div className="rounded-2xl border border-border/40 bg-card/50 h-[420px] animate-pulse mb-6" />
+          {/* Table skeleton */}
+          <div className="rounded-2xl border border-border/40 bg-card/50 h-[340px] animate-pulse mb-6" />
           {/* MarketSummary skeleton */}
           <div className="rounded-xl border border-border/40 bg-card/50 h-[400px] animate-pulse" />
         </div>
@@ -321,8 +326,8 @@ export default function DevDashboard() {
 
   // dateFilter が "all" の場合は元データ、それ以外はフィルター済みデータを使用
   const displayStats = dateFilter === "all"
-    ? { overall: dashboardData.overall_stats, top5: dashboardData.top5_stats }
-    : filteredStats ?? { overall: dashboardData.overall_stats, top5: dashboardData.top5_stats };
+    ? { overall: dashboardData.overall_stats }
+    : filteredStats ?? { overall: dashboardData.overall_stats };
 
   return (
     <main className="relative min-h-screen">
@@ -538,8 +543,8 @@ export default function DevDashboard() {
         )}
 
         {/* KPI Row */}
-        <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-6">
-          {/* Win Rate - All */}
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+          {/* 勝率 */}
           <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
             <div className="relative">
@@ -551,18 +556,7 @@ export default function DevDashboard() {
             </div>
           </div>
 
-          {/* Win Rate - Top5 */}
-          <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
-            <div className="relative">
-              <div className="text-muted-foreground text-xs mb-2">Top5勝率</div>
-              <div className={`text-2xl tabular-nums font-bold text-right ${displayStats.top5.win_rate >= 50 ? "text-emerald-400" : "text-rose-400"}`}>
-                {displayStats.top5.win_rate.toFixed(1)}%
-              </div>
-            </div>
-          </div>
-
-          {/* Avg Profit - All */}
+          {/* 平均損益 */}
           <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
             <div className="relative">
@@ -574,18 +568,7 @@ export default function DevDashboard() {
             </div>
           </div>
 
-          {/* Avg Profit - Top5 */}
-          <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
-            <div className="relative">
-              <div className="text-muted-foreground text-xs mb-2">Top5平均</div>
-              <div className={`text-2xl tabular-nums font-bold text-right ${displayStats.top5.avg_profit_per_100_shares >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                {displayStats.top5.avg_profit_per_100_shares >= 0 ? "+" : ""}{Math.round(displayStats.top5.avg_profit_per_100_shares).toLocaleString()}円
-              </div>
-            </div>
-          </div>
-
-          {/* Total Profit - All */}
+          {/* 累計損益 */}
           <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
             <div className="relative">
@@ -597,21 +580,33 @@ export default function DevDashboard() {
             </div>
           </div>
 
-          {/* Total Profit - Top5 */}
+          {/* PF */}
           <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
             <div className="relative">
-              <div className="text-muted-foreground text-xs mb-2">Top5累計</div>
-              <div className={`text-2xl tabular-nums font-bold text-right ${displayStats.top5.total_profit_per_100_shares >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                {displayStats.top5.total_profit_per_100_shares >= 0 ? "+" : ""}{Math.round(displayStats.top5.total_profit_per_100_shares).toLocaleString()}円
+              <div className="text-muted-foreground text-xs mb-2">PF</div>
+              <div className={`text-2xl tabular-nums font-bold text-right ${profitFactor >= 1 ? "text-emerald-400" : "text-rose-400"}`}>
+                {profitFactor === Infinity ? "∞" : profitFactor.toFixed(2)}
               </div>
+              <div className="text-muted-foreground/70 text-xs mt-1 text-right">Profit Factor</div>
+            </div>
+          </div>
+
+          {/* DD */}
+          <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
+            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+            <div className="relative">
+              <div className="text-muted-foreground text-xs mb-2">DD</div>
+              <div className="text-2xl tabular-nums font-bold text-right text-rose-400">
+                -{Math.round(maxDrawdown).toLocaleString()}円
+              </div>
+              <div className="text-muted-foreground/70 text-xs mt-1 text-right">Max Drawdown</div>
             </div>
           </div>
         </div>
 
-        {/* Chart + Table Grid */}
-        <div className="grid lg:grid-cols-2 gap-4 mb-6">
-          {/* Chart */}
+        {/* Chart - Full Width */}
+        <div className="mb-6">
           <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 shadow-xl shadow-black/5 backdrop-blur-xl">
             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
             <div className="relative">
@@ -630,7 +625,7 @@ export default function DevDashboard() {
                 </div>
               </div>
               <div className="p-4">
-                <ResponsiveContainer width="100%" height={260}>
+                <ResponsiveContainer width="100%" height={360}>
                   {selectedMetric === "return" ? (
                     <AreaChart data={chartData}>
                       <CartesianGrid stroke="hsl(var(--border))" strokeOpacity={0.3} strokeDasharray="3 3" />
@@ -639,11 +634,9 @@ export default function DevDashboard() {
                       <Tooltip
                         contentStyle={{ backgroundColor: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
                         labelStyle={{ color: "var(--foreground)" }}
-                        formatter={(value, name) => [`${(value as number)?.toFixed(1) ?? 0}%`, name === "avg" ? "全体" : "Top5"]}
+                        formatter={(value) => [`${(value as number)?.toFixed(1) ?? 0}%`, "平均リターン"]}
                       />
-                      <Legend formatter={(value) => <span style={{ color: "#9ca3af", fontSize: 11 }}>{value}</span>} />
                       <Area type="monotone" dataKey="avg" stroke="#6366f1" fill="#6366f1" fillOpacity={0.15} name="全体" />
-                      <Area type="monotone" dataKey="top5" stroke="#34d399" fill="#34d399" fillOpacity={0.15} name="Top5" />
                     </AreaChart>
                   ) : selectedMetric === "winrate" ? (
                     <BarChart data={chartData}>
@@ -654,7 +647,6 @@ export default function DevDashboard() {
                         contentStyle={{ backgroundColor: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
                         formatter={(value) => [`${(value as number)?.toFixed(1) ?? 0}%`, "勝率"]}
                       />
-                      <Legend formatter={(value) => <span style={{ color: "#9ca3af", fontSize: 11 }}>{value}</span>} />
                       <Bar dataKey="winRate" name="勝率" radius={[4, 4, 0, 0]}>
                         {chartData.map((entry, i) => (
                           <Cell key={i} fill={entry.winRate >= 50 ? "#34d399" : "#fb7185"} />
@@ -668,19 +660,19 @@ export default function DevDashboard() {
                       <YAxis stroke="var(--border)" tick={{ fill: "#9ca3af" }} fontSize={10} tickFormatter={(v) => `${(v / 1000).toFixed(1)}千円`} />
                       <Tooltip
                         contentStyle={{ backgroundColor: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
-                        formatter={(value, name) => [`${(value as number)?.toLocaleString() ?? 0}円`, name === "cumulative" ? "全体" : "Top5"]}
+                        formatter={(value) => [`${(value as number)?.toLocaleString() ?? 0}円`, "累計損益"]}
                       />
-                      <Legend formatter={(value) => <span style={{ color: "#9ca3af", fontSize: 11 }}>{value}</span>} />
                       <Area type="monotone" dataKey="cumulative" stroke="#6366f1" fill="#6366f1" fillOpacity={0.15} name="全体" />
-                      <Area type="monotone" dataKey="top5Cumulative" stroke="#34d399" fill="#34d399" fillOpacity={0.15} name="Top5" />
                     </AreaChart>
                   )}
                 </ResponsiveContainer>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Table */}
+        {/* Table - Full Width */}
+        <div className="mb-6">
           <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 shadow-xl shadow-black/5 backdrop-blur-xl">
             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
             <div className="relative">
@@ -697,7 +689,7 @@ export default function DevDashboard() {
                   />
                 </div>
               </div>
-              <div className="overflow-x-auto overflow-y-auto max-h-[280px]">
+              <div className="overflow-x-auto overflow-y-auto max-h-[400px]">
                 <table className="w-full text-sm md:text-base min-w-[500px]">
                   <thead className="sticky top-0 bg-card/80 backdrop-blur-sm">
                     <tr className="border-b border-border/30">
@@ -713,12 +705,12 @@ export default function DevDashboard() {
                         </div>
                       </th>
                       <th className="px-3 py-2.5 text-right text-muted-foreground font-medium whitespace-nowrap">損益</th>
-                      <th className="px-3 py-2.5 text-right text-muted-foreground font-medium whitespace-nowrap">Top5</th>
+                      <th className="px-3 py-2.5 text-right text-muted-foreground font-medium whitespace-nowrap">累計</th>
                       <th className="px-3 py-2.5 w-8"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/20">
-                    {sortedStats.slice(0, 20).map((stat) => (
+                    {sortedStats.slice(0, 30).map((stat) => (
                       <tr key={stat.date} className="hover:bg-muted/30 transition-colors">
                         <td className="px-4 py-2.5 tabular-nums text-foreground">{stat.date}</td>
                         <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">{stat.count}</td>
@@ -726,8 +718,8 @@ export default function DevDashboard() {
                         <td className={`px-3 py-2.5 text-right tabular-nums font-medium ${stat.total_profit_per_100 >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                           {stat.total_profit_per_100 >= 0 ? "+" : ""}{Math.round(stat.total_profit_per_100).toLocaleString()}円
                         </td>
-                        <td className={`px-3 py-2.5 text-right tabular-nums font-medium ${stat.top5_total_profit_per_100 >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                          {stat.top5_total_profit_per_100 >= 0 ? "+" : ""}{Math.round(stat.top5_total_profit_per_100).toLocaleString()}円
+                        <td className={`px-3 py-2.5 text-right tabular-nums font-medium ${stat.cumulative_profit_per_100 >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                          {stat.cumulative_profit_per_100 >= 0 ? "+" : ""}{Math.round(stat.cumulative_profit_per_100).toLocaleString()}円
                         </td>
                         <td className="px-3 py-2.5">
                           <Link href={`/dev/daily/${stat.date}`} className="text-primary hover:text-primary/80 transition-colors">
