@@ -21,6 +21,9 @@ interface SeriesPoint {
 interface PairChartData {
   tk1: string; tk2: string;
   name1: string; name2: string;
+  c1: number; c2: number;
+  chg1: number; chg2: number;
+  chg1_pct: number; chg2_pct: number;
   lookback: number; full_pf: number; full_n: number; half_life: number;
   z_latest: number; direction: string;
   series: SeriesPoint[];
@@ -348,16 +351,32 @@ function PairChartContent({ tk1, tk2 }: { tk1: string; tk2: string }) {
         {/* Header */}
         <div className="rounded-2xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 md:p-6 shadow-xl shadow-black/5 backdrop-blur-xl">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            {/* Pair names */}
-            <div>
-              <h1 className="text-lg md:text-xl font-bold text-foreground">
-                <span className="text-blue-400">{data.name1}</span>
-                <span className="text-muted-foreground mx-2">/</span>
-                <span className="text-amber-400">{data.name2}</span>
-              </h1>
-              <p className="text-xs text-muted-foreground mt-1">
-                {data.tk1} / {data.tk2}
-              </p>
+            {/* Pair names + prices */}
+            <div className="space-y-1.5">
+              <div className="flex items-baseline gap-3">
+                <div>
+                  <span className="text-blue-400 font-bold text-base md:text-lg">{data.name1}</span>
+                  <span className="text-muted-foreground text-xs ml-1.5">{data.tk1}</span>
+                </div>
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  ¥{data.c1.toLocaleString('ja-JP')}
+                  <span className={data.chg1 >= 0 ? 'text-emerald-400 ml-1' : 'text-rose-400 ml-1'}>
+                    {data.chg1 >= 0 ? '+' : ''}{data.chg1.toFixed(1)} ({data.chg1_pct >= 0 ? '+' : ''}{data.chg1_pct.toFixed(2)}%)
+                  </span>
+                </span>
+              </div>
+              <div className="flex items-baseline gap-3">
+                <div>
+                  <span className="text-amber-400 font-bold text-base md:text-lg">{data.name2}</span>
+                  <span className="text-muted-foreground text-xs ml-1.5">{data.tk2}</span>
+                </div>
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  ¥{data.c2.toLocaleString('ja-JP')}
+                  <span className={data.chg2 >= 0 ? 'text-emerald-400 ml-1' : 'text-rose-400 ml-1'}>
+                    {data.chg2 >= 0 ? '+' : ''}{data.chg2.toFixed(1)} ({data.chg2_pct >= 0 ? '+' : ''}{data.chg2_pct.toFixed(2)}%)
+                  </span>
+                </span>
+              </div>
             </div>
 
             {/* Z-score + direction */}
