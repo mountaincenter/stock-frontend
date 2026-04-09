@@ -231,6 +231,11 @@ export default function WeekdayAnalysisPage() {
   const [ichFilter, setIchFilter] = useState<FilterType>('all');
   const [ichChartFilter, setIchChartFilter] = useState<FilterType>('all');
 
+  // 拡張パネルデータ
+  const [panelsData, setPanelsData] = useState<Record<string, unknown> | null>(null);
+  const [futuresGapData, setFuturesGapData] = useState<{ rows: { label: string; SHORT: Record<string, unknown>; DISC: Record<string, unknown>; LONG: Record<string, unknown> }[] } | null>(null);
+  const [nikkeiChangeData, setNikkeiChangeData] = useState<{ rows: { label: string; SHORT: Record<string, unknown>; DISC: Record<string, unknown>; LONG: Record<string, unknown> }[] } | null>(null);
+
   // アコーディオン state
   const [openSections, setOpenSections] = useState<Set<string>>(new Set(['全体']));
   const toggleSection = (key: string) => {
@@ -277,6 +282,20 @@ export default function WeekdayAnalysisPage() {
   }, [excludeExtreme]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // 拡張パネル取得
+  useEffect(() => {
+    const dir = 'short';
+    Promise.all([
+      fetch(`${API_BASE}/dev/analysis-custom/weekday-panels?weekday=${dayIndex}&direction=${dir}`).then(r => r.ok ? r.json() : null),
+      fetch(`${API_BASE}/dev/analysis-custom/futures-gap-pf?weekday=${dayIndex}&direction=${dir}`).then(r => r.ok ? r.json() : null),
+      fetch(`${API_BASE}/dev/analysis-custom/nikkei-change-pf?weekday=${dayIndex}&direction=${dir}`).then(r => r.ok ? r.json() : null),
+    ]).then(([panels, futures, nikkei]) => {
+      if (panels) setPanelsData(panels);
+      if (futures) setFuturesGapData(futures);
+      if (nikkei) setNikkeiChangeData(nikkei);
+    }).catch(() => {});
+  }, [dayIndex]);
 
   // Get current weekday data
   const weekdayGroup = useMemo(() => {
@@ -1501,6 +1520,257 @@ export default function WeekdayAnalysisPage() {
           </section>
         );
       })()}
+
+      {/* ===== 拡張パネル (#1〜#6) ===== */}
+      {(futuresGapData || nikkeiChangeData || panelsData) && (
+        <div className="mt-8 space-y-6">
+          <h2 className="text-lg font-bold text-foreground border-b border-border/30 pb-2">
+            トレード判断パネル — {WEEKDAY_SHORT[selectedDay]}曜日
+          </h2>
+
+          {/* #1 マクロゲーティング */}
+          {(futuresGapData || nikkeiChangeData) && (
+            <section className="space-y-3">
+              <h3 className="text-sm font-semibold text-foreground">ENTRY: マクロゲーティング</h3>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {futuresGapData && (
+                  <div className="rounded-xl border border-border/40 bg-card/80 p-4">
+                    <div className="text-xs text-muted-foreground mb-2">先物Gap帯 × Bucket PF</div>
+                    <table className="w-full text-sm">
+                      <thead><tr className="text-muted-foreground border-b border-border/30">
+                        <th className="text-left px-2 py-1.5">Gap帯</th>
+                        <th className="text-right px-2 py-1.5">SHORT</th>
+                        <th className="text-right px-2 py-1.5">DISC</th>
+                        <th className="text-right px-2 py-1.5">LONG</th>
+                      </tr></thead>
+                      <tbody>{futuresGapData.rows.map(r => (
+                        <tr key={r.label} className="border-b border-border/20">
+                          <td className="px-2 py-1.5 text-foreground">{r.label}</td>
+                          {(['SHORT','DISC','LONG'] as const).map(b => {
+                            const cell = r[b] as { pf: number|null; n: number; avg: number|null; winRate: number|null };
+                            return <td key={b} className={`text-right px-2 py-1.5 tabular-nums ${cell.pf !== null ? (cell.pf >= 1.5 ? 'text-emerald-400 font-bold' : cell.pf >= 1 ? 'text-foreground' : 'text-rose-400') : 'text-muted-foreground'}`}>
+                              {cell.pf !== null ? `${cell.pf.toFixed(2)} (${cell.n})` : cell.n > 0 ? `- (${cell.n})` : '-'}
+                            </td>;
+                          })}
+                        </tr>
+                      ))}</tbody>
+                    </table>
+                  </div>
+                )}
+                {nikkeiChangeData && (
+                  <div className="rounded-xl border border-border/40 bg-card/80 p-4">
+                    <div className="text-xs text-muted-foreground mb-2">N225変化率帯 × Bucket PF</div>
+                    <table className="w-full text-sm">
+                      <thead><tr className="text-muted-foreground border-b border-border/30">
+                        <th className="text-left px-2 py-1.5">N225帯</th>
+                        <th className="text-right px-2 py-1.5">SHORT</th>
+                        <th className="text-right px-2 py-1.5">DISC</th>
+                        <th className="text-right px-2 py-1.5">LONG</th>
+                      </tr></thead>
+                      <tbody>{nikkeiChangeData.rows.map(r => (
+                        <tr key={r.label} className="border-b border-border/20">
+                          <td className="px-2 py-1.5 text-foreground">{r.label}</td>
+                          {(['SHORT','DISC','LONG'] as const).map(b => {
+                            const cell = r[b] as { pf: number|null; n: number; avg: number|null; winRate: number|null };
+                            return <td key={b} className={`text-right px-2 py-1.5 tabular-nums ${cell.pf !== null ? (cell.pf >= 1.5 ? 'text-emerald-400 font-bold' : cell.pf >= 1 ? 'text-foreground' : 'text-rose-400') : 'text-muted-foreground'}`}>
+                              {cell.pf !== null ? `${cell.pf.toFixed(2)} (${cell.n})` : cell.n > 0 ? `- (${cell.n})` : '-'}
+                            </td>;
+                          })}
+                        </tr>
+                      ))}</tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
+          {panelsData && (
+            <>
+              {/* #2 流動性 */}
+              {panelsData.liquidity && (
+                <section>
+                  <h3 className="text-sm font-semibold text-foreground mb-2">ENTRY: 流動性・ポジションサイズ</h3>
+                  <div className="rounded-xl border border-border/40 bg-card/80 p-4">
+                    <table className="w-full text-sm">
+                      <thead><tr className="text-muted-foreground border-b border-border/30">
+                        <th className="text-left px-2 py-1.5">Bucket</th>
+                        <th className="text-right px-2 py-1.5">件数</th>
+                        <th className="text-right px-2 py-1.5">出来高中央</th>
+                        <th className="text-right px-2 py-1.5">株数中央</th>
+                        <th className="text-right px-2 py-1.5">売残中央</th>
+                        <th className="text-right px-2 py-1.5">買残中央</th>
+                      </tr></thead>
+                      <tbody>{(['SHORT','DISC','LONG'] as const).map(b => {
+                        const d = (panelsData.liquidity as Record<string, { n: number; volume_median: number|null; shares_median: number|null; sell_balance_median: number|null; buy_balance_median: number|null }>)[b];
+                        if (!d || d.n === 0) return null;
+                        return <tr key={b} className="border-b border-border/20">
+                          <td className={`px-2 py-1.5 font-medium ${b === 'SHORT' ? 'text-rose-400' : b === 'LONG' ? 'text-emerald-400' : 'text-amber-400'}`}>{b}</td>
+                          <td className="text-right px-2 py-1.5 tabular-nums text-foreground">{d.n}</td>
+                          <td className="text-right px-2 py-1.5 tabular-nums text-foreground">{d.volume_median?.toLocaleString() ?? '-'}</td>
+                          <td className="text-right px-2 py-1.5 tabular-nums text-foreground">{d.shares_median?.toLocaleString() ?? '-'}</td>
+                          <td className="text-right px-2 py-1.5 tabular-nums text-foreground">{d.sell_balance_median?.toLocaleString() ?? '-'}</td>
+                          <td className="text-right px-2 py-1.5 tabular-nums text-foreground">{d.buy_balance_median?.toLocaleString() ?? '-'}</td>
+                        </tr>;
+                      })}</tbody>
+                    </table>
+                  </div>
+                </section>
+              )}
+
+              {/* #3 Phase遷移マトリクス */}
+              {(panelsData.phase_matrix as { phase1_label: string; n: number; phase2_avg_pct: number|null; phase2_win_rate: number|null; phase2_pf: number|null }[])?.length > 0 && (
+                <section>
+                  <h3 className="text-sm font-semibold text-foreground mb-2">TIMING: 前場→後場 遷移マトリクス</h3>
+                  <div className="rounded-xl border border-border/40 bg-card/80 p-4">
+                    <div className="text-xs text-muted-foreground mb-2">前場の含み益/損 → 後場どうなるか</div>
+                    <table className="w-full text-sm">
+                      <thead><tr className="text-muted-foreground border-b border-border/30">
+                        <th className="text-left px-2 py-1.5">前場状態</th>
+                        <th className="text-right px-2 py-1.5">件数</th>
+                        <th className="text-right px-2 py-1.5">後場平均%</th>
+                        <th className="text-right px-2 py-1.5">後場勝率</th>
+                        <th className="text-right px-2 py-1.5">後場PF</th>
+                      </tr></thead>
+                      <tbody>{(panelsData.phase_matrix as { phase1_label: string; n: number; phase2_avg_pct: number|null; phase2_win_rate: number|null; phase2_pf: number|null }[]).map(r => (
+                        <tr key={r.phase1_label} className="border-b border-border/20">
+                          <td className="px-2 py-1.5 text-foreground">{r.phase1_label}</td>
+                          <td className="text-right px-2 py-1.5 tabular-nums text-foreground">{r.n}</td>
+                          <td className={`text-right px-2 py-1.5 tabular-nums ${(r.phase2_avg_pct ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            {r.phase2_avg_pct !== null ? `${r.phase2_avg_pct >= 0 ? '+' : ''}${r.phase2_avg_pct.toFixed(2)}%` : '-'}
+                          </td>
+                          <td className={`text-right px-2 py-1.5 tabular-nums ${(r.phase2_win_rate ?? 0) >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            {r.phase2_win_rate !== null ? `${r.phase2_win_rate.toFixed(1)}%` : '-'}
+                          </td>
+                          <td className={`text-right px-2 py-1.5 tabular-nums font-bold ${(r.phase2_pf ?? 0) >= 1.5 ? 'text-emerald-400' : (r.phase2_pf ?? 0) >= 1 ? 'text-foreground' : 'text-rose-400'}`}>
+                            {r.phase2_pf !== null ? r.phase2_pf.toFixed(2) : '-'}
+                          </td>
+                        </tr>
+                      ))}</tbody>
+                    </table>
+                  </div>
+                </section>
+              )}
+
+              {/* #4 エクスカーション */}
+              {panelsData.excursion && Object.keys(panelsData.excursion as Record<string, unknown>).length > 0 && (
+                <section>
+                  <h3 className="text-sm font-semibold text-foreground mb-2">RISK: エクスカーション（含み益/損パーセンタイル）</h3>
+                  <div className="rounded-xl border border-border/40 bg-card/80 p-4">
+                    <table className="w-full text-sm">
+                      <thead><tr className="text-muted-foreground border-b border-border/30">
+                        <th className="text-left px-2 py-1.5">指標</th>
+                        <th className="text-right px-2 py-1.5">件数</th>
+                        <th className="text-right px-2 py-1.5">P10</th>
+                        <th className="text-right px-2 py-1.5">P25</th>
+                        <th className="text-right px-2 py-1.5 font-bold">P50</th>
+                        <th className="text-right px-2 py-1.5">P75</th>
+                        <th className="text-right px-2 py-1.5">P90</th>
+                      </tr></thead>
+                      <tbody>{Object.values(panelsData.excursion as Record<string, { label: string; n: number; p10: number|null; p25: number|null; p50: number|null; p75: number|null; p90: number|null }>).map(e => (
+                        <tr key={e.label} className="border-b border-border/20">
+                          <td className="px-2 py-1.5 text-foreground whitespace-nowrap">{e.label}</td>
+                          <td className="text-right px-2 py-1.5 tabular-nums text-foreground">{e.n}</td>
+                          {(['p10','p25','p50','p75','p90'] as const).map(p => (
+                            <td key={p} className={`text-right px-2 py-1.5 tabular-nums ${p === 'p50' ? 'font-bold' : ''} ${(e[p] ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                              {e[p] !== null ? `${(e[p]! >= 0 ? '+' : '')}${e[p]!.toFixed(2)}%` : '-'}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}</tbody>
+                    </table>
+                  </div>
+                </section>
+              )}
+
+              {/* #5 多段トリガー比較 */}
+              {(panelsData.stop_loss as { trigger: string; n: number; pf: number|null; avg: number|null; win_rate: number|null; exit_reasons: Record<string, number> }[])?.length > 0 && (
+                <section>
+                  <h3 className="text-sm font-semibold text-foreground mb-2">EXIT: 損切トリガー比較</h3>
+                  <div className="rounded-xl border border-border/40 bg-card/80 p-4">
+                    <table className="w-full text-sm">
+                      <thead><tr className="text-muted-foreground border-b border-border/30">
+                        <th className="text-left px-2 py-1.5">トリガー</th>
+                        <th className="text-right px-2 py-1.5">件数</th>
+                        <th className="text-right px-2 py-1.5">PF</th>
+                        <th className="text-right px-2 py-1.5">平均P&L</th>
+                        <th className="text-right px-2 py-1.5">勝率</th>
+                        <th className="text-left px-2 py-1.5">Exit理由</th>
+                      </tr></thead>
+                      <tbody>{(panelsData.stop_loss as { trigger: string; n: number; pf: number|null; avg: number|null; win_rate: number|null; exit_reasons: Record<string, number> }[]).map(r => (
+                        <tr key={r.trigger} className="border-b border-border/20">
+                          <td className="px-2 py-1.5 text-foreground font-medium">{r.trigger}</td>
+                          <td className="text-right px-2 py-1.5 tabular-nums text-foreground">{r.n}</td>
+                          <td className={`text-right px-2 py-1.5 tabular-nums font-bold ${(r.pf ?? 0) >= 1.5 ? 'text-emerald-400' : (r.pf ?? 0) >= 1 ? 'text-foreground' : 'text-rose-400'}`}>
+                            {r.pf !== null ? r.pf.toFixed(2) : '-'}
+                          </td>
+                          <td className={`text-right px-2 py-1.5 tabular-nums ${(r.avg ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            {r.avg !== null ? formatProfit(r.avg) : '-'}
+                          </td>
+                          <td className={`text-right px-2 py-1.5 tabular-nums ${(r.win_rate ?? 0) >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            {r.win_rate !== null ? `${r.win_rate.toFixed(1)}%` : '-'}
+                          </td>
+                          <td className="px-2 py-1.5 text-xs text-muted-foreground">
+                            {Object.entries(r.exit_reasons).map(([k, v]) => `${k}:${v}`).join(' / ') || '-'}
+                          </td>
+                        </tr>
+                      ))}</tbody>
+                    </table>
+                  </div>
+                </section>
+              )}
+
+              {/* #6 朝利確 vs 引けホールド */}
+              {panelsData.hold_vs_exit && Object.keys(panelsData.hold_vs_exit as Record<string, unknown>).length > 0 && (
+                <section>
+                  <h3 className="text-sm font-semibold text-foreground mb-2">EXIT: 利確タイミング比較</h3>
+                  <div className="rounded-xl border border-border/40 bg-card/80 p-4">
+                    <table className="w-full text-sm">
+                      <thead><tr className="text-muted-foreground border-b border-border/30">
+                        <th className="text-left px-2 py-1.5">タイミング</th>
+                        <th className="text-right px-2 py-1.5">件数</th>
+                        <th className="text-right px-2 py-1.5">合計P&L</th>
+                        <th className="text-right px-2 py-1.5">平均P&L</th>
+                        <th className="text-right px-2 py-1.5">PF</th>
+                        <th className="text-right px-2 py-1.5">勝率</th>
+                      </tr></thead>
+                      <tbody>{Object.entries(panelsData.hold_vs_exit as Record<string, { label?: string; n?: number; total_pnl?: number|null; avg?: number|null; pf?: number|null; win_rate?: number|null }>)
+                        .filter(([k]) => k !== 'giveback_pct')
+                        .map(([k, r]) => (
+                        <tr key={k} className="border-b border-border/20">
+                          <td className="px-2 py-1.5 text-foreground">{r.label ?? k}</td>
+                          <td className="text-right px-2 py-1.5 tabular-nums text-foreground">{r.n ?? '-'}</td>
+                          <td className={`text-right px-2 py-1.5 tabular-nums font-bold ${(r.total_pnl ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            {r.total_pnl !== null && r.total_pnl !== undefined ? formatProfit(r.total_pnl) : '-'}
+                          </td>
+                          <td className={`text-right px-2 py-1.5 tabular-nums ${(r.avg ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            {r.avg !== null && r.avg !== undefined ? formatProfit(r.avg) : '-'}
+                          </td>
+                          <td className={`text-right px-2 py-1.5 tabular-nums font-bold ${(r.pf ?? 0) >= 1.5 ? 'text-emerald-400' : (r.pf ?? 0) >= 1 ? 'text-foreground' : 'text-rose-400'}`}>
+                            {r.pf !== null && r.pf !== undefined ? r.pf.toFixed(2) : '-'}
+                          </td>
+                          <td className={`text-right px-2 py-1.5 tabular-nums ${(r.win_rate ?? 0) >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            {r.win_rate !== null && r.win_rate !== undefined ? `${r.win_rate.toFixed(1)}%` : '-'}
+                          </td>
+                        </tr>
+                      ))}</tbody>
+                    </table>
+                    {(panelsData.hold_vs_exit as Record<string, unknown>).giveback_pct !== undefined && (
+                      <div className="mt-3 pt-3 border-t border-border/30 text-sm">
+                        <span className="text-muted-foreground">吐き出し率: </span>
+                        <span className="text-amber-400 font-bold">
+                          {((panelsData.hold_vs_exit as Record<string, unknown>).giveback_pct as number).toFixed(1)}%
+                        </span>
+                        <span className="text-xs text-muted-foreground ml-2">（利益銘柄の最大含み益→引けまでに失った割合）</span>
+                      </div>
+                    )}
+                  </div>
+                </section>
+              )}
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
