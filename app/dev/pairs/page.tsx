@@ -4,33 +4,37 @@ import { useEffect, useState } from 'react';
 import { DevNavLinks } from '../../../components/dev';
 import { RefreshCw } from 'lucide-react';
 
-// === Types ===
+// === Types (v2) ===
 interface PairSignal {
   tk1: string; tk2: string;
   name1: string; name2: string;
   c1: number; c2: number;
-  z_latest: number;
+  z_latest: number; z_abs: number;
   tk1_upper: number; tk1_lower: number;
   mu: number; sigma: number;
-  recent_n: number; recent_wr: number; recent_pf: number;
+  lookback: number;
+  shares1: number; shares2: number;
+  notional1: number; notional2: number;
+  imbalance_pct: number;
   full_pf: number; full_n: number;
-  is_hot: boolean; direction: string;
+  half_life: number;
+  is_entry: boolean; direction: string;
   signal_date: string;
 }
 
 interface SignalsResponse {
   pairs: PairSignal[];
-  hot: PairSignal[];
+  entry: PairSignal[];
   signal_date: string | null;
   total: number;
-  hot_count: number;
+  entry_count: number;
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 // === Helpers ===
 const fmt = (v: number | null | undefined) => (v ?? 0).toLocaleString('ja-JP');
-const fmtZ = (v: number) => <span className={Math.abs(v) >= 1.5 ? (v > 0 ? 'text-rose-400' : 'text-emerald-400') : 'text-muted-foreground'}>{v >= 0 ? '+' : ''}{v.toFixed(2)}</span>;
+const fmtZ = (v: number) => <span className={Math.abs(v) >= 2.0 ? (v > 0 ? 'text-rose-400' : 'text-emerald-400') : Math.abs(v) >= 1.5 ? 'text-amber-400' : 'text-muted-foreground'}>{v >= 0 ? '+' : ''}{v.toFixed(2)}</span>;
 
 // === Sortable ===
 type SortDir = 'asc' | 'desc' | null;
@@ -97,12 +101,13 @@ const Panel = ({ title, border, children, footer }: { title: React.ReactNode; bo
 );
 
 const DirectionBadge = ({ direction, z }: { direction: string; z: number }) => {
-  if (Math.abs(z) < 1.5) return <span className="text-muted-foreground text-xs">待ち</span>;
+  if (Math.abs(z) < 1.5) return <span className="text-muted-foreground text-xs">--</span>;
   const isShort = direction === 'short_tk1';
-  const cls = isShort
-    ? 'bg-rose-500/20 text-rose-400 border-rose-500/30'
-    : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
-  const label = isShort ? 'tk1 Short' : 'tk1 Long';
+  const isEntry = Math.abs(z) >= 2.0;
+  const cls = isEntry
+    ? (isShort ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30')
+    : 'bg-amber-500/15 text-amber-400 border-amber-500/30';
+  const label = isShort ? 'SHORT tk1' : 'LONG tk1';
   return <span className={`inline-block px-1.5 py-0.5 text-xs rounded leading-none border ${cls}`}>{label}</span>;
 };
 
@@ -132,10 +137,10 @@ export default function PairsPage() {
     }
   };
 
-  // z_latest の絶対値でソート
   const allPairs = signals?.pairs || [];
-  const hotPairs = signals?.hot || [];
-  const pairSort = useSortable<PairSignal>(allPairs, 'z_latest');
+  const entryPairs = signals?.entry || [];
+  const top3 = entryPairs.slice(0, 3);
+  const pairSort = useSortable<PairSignal>(allPairs, 'z_abs');
 
   if (loading) {
     return (
@@ -163,9 +168,9 @@ export default function PairsPage() {
         {/* Header */}
         <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4 pb-3 border-b border-border/30">
           <div>
-            <h1 className="text-xl font-bold text-foreground">Pairs — ペアトレード</h1>
+            <h1 className="text-xl font-bold text-foreground">Pairs v2 — ペアトレード</h1>
             <p className="text-muted-foreground text-xs mt-0.5">
-              z-score平均回帰 デイトレ（寄り→引け） 200万円運用
+              共和分ベース161ペア | z=2.0エントリー | イントラデイ | 200万円 | |z|優先
               {signals?.signal_date ? ` (${signals.signal_date})` : ''}
             </p>
           </div>
@@ -173,7 +178,7 @@ export default function PairsPage() {
             <button type="button" onClick={handleRefresh} disabled={refreshing}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-border/40 rounded-lg hover:bg-muted/20 transition-colors disabled:opacity-50">
               <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-              更新
+              S3同期
             </button>
             <DevNavLinks />
           </div>
@@ -181,17 +186,17 @@ export default function PairsPage() {
 
         {/* Status Bar */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-          <StatCard label="監視ペア数">
+          <StatCard label="監視ペア数" sub="共和分+ADF検定済">
             <span className="text-foreground">{signals?.total ?? 0}</span>
           </StatCard>
-          <StatCard label="ホット (|z|>1.5)" sub="翌朝シグナル候補">
-            <span className={hotPairs.length > 0 ? 'text-amber-400' : 'text-muted-foreground'}>
-              {hotPairs.length}
+          <StatCard label="エントリー可 (|z|>=2.0)" sub="|z|降順で推奨">
+            <span className={entryPairs.length > 0 ? 'text-rose-400' : 'text-muted-foreground'}>
+              {entryPairs.length}
             </span>
           </StatCard>
-          <StatCard label="エントリー済 (|z|>2.0)" sub="z=2.0超えペア">
-            <span className={allPairs.filter(p => Math.abs(p.z_latest) >= 2.0).length > 0 ? 'text-rose-400' : 'text-muted-foreground'}>
-              {allPairs.filter(p => Math.abs(p.z_latest) >= 2.0).length}
+          <StatCard label="注目 (|z|>=1.5)" sub="翌日エントリー候補">
+            <span className={allPairs.filter(p => p.z_abs >= 1.5 && p.z_abs < 2.0).length > 0 ? 'text-amber-400' : 'text-muted-foreground'}>
+              {allPairs.filter(p => p.z_abs >= 1.5 && p.z_abs < 2.0).length}
             </span>
           </StatCard>
           <StatCard label="データ日付">
@@ -199,47 +204,58 @@ export default function PairsPage() {
           </StatCard>
         </div>
 
-        {/* Hot Pairs — 明日シグナル候補 */}
-        {hotPairs.length > 0 && (
+        {/* TOP 3 Recommendations */}
+        {top3.length > 0 ? (
           <Panel title={
-            <h2 className="text-base md:text-lg font-semibold text-amber-400">
-              翌朝シグナル候補 — {hotPairs.length}ペア（|z| &gt; 1.5）
+            <h2 className="text-base md:text-lg font-semibold text-rose-400">
+              TOP {top3.length} 推奨 — |z|上位（明朝エントリー）
             </h2>
-          } border="border-amber-500/40">
+          } border="border-rose-500/40">
             <div className="divide-y divide-border/20">
-              {hotPairs.map((p) => {
+              {top3.map((p, rank) => {
                 const isShort = p.direction === 'short_tk1';
                 const threshPrice = isShort ? p.tk1_upper : p.tk1_lower;
                 const threshLabel = isShort ? '以上で寄ったら' : '以下で寄ったら';
-                const action1 = isShort ? `${p.name1} ショート` : `${p.name1} ロング`;
-                const action2 = isShort ? `${p.name2} ロング` : `${p.name2} ショート`;
                 return (
-                  <div key={`${p.tk1}-${p.tk2}`} className="px-4 md:px-5 py-3">
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
+                  <div key={`${p.tk1}-${p.tk2}`} className="px-4 md:px-5 py-4">
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-rose-500/20 text-rose-400 text-xs font-bold">{rank + 1}</span>
                           <span className="font-semibold text-foreground">{p.name1}</span>
                           <span className="text-muted-foreground">/</span>
                           <span className="font-semibold text-foreground">{p.name2}</span>
                           <DirectionBadge direction={p.direction} z={p.z_latest} />
                         </div>
-                        <div className="text-xs text-muted-foreground space-x-3">
-                          <span>z: {fmtZ(p.z_latest)}</span>
-                          <span>終値: ¥{fmt(p.c1)} / ¥{fmt(p.c2)}</span>
-                          <span>5年PF: {p.full_pf.toFixed(2)} ({p.full_n}回)</span>
-                          {p.recent_n >= 10 && <span>直近: WR{p.recent_wr.toFixed(0)}% PF{p.recent_pf.toFixed(1)}</span>}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 text-xs text-muted-foreground ml-8">
+                          <div>z: <span className="text-foreground font-semibold">{p.z_latest >= 0 ? '+' : ''}{p.z_latest.toFixed(2)}</span></div>
+                          <div>LB: <span className="text-foreground">{p.lookback}日</span></div>
+                          <div>PF: <span className={p.full_pf >= 2.5 ? 'text-emerald-400 font-semibold' : 'text-foreground'}>{p.full_pf.toFixed(2)}</span> ({p.full_n}回)</div>
+                          <div>HL: <span className="text-foreground">{p.half_life.toFixed(0)}日</span></div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-sm">
+                      <div className="text-right md:min-w-[280px]">
+                        <div className="text-sm mb-1">
                           <span className="text-muted-foreground">{p.name1}が</span>
-                          <span className="font-bold text-amber-400 mx-1">¥{fmt(Math.round(threshPrice))}</span>
+                          <span className="font-bold text-rose-400 mx-1">¥{fmt(Math.round(threshPrice))}</span>
                           <span className="text-muted-foreground">{threshLabel}</span>
                         </div>
-                        <div className="text-xs mt-0.5">
-                          <span className={isShort ? 'text-rose-400' : 'text-emerald-400'}>{action1}</span>
-                          <span className="text-muted-foreground mx-1">+</span>
-                          <span className={isShort ? 'text-emerald-400' : 'text-rose-400'}>{action2}</span>
+                        <div className="text-xs space-y-0.5">
+                          <div>
+                            <span className={isShort ? 'text-rose-400' : 'text-emerald-400'}>{p.name1} {isShort ? 'Short' : 'Long'}</span>
+                            <span className="text-muted-foreground mx-1">×</span>
+                            <span className="text-foreground font-semibold">{p.shares1}株</span>
+                            <span className="text-muted-foreground ml-1">(¥{fmt(p.notional1)})</span>
+                          </div>
+                          <div>
+                            <span className={isShort ? 'text-emerald-400' : 'text-rose-400'}>{p.name2} {isShort ? 'Long' : 'Short'}</span>
+                            <span className="text-muted-foreground mx-1">×</span>
+                            <span className="text-foreground font-semibold">{p.shares2}株</span>
+                            <span className="text-muted-foreground ml-1">(¥{fmt(p.notional2)})</span>
+                          </div>
+                          {p.imbalance_pct > 5 && (
+                            <div className="text-amber-400/70">不均衡: {p.imbalance_pct.toFixed(1)}%</div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -248,15 +264,42 @@ export default function PairsPage() {
               })}
             </div>
             <div className="px-4 md:px-5 py-2.5 border-t border-border/40 text-xs text-muted-foreground">
-              ※ 100株/100株から開始。月曜日・前日急騰後はPFが高い傾向。
+              資金制約下TOP2-3ペアが最適（Phase 73d検証済み）。100株単位等金額。指値推奨。
+            </div>
+          </Panel>
+        ) : (
+          <Panel title="推奨ペア">
+            <div className="px-5 py-8 text-center text-muted-foreground text-sm">
+              全ペア |z| &lt; 2.0 — 本日エントリーなし
             </div>
           </Panel>
         )}
 
-        {hotPairs.length === 0 && (
-          <Panel title="翌朝シグナル候補">
-            <div className="px-5 py-8 text-center text-muted-foreground text-sm">
-              全ペア |z| &lt; 1.5 — 明日は待ち
+        {/* Entry + Watch list */}
+        {entryPairs.length > 3 && (
+          <Panel title={
+            <h2 className="text-base md:text-lg font-semibold text-amber-400">
+              その他エントリー可 — {entryPairs.length - 3}ペア
+            </h2>
+          } border="border-amber-500/30">
+            <div className="divide-y divide-border/20">
+              {entryPairs.slice(3).map((p) => {
+                const isShort = p.direction === 'short_tk1';
+                return (
+                  <div key={`${p.tk1}-${p.tk2}`} className="px-4 md:px-5 py-2.5 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-foreground">{p.name1} / {p.name2}</span>
+                      <DirectionBadge direction={p.direction} z={p.z_latest} />
+                    </div>
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <span>z: {fmtZ(p.z_latest)}</span>
+                      <span>LB={p.lookback}</span>
+                      <span>PF={p.full_pf.toFixed(2)}</span>
+                      <span>{p.shares1}/{p.shares2}株</span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </Panel>
         )}
@@ -264,34 +307,35 @@ export default function PairsPage() {
         {/* All Pairs Table */}
         <Panel title={
           <div className="flex items-center gap-2">
-            <h2 className="text-base md:text-lg font-semibold">全ペア エントリー閾値</h2>
-            <span className="text-xs text-muted-foreground">z=±2.0 でエントリー / 引成で決済</span>
+            <h2 className="text-base md:text-lg font-semibold">全ペア一覧</h2>
+            <span className="text-xs text-muted-foreground">161ペア | ペア固有LB | z=2.0エントリー | 引成決済</span>
           </div>
-        } footer={`${allPairs.length} pairs | lookback=20日 | z_entry=2.0 | 200万円運用`}>
+        } footer={`${allPairs.length} pairs | z_entry=2.0 | 200万円 (100株単位等金額)`}>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="text-muted-foreground border-b border-border/30 bg-muted/10">
-                <th className="text-center px-3 py-2 text-xs font-medium">#</th>
-                <SortHeader<PairSignal> label="ペア" field="name1" {...pairSort} className="text-left px-3 py-2 text-xs font-medium" />
-                <SortHeader<PairSignal> label="終値1" field="c1" {...pairSort} className="text-right px-3 py-2 text-xs font-medium" />
-                <SortHeader<PairSignal> label="終値2" field="c2" {...pairSort} className="text-right px-3 py-2 text-xs font-medium" />
-                <SortHeader<PairSignal> label="z" field="z_latest" {...pairSort} className="text-right px-3 py-2 text-xs font-medium" />
-                <th className="text-center px-3 py-2 text-xs font-medium">方向</th>
-                <th className="text-right px-3 py-2 text-xs font-medium hidden md:table-cell">Short閾値</th>
-                <th className="text-right px-3 py-2 text-xs font-medium hidden md:table-cell">Long閾値</th>
-                <SortHeader<PairSignal> label="5年PF" field="full_pf" {...pairSort} className="text-right px-3 py-2 text-xs font-medium" />
-                <th className="text-right px-3 py-2 text-xs font-medium hidden md:table-cell">5年n</th>
-                <th className="text-right px-3 py-2 text-xs font-medium hidden md:table-cell">直近</th>
+                <th className="text-center px-2 py-2 text-xs font-medium">#</th>
+                <SortHeader<PairSignal> label="ペア" field="name1" {...pairSort} className="text-left px-2 py-2 text-xs font-medium" />
+                <SortHeader<PairSignal> label="終値1" field="c1" {...pairSort} className="text-right px-2 py-2 text-xs font-medium" />
+                <SortHeader<PairSignal> label="終値2" field="c2" {...pairSort} className="text-right px-2 py-2 text-xs font-medium" />
+                <SortHeader<PairSignal> label="|z|" field="z_abs" {...pairSort} className="text-right px-2 py-2 text-xs font-medium" />
+                <th className="text-center px-2 py-2 text-xs font-medium">方向</th>
+                <SortHeader<PairSignal> label="LB" field="lookback" {...pairSort} className="text-right px-2 py-2 text-xs font-medium hidden md:table-cell" />
+                <th className="text-right px-2 py-2 text-xs font-medium hidden md:table-cell">Short閾値</th>
+                <th className="text-right px-2 py-2 text-xs font-medium hidden md:table-cell">Long閾値</th>
+                <SortHeader<PairSignal> label="PF" field="full_pf" {...pairSort} className="text-right px-2 py-2 text-xs font-medium" />
+                <th className="text-right px-2 py-2 text-xs font-medium hidden md:table-cell">株数</th>
+                <SortHeader<PairSignal> label="HL" field="half_life" {...pairSort} className="text-right px-2 py-2 text-xs font-medium hidden lg:table-cell" />
               </tr></thead>
               <tbody>
                 {pairSort.sorted.map((p, i) => {
-                  const isHot = Math.abs(p.z_latest) >= 1.5;
-                  const isEntry = Math.abs(p.z_latest) >= 2.0;
+                  const isEntry = p.z_abs >= 2.0;
+                  const isWatch = p.z_abs >= 1.5 && p.z_abs < 2.0;
                   return (
                     <tr key={`${p.tk1}-${p.tk2}`}
-                      className={`border-b border-border/20 hover:bg-muted/10 ${isEntry ? 'bg-rose-500/5' : isHot ? 'bg-amber-500/5' : ''}`}>
-                      <td className="text-center px-3 py-2.5 text-muted-foreground text-xs">{i + 1}</td>
-                      <td className="px-3 py-2.5">
+                      className={`border-b border-border/20 hover:bg-muted/10 ${isEntry ? 'bg-rose-500/5' : isWatch ? 'bg-amber-500/5' : ''}`}>
+                      <td className="text-center px-2 py-2 text-muted-foreground text-xs">{i + 1}</td>
+                      <td className="px-2 py-2">
                         <div className="font-medium text-foreground text-xs">
                           {p.name1.length > 8 ? p.name1.slice(0, 8) + '…' : p.name1}
                         </div>
@@ -299,36 +343,33 @@ export default function PairsPage() {
                           {p.name2.length > 8 ? p.name2.slice(0, 8) + '…' : p.name2}
                         </div>
                       </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums">¥{fmt(p.c1)}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums">¥{fmt(p.c2)}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums font-semibold">
+                      <td className="px-2 py-2 text-right tabular-nums text-xs">¥{fmt(p.c1)}</td>
+                      <td className="px-2 py-2 text-right tabular-nums text-xs">¥{fmt(p.c2)}</td>
+                      <td className="px-2 py-2 text-right tabular-nums font-semibold">
                         {fmtZ(p.z_latest)}
-                        {isHot && <span className="ml-1 text-amber-400">★</span>}
                       </td>
-                      <td className="px-3 py-2.5 text-center">
+                      <td className="px-2 py-2 text-center">
                         <DirectionBadge direction={p.direction} z={p.z_latest} />
                       </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums text-rose-400/70 hidden md:table-cell">
+                      <td className="px-2 py-2 text-right tabular-nums text-xs text-muted-foreground hidden md:table-cell">
+                        {p.lookback}
+                      </td>
+                      <td className="px-2 py-2 text-right tabular-nums text-rose-400/70 text-xs hidden md:table-cell">
                         ¥{fmt(Math.round(p.tk1_upper))}
                       </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums text-emerald-400/70 hidden md:table-cell">
+                      <td className="px-2 py-2 text-right tabular-nums text-emerald-400/70 text-xs hidden md:table-cell">
                         ¥{fmt(Math.round(p.tk1_lower))}
                       </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums font-semibold">
+                      <td className="px-2 py-2 text-right tabular-nums font-semibold text-xs">
                         <span className={p.full_pf >= 2.5 ? 'text-emerald-400' : p.full_pf >= 2.0 ? 'text-foreground' : 'text-muted-foreground'}>
                           {p.full_pf.toFixed(2)}
                         </span>
                       </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground hidden md:table-cell">
-                        {p.full_n}
+                      <td className="px-2 py-2 text-right tabular-nums text-xs text-muted-foreground hidden md:table-cell">
+                        {p.shares1}/{p.shares2}
                       </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground hidden md:table-cell text-xs">
-                        {p.recent_n >= 10
-                          ? `${p.recent_n}回 PF${p.recent_pf.toFixed(1)}`
-                          : p.recent_n >= 1
-                            ? `${p.recent_n}回`
-                            : '-'
-                        }
+                      <td className="px-2 py-2 text-right tabular-nums text-xs text-muted-foreground hidden lg:table-cell">
+                        {p.half_life.toFixed(0)}
                       </td>
                     </tr>
                   );
@@ -338,25 +379,24 @@ export default function PairsPage() {
           </div>
         </Panel>
 
-        {/* アクション手順 */}
+        {/* Action Guide */}
         <Panel title="翌朝 9:00 アクション手順">
           <div className="px-4 md:px-5 py-4 text-sm text-muted-foreground space-y-2">
-            <div className="flex gap-3"><span className="text-foreground font-semibold">1.</span><span>★マークのペアを優先チェック</span></div>
+            <div className="flex gap-3"><span className="text-foreground font-semibold">1.</span><span>TOP推奨ペアを優先（|z|上位2-3ペアが最適）</span></div>
             <div className="flex gap-3"><span className="text-foreground font-semibold">2.</span>
               <div>
                 <span>9:00 寄付価格を確認</span>
                 <div className="mt-1 ml-2 space-y-0.5 text-xs">
-                  <div>→ tk1の寄付が<span className="text-rose-400">ショート閾値以上</span> → tk1空売り + tk2買い</div>
-                  <div>→ tk1の寄付が<span className="text-emerald-400">ロング閾値以下</span> → tk1買い + tk2空売り</div>
+                  <div>→ tk1の寄付が<span className="text-rose-400">Short閾値以上</span> → tk1空売り + tk2買い</div>
+                  <div>→ tk1の寄付が<span className="text-emerald-400">Long閾値以下</span> → tk1買い + tk2空売り</div>
                 </div>
               </div>
             </div>
-            <div className="flex gap-3"><span className="text-foreground font-semibold">3.</span><span>指値 or 成行で両銘柄同時発注</span></div>
-            <div className="flex gap-3"><span className="text-foreground font-semibold">4.</span><span>15:25 引成で両方決済（or スプレッド縮小で早期利確）</span></div>
+            <div className="flex gap-3"><span className="text-foreground font-semibold">3.</span><span>表示株数で両銘柄同時発注（100株単位等金額）</span></div>
+            <div className="flex gap-3"><span className="text-foreground font-semibold">4.</span><span>15:25 引成で両方決済</span></div>
             <div className="mt-3 pt-3 border-t border-border/30 text-xs space-y-1">
-              <div>※ 100株/100株から。慣れたらロット増。</div>
-              <div>※ 月曜日・前日急騰後はPFが高い傾向（優先的にトレード）。</div>
-              <div>※ スリッページ感度が高い — 指値推奨（成行はPF低下）。</div>
+              <div>Phase 70-75 検証済みパラメータ: 共和分ペア選定 / ペア固有LB / |z|優先 / 等金額100株単位 / レジームフィルタ不要</div>
+              <div>指値推奨（成行はスリッページでPF低下）</div>
             </div>
           </div>
         </Panel>
