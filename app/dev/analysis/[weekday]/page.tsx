@@ -763,6 +763,41 @@ export default function WeekdayAnalysisPage() {
         </div>
       </header>
 
+      {/* ===== 判断サマリー ===== */}
+      {tradeSummary && (
+        <div className="mb-6">
+          <h2 className="text-lg font-bold text-foreground border-b border-border/30 pb-2 mb-4">
+            判断サマリー — {WEEKDAY_SHORT[selectedDay]}曜日
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {(['ENTRY', 'TIMING', 'RISK', 'EXIT'] as const).map(cat => {
+              const items = tradeSummary.filter(s => s.category === cat);
+              if (items.length === 0) return null;
+              const catColorClass = { ENTRY: 'text-blue-400', TIMING: 'text-purple-400', RISK: 'text-orange-400', EXIT: 'text-cyan-400' }[cat];
+              return (
+                <div key={cat} className="rounded-xl border border-border/40 bg-card/80 p-4">
+                  <div className={`text-xs font-bold mb-2 ${catColorClass}`}>{items[0].icon} {cat}</div>
+                  <div className="space-y-2">
+                    {items.map((item, i) => {
+                      const valClass = { emerald: 'text-emerald-400', amber: 'text-amber-400', rose: 'text-rose-400' }[item.color] ?? 'text-foreground';
+                      return (
+                        <div key={i}>
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-xs text-muted-foreground">{item.label}:</span>
+                            <span className={`text-sm font-bold ${valClass}`}>{item.value}</span>
+                          </div>
+                          <div className="text-xs text-muted-foreground pl-2">{item.detail}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* ===== Grade別サマリーテーブル（アコーディオン） ===== */}
       <div className="mb-4">
         <div className="flex items-center gap-2 mb-2">
@@ -1641,41 +1676,6 @@ export default function WeekdayAnalysisPage() {
           </section>
         );
       })()}
-
-      {/* ===== 判断サマリー ===== */}
-      {tradeSummary && (
-        <div className="mt-8">
-          <h2 className="text-lg font-bold text-foreground border-b border-border/30 pb-2 mb-4">
-            判断サマリー — {WEEKDAY_SHORT[selectedDay]}曜日
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {(['ENTRY', 'TIMING', 'RISK', 'EXIT'] as const).map(cat => {
-              const items = tradeSummary.filter(s => s.category === cat);
-              if (items.length === 0) return null;
-              const catColorClass = { ENTRY: 'text-blue-400', TIMING: 'text-purple-400', RISK: 'text-orange-400', EXIT: 'text-cyan-400' }[cat];
-              return (
-                <div key={cat} className="rounded-xl border border-border/40 bg-card/80 p-4">
-                  <div className={`text-xs font-bold mb-2 ${catColorClass}`}>{items[0].icon} {cat}</div>
-                  <div className="space-y-2">
-                    {items.map((item, i) => {
-                      const valClass = { emerald: 'text-emerald-400', amber: 'text-amber-400', rose: 'text-rose-400' }[item.color] ?? 'text-foreground';
-                      return (
-                        <div key={i}>
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-xs text-muted-foreground">{item.label}:</span>
-                            <span className={`text-sm font-bold ${valClass}`}>{item.value}</span>
-                          </div>
-                          <div className="text-xs text-muted-foreground pl-2">{item.detail}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* ===== 拡張パネル (#1〜#6) ===== */}
       {(futuresGapData || nikkeiChangeData || panelsData) && (
