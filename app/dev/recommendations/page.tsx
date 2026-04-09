@@ -120,6 +120,15 @@ export default function DayTradeListPage() {
   // 先物gap×Bucket PFテーブル
   const [futuresGapData, setFuturesGapData] = useState<FuturesGapData | null>(null);
 
+  // 曜日ルール
+  const [weekdayRule, setWeekdayRule] = useState<{
+    weekday: string;
+    direction: string;
+    rule: string;
+    pf: number;
+    note: string;
+  } | null>(null);
+
   const fetchData = async () => {
     try {
       const res = await fetch("/api/dev/day-trade-list");
@@ -128,6 +137,7 @@ export default function DayTradeListPage() {
       setStocks(data.stocks);
       setSummary(data.summary);
       if (data.market) setMarketData(data.market);
+      if (data.weekday_rule) setWeekdayRule(data.weekday_rule);
       setLoading(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "エラー");
@@ -467,6 +477,40 @@ export default function DayTradeListPage() {
             <DevNavLinks />
           </div>
         </header>
+
+        {/* 曜日ルールバナー */}
+        {weekdayRule && (
+          <div className={`mb-4 rounded-xl border px-4 py-3 flex items-center gap-3 ${
+            weekdayRule.direction === "long"
+              ? "border-emerald-500/40 bg-emerald-500/10"
+              : weekdayRule.direction === "excluded"
+                ? "border-amber-500/40 bg-amber-500/10"
+                : "border-rose-500/40 bg-rose-500/10"
+          }`}>
+            <span className={`text-lg font-bold ${
+              weekdayRule.direction === "long"
+                ? "text-emerald-400"
+                : weekdayRule.direction === "excluded"
+                  ? "text-amber-400"
+                  : "text-rose-400"
+            }`}>
+              {weekdayRule.weekday}
+            </span>
+            <div className="flex-1">
+              <span className={`text-sm font-medium ${
+                weekdayRule.direction === "long"
+                  ? "text-emerald-400"
+                  : weekdayRule.direction === "excluded"
+                    ? "text-amber-400"
+                    : "text-rose-400"
+              }`}>
+                {weekdayRule.rule}
+              </span>
+              <span className="text-xs text-muted-foreground ml-2">PF {weekdayRule.pf.toFixed(2)}</span>
+            </div>
+            <span className="text-xs text-muted-foreground max-w-xs hidden sm:block">{weekdayRule.note}</span>
+          </div>
+        )}
 
         {/* Summary Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4">

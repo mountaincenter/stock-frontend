@@ -46,10 +46,19 @@ interface MarginData {
   priceRanges: PriceRangeData[];
 }
 
+interface WeekdayRule {
+  weekday: string;
+  direction: string;
+  rule: string;
+  pf: number;
+  note: string;
+}
+
 interface WeekdayData {
   weekday: string;
   seido: MarginData;
   ichinichi: MarginData;
+  weekday_rule?: WeekdayRule | null;
 }
 
 interface ApiResponse {
@@ -698,10 +707,25 @@ export default function AnalysisCustomPage() {
 
           return (
             <div key={wd.weekday} className="mb-6">
-              <h2 className="text-sm font-semibold text-foreground mb-3">
+              <h2 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2 flex-wrap">
                 <Link href={`/dev/analysis/${['mon','tue','wed','thu','fri'][idx]}`} className="hover:text-primary transition-colors">
                   {wd.weekday} →
                 </Link>
+                {wd.weekday_rule && (
+                  <>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                      wd.weekday_rule.direction === "long"
+                        ? "bg-emerald-500/20 text-emerald-400"
+                        : wd.weekday_rule.direction === "excluded"
+                          ? "bg-amber-500/20 text-amber-400"
+                          : "bg-rose-500/20 text-rose-400"
+                    }`}>
+                      {wd.weekday_rule.rule}
+                    </span>
+                    <span className="text-xs text-muted-foreground">PF {wd.weekday_rule.pf.toFixed(2)}</span>
+                    <span className="text-xs text-muted-foreground hidden lg:inline">— {wd.weekday_rule.note}</span>
+                  </>
+                )}
               </h2>
               <div className="grid grid-cols-1 gap-4">
                 {/* Seido Card */}
