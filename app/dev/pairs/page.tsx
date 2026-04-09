@@ -217,7 +217,7 @@ export default function PairsPage() {
                 const threshPrice = isShort ? p.tk1_upper : p.tk1_lower;
                 const threshLabel = isShort ? '以上で寄ったら' : '以下で寄ったら';
                 return (
-                  <div key={`${p.tk1}-${p.tk2}`} className="px-4 md:px-5 py-4">
+                  <div key={`${p.tk1}-${p.tk2}`} className="px-4 md:px-5 py-4 cursor-pointer hover:bg-muted/10 transition-colors" onClick={() => window.open(`/pairs/${p.tk1.replace('.', '')}-${p.tk2.replace('.', '')}`, '_blank')}>
                     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
@@ -333,7 +333,8 @@ export default function PairsPage() {
                   const isWatch = p.z_abs >= 1.5 && p.z_abs < 2.0;
                   return (
                     <tr key={`${p.tk1}-${p.tk2}`}
-                      className={`border-b border-border/20 hover:bg-muted/10 ${isEntry ? 'bg-rose-500/5' : isWatch ? 'bg-amber-500/5' : ''}`}>
+                      className={`border-b border-border/20 hover:bg-muted/10 cursor-pointer ${isEntry ? 'bg-rose-500/5' : isWatch ? 'bg-amber-500/5' : ''}`}
+                      onClick={() => window.open(`/pairs/${p.tk1.replace('.', '')}-${p.tk2.replace('.', '')}`, '_blank')}>
                       <td className="text-center px-2 py-2 text-muted-foreground text-xs">{i + 1}</td>
                       <td className="px-2 py-2">
                         <div className="font-medium text-foreground text-xs">

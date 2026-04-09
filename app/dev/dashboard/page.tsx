@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { DevNavLinks } from '../../../components/dev';
 import { RefreshCw } from 'lucide-react';
 
@@ -478,8 +479,9 @@ export default function DashboardPage() {
                 <tbody className="divide-y divide-border/30">
                   {pairSort.sorted.map((p, i) => {
                     const isLong = p.direction === 'long_tk1';
+                    const pairHref = `/pairs/${p.tk1.replace('.', '')}-${p.tk2.replace('.', '')}`;
                     return (
-                      <tr key={`${p.tk1}-${p.tk2}`} className="hover:bg-muted/10">
+                      <tr key={`${p.tk1}-${p.tk2}`} className="hover:bg-muted/10 cursor-pointer" onClick={() => window.open(pairHref, '_blank')}>
                         <td className="text-center px-2 py-4 text-muted-foreground align-top">{i + 1}</td>
                         <td className="px-2 py-4 align-top">
                           <div className="flex items-start gap-2">
