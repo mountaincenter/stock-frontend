@@ -776,17 +776,17 @@ export default function WeekdayAnalysisPage() {
               const catColorClass = { ENTRY: 'text-blue-400', TIMING: 'text-purple-400', RISK: 'text-orange-400', EXIT: 'text-cyan-400' }[cat];
               return (
                 <div key={cat} className="rounded-xl border border-border/40 bg-card/80 p-4">
-                  <div className={`text-xs font-bold mb-2 ${catColorClass}`}>{items[0].icon} {cat}</div>
-                  <div className="space-y-2">
+                  <div className={`text-sm font-bold mb-3 ${catColorClass}`}>{items[0].icon} {cat}</div>
+                  <div className="space-y-3">
                     {items.map((item, i) => {
                       const valClass = { emerald: 'text-emerald-400', amber: 'text-amber-400', rose: 'text-rose-400' }[item.color] ?? 'text-foreground';
                       return (
                         <div key={i}>
                           <div className="flex items-baseline gap-2">
-                            <span className="text-xs text-muted-foreground">{item.label}:</span>
-                            <span className={`text-sm font-bold ${valClass}`}>{item.value}</span>
+                            <span className="text-sm text-muted-foreground">{item.label}:</span>
+                            <span className={`text-xl font-bold tabular-nums ${valClass}`}>{item.value}</span>
                           </div>
-                          <div className="text-xs text-muted-foreground pl-2">{item.detail}</div>
+                          <div className="text-sm text-muted-foreground pl-2">{item.detail}</div>
                         </div>
                       );
                     })}
