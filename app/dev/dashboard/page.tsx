@@ -4,27 +4,28 @@ import { useEffect, useState } from 'react';
 import { DevNavLinks } from '../../../components/dev';
 import { RefreshCw } from 'lucide-react';
 
-// === Types ===
-interface StatusResponse {
-  vi: number | null; vi_signal: string;
-  cash_margin: number; position_count: number;
-  bearish_count: number; bearish_date: string | null;
-  bearish_open: number; bearish_exit: number;
-  b4_count: number; b4_date: string | null;
-  signal_date: string | null;
-}
-
+// === Types (granville positions準拠: hold_stocks.parquetベース) ===
 interface Position {
-  ticker: string; stock_name: string; strategy: string;
-  entry_date: string; entry_price: number; current_price: number; sma20: number;
-  pct: number; pnl: number; hold_days: number; max_hold: number;
-  status: string; exit_type: string; rule?: string; direction?: string;
+  ticker: string; stock_name: string; rule: string; direction: string;
+  margin_type: string; deadline: string;
+  entry_date: string; entry_price: number;
+  current_price: number; quantity: number; cost_total: number; market_value: number;
+  high_20d: number; atr10: number; gap_to_high: number;
+  unrealized_pct: number; unrealized_yen: number;
+  hold_days: number; max_hold: number; remaining_days: number; exit_type: string;
 }
-interface PositionsResponse {
-  positions: Position[]; exits: Position[];
-  bearish_count: number; b4_count: number;
+interface PositionsResponse { positions: Position[]; exits: Position[]; as_of: string | null; }
+
+// B4 Entry (vi情報含む)
+interface B4EntryResponse {
+  vi: number | null; cme_gap: number | null; n225_chg: number | null;
+  decision: string; date: string | null;
+  total_b4_signals: number;
+  candidates: { ticker: string; stock_name: string; close: number; dev_from_sma20: number; entry_price_est: number; sector: string }[];
+  selected: { ticker: string; stock_name: string; close: number; dev_from_sma20: number; entry_price_est: number; sector: string }[];
 }
 
+// Reversal signals (bearish + b4)
 interface Signal {
   ticker: string; stock_name: string; sector: string; strategy: string;
   close: number; open: number; body_pct: number;
@@ -37,6 +38,7 @@ interface SignalsResponse {
   bearish_date: string | null; b4_date: string | null;
 }
 
+// Pairs
 interface PairSignal {
   tk1: string; tk2: string;
   name1: string; name2: string;
@@ -67,26 +69,6 @@ const fmtPnl = (v: number | null | undefined) => { const n = v ?? 0; return <spa
 const fmtPct = (v: number | null | undefined, d = 1) => { const n = v ?? 0; return `${n >= 0 ? '+' : ''}${n.toFixed(d)}%`; };
 const shortDate = (d: string) => { const m = d.match(/\d{4}-(\d{2})-(\d{2})/); return m ? `${m[1]}/${m[2]}` : d; };
 const fmtZ = (v: number) => <span className={Math.abs(v) >= 2.0 ? (v > 0 ? 'text-rose-400' : 'text-emerald-400') : Math.abs(v) >= 1.5 ? 'text-amber-400' : 'text-muted-foreground'}>{v >= 0 ? '+' : ''}{v.toFixed(2)}</span>;
-
-// === Badges ===
-const StrategyBadge = ({ strategy }: { strategy: string }) => {
-  const s = strategy.toLowerCase();
-  const cls = s === 'bearish'
-    ? 'bg-violet-500/20 text-violet-400 border-violet-500/30'
-    : s === 'b4' || s === 'granville'
-    ? 'bg-rose-500/20 text-rose-400 border-rose-500/30'
-    : 'bg-blue-500/20 text-blue-400 border-blue-500/30';
-  const label = s === 'bearish' ? '大陰線' : s === 'b4' ? 'B4' : strategy;
-  return <span className={`inline-block px-1.5 py-0.5 text-xs rounded leading-none border ${cls}`}>{label}</span>;
-};
-
-const exitLabel = (t: string) => {
-  if (t === 'sma20_return') return { text: 'SMA20回帰', cls: 'text-emerald-400' };
-  if (t === 'stop_loss') return { text: 'Day3損切り', cls: 'text-rose-400' };
-  if (t === 'max_hold') return { text: 'MAX_HOLD到達', cls: 'text-amber-400' };
-  if (t === 'high_update' || t === '20d_high') return { text: '高値更新', cls: 'text-emerald-400' };
-  return { text: t || '保有中', cls: 'text-muted-foreground' };
-};
 
 // === Sortable ===
 type SortDir = 'asc' | 'desc' | null;
@@ -127,12 +109,12 @@ const SortHeader = <T,>({ label, field, sortKey, sortDir, toggle, className }: {
 
 // === Layout Components ===
 const StatCard = ({ label, children, sub }: { label: string; children: React.ReactNode; sub?: React.ReactNode }) => (
-  <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 px-5 py-4 shadow-lg shadow-black/5 backdrop-blur-xl">
+  <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-3 sm:p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
     <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
     <div className="relative">
-      <div className="text-muted-foreground text-sm mb-2">{label}</div>
-      <div className="text-xl font-bold text-right tabular-nums">{children}</div>
-      {sub && <div className="text-sm text-right mt-1 text-muted-foreground tabular-nums">{sub}</div>}
+      <div className="text-muted-foreground text-xs mb-1">{label}</div>
+      <div className="text-xl sm:text-2xl font-bold text-right tabular-nums">{children}</div>
+      {sub && <div className="text-xs text-right mt-1 text-muted-foreground tabular-nums">{sub}</div>}
     </div>
   </div>
 );
@@ -162,8 +144,8 @@ const TickerLink = ({ ticker }: { ticker: string }) => (
 
 // === Main ===
 export default function DashboardPage() {
-  const [status, setStatus] = useState<StatusResponse | null>(null);
   const [posData, setPosData] = useState<PositionsResponse | null>(null);
+  const [b4Entry, setB4Entry] = useState<B4EntryResponse | null>(null);
   const [signals, setSignals] = useState<SignalsResponse | null>(null);
   const [pairsData, setPairsData] = useState<PairsResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -172,12 +154,12 @@ export default function DashboardPage() {
   const fetchData = () => {
     setLoading(true);
     Promise.all([
-      fetch(`${API_BASE}/api/dev/reversal/status`).then(r => r.json()).catch(() => null),
-      fetch(`${API_BASE}/api/dev/reversal/positions`).then(r => r.json()).catch(() => null),
+      fetch(`${API_BASE}/api/dev/granville/positions`).then(r => r.json()).catch(() => null),
+      fetch(`${API_BASE}/api/dev/granville/b4_entry`).then(r => r.json()).catch(() => null),
       fetch(`${API_BASE}/api/dev/reversal/signals`).then(r => r.json()).catch(() => null),
       fetch(`${API_BASE}/api/dev/pairs/signals`).then(r => r.json()).catch(() => null),
-    ]).then(([st, pos, sig, pairs]) => {
-      setStatus(st); setPosData(pos); setSignals(sig); setPairsData(pairs);
+    ]).then(([pos, b4, sig, pairs]) => {
+      setPosData(pos); setB4Entry(b4); setSignals(sig); setPairsData(pairs);
       setLoading(false);
     });
   };
@@ -188,6 +170,7 @@ export default function DashboardPage() {
     setRefreshing(true);
     try {
       await Promise.all([
+        fetch(`${API_BASE}/api/dev/granville/refresh`, { method: 'POST' }),
         fetch(`${API_BASE}/api/dev/reversal/refresh`, { method: 'POST' }),
         fetch(`${API_BASE}/api/dev/pairs/refresh`, { method: 'POST' }),
       ]);
@@ -195,14 +178,17 @@ export default function DashboardPage() {
     } finally { setRefreshing(false); }
   };
 
-  // Split positions: exit candidates vs active
+  // Positions from hold_stocks
   const exits = posData?.exits || [];
   const active = posData?.positions || [];
-  const totalPnl = active.reduce((s, p) => s + p.pnl, 0);
+  const totalPnl = active.reduce((s, p) => s + p.unrealized_yen, 0);
+
+  // VI from b4_entry
+  const vi = b4Entry?.vi ?? null;
 
   // Sortable hooks
-  const exitSort = useSortable<Position>(exits, 'pct');
-  const activeSort = useSortable<Position>(active, 'pct');
+  const exitSort = useSortable<Position>(exits, 'unrealized_pct');
+  const activeSort = useSortable<Position>(active, 'unrealized_pct');
   const b4Sort = useSortable<Signal>(signals?.b4 || [], 'dev_from_sma20');
   const bearishSort = useSortable<Signal>(signals?.bearish || [], 'body_pct');
   const pairSort = useSortable<PairSignal>(pairsData?.entry || [], 'z_abs');
@@ -211,10 +197,10 @@ export default function DashboardPage() {
     return (
       <main className="relative min-h-screen">
         <div className="fixed inset-0 -z-10"><div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20" /></div>
-        <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className="max-w-[1600px] mx-auto px-4 py-4 leading-[1.8] tracking-[0.02em]">
           <div className="h-6 w-64 bg-muted/50 rounded mb-4 animate-pulse" />
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-            {[...Array(5)].map((_, i) => <div key={i} className="rounded-xl border border-border/40 bg-card/50 p-5 h-24 animate-pulse" />)}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            {[...Array(4)].map((_, i) => <div key={i} className="rounded-xl border border-border/40 bg-card/50 p-5 h-24 animate-pulse" />)}
           </div>
           {[...Array(3)].map((_, i) => <div key={i} className="rounded-2xl border border-border/40 bg-card/50 h-48 mb-5 animate-pulse" />)}
         </div>
@@ -230,14 +216,14 @@ export default function DashboardPage() {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.03)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.03)_1px,transparent_1px)] bg-[size:4rem_4rem]" />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-4">
+      <div className="max-w-[1600px] mx-auto px-4 py-4 leading-[1.8] tracking-[0.02em]">
         {/* Header */}
         <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4 pb-3 border-b border-border/30">
           <div>
             <h1 className="text-xl font-bold text-foreground">Trading Dashboard</h1>
-            <p className="text-muted-foreground text-xs mt-0.5">
+            <p className="text-sm text-muted-foreground mt-0.5">
               Granville + Bearish Reversal + Pairs
-              {status?.signal_date ? ` (${status.signal_date})` : ''}
+              {b4Entry?.date ? ` (${b4Entry.date})` : ''}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -251,27 +237,22 @@ export default function DashboardPage() {
         </header>
 
         {/* ===== Market Summary ===== */}
-        {status && (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
-            <StatCard label="日経VI" sub={status.vi_signal === 'green' ? 'VI>=20: 逆張り有効' : 'VI<20'}>
-              <span className={status.vi && status.vi >= 20 ? 'text-emerald-400' : 'text-rose-400'}>
-                {status.vi ?? '-'}
-              </span>
-            </StatCard>
-            <StatCard label="現金保証金">
-              <span className="text-foreground">&yen;{fmt(status.cash_margin)}</span>
-            </StatCard>
-            <StatCard label="保有" sub={`Exit候補: ${exits.length}件`}>
-              <span className="text-foreground">{active.length}件</span>
-            </StatCard>
-            <StatCard label="含み損益">
-              {fmtPnl(totalPnl)}
-            </StatCard>
-            <StatCard label="本日シグナル" sub={`B4: ${status.b4_count} / 大陰線: ${status.bearish_count} / Pairs: ${pairsData?.entry_count ?? 0}`}>
-              <span className="text-foreground">{status.b4_count + status.bearish_count + (pairsData?.entry_count ?? 0)}</span>
-            </StatCard>
-          </div>
-        )}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-5">
+          <StatCard label="日経VI" sub={vi !== null && vi >= 20 ? 'VI>=20: 逆張り有効' : 'VI<20'}>
+            <span className={vi !== null && vi >= 20 ? 'text-emerald-400' : 'text-rose-400'}>
+              {vi ?? '-'}
+            </span>
+          </StatCard>
+          <StatCard label="保有" sub={`Exit候補: ${exits.length}件`}>
+            <span className="text-foreground">{active.length}件</span>
+          </StatCard>
+          <StatCard label="含み損益">
+            {fmtPnl(totalPnl)}
+          </StatCard>
+          <StatCard label="本日シグナル" sub={`B4: ${signals?.b4_count ?? 0} / 大陰線: ${signals?.bearish_count ?? 0} / Pairs: ${pairsData?.entry_count ?? 0}`}>
+            <span className="text-foreground">{(signals?.b4_count ?? 0) + (signals?.bearish_count ?? 0) + (pairsData?.entry_count ?? 0)}</span>
+          </StatCard>
+        </div>
 
         {/* ===== Exit Candidates ===== */}
         {exits.length > 0 && (
@@ -281,37 +262,50 @@ export default function DashboardPage() {
             </h2>
           } border="border-amber-500/40">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead><tr className="text-muted-foreground border-b border-border/30 bg-muted/10">
-                  <th className="text-center px-3 py-2 text-xs font-medium">戦略</th>
-                  <SortHeader<Position> label="コード" field="ticker" {...exitSort} className="text-left px-3 py-2 text-xs font-medium" />
-                  <th className="text-left px-3 py-2 text-xs font-medium">銘柄</th>
-                  <th className="text-right px-3 py-2 text-xs font-medium">IN日</th>
-                  <th className="text-right px-3 py-2 text-xs font-medium">IN価格</th>
-                  <th className="text-right px-3 py-2 text-xs font-medium">現在値</th>
-                  <SortHeader<Position> label="損益%" field="pct" {...exitSort} className="text-right px-3 py-2 text-xs font-medium" />
-                  <SortHeader<Position> label="損益" field="pnl" {...exitSort} className="text-right px-3 py-2 text-xs font-medium" />
-                  <th className="text-right px-3 py-2 text-xs font-medium">日数</th>
-                  <th className="text-left px-3 py-2 text-xs font-medium">Exit理由</th>
+              <table className="w-full text-sm md:text-base">
+                <thead><tr className="text-foreground border-b border-border/40 bg-muted/30">
+                  <th className="text-center px-2 py-3 text-xs font-medium whitespace-nowrap">売買</th>
+                  <SortHeader<Position> label="コード" field="ticker" {...exitSort} className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap" />
+                  <th className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap">銘柄</th>
+                  <th className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap">建日</th>
+                  <th className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap">日数/MH</th>
+                  <th className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap">建単価</th>
+                  <th className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap">現在値</th>
+                  <th className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap">発火ライン</th>
+                  <SortHeader<Position> label="含み%" field="unrealized_pct" {...exitSort} className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap" />
+                  <SortHeader<Position> label="含み損益" field="unrealized_yen" {...exitSort} className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap" />
+                  <th className="text-center px-2 py-3 text-xs font-medium whitespace-nowrap">アクション</th>
                 </tr></thead>
-                <tbody>
-                  {exitSort.sorted.map((p, i) => {
-                    const el = exitLabel(p.exit_type);
-                    return (
-                      <tr key={`exit-${p.ticker}-${i}`} className="border-b border-border/20 hover:bg-amber-500/5">
-                        <td className="px-3 py-2.5 text-center"><StrategyBadge strategy={p.strategy} /></td>
-                        <td className="px-3 py-2.5 tabular-nums"><TickerLink ticker={p.ticker} /></td>
-                        <td className="px-3 py-2.5 max-w-[140px] truncate">{p.stock_name}</td>
-                        <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">{shortDate(p.entry_date)}</td>
-                        <td className="px-3 py-2.5 text-right tabular-nums">&yen;{fmt(p.entry_price)}</td>
-                        <td className="px-3 py-2.5 text-right tabular-nums">&yen;{fmt(p.current_price)}</td>
-                        <td className={`px-3 py-2.5 text-right tabular-nums ${p.pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{fmtPct(p.pct, 2)}</td>
-                        <td className="px-3 py-2.5 text-right tabular-nums">{fmtPnl(p.pnl)}</td>
-                        <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">{p.hold_days}/{p.max_hold}</td>
-                        <td className={`px-3 py-2.5 text-xs ${el.cls}`}>{el.text}</td>
-                      </tr>
-                    );
-                  })}
+                <tbody className="divide-y divide-border/30">
+                  {exitSort.sorted.map((p, i) => (
+                    <tr key={`exit-${p.ticker}-${i}`} className="hover:bg-amber-500/5">
+                      <td className="px-2 py-3 text-center">
+                        <span className={`inline-block px-1.5 py-0.5 text-xs rounded leading-none border ${p.direction === '売建' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'}`}>
+                          {p.direction || '-'}
+                        </span>
+                      </td>
+                      <td className="px-2 py-3 tabular-nums"><TickerLink ticker={p.ticker} /></td>
+                      <td className="px-2 py-3 max-w-[140px] truncate">{p.stock_name}</td>
+                      <td className="px-2 py-3 text-right tabular-nums text-muted-foreground text-xs">{p.entry_date ? shortDate(p.entry_date) : '-'}</td>
+                      <td className="px-2 py-3 text-right tabular-nums">{p.hold_days}/{p.max_hold || 15}</td>
+                      <td className="px-2 py-3 text-right tabular-nums">&yen;{fmt(p.entry_price)}</td>
+                      <td className="px-2 py-3 text-right tabular-nums">&yen;{fmt(p.current_price)}</td>
+                      <td className={`px-2 py-3 text-right tabular-nums font-semibold ${p.high_20d > 0 ? 'text-amber-400' : 'text-muted-foreground'}`}>
+                        {p.high_20d > 0 ? `¥${fmt(Math.round(p.high_20d))}` : '-'}
+                      </td>
+                      <td className={`px-2 py-3 text-right tabular-nums ${p.unrealized_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{fmtPct(p.unrealized_pct, 2)}</td>
+                      <td className="px-2 py-3 text-right tabular-nums">{fmtPnl(p.unrealized_yen)}</td>
+                      <td className="px-2 py-3 text-center">
+                        {p.hold_days >= (p.max_hold || 15) ? (
+                          <span className="px-2 py-0.5 rounded text-xs font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">損切り</span>
+                        ) : p.exit_type === 'high_update' ? (
+                          <span className="px-2 py-0.5 rounded text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">利確</span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">{p.exit_type || '-'}</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -320,37 +314,43 @@ export default function DashboardPage() {
 
         {/* ===== Active Positions ===== */}
         {active.length > 0 && (
-          <Panel title={`保有ポジション — ${active.length}件`}
+          <Panel title={`保有ポジション — ${active.length}件 (${posData?.as_of || '-'})`}
             footer={<span>合計含み損益: <span className="font-bold tabular-nums ml-1">{fmtPnl(totalPnl)}</span></span>}>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead><tr className="text-muted-foreground border-b border-border/30 bg-muted/10">
-                  <th className="text-center px-3 py-2 text-xs font-medium">戦略</th>
-                  <SortHeader<Position> label="コード" field="ticker" {...activeSort} className="text-left px-3 py-2 text-xs font-medium" />
-                  <th className="text-left px-3 py-2 text-xs font-medium">銘柄</th>
-                  <th className="text-right px-3 py-2 text-xs font-medium">IN日</th>
-                  <th className="text-right px-3 py-2 text-xs font-medium">IN価格</th>
-                  <th className="text-right px-3 py-2 text-xs font-medium">現在値</th>
-                  <th className="text-right px-3 py-2 text-xs font-medium hidden md:table-cell">SMA20</th>
-                  <SortHeader<Position> label="損益%" field="pct" {...activeSort} className="text-right px-3 py-2 text-xs font-medium" />
-                  <SortHeader<Position> label="損益" field="pnl" {...activeSort} className="text-right px-3 py-2 text-xs font-medium" />
-                  <SortHeader<Position> label="日数" field="hold_days" {...activeSort} className="text-right px-3 py-2 text-xs font-medium" />
+              <table className="w-full text-sm md:text-base">
+                <thead><tr className="text-foreground border-b border-border/40 bg-muted/30">
+                  <th className="text-center px-2 py-3 text-xs font-medium whitespace-nowrap">売買</th>
+                  <SortHeader<Position> label="コード" field="ticker" {...activeSort} className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap" />
+                  <th className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap">銘柄</th>
+                  <th className="text-center px-2 py-3 text-xs font-medium whitespace-nowrap">信用区分</th>
+                  <th className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap">建日</th>
+                  <th className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap">日数/MH</th>
+                  <th className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap">建単価</th>
+                  <th className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap">現在値</th>
+                  <th className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap">発火ライン</th>
+                  <SortHeader<Position> label="含み%" field="unrealized_pct" {...activeSort} className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap" />
+                  <SortHeader<Position> label="含み損益" field="unrealized_yen" {...activeSort} className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap" />
                 </tr></thead>
-                <tbody>
+                <tbody className="divide-y divide-border/30">
                   {activeSort.sorted.map((p, i) => (
-                    <tr key={`pos-${p.ticker}-${i}`} className="border-b border-border/20 hover:bg-muted/5">
-                      <td className="px-3 py-2.5 text-center"><StrategyBadge strategy={p.strategy} /></td>
-                      <td className="px-3 py-2.5 tabular-nums"><TickerLink ticker={p.ticker} /></td>
-                      <td className="px-3 py-2.5 max-w-[140px] truncate">{p.stock_name}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">{shortDate(p.entry_date)}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums">&yen;{fmt(p.entry_price)}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums">&yen;{fmt(p.current_price)}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground hidden md:table-cell">
-                        {p.sma20 > 0 ? `¥${fmt(Math.round(p.sma20))}` : '-'}
+                    <tr key={`pos-${p.ticker}-${i}`} className="hover:bg-muted/5">
+                      <td className="px-2 py-3 text-center">
+                        <span className={`inline-block px-1.5 py-0.5 text-xs rounded leading-none border ${p.direction === '売建' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'}`}>
+                          {p.direction || '-'}
+                        </span>
                       </td>
-                      <td className={`px-3 py-2.5 text-right tabular-nums ${p.pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{fmtPct(p.pct, 2)}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums">{fmtPnl(p.pnl)}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">{p.hold_days}/{p.max_hold}</td>
+                      <td className="px-2 py-3 tabular-nums"><TickerLink ticker={p.ticker} /></td>
+                      <td className="px-2 py-3 max-w-[140px] truncate">{p.stock_name}</td>
+                      <td className="px-2 py-3 text-center text-xs text-muted-foreground">{p.margin_type}</td>
+                      <td className="px-2 py-3 text-right tabular-nums text-muted-foreground text-xs">{p.entry_date ? shortDate(p.entry_date) : '-'}</td>
+                      <td className="px-2 py-3 text-right tabular-nums">{p.hold_days}/{p.max_hold || 15}</td>
+                      <td className="px-2 py-3 text-right tabular-nums">&yen;{fmt(p.entry_price)}</td>
+                      <td className="px-2 py-3 text-right tabular-nums">&yen;{fmt(p.current_price)}</td>
+                      <td className={`px-2 py-3 text-right tabular-nums font-semibold ${p.high_20d > 0 ? 'text-amber-400' : 'text-muted-foreground'}`}>
+                        {p.high_20d > 0 ? `¥${fmt(Math.round(p.high_20d))}` : '-'}
+                      </td>
+                      <td className={`px-2 py-3 text-right tabular-nums ${p.unrealized_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{fmtPct(p.unrealized_pct, 2)}</td>
+                      <td className="px-2 py-3 text-right tabular-nums">{fmtPnl(p.unrealized_yen)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -371,26 +371,26 @@ export default function DashboardPage() {
         } border={signals && signals.b4.length > 0 ? 'border-rose-500/40' : undefined}>
           {signals && signals.b4.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead><tr className="text-muted-foreground border-b border-border/30 bg-muted/10">
-                  <th className="text-center px-3 py-2 text-xs font-medium">#</th>
-                  <SortHeader<Signal> label="コード" field="ticker" {...b4Sort} className="text-left px-3 py-2 text-xs font-medium" />
-                  <th className="text-left px-3 py-2 text-xs font-medium">銘柄</th>
-                  <SortHeader<Signal> label="終値" field="close" {...b4Sort} className="text-right px-3 py-2 text-xs font-medium" />
-                  <SortHeader<Signal> label="SMA20乖離" field="dev_from_sma20" {...b4Sort} className="text-right px-3 py-2 text-xs font-medium" />
-                  <th className="text-right px-3 py-2 text-xs font-medium">推定IN</th>
-                  <th className="text-left px-3 py-2 text-xs font-medium">セクター</th>
+              <table className="w-full text-sm md:text-base">
+                <thead><tr className="text-foreground border-b border-border/40 bg-muted/30">
+                  <th className="text-center px-2 py-3 text-xs font-medium whitespace-nowrap">#</th>
+                  <SortHeader<Signal> label="コード" field="ticker" {...b4Sort} className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap" />
+                  <th className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap">銘柄</th>
+                  <SortHeader<Signal> label="終値" field="close" {...b4Sort} className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap" />
+                  <SortHeader<Signal> label="SMA20乖離" field="dev_from_sma20" {...b4Sort} className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap" />
+                  <th className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap">推定IN</th>
+                  <th className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap">セクター</th>
                 </tr></thead>
-                <tbody>
+                <tbody className="divide-y divide-border/30">
                   {b4Sort.sorted.map((s, i) => (
-                    <tr key={s.ticker} className="border-b border-border/20 hover:bg-muted/10">
-                      <td className="text-center px-3 py-2.5 text-muted-foreground">{i + 1}</td>
-                      <td className="px-3 py-2.5 tabular-nums"><TickerLink ticker={s.ticker} /></td>
-                      <td className="px-3 py-2.5">{s.stock_name}</td>
-                      <td className="text-right px-3 py-2.5 tabular-nums">{fmt(s.close)}</td>
-                      <td className="text-right px-3 py-2.5 tabular-nums text-rose-400 font-semibold">{s.dev_from_sma20.toFixed(1)}%</td>
-                      <td className="text-right px-3 py-2.5 tabular-nums">{fmt(s.entry_price_est)}</td>
-                      <td className="px-3 py-2.5 text-muted-foreground text-xs max-w-[120px] truncate">{s.sector}</td>
+                    <tr key={s.ticker} className="hover:bg-muted/10">
+                      <td className="text-center px-2 py-3 text-muted-foreground">{i + 1}</td>
+                      <td className="px-2 py-3 tabular-nums"><TickerLink ticker={s.ticker} /></td>
+                      <td className="px-2 py-3">{s.stock_name}</td>
+                      <td className="text-right px-2 py-3 tabular-nums">{fmt(s.close)}</td>
+                      <td className="text-right px-2 py-3 tabular-nums text-rose-400 font-semibold">{s.dev_from_sma20.toFixed(1)}%</td>
+                      <td className="text-right px-2 py-3 tabular-nums">{fmt(s.entry_price_est)}</td>
+                      <td className="px-2 py-3 text-muted-foreground text-xs max-w-[120px] truncate">{s.sector}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -413,30 +413,30 @@ export default function DashboardPage() {
         } border={signals && signals.bearish.length > 0 ? 'border-violet-500/40' : undefined}>
           {signals && signals.bearish.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead><tr className="text-muted-foreground border-b border-border/30 bg-muted/10">
-                  <th className="text-center px-3 py-2 text-xs font-medium">#</th>
-                  <SortHeader<Signal> label="コード" field="ticker" {...bearishSort} className="text-left px-3 py-2 text-xs font-medium" />
-                  <th className="text-left px-3 py-2 text-xs font-medium">銘柄</th>
-                  <SortHeader<Signal> label="終値" field="close" {...bearishSort} className="text-right px-3 py-2 text-xs font-medium" />
-                  <SortHeader<Signal> label="実体%" field="body_pct" {...bearishSort} className="text-right px-3 py-2 text-xs font-medium" />
-                  <SortHeader<Signal> label="SMA20乖離" field="dev_from_sma20" {...bearishSort} className="text-right px-3 py-2 text-xs font-medium" />
-                  <th className="text-right px-3 py-2 text-xs font-medium">SMA20</th>
-                  <th className="text-right px-3 py-2 text-xs font-medium">推定IN</th>
-                  <th className="text-left px-3 py-2 text-xs font-medium">セクター</th>
+              <table className="w-full text-sm md:text-base">
+                <thead><tr className="text-foreground border-b border-border/40 bg-muted/30">
+                  <th className="text-center px-2 py-3 text-xs font-medium whitespace-nowrap">#</th>
+                  <SortHeader<Signal> label="コード" field="ticker" {...bearishSort} className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap" />
+                  <th className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap">銘柄</th>
+                  <SortHeader<Signal> label="終値" field="close" {...bearishSort} className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap" />
+                  <SortHeader<Signal> label="実体%" field="body_pct" {...bearishSort} className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap" />
+                  <SortHeader<Signal> label="SMA20乖離" field="dev_from_sma20" {...bearishSort} className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap" />
+                  <th className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap">SMA20</th>
+                  <th className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap">推定IN</th>
+                  <th className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap">セクター</th>
                 </tr></thead>
-                <tbody>
+                <tbody className="divide-y divide-border/30">
                   {bearishSort.sorted.map((s, i) => (
-                    <tr key={s.ticker} className="border-b border-border/20 hover:bg-muted/10">
-                      <td className="text-center px-3 py-2.5 text-muted-foreground">{i + 1}</td>
-                      <td className="px-3 py-2.5 tabular-nums"><TickerLink ticker={s.ticker} /></td>
-                      <td className="px-3 py-2.5">{s.stock_name}</td>
-                      <td className="text-right px-3 py-2.5 tabular-nums">{fmt(s.close)}</td>
-                      <td className="text-right px-3 py-2.5 tabular-nums text-rose-400 font-semibold">{s.body_pct.toFixed(1)}%</td>
-                      <td className="text-right px-3 py-2.5 tabular-nums text-rose-400">{s.dev_from_sma20.toFixed(1)}%</td>
-                      <td className="text-right px-3 py-2.5 tabular-nums text-muted-foreground">{fmt(Math.round(s.sma20))}</td>
-                      <td className="text-right px-3 py-2.5 tabular-nums">{fmt(s.entry_price_est)}</td>
-                      <td className="px-3 py-2.5 text-muted-foreground text-xs max-w-[120px] truncate">{s.sector}</td>
+                    <tr key={s.ticker} className="hover:bg-muted/10">
+                      <td className="text-center px-2 py-3 text-muted-foreground">{i + 1}</td>
+                      <td className="px-2 py-3 tabular-nums"><TickerLink ticker={s.ticker} /></td>
+                      <td className="px-2 py-3">{s.stock_name}</td>
+                      <td className="text-right px-2 py-3 tabular-nums">{fmt(s.close)}</td>
+                      <td className="text-right px-2 py-3 tabular-nums text-rose-400 font-semibold">{s.body_pct.toFixed(1)}%</td>
+                      <td className="text-right px-2 py-3 tabular-nums text-rose-400">{s.dev_from_sma20.toFixed(1)}%</td>
+                      <td className="text-right px-2 py-3 tabular-nums text-muted-foreground">{fmt(Math.round(s.sma20))}</td>
+                      <td className="text-right px-2 py-3 tabular-nums">{fmt(s.entry_price_est)}</td>
+                      <td className="px-2 py-3 text-muted-foreground text-xs max-w-[120px] truncate">{s.sector}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -444,8 +444,8 @@ export default function DashboardPage() {
             </div>
           ) : (
             <EmptyState message={
-              status?.vi && status.vi < 20
-                ? `VI=${status.vi} < 20: 平穏相場では大陰線シグナルは発生しません`
+              vi !== null && vi < 20
+                ? `VI=${vi} < 20: 平穏相場では大陰線シグナルは発生しません`
                 : '本日の大陰線シグナルなし'
             } />
           )}
@@ -464,25 +464,25 @@ export default function DashboardPage() {
           footer={pairsData ? <span>{pairsData.total}ペア中 {pairsData.entry_count}件エントリー ({pairsData.signal_date})</span> : undefined}>
           {pairsData && pairsData.entry.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead><tr className="text-muted-foreground border-b border-border/30 bg-muted/10">
-                  <th className="text-center px-3 py-2 text-xs font-medium">#</th>
-                  <th className="text-left px-3 py-2 text-xs font-medium">銘柄1</th>
-                  <th className="text-left px-3 py-2 text-xs font-medium">銘柄2</th>
-                  <SortHeader<PairSignal> label="z-score" field="z_abs" {...pairSort} className="text-right px-3 py-2 text-xs font-medium" />
-                  <th className="text-center px-3 py-2 text-xs font-medium">方向</th>
-                  <th className="text-right px-3 py-2 text-xs font-medium">株数</th>
-                  <SortHeader<PairSignal> label="PF" field="full_pf" {...pairSort} className="text-right px-3 py-2 text-xs font-medium" />
-                  <th className="text-right px-3 py-2 text-xs font-medium hidden md:table-cell">LB</th>
-                  <th className="text-right px-3 py-2 text-xs font-medium hidden md:table-cell">半減期</th>
+              <table className="w-full text-sm md:text-base">
+                <thead><tr className="text-foreground border-b border-border/40 bg-muted/30">
+                  <th className="text-center px-2 py-3 text-xs font-medium whitespace-nowrap">#</th>
+                  <th className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap">銘柄1</th>
+                  <th className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap">銘柄2</th>
+                  <SortHeader<PairSignal> label="z-score" field="z_abs" {...pairSort} className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap" />
+                  <th className="text-center px-2 py-3 text-xs font-medium whitespace-nowrap">方向</th>
+                  <th className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap">株数</th>
+                  <SortHeader<PairSignal> label="PF" field="full_pf" {...pairSort} className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap" />
+                  <th className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap hidden md:table-cell">LB</th>
+                  <th className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap hidden md:table-cell">半減期</th>
                 </tr></thead>
-                <tbody>
+                <tbody className="divide-y divide-border/30">
                   {pairSort.sorted.map((p, i) => {
                     const isLong = p.direction === 'long_tk1';
                     return (
-                      <tr key={`${p.tk1}-${p.tk2}`} className="border-b border-border/20 hover:bg-muted/10">
-                        <td className="text-center px-3 py-2.5 text-muted-foreground">{i + 1}</td>
-                        <td className="px-3 py-2.5">
+                      <tr key={`${p.tk1}-${p.tk2}`} className="hover:bg-muted/10">
+                        <td className="text-center px-2 py-3 text-muted-foreground">{i + 1}</td>
+                        <td className="px-2 py-3">
                           <div className="flex items-center gap-1.5">
                             <span className={`text-[10px] px-1 py-0.5 rounded ${isLong ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
                               {isLong ? 'L' : 'S'}
@@ -491,7 +491,7 @@ export default function DashboardPage() {
                             <span className="text-muted-foreground text-xs truncate max-w-[80px]">{p.name1}</span>
                           </div>
                         </td>
-                        <td className="px-3 py-2.5">
+                        <td className="px-2 py-3">
                           <div className="flex items-center gap-1.5">
                             <span className={`text-[10px] px-1 py-0.5 rounded ${isLong ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
                               {isLong ? 'S' : 'L'}
@@ -500,16 +500,16 @@ export default function DashboardPage() {
                             <span className="text-muted-foreground text-xs truncate max-w-[80px]">{p.name2}</span>
                           </div>
                         </td>
-                        <td className="text-right px-3 py-2.5 tabular-nums font-semibold">{fmtZ(p.z_latest)}</td>
-                        <td className="text-center px-3 py-2.5">
+                        <td className="text-right px-2 py-3 tabular-nums font-semibold">{fmtZ(p.z_latest)}</td>
+                        <td className="text-center px-2 py-3">
                           <span className={`text-xs ${isLong ? 'text-emerald-400' : 'text-rose-400'}`}>
                             {isLong ? 'LONG tk1' : 'SHORT tk1'}
                           </span>
                         </td>
-                        <td className="text-right px-3 py-2.5 tabular-nums text-muted-foreground">{p.shares1}:{p.shares2}</td>
-                        <td className="text-right px-3 py-2.5 tabular-nums">{p.full_pf.toFixed(2)}</td>
-                        <td className="text-right px-3 py-2.5 tabular-nums text-muted-foreground hidden md:table-cell">{p.lookback}</td>
-                        <td className="text-right px-3 py-2.5 tabular-nums text-muted-foreground hidden md:table-cell">{p.half_life.toFixed(1)}d</td>
+                        <td className="text-right px-2 py-3 tabular-nums text-muted-foreground">{p.shares1}:{p.shares2}</td>
+                        <td className="text-right px-2 py-3 tabular-nums">{p.full_pf.toFixed(2)}</td>
+                        <td className="text-right px-2 py-3 tabular-nums text-muted-foreground hidden md:table-cell">{p.lookback}</td>
+                        <td className="text-right px-2 py-3 tabular-nums text-muted-foreground hidden md:table-cell">{p.half_life.toFixed(1)}d</td>
                       </tr>
                     );
                   })}
