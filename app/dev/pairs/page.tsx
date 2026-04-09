@@ -222,36 +222,40 @@ export default function PairsPage() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
                           <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-rose-500/20 text-rose-400 text-xs font-bold">{rank + 1}</span>
-                          <span className="font-semibold text-foreground">{p.name1}</span>
-                          <span className="text-muted-foreground">/</span>
-                          <span className="font-semibold text-foreground">{p.name2}</span>
+                          <span className="text-sm font-semibold text-foreground">{p.name1}</span>
+                          <span className="text-xs text-muted-foreground">{p.tk1}</span>
+                          <span className="text-xs tabular-nums text-muted-foreground">¥{fmt(p.c1)}</span>
+                          <span className="text-muted-foreground/50">/</span>
+                          <span className="text-sm font-semibold text-foreground">{p.name2}</span>
+                          <span className="text-xs text-muted-foreground">{p.tk2}</span>
+                          <span className="text-xs tabular-nums text-muted-foreground">¥{fmt(p.c2)}</span>
                           <DirectionBadge direction={p.direction} z={p.z_latest} />
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 text-xs text-muted-foreground ml-8">
                           <div>z: <span className="text-foreground font-semibold">{p.z_latest >= 0 ? '+' : ''}{p.z_latest.toFixed(2)}</span></div>
-                          <div>LB: <span className="text-foreground">{p.lookback}日</span></div>
+                          <div>参照: <span className="text-foreground">{p.lookback}日</span></div>
                           <div>PF: <span className={p.full_pf >= 2.5 ? 'text-emerald-400 font-semibold' : 'text-foreground'}>{p.full_pf.toFixed(2)}</span> ({p.full_n}回)</div>
-                          <div>HL: <span className="text-foreground">{p.half_life.toFixed(0)}日</span></div>
+                          <div>半減期: <span className="text-foreground">{p.half_life.toFixed(0)}日</span></div>
                         </div>
                       </div>
                       <div className="text-right md:min-w-[280px]">
-                        <div className="text-sm mb-1">
+                        <div className="text-xs mb-1">
                           <span className="text-muted-foreground">{p.name1}が</span>
                           <span className="font-bold text-rose-400 mx-1">¥{fmt(Math.round(threshPrice))}</span>
                           <span className="text-muted-foreground">{threshLabel}</span>
                         </div>
-                        <div className="text-xs space-y-0.5">
+                        <div className="text-xs space-y-0.5 text-muted-foreground">
                           <div>
                             <span className={isShort ? 'text-rose-400' : 'text-emerald-400'}>{p.name1} {isShort ? 'Short' : 'Long'}</span>
-                            <span className="text-muted-foreground mx-1">×</span>
-                            <span className="text-foreground font-semibold">{p.shares1}株</span>
-                            <span className="text-muted-foreground ml-1">(¥{fmt(p.notional1)})</span>
+                            <span className="mx-1">×</span>
+                            <span className="text-foreground">{p.shares1}株</span>
+                            <span className="ml-1">(¥{fmt(p.notional1)})</span>
                           </div>
                           <div>
                             <span className={isShort ? 'text-emerald-400' : 'text-rose-400'}>{p.name2} {isShort ? 'Long' : 'Short'}</span>
-                            <span className="text-muted-foreground mx-1">×</span>
-                            <span className="text-foreground font-semibold">{p.shares2}株</span>
-                            <span className="text-muted-foreground ml-1">(¥{fmt(p.notional2)})</span>
+                            <span className="mx-1">×</span>
+                            <span className="text-foreground">{p.shares2}株</span>
+                            <span className="ml-1">(¥{fmt(p.notional2)})</span>
                           </div>
                           {p.imbalance_pct > 5 && (
                             <div className="text-amber-400/70">不均衡: {p.imbalance_pct.toFixed(1)}%</div>

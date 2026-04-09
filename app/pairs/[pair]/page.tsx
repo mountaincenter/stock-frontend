@@ -107,7 +107,7 @@ function PriceOverlayChart({ series, name1, name2 }: { series: SeriesPoint[]; na
       const chartApi = createChart(el, {
         layout: { background: { type: ColorType.Solid, color: style.paper }, textColor: style.text },
         width: el.clientWidth,
-        height: 320,
+        height: 420,
         grid: { vertLines: { color: style.grid }, horzLines: { color: style.grid } },
         timeScale: { borderColor: style.grid, timeVisible: false },
         rightPriceScale: { borderColor: style.grid },
@@ -155,9 +155,9 @@ function PriceOverlayChart({ series, name1, name2 }: { series: SeriesPoint[]; na
     return () => { disposed = true; ro?.disconnect(); chart?.remove(); };
   }, [mounted, series, name1, name2, style]);
 
-  if (!mounted) return <div className="h-[320px] bg-card/50 rounded-2xl animate-pulse" />;
+  if (!mounted) return <div className="h-[420px] bg-card/50 rounded-2xl animate-pulse" />;
 
-  return <div ref={containerRef} className="w-full h-[320px]" />;
+  return <div ref={containerRef} className="w-full h-[420px]" />;
 }
 
 // === Z-Score Chart (Panel 2) ===
@@ -202,7 +202,7 @@ function ZScoreChart({ series }: { series: SeriesPoint[] }) {
       const chartApi = createChart(el, {
         layout: { background: { type: ColorType.Solid, color: style.paper }, textColor: style.text },
         width: el.clientWidth,
-        height: 240,
+        height: 320,
         grid: { vertLines: { color: style.grid }, horzLines: { color: style.grid } },
         timeScale: { borderColor: style.grid, timeVisible: false },
         rightPriceScale: { borderColor: style.grid },
@@ -264,9 +264,9 @@ function ZScoreChart({ series }: { series: SeriesPoint[] }) {
     return () => { disposed = true; ro?.disconnect(); chart?.remove(); };
   }, [mounted, zData, style]);
 
-  if (!mounted) return <div className="h-[240px] bg-card/50 rounded-2xl animate-pulse" />;
+  if (!mounted) return <div className="h-[320px] bg-card/50 rounded-2xl animate-pulse" />;
 
-  return <div ref={containerRef} className="w-full h-[240px]" />;
+  return <div ref={containerRef} className="w-full h-[320px]" />;
 }
 
 // === Main Page ===
@@ -298,8 +298,8 @@ function PairChartContent({ tk1, tk2 }: { tk1: string; tk2: string }) {
         <div className="fixed inset-0 -z-10 bg-gradient-to-br from-background via-background to-muted/20" />
         <div className="w-full md:w-[92%] lg:w-[90%] xl:w-[88%] 2xl:w-[86%] mx-auto px-3 md:px-4 py-6 space-y-4">
           <div className="h-8 w-64 bg-muted/30 rounded animate-pulse" />
+          <div className="h-[420px] bg-card/50 rounded-2xl animate-pulse" />
           <div className="h-[320px] bg-card/50 rounded-2xl animate-pulse" />
-          <div className="h-[240px] bg-card/50 rounded-2xl animate-pulse" />
         </div>
       </main>
     );
@@ -439,24 +439,24 @@ function PairChartContent({ tk1, tk2 }: { tk1: string; tk2: string }) {
           </div>
 
           {/* Stats row */}
-          <div className="mt-4 pt-4 border-t border-border/30 grid grid-cols-4 gap-4 text-center text-sm md:text-base">
+          <div className="mt-4 pt-4 border-t border-border/30 grid grid-cols-4 gap-4 text-center">
             <div>
-              <div className="text-xs text-muted-foreground">Lookback</div>
-              <div className="font-medium text-foreground">{data.lookback}d</div>
+              <div className="text-xs text-muted-foreground">参照期間</div>
+              <div className="text-sm md:text-base font-medium text-foreground">{data.lookback}日</div>
             </div>
             <div>
               <div className="text-xs text-muted-foreground">PF</div>
-              <div className={`font-medium ${data.full_pf >= 2.5 ? 'text-emerald-400' : data.full_pf >= 2.0 ? 'text-foreground' : 'text-muted-foreground'}`}>
+              <div className={`text-sm md:text-base font-medium ${data.full_pf >= 2.5 ? 'text-emerald-400' : data.full_pf >= 2.0 ? 'text-foreground' : 'text-muted-foreground'}`}>
                 {data.full_pf.toFixed(2)}
               </div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground">Trades</div>
-              <div className="font-medium text-foreground">{data.full_n}</div>
+              <div className="text-xs text-muted-foreground">取引回数</div>
+              <div className="text-sm md:text-base font-medium text-foreground">{data.full_n}回</div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground">Half-Life</div>
-              <div className="font-medium text-foreground">{data.half_life.toFixed(0)}d</div>
+              <div className="text-xs text-muted-foreground">半減期</div>
+              <div className="text-sm md:text-base font-medium text-foreground">{data.half_life.toFixed(0)}日</div>
             </div>
           </div>
         </div>
