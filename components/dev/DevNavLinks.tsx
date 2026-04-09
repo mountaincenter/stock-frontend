@@ -48,6 +48,10 @@ const NAV_LINKS: Record<string, NavLinkConfig> = {
     href: "/dev/pairs",
     label: "Pairs",
   },
+  "trading-dashboard": {
+    href: "/dev/dashboard",
+    label: "Trading",
+  },
   strategy: {
     href: "/dev/strategy/granville",
     label: "Strategy",
