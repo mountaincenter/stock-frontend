@@ -337,6 +337,127 @@ export default function WeekdayAnalysisPage() {
     return result;
   }, [stocksByBucket, timeSegments]);
 
+  // ===== 判断サマリー自動抽出 =====
+  const tradeSummary = useMemo(() => {
+    if (!panelsData && !futuresGapData && !nikkeiChangeData) return null;
+
+    const summary: { category: string; icon: string; label: string; value: string; detail: string; color: string }[] = [];
+
+    // ENTRY: 先物Gap帯で最もPFが高い帯
+    if (futuresGapData?.rows) {
+      const bestGap = futuresGapData.rows
+        .map(r => ({ label: r.label, pf: (r.SHORT as { pf: number | null; n: number })?.pf, n: (r.SHORT as { n: number })?.n ?? 0 }))
+        .filter(r => r.pf !== null && r.n >= 10)
+        .sort((a, b) => (b.pf ?? 0) - (a.pf ?? 0))[0];
+      if (bestGap) {
+        summary.push({
+          category: 'ENTRY', icon: '▶', label: '先物Gap最適帯',
+          value: `${bestGap.label} → PF ${bestGap.pf!.toFixed(2)}`,
+          detail: `(n=${bestGap.n})`,
+          color: bestGap.pf! >= 1.5 ? 'emerald' : bestGap.pf! >= 1 ? 'amber' : 'rose',
+        });
+      }
+    }
+
+    // ENTRY: N225変化率で最もPFが高い帯
+    if (nikkeiChangeData?.rows) {
+      const bestN225 = nikkeiChangeData.rows
+        .map(r => ({ label: r.label, pf: (r.SHORT as { pf: number | null; n: number })?.pf, n: (r.SHORT as { n: number })?.n ?? 0 }))
+        .filter(r => r.pf !== null && r.n >= 10)
+        .sort((a, b) => (b.pf ?? 0) - (a.pf ?? 0))[0];
+      if (bestN225) {
+        summary.push({
+          category: 'ENTRY', icon: '▶', label: 'N225最適帯',
+          value: `${bestN225.label} → PF ${bestN225.pf!.toFixed(2)}`,
+          detail: `(n=${bestN225.n})`,
+          color: bestN225.pf! >= 1.5 ? 'emerald' : bestN225.pf! >= 1 ? 'amber' : 'rose',
+        });
+      }
+    }
+
+    // TIMING: Phase遷移の最適/最悪状態
+    if (panelsData?.phase_matrix) {
+      const phases = (panelsData.phase_matrix as { phase1_label: string; n: number; phase2_avg_pct: number | null; phase2_win_rate: number | null; phase2_pf: number | null }[])
+        .filter(p => p.n >= 5 && p.phase2_pf !== null);
+      if (phases.length > 0) {
+        const best = phases.sort((a, b) => (b.phase2_pf ?? 0) - (a.phase2_pf ?? 0))[0];
+        summary.push({
+          category: 'TIMING', icon: '⏱', label: '後場有利パターン',
+          value: `前場${best.phase1_label} → 後場PF ${best.phase2_pf!.toFixed(2)}`,
+          detail: `勝率${best.phase2_win_rate?.toFixed(0)}% (n=${best.n})`,
+          color: best.phase2_pf! >= 1.5 ? 'emerald' : best.phase2_pf! >= 1 ? 'amber' : 'rose',
+        });
+        const worst = phases.sort((a, b) => (a.phase2_pf ?? 0) - (b.phase2_pf ?? 0))[0];
+        if (worst.phase1_label !== best.phase1_label) {
+          summary.push({
+            category: 'TIMING', icon: '⏱', label: '後場不利パターン',
+            value: `前場${worst.phase1_label} → 後場PF ${worst.phase2_pf!.toFixed(2)}`,
+            detail: `勝率${worst.phase2_win_rate?.toFixed(0)}% (n=${worst.n})`,
+            color: 'rose',
+          });
+        }
+      }
+    }
+
+    // RISK: 推奨損切ライン + 最大DD中央値
+    if (panelsData?.stop_loss) {
+      const stops = (panelsData.stop_loss as { trigger: string; n: number; pf: number | null; avg: number | null; win_rate: number | null }[])
+        .filter(s => s.pf !== null && s.n >= 10);
+      if (stops.length > 0) {
+        const best = stops.sort((a, b) => (b.pf ?? 0) - (a.pf ?? 0))[0];
+        summary.push({
+          category: 'RISK', icon: '🛡', label: '推奨損切ライン',
+          value: `${best.trigger} (PF ${best.pf!.toFixed(2)})`,
+          detail: `勝率${best.win_rate?.toFixed(0)}%, 平均${best.avg !== null ? formatProfit(best.avg) : '-'}`,
+          color: best.pf! >= 1.5 ? 'emerald' : best.pf! >= 1 ? 'amber' : 'rose',
+        });
+      }
+    }
+    if (panelsData?.excursion) {
+      const ddKey = Object.keys(panelsData.excursion as Record<string, unknown>).find(k => k.includes('daily_max_drawdown'));
+      if (ddKey) {
+        const dd = (panelsData.excursion as Record<string, { label: string; p50: number | null; p90: number | null }>)[ddKey];
+        if (dd?.p50 !== null) {
+          summary.push({
+            category: 'RISK', icon: '🛡', label: '最大DD中央値',
+            value: `${dd.p50 >= 0 ? '+' : ''}${dd.p50.toFixed(2)}%`,
+            detail: `P90: ${dd.p90 !== null ? `${dd.p90 >= 0 ? '+' : ''}${dd.p90.toFixed(2)}%` : '-'}`,
+            color: Math.abs(dd.p50) <= 2 ? 'amber' : 'rose',
+          });
+        }
+      }
+    }
+
+    // EXIT: 最適利確タイミング + 吐き出し率
+    if (panelsData?.hold_vs_exit) {
+      const hve = panelsData.hold_vs_exit as Record<string, { label?: string; pf?: number | null; avg?: number | null; win_rate?: number | null; n?: number }>;
+      const timings = Object.entries(hve)
+        .filter(([k, v]) => k !== 'giveback_pct' && v.pf !== null && (v.n ?? 0) >= 10)
+        .map(([, v]) => v)
+        .sort((a, b) => (b.pf ?? 0) - (a.pf ?? 0));
+      if (timings.length > 0) {
+        const best = timings[0];
+        summary.push({
+          category: 'EXIT', icon: '🚪', label: '最適利確',
+          value: `${best.label} (PF ${best.pf!.toFixed(2)})`,
+          detail: `平均${best.avg !== null ? formatProfit(best.avg!) : '-'}`,
+          color: best.pf! >= 1.5 ? 'emerald' : best.pf! >= 1 ? 'amber' : 'rose',
+        });
+      }
+      if (hve.giveback_pct !== undefined) {
+        const gb = hve.giveback_pct as unknown as number;
+        summary.push({
+          category: 'EXIT', icon: '🚪', label: '吐き出し率',
+          value: `${gb.toFixed(1)}%`,
+          detail: '最大含み益→引けまでに失う割合',
+          color: gb <= 30 ? 'emerald' : gb <= 50 ? 'amber' : 'rose',
+        });
+      }
+    }
+
+    return summary.length > 0 ? summary : null;
+  }, [panelsData, futuresGapData, nikkeiChangeData]);
+
   // ===== チャート用グレード切替 =====
   const [chartBucket, setChartGrade] = useState<string>('全体');
   const chartStocks = useMemo(() => stocksByBucket[chartBucket] || [], [stocksByBucket, chartBucket]);
@@ -1521,11 +1642,46 @@ export default function WeekdayAnalysisPage() {
         );
       })()}
 
+      {/* ===== 判断サマリー ===== */}
+      {tradeSummary && (
+        <div className="mt-8">
+          <h2 className="text-lg font-bold text-foreground border-b border-border/30 pb-2 mb-4">
+            判断サマリー — {WEEKDAY_SHORT[selectedDay]}曜日
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {(['ENTRY', 'TIMING', 'RISK', 'EXIT'] as const).map(cat => {
+              const items = tradeSummary.filter(s => s.category === cat);
+              if (items.length === 0) return null;
+              const catColorClass = { ENTRY: 'text-blue-400', TIMING: 'text-purple-400', RISK: 'text-orange-400', EXIT: 'text-cyan-400' }[cat];
+              return (
+                <div key={cat} className="rounded-xl border border-border/40 bg-card/80 p-4">
+                  <div className={`text-xs font-bold mb-2 ${catColorClass}`}>{items[0].icon} {cat}</div>
+                  <div className="space-y-2">
+                    {items.map((item, i) => {
+                      const valClass = { emerald: 'text-emerald-400', amber: 'text-amber-400', rose: 'text-rose-400' }[item.color] ?? 'text-foreground';
+                      return (
+                        <div key={i}>
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-xs text-muted-foreground">{item.label}:</span>
+                            <span className={`text-sm font-bold ${valClass}`}>{item.value}</span>
+                          </div>
+                          <div className="text-xs text-muted-foreground pl-2">{item.detail}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* ===== 拡張パネル (#1〜#6) ===== */}
       {(futuresGapData || nikkeiChangeData || panelsData) && (
         <div className="mt-8 space-y-6">
           <h2 className="text-lg font-bold text-foreground border-b border-border/30 pb-2">
-            トレード判断パネル — {WEEKDAY_SHORT[selectedDay]}曜日
+            トレード判断パネル — {WEEKDAY_SHORT[selectedDay]}曜日（詳細データ）
           </h2>
 
           {/* #1 マクロゲーティング */}
