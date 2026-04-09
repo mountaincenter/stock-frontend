@@ -470,7 +470,6 @@ export default function DashboardPage() {
                   <th className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap">銘柄1</th>
                   <th className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap">銘柄2</th>
                   <SortHeader<PairSignal> label="z-score" field="z_abs" {...pairSort} className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap" />
-                  <th className="text-center px-2 py-3 text-xs font-medium whitespace-nowrap">方向</th>
                   <th className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap">株数</th>
                   <SortHeader<PairSignal> label="PF" field="full_pf" {...pairSort} className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap" />
                   <th className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap hidden md:table-cell">LB</th>
@@ -481,35 +480,34 @@ export default function DashboardPage() {
                     const isLong = p.direction === 'long_tk1';
                     return (
                       <tr key={`${p.tk1}-${p.tk2}`} className="hover:bg-muted/10">
-                        <td className="text-center px-2 py-3 text-muted-foreground">{i + 1}</td>
-                        <td className="px-2 py-3">
-                          <div className="flex items-center gap-1.5">
-                            <span className={`text-[10px] px-1 py-0.5 rounded ${isLong ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+                        <td className="text-center px-2 py-3 text-muted-foreground align-top">{i + 1}</td>
+                        <td className="px-2 py-3 align-top">
+                          <div className="flex items-start gap-2">
+                            <span className={`text-xs px-1.5 py-0.5 rounded mt-0.5 shrink-0 ${isLong ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
                               {isLong ? 'L' : 'S'}
                             </span>
-                            <TickerLink ticker={p.tk1} />
-                            <span className="text-muted-foreground text-xs truncate max-w-[80px]">{p.name1}</span>
+                            <div className="min-w-0">
+                              <div className="tabular-nums"><TickerLink ticker={p.tk1} /></div>
+                              <div className="text-sm text-muted-foreground leading-snug">{p.name1}</div>
+                            </div>
                           </div>
                         </td>
-                        <td className="px-2 py-3">
-                          <div className="flex items-center gap-1.5">
-                            <span className={`text-[10px] px-1 py-0.5 rounded ${isLong ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                        <td className="px-2 py-3 align-top">
+                          <div className="flex items-start gap-2">
+                            <span className={`text-xs px-1.5 py-0.5 rounded mt-0.5 shrink-0 ${isLong ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
                               {isLong ? 'S' : 'L'}
                             </span>
-                            <TickerLink ticker={p.tk2} />
-                            <span className="text-muted-foreground text-xs truncate max-w-[80px]">{p.name2}</span>
+                            <div className="min-w-0">
+                              <div className="tabular-nums"><TickerLink ticker={p.tk2} /></div>
+                              <div className="text-sm text-muted-foreground leading-snug">{p.name2}</div>
+                            </div>
                           </div>
                         </td>
-                        <td className="text-right px-2 py-3 tabular-nums font-semibold">{fmtZ(p.z_latest)}</td>
-                        <td className="text-center px-2 py-3">
-                          <span className={`text-xs ${isLong ? 'text-emerald-400' : 'text-rose-400'}`}>
-                            {isLong ? 'LONG tk1' : 'SHORT tk1'}
-                          </span>
-                        </td>
-                        <td className="text-right px-2 py-3 tabular-nums text-muted-foreground">{p.shares1}:{p.shares2}</td>
-                        <td className="text-right px-2 py-3 tabular-nums">{p.full_pf.toFixed(2)}</td>
-                        <td className="text-right px-2 py-3 tabular-nums text-muted-foreground hidden md:table-cell">{p.lookback}</td>
-                        <td className="text-right px-2 py-3 tabular-nums text-muted-foreground hidden md:table-cell">{p.half_life.toFixed(1)}d</td>
+                        <td className="text-right px-2 py-3 tabular-nums font-semibold align-top">{fmtZ(p.z_latest)}</td>
+                        <td className="text-right px-2 py-3 tabular-nums align-top">{p.shares1}:{p.shares2}</td>
+                        <td className="text-right px-2 py-3 tabular-nums align-top">{p.full_pf.toFixed(2)}</td>
+                        <td className="text-right px-2 py-3 tabular-nums text-muted-foreground hidden md:table-cell align-top">{p.lookback}</td>
+                        <td className="text-right px-2 py-3 tabular-nums text-muted-foreground hidden md:table-cell align-top">{p.half_life.toFixed(1)}d</td>
                       </tr>
                     );
                   })}
