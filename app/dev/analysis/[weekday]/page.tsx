@@ -399,16 +399,22 @@ export default function WeekdayAnalysisPage() {
       }
     }
 
-    // RISK: 推奨損切ライン + 最大DD中央値
+    // RISK: 損切ライン + 最大DD中央値
     if (panelsData?.stop_loss) {
       const stops = (panelsData.stop_loss as { trigger: string; n: number; pf: number | null; avg: number | null; win_rate: number | null }[])
         .filter(s => s.pf !== null && s.n >= 10);
       if (stops.length > 0) {
         const best = stops.sort((a, b) => (b.pf ?? 0) - (a.pf ?? 0))[0];
+        const allBelowOne = stops.every(s => (s.pf ?? 0) < 1);
         summary.push({
-          category: 'RISK', icon: '🛡', label: '推奨損切ライン',
-          value: `${best.trigger} (PF ${best.pf!.toFixed(2)})`,
-          detail: `勝率${best.win_rate?.toFixed(0)}%, 平均${best.avg !== null ? formatProfit(best.avg) : '-'}`,
+          category: 'RISK', icon: '🛡',
+          label: allBelowOne ? '損切で回復しない構造' : '推奨損切ライン',
+          value: allBelowOne
+            ? `全トリガーPF<1 (最良: ${best.trigger} PF ${best.pf!.toFixed(2)})`
+            : `${best.trigger} (PF ${best.pf!.toFixed(2)})`,
+          detail: allBelowOne
+            ? '前場マイナスなら即撤退が最善'
+            : `勝率${best.win_rate?.toFixed(0)}%, 平均${best.avg !== null ? formatProfit(best.avg) : '-'}`,
           color: best.pf! >= 1.5 ? 'emerald' : best.pf! >= 1 ? 'amber' : 'rose',
         });
       }
@@ -428,7 +434,7 @@ export default function WeekdayAnalysisPage() {
       }
     }
 
-    // EXIT: 最適利確タイミング + 吐き出し率
+    // EXIT: 利確タイミング + 吐き出し率
     if (panelsData?.hold_vs_exit) {
       const hve = panelsData.hold_vs_exit as Record<string, { label?: string; pf?: number | null; avg?: number | null; win_rate?: number | null; n?: number }>;
       const timings = Object.entries(hve)
@@ -437,10 +443,16 @@ export default function WeekdayAnalysisPage() {
         .sort((a, b) => (b.pf ?? 0) - (a.pf ?? 0));
       if (timings.length > 0) {
         const best = timings[0];
+        const allBelowOne = timings.every(t => (t.pf ?? 0) < 1);
         summary.push({
-          category: 'EXIT', icon: '🚪', label: '最適利確',
-          value: `${best.label} (PF ${best.pf!.toFixed(2)})`,
-          detail: `平均${best.avg !== null ? formatProfit(best.avg!) : '-'}`,
+          category: 'EXIT', icon: '🚪',
+          label: allBelowOne ? '全タイミングPF<1' : '最適利確',
+          value: allBelowOne
+            ? `最良でも ${best.label} PF ${best.pf!.toFixed(2)}`
+            : `${best.label} (PF ${best.pf!.toFixed(2)})`,
+          detail: allBelowOne
+            ? 'エントリー条件を絞らないと全体では負ける'
+            : `平均${best.avg !== null ? formatProfit(best.avg!) : '-'}`,
           color: best.pf! >= 1.5 ? 'emerald' : best.pf! >= 1 ? 'amber' : 'rose',
         });
       }
