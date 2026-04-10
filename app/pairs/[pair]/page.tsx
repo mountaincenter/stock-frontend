@@ -202,7 +202,7 @@ function ZScoreChart({ series }: { series: SeriesPoint[] }) {
       const chartApi = createChart(el, {
         layout: { background: { type: ColorType.Solid, color: style.paper }, textColor: style.text },
         width: el.clientWidth,
-        height: 320,
+        height: 380,
         grid: { vertLines: { color: style.grid }, horzLines: { color: style.grid } },
         timeScale: { borderColor: style.grid, timeVisible: false },
         rightPriceScale: { borderColor: style.grid },
@@ -264,9 +264,9 @@ function ZScoreChart({ series }: { series: SeriesPoint[] }) {
     return () => { disposed = true; ro?.disconnect(); chart?.remove(); };
   }, [mounted, zData, style]);
 
-  if (!mounted) return <div className="h-[320px] bg-card/50 rounded-2xl animate-pulse" />;
+  if (!mounted) return <div className="h-[380px] bg-card/50 rounded-2xl animate-pulse" />;
 
-  return <div ref={containerRef} className="w-full h-[320px]" />;
+  return <div ref={containerRef} className="w-full h-[380px]" />;
 }
 
 // === Main Page ===
@@ -299,7 +299,7 @@ function PairChartContent({ tk1, tk2 }: { tk1: string; tk2: string }) {
         <div className="w-full md:w-[92%] lg:w-[90%] xl:w-[88%] 2xl:w-[86%] mx-auto px-3 md:px-4 py-6 space-y-4">
           <div className="h-8 w-64 bg-muted/30 rounded animate-pulse" />
           <div className="h-[420px] bg-card/50 rounded-2xl animate-pulse" />
-          <div className="h-[320px] bg-card/50 rounded-2xl animate-pulse" />
+          <div className="h-[380px] bg-card/50 rounded-2xl animate-pulse" />
         </div>
       </main>
     );

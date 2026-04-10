@@ -222,19 +222,19 @@ export default function PairsPage() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
                           <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-rose-500/20 text-rose-400 text-xs font-bold">{rank + 1}</span>
-                          <span className="text-sm font-semibold text-foreground">{p.name1}</span>
+                          <span className="text-base font-semibold text-foreground">{p.name1}</span>
                           <span className="text-xs text-muted-foreground">{p.tk1}</span>
                           <span className="text-xs tabular-nums text-muted-foreground">¥{fmt(p.c1)}</span>
                           <span className="text-muted-foreground/50">/</span>
-                          <span className="text-sm font-semibold text-foreground">{p.name2}</span>
+                          <span className="text-base font-semibold text-foreground">{p.name2}</span>
                           <span className="text-xs text-muted-foreground">{p.tk2}</span>
                           <span className="text-xs tabular-nums text-muted-foreground">¥{fmt(p.c2)}</span>
                           <DirectionBadge direction={p.direction} z={p.z_latest} />
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 text-xs text-muted-foreground ml-8">
-                          <div>z: <span className="text-foreground font-semibold">{p.z_latest >= 0 ? '+' : ''}{p.z_latest.toFixed(2)}</span></div>
+                          <div>z: <span className="text-sm text-foreground font-semibold">{p.z_latest >= 0 ? '+' : ''}{p.z_latest.toFixed(2)}</span></div>
                           <div>参照: <span className="text-foreground">{p.lookback}日</span></div>
-                          <div>PF: <span className={p.full_pf >= 2.5 ? 'text-emerald-400 font-semibold' : 'text-foreground'}>{p.full_pf.toFixed(2)}</span> ({p.full_n}回)</div>
+                          <div>PF: <span className={`text-sm ${p.full_pf >= 2.5 ? 'text-emerald-400 font-semibold' : 'text-foreground'}`}>{p.full_pf.toFixed(2)}</span> ({p.full_n}回)</div>
                           <div>半減期: <span className="text-foreground">{p.half_life.toFixed(0)}日</span></div>
                         </div>
                       </div>
@@ -341,16 +341,16 @@ export default function PairsPage() {
                       onClick={() => window.open(`/pairs/${p.tk1.replace('.', '')}-${p.tk2.replace('.', '')}`, '_blank')}>
                       <td className="text-center px-2 py-2 text-muted-foreground text-xs">{i + 1}</td>
                       <td className="px-2 py-2">
-                        <div className="font-medium text-foreground text-xs">
+                        <div className="font-medium text-foreground text-sm">
                           {p.name1.length > 8 ? p.name1.slice(0, 8) + '…' : p.name1}
                         </div>
                         <div className="text-muted-foreground text-xs">
                           {p.name2.length > 8 ? p.name2.slice(0, 8) + '…' : p.name2}
                         </div>
                       </td>
-                      <td className="px-2 py-2 text-right tabular-nums text-xs">¥{fmt(p.c1)}</td>
-                      <td className="px-2 py-2 text-right tabular-nums text-xs">¥{fmt(p.c2)}</td>
-                      <td className="px-2 py-2 text-right tabular-nums font-semibold">
+                      <td className="px-2 py-2 text-right tabular-nums text-sm">¥{fmt(p.c1)}</td>
+                      <td className="px-2 py-2 text-right tabular-nums text-sm">¥{fmt(p.c2)}</td>
+                      <td className="px-2 py-2 text-right tabular-nums text-sm font-semibold">
                         {fmtZ(p.z_latest)}
                       </td>
                       <td className="px-2 py-2 text-center">
@@ -365,7 +365,7 @@ export default function PairsPage() {
                       <td className="px-2 py-2 text-right tabular-nums text-emerald-400/70 text-xs hidden md:table-cell">
                         ¥{fmt(Math.round(p.tk1_lower))}
                       </td>
-                      <td className="px-2 py-2 text-right tabular-nums font-semibold text-xs">
+                      <td className="px-2 py-2 text-right tabular-nums font-semibold text-sm">
                         <span className={p.full_pf >= 2.5 ? 'text-emerald-400' : p.full_pf >= 2.0 ? 'text-foreground' : 'text-muted-foreground'}>
                           {p.full_pf.toFixed(2)}
                         </span>
