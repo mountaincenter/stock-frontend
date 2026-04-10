@@ -290,7 +290,7 @@ export default function PairsPage() {
               {entryPairs.slice(3).map((p) => {
                 const isShort = p.direction === 'short_tk1';
                 return (
-                  <div key={`${p.tk1}-${p.tk2}`} className="px-4 md:px-5 py-2.5 flex items-center justify-between">
+                  <div key={`${p.tk1}-${p.tk2}`} className="px-4 md:px-5 py-2.5 flex items-center justify-between cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => window.open(`/pairs/${p.tk1.replace('.', '')}-${p.tk2.replace('.', '')}`, 'pair-chart')}>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-foreground">{p.name1} / {p.name2}</span>
                       <DirectionBadge direction={p.direction} z={p.z_latest} />
