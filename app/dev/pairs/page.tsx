@@ -146,7 +146,7 @@ export default function PairsPage() {
     return (
       <main className="relative min-h-screen">
         <div className="fixed inset-0 -z-10"><div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20" /></div>
-        <div className="max-w-[1600px] mx-auto px-0 md:px-4 py-4">
+        <div className="max-w-[1400px] mx-auto px-0 md:px-4 py-4">
           <div className="h-6 w-48 bg-muted/50 rounded mb-4 animate-pulse" />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
             {[...Array(4)].map((_, i) => <div key={i} className="rounded-xl border border-border/40 bg-card/50 p-5 h-24 animate-pulse" />)}
@@ -164,7 +164,7 @@ export default function PairsPage() {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.03)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.03)_1px,transparent_1px)] bg-[size:4rem_4rem]" />
       </div>
 
-      <div className="max-w-[1600px] mx-auto px-0 md:px-4 py-4">
+      <div className="max-w-[1400px] mx-auto px-0 md:px-4 py-4">
         {/* Header */}
         <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4 pb-3 border-b border-border/30">
           <div>
