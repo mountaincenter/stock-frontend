@@ -34,7 +34,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 // === Helpers ===
 const fmt = (v: number | null | undefined) => (v ?? 0).toLocaleString('ja-JP');
-const fmtZ = (v: number) => <span className={Math.abs(v) >= 2.0 ? (v > 0 ? 'text-rose-400' : 'text-emerald-400') : Math.abs(v) >= 1.5 ? 'text-amber-400' : 'text-muted-foreground'}>{v >= 0 ? '+' : ''}{v.toFixed(2)}</span>;
+const fmtZ = (v: number) => <span className={Math.abs(v) >= 2.0 ? (v > 0 ? 'text-rose-400' : 'text-emerald-400') : Math.abs(v) >= 1.5 ? 'text-amber-400' : 'text-foreground/60'}>{v >= 0 ? '+' : ''}{v.toFixed(2)}</span>;
 
 // === Sortable ===
 type SortDir = 'asc' | 'desc' | null;
@@ -81,9 +81,9 @@ const StatCard = ({ label, children, sub }: { label: string; children: React.Rea
   <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 px-5 py-4 shadow-lg shadow-black/5 backdrop-blur-xl">
     <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
     <div className="relative">
-      <div className="text-muted-foreground text-sm mb-2">{label}</div>
+      <div className="text-foreground/60 text-sm mb-2">{label}</div>
       <div className="text-xl sm:text-2xl font-bold text-right tabular-nums">{children}</div>
-      {sub && <div className="text-sm text-right mt-1 text-muted-foreground tabular-nums">{sub}</div>}
+      {sub && <div className="text-sm text-right mt-1 text-foreground/50 tabular-nums">{sub}</div>}
     </div>
   </div>
 );
@@ -95,13 +95,13 @@ const Panel = ({ title, border, children, footer }: { title: React.ReactNode; bo
         {typeof title === 'string' ? <h2 className="text-base md:text-lg font-semibold text-foreground">{title}</h2> : title}
       </div>
       {children}
-      {footer && <div className="px-4 md:px-5 py-2.5 border-t border-border/40 text-xs text-muted-foreground">{footer}</div>}
+      {footer && <div className="px-4 md:px-5 py-2.5 border-t border-border/40 text-sm text-foreground/50">{footer}</div>}
     </div>
   </section>
 );
 
 const DirectionBadge = ({ direction, z }: { direction: string; z: number }) => {
-  if (Math.abs(z) < 1.5) return <span className="text-muted-foreground text-xs">--</span>;
+  if (Math.abs(z) < 1.5) return <span className="text-foreground/30 text-sm">--</span>;
   const isShort = direction === 'short_tk1';
   const isEntry = Math.abs(z) >= 2.0;
   const cls = isEntry
@@ -169,7 +169,7 @@ export default function PairsPage() {
         <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4 pb-3 border-b border-border/30">
           <div>
             <h1 className="text-xl font-bold text-foreground">Pairs v2 — ペアトレード</h1>
-            <p className="text-muted-foreground text-sm mt-0.5">
+            <p className="text-foreground/50 text-sm mt-0.5">
               共和分ベース161ペア | z=2.0エントリー | イントラデイ | 200万円 | |z|優先
               {signals?.signal_date ? ` (${signals.signal_date})` : ''}
             </p>
@@ -223,28 +223,28 @@ export default function PairsPage() {
                         <div className="flex items-center gap-2 mb-2">
                           <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-rose-500/20 text-rose-400 text-xs font-bold">{rank + 1}</span>
                           <span className="text-base font-semibold text-foreground">{p.name1}</span>
-                          <span className="text-xs text-muted-foreground">{p.tk1}</span>
-                          <span className="text-xs tabular-nums text-muted-foreground">¥{fmt(p.c1)}</span>
-                          <span className="text-muted-foreground/50">/</span>
+                          <span className="text-sm text-foreground/50">{p.tk1}</span>
+                          <span className="text-sm tabular-nums text-foreground/60">¥{fmt(p.c1)}</span>
+                          <span className="text-foreground/30">/</span>
                           <span className="text-base font-semibold text-foreground">{p.name2}</span>
-                          <span className="text-xs text-muted-foreground">{p.tk2}</span>
-                          <span className="text-xs tabular-nums text-muted-foreground">¥{fmt(p.c2)}</span>
+                          <span className="text-sm text-foreground/50">{p.tk2}</span>
+                          <span className="text-sm tabular-nums text-foreground/60">¥{fmt(p.c2)}</span>
                           <DirectionBadge direction={p.direction} z={p.z_latest} />
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 text-xs text-muted-foreground ml-8">
-                          <div>z: <span className="text-sm text-foreground font-semibold">{p.z_latest >= 0 ? '+' : ''}{p.z_latest.toFixed(2)}</span></div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 text-sm text-foreground/60 ml-8">
+                          <div>z: <span className="text-foreground font-semibold">{p.z_latest >= 0 ? '+' : ''}{p.z_latest.toFixed(2)}</span></div>
                           <div>参照: <span className="text-foreground">{p.lookback}日</span></div>
-                          <div>PF: <span className={`text-sm ${p.full_pf >= 2.5 ? 'text-emerald-400 font-semibold' : 'text-foreground'}`}>{p.full_pf.toFixed(2)}</span> ({p.full_n}回)</div>
+                          <div>PF: <span className={`${p.full_pf >= 2.5 ? 'text-emerald-400 font-semibold' : 'text-foreground'}`}>{p.full_pf.toFixed(2)}</span> ({p.full_n}回)</div>
                           <div>半減期: <span className="text-foreground">{p.half_life.toFixed(0)}日</span></div>
                         </div>
                       </div>
                       <div className="text-right md:min-w-[280px]">
-                        <div className="text-xs mb-1">
-                          <span className="text-muted-foreground">{p.name1}が</span>
+                        <div className="text-sm mb-1">
+                          <span className="text-foreground/60">{p.name1}が</span>
                           <span className="font-bold text-rose-400 mx-1">¥{fmt(Math.round(threshPrice))}</span>
-                          <span className="text-muted-foreground">{threshLabel}</span>
+                          <span className="text-foreground/60">{threshLabel}</span>
                         </div>
-                        <div className="text-xs space-y-0.5 text-muted-foreground">
+                        <div className="text-sm space-y-0.5 text-foreground/50">
                           <div>
                             <span className={isShort ? 'text-rose-400' : 'text-emerald-400'}>{p.name1} {isShort ? 'Short' : 'Long'}</span>
                             <span className="mx-1">×</span>
@@ -258,7 +258,7 @@ export default function PairsPage() {
                             <span className="ml-1">(¥{fmt(p.notional2)})</span>
                           </div>
                           {p.imbalance_pct > 5 && (
-                            <div className="text-amber-400/70">不均衡: {p.imbalance_pct.toFixed(1)}%</div>
+                            <div className="text-amber-400">不均衡: {p.imbalance_pct.toFixed(1)}%</div>
                           )}
                         </div>
                       </div>
@@ -267,13 +267,13 @@ export default function PairsPage() {
                 );
               })}
             </div>
-            <div className="px-4 md:px-5 py-2.5 border-t border-border/40 text-xs text-muted-foreground">
+            <div className="px-4 md:px-5 py-2.5 border-t border-border/40 text-sm text-foreground/50">
               資金制約下TOP2-3ペアが最適（Phase 73d検証済み）。100株単位等金額。指値推奨。
             </div>
           </Panel>
         ) : (
           <Panel title="推奨ペア">
-            <div className="px-5 py-8 text-center text-muted-foreground text-sm">
+            <div className="px-5 py-8 text-center text-foreground/50 text-sm">
               全ペア |z| &lt; 2.0 — 本日エントリーなし
             </div>
           </Panel>
@@ -295,7 +295,7 @@ export default function PairsPage() {
                       <span className="text-sm font-medium text-foreground">{p.name1} / {p.name2}</span>
                       <DirectionBadge direction={p.direction} z={p.z_latest} />
                     </div>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-4 text-sm text-foreground/60">
                       <span>z: {fmtZ(p.z_latest)}</span>
                       <span>LB={p.lookback}</span>
                       <span>PF={p.full_pf.toFixed(2)}</span>
@@ -312,24 +312,24 @@ export default function PairsPage() {
         <Panel title={
           <div className="flex items-center gap-2">
             <h2 className="text-base md:text-lg font-semibold">全ペア一覧</h2>
-            <span className="text-xs text-muted-foreground">161ペア | ペア固有LB | z=2.0エントリー | 引成決済</span>
+            <span className="text-sm text-foreground/50">161ペア | ペア固有LB | z=2.0エントリー | 引成決済</span>
           </div>
         } footer={`${allPairs.length} pairs | z_entry=2.0 | 200万円 (100株単位等金額)`}>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead><tr className="text-muted-foreground border-b border-border/30 bg-muted/30">
-                <th className="text-center px-2 py-2 text-xs font-medium">#</th>
-                <SortHeader<PairSignal> label="ペア" field="name1" {...pairSort} className="text-left px-2 py-2 text-xs font-medium" />
-                <SortHeader<PairSignal> label="終値1" field="c1" {...pairSort} className="text-right px-2 py-2 text-xs font-medium" />
-                <SortHeader<PairSignal> label="終値2" field="c2" {...pairSort} className="text-right px-2 py-2 text-xs font-medium" />
-                <SortHeader<PairSignal> label="|z|" field="z_abs" {...pairSort} className="text-right px-2 py-2 text-xs font-medium" />
-                <th className="text-center px-2 py-2 text-xs font-medium">方向</th>
-                <SortHeader<PairSignal> label="LB" field="lookback" {...pairSort} className="text-right px-2 py-2 text-xs font-medium hidden md:table-cell" />
-                <th className="text-right px-2 py-2 text-xs font-medium hidden md:table-cell">Short閾値</th>
-                <th className="text-right px-2 py-2 text-xs font-medium hidden md:table-cell">Long閾値</th>
-                <SortHeader<PairSignal> label="PF" field="full_pf" {...pairSort} className="text-right px-2 py-2 text-xs font-medium" />
-                <th className="text-right px-2 py-2 text-xs font-medium hidden md:table-cell">株数</th>
-                <SortHeader<PairSignal> label="HL" field="half_life" {...pairSort} className="text-right px-2 py-2 text-xs font-medium hidden lg:table-cell" />
+              <thead><tr className="text-foreground/50 border-b border-border/30 bg-muted/30">
+                <th className="text-center px-2 py-2.5 text-sm font-medium">#</th>
+                <SortHeader<PairSignal> label="ペア" field="name1" {...pairSort} className="text-left px-2 py-2.5 text-sm font-medium" />
+                <SortHeader<PairSignal> label="終値1" field="c1" {...pairSort} className="text-right px-2 py-2.5 text-sm font-medium" />
+                <SortHeader<PairSignal> label="終値2" field="c2" {...pairSort} className="text-right px-2 py-2.5 text-sm font-medium" />
+                <SortHeader<PairSignal> label="|z|" field="z_abs" {...pairSort} className="text-right px-2 py-2.5 text-sm font-medium" />
+                <th className="text-center px-2 py-2.5 text-sm font-medium">方向</th>
+                <SortHeader<PairSignal> label="LB" field="lookback" {...pairSort} className="text-right px-2 py-2.5 text-sm font-medium hidden md:table-cell" />
+                <th className="text-right px-2 py-2.5 text-sm font-medium hidden md:table-cell">Short閾値</th>
+                <th className="text-right px-2 py-2.5 text-sm font-medium hidden md:table-cell">Long閾値</th>
+                <SortHeader<PairSignal> label="PF" field="full_pf" {...pairSort} className="text-right px-2 py-2.5 text-sm font-medium" />
+                <th className="text-right px-2 py-2.5 text-sm font-medium hidden md:table-cell">株数</th>
+                <SortHeader<PairSignal> label="HL" field="half_life" {...pairSort} className="text-right px-2 py-2.5 text-sm font-medium hidden lg:table-cell" />
               </tr></thead>
               <tbody>
                 {pairSort.sorted.map((p, i) => {
@@ -339,12 +339,12 @@ export default function PairsPage() {
                     <tr key={`${p.tk1}-${p.tk2}`}
                       className={`border-b border-border/20 hover:bg-muted/50 cursor-pointer ${isEntry ? 'bg-rose-500/5' : isWatch ? 'bg-amber-500/5' : ''}`}
                       onClick={() => window.open(`/pairs/${p.tk1.replace('.', '')}-${p.tk2.replace('.', '')}`, 'pair-chart')}>
-                      <td className="text-center px-2 py-2.5 text-muted-foreground text-xs">{i + 1}</td>
+                      <td className="text-center px-2 py-2.5 text-foreground/30 text-sm">{i + 1}</td>
                       <td className="px-2 py-2.5">
                         <div className="font-medium text-foreground text-sm">
                           {p.name1.length > 8 ? p.name1.slice(0, 8) + '…' : p.name1}
                         </div>
-                        <div className="text-muted-foreground text-xs">
+                        <div className="text-foreground/50 text-sm">
                           {p.name2.length > 8 ? p.name2.slice(0, 8) + '…' : p.name2}
                         </div>
                       </td>
@@ -356,24 +356,24 @@ export default function PairsPage() {
                       <td className="px-2 py-2.5 text-center">
                         <DirectionBadge direction={p.direction} z={p.z_latest} />
                       </td>
-                      <td className="px-2 py-2.5 text-right tabular-nums text-xs text-muted-foreground hidden md:table-cell">
+                      <td className="px-2 py-2.5 text-right tabular-nums text-sm text-foreground/50 hidden md:table-cell">
                         {p.lookback}
                       </td>
-                      <td className="px-2 py-2.5 text-right tabular-nums text-rose-400/70 text-xs hidden md:table-cell">
+                      <td className="px-2 py-2.5 text-right tabular-nums text-rose-400 text-sm hidden md:table-cell">
                         ¥{fmt(Math.round(p.tk1_upper))}
                       </td>
-                      <td className="px-2 py-2.5 text-right tabular-nums text-emerald-400/70 text-xs hidden md:table-cell">
+                      <td className="px-2 py-2.5 text-right tabular-nums text-emerald-400 text-sm hidden md:table-cell">
                         ¥{fmt(Math.round(p.tk1_lower))}
                       </td>
                       <td className="px-2 py-2.5 text-right tabular-nums font-semibold text-sm">
-                        <span className={p.full_pf >= 2.5 ? 'text-emerald-400' : p.full_pf >= 2.0 ? 'text-foreground' : 'text-muted-foreground'}>
+                        <span className={p.full_pf >= 2.5 ? 'text-emerald-400' : p.full_pf >= 2.0 ? 'text-foreground' : 'text-foreground/50'}>
                           {p.full_pf.toFixed(2)}
                         </span>
                       </td>
-                      <td className="px-2 py-2.5 text-right tabular-nums text-xs text-muted-foreground hidden md:table-cell">
+                      <td className="px-2 py-2.5 text-right tabular-nums text-sm text-foreground/50 hidden md:table-cell">
                         {p.shares1}/{p.shares2}
                       </td>
-                      <td className="px-2 py-2.5 text-right tabular-nums text-xs text-muted-foreground hidden lg:table-cell">
+                      <td className="px-2 py-2.5 text-right tabular-nums text-sm text-foreground/50 hidden lg:table-cell">
                         {p.half_life.toFixed(0)}
                       </td>
                     </tr>
@@ -386,12 +386,12 @@ export default function PairsPage() {
 
         {/* Action Guide */}
         <Panel title="翌朝 9:00 アクション手順">
-          <div className="px-4 md:px-5 py-4 text-sm text-muted-foreground space-y-2">
+          <div className="px-4 md:px-5 py-4 text-sm text-foreground/60 space-y-2">
             <div className="flex gap-3"><span className="text-foreground font-semibold">1.</span><span>TOP推奨ペアを優先（|z|上位2-3ペアが最適）</span></div>
             <div className="flex gap-3"><span className="text-foreground font-semibold">2.</span>
               <div>
                 <span>9:00 寄付価格を確認</span>
-                <div className="mt-1 ml-2 space-y-0.5 text-xs">
+                <div className="mt-1 ml-2 space-y-0.5 text-sm">
                   <div>→ tk1の寄付が<span className="text-rose-400">Short閾値以上</span> → tk1空売り + tk2買い</div>
                   <div>→ tk1の寄付が<span className="text-emerald-400">Long閾値以下</span> → tk1買い + tk2空売り</div>
                 </div>
@@ -399,7 +399,7 @@ export default function PairsPage() {
             </div>
             <div className="flex gap-3"><span className="text-foreground font-semibold">3.</span><span>表示株数で両銘柄同時発注（100株単位等金額）</span></div>
             <div className="flex gap-3"><span className="text-foreground font-semibold">4.</span><span>15:25 引成で両方決済</span></div>
-            <div className="mt-3 pt-3 border-t border-border/30 text-xs space-y-1">
+            <div className="mt-3 pt-3 border-t border-border/30 text-sm text-foreground/40 space-y-1">
               <div>Phase 70-75 検証済みパラメータ: 共和分ペア選定 / ペア固有LB / |z|優先 / 等金額100株単位 / レジームフィルタ不要</div>
               <div>指値推奨（成行はスリッページでPF低下）</div>
             </div>
