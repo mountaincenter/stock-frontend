@@ -410,10 +410,6 @@ function PairChartContent({ tk1, tk2 }: { tk1: string; tk2: string }) {
     ? (data.z_latest > 0 ? 'text-rose-400' : 'text-emerald-400')
     : Math.abs(data.z_latest) >= 1.5 ? 'text-amber-400' : 'text-muted-foreground';
 
-  const dirBadge = data.direction === 'short_tk1'
-    ? { label: `SHORT ${data.name1}`, cls: 'bg-rose-500/15 text-rose-400' }
-    : { label: `LONG ${data.name1}`, cls: 'bg-emerald-500/15 text-emerald-400' };
-
   const priceFormatter = new Intl.NumberFormat('ja-JP', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
@@ -525,34 +521,31 @@ function PairChartContent({ tk1, tk2 }: { tk1: string; tk2: string }) {
               })}
             </div>
 
-            {/* Z-score + direction + stats — 1行 */}
-            <div className="flex flex-wrap items-center gap-6">
-              <div className="text-center">
+            {/* Stats — 5項目均等 */}
+            <div className="grid grid-cols-5 gap-4 text-center">
+              <div>
                 <div className="text-xs text-muted-foreground">Z-Score</div>
-                <div className={`text-sm md:text-base font-bold tabular-nums ${zColor}`}>
+                <div className={`text-xl font-bold tabular-nums ${zColor}`}>
                   {data.z_latest >= 0 ? '+' : ''}{data.z_latest.toFixed(3)}
                 </div>
               </div>
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${dirBadge.cls}`}>
-                {dirBadge.label}
-              </span>
-              <div className="text-center">
+              <div>
                 <div className="text-xs text-muted-foreground">参照期間</div>
-                <div className="text-sm md:text-base font-medium text-foreground">{data.lookback}日</div>
+                <div className="text-xl font-bold text-foreground">{data.lookback}日</div>
               </div>
-              <div className="text-center">
+              <div>
                 <div className="text-xs text-muted-foreground">PF</div>
-                <div className={`text-sm md:text-base font-medium ${data.full_pf >= 2.5 ? 'text-emerald-400' : data.full_pf >= 2.0 ? 'text-foreground' : 'text-muted-foreground'}`}>
+                <div className={`text-xl font-bold ${data.full_pf >= 2.5 ? 'text-emerald-400' : data.full_pf >= 2.0 ? 'text-foreground' : 'text-muted-foreground'}`}>
                   {data.full_pf.toFixed(2)}
                 </div>
               </div>
-              <div className="text-center">
+              <div>
                 <div className="text-xs text-muted-foreground">取引回数</div>
-                <div className="text-sm md:text-base font-medium text-foreground">{data.full_n}回</div>
+                <div className="text-xl font-bold text-foreground">{data.full_n}回</div>
               </div>
-              <div className="text-center">
+              <div>
                 <div className="text-xs text-muted-foreground">半減期</div>
-                <div className="text-sm md:text-base font-medium text-foreground">{data.half_life.toFixed(0)}日</div>
+                <div className="text-xl font-bold text-foreground">{data.half_life.toFixed(0)}日</div>
               </div>
             </div>
           </div>
