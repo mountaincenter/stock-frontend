@@ -17,6 +17,7 @@ interface SeriesPoint {
   norm1: number;
   norm2: number;
   z: number | null;
+  hl: number | null;
 }
 interface PairChartData {
   tk1: string; tk2: string;
@@ -212,7 +213,8 @@ function ZScoreChart({ series }: { series: SeriesPoint[] }) {
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const zSeriesRef = useRef<any>(null);
-  const [hovered, setHovered] = useState<{ date: string; z: number; x: number; y: number } | null>(null);
+  const hlSeriesRef = useRef<any>(null);
+  const [hovered, setHovered] = useState<{ date: string; z: number; hl: number | null; x: number; y: number } | null>(null);
 
   const style = useMemo(() => ({
     paper: isDark ? '#0b0b0c' : '#ffffff',
@@ -220,6 +222,7 @@ function ZScoreChart({ series }: { series: SeriesPoint[] }) {
     grid: isDark ? '#303034' : '#e5e7eb',
     cross: isDark ? '#6b7280' : '#9ca3af',
     zLine: isDark ? '#a78bfa' : '#7c3aed',
+    hlLine: isDark ? 'rgba(251,191,36,0.7)' : 'rgba(217,119,6,0.7)',
     entryHigh: isDark ? 'rgba(244,63,94,0.5)' : 'rgba(225,29,72,0.4)',
     entryLow: isDark ? 'rgba(52,211,153,0.5)' : 'rgba(16,185,129,0.4)',
     zero: isDark ? 'rgba(107,114,128,0.5)' : 'rgba(156,163,175,0.5)',
@@ -229,6 +232,13 @@ function ZScoreChart({ series }: { series: SeriesPoint[] }) {
     series.filter(p => p.z !== null).map(p => ({
       time: toBusinessDay(p.date) as Time,
       value: p.z!,
+    })),
+  [series]);
+
+  const hlData = useMemo(() =>
+    series.filter(p => p.hl !== null).map(p => ({
+      time: toBusinessDay(p.date) as Time,
+      value: p.hl!,
     })),
   [series]);
 
@@ -251,6 +261,7 @@ function ZScoreChart({ series }: { series: SeriesPoint[] }) {
         grid: { vertLines: { color: style.grid }, horzLines: { color: style.grid } },
         timeScale: { borderColor: style.grid, timeVisible: false },
         rightPriceScale: { borderColor: style.grid },
+        leftPriceScale: { borderColor: style.grid, visible: true },
         crosshair: { vertLine: { color: style.cross }, horzLine: { color: style.cross } },
         localization: {
           locale: 'ja-JP',
@@ -293,13 +304,26 @@ function ZScoreChart({ series }: { series: SeriesPoint[] }) {
       });
       zeroLine.setData(bandData(0));
 
+      // ローリング半減期（左Y軸）
+      if (hlData.length > 0) {
+        const hlSeries = chartApi.addSeries(LineSeries, {
+          color: style.hlLine, lineWidth: 1,
+          priceLineVisible: false, lastValueVisible: false,
+          crosshairMarkerVisible: true, title: '',
+          priceScaleId: 'left',
+        });
+        hlSeries.setData(hlData);
+        hlSeriesRef.current = hlSeries;
+      }
+
       chartApi.subscribeCrosshairMove((param) => {
         if (disposed) return;
         if (!param.time || !param.seriesData?.size || !param.point) { setHovered(null); return; }
         const t = param.time as BusinessDay;
         const date = `${t.year}/${String(t.month).padStart(2, '0')}/${String(t.day).padStart(2, '0')}`;
         const d = param.seriesData.get(zSeriesRef.current);
-        if (d) setHovered({ date, z: (d as any).value, x: param.point.x, y: param.point.y });
+        const h = hlSeriesRef.current ? param.seriesData.get(hlSeriesRef.current) : null;
+        if (d) setHovered({ date, z: (d as any).value, hl: h ? (h as any).value : null, x: param.point.x, y: param.point.y });
       });
 
       chartApi.timeScale().fitContent();
@@ -314,7 +338,7 @@ function ZScoreChart({ series }: { series: SeriesPoint[] }) {
 
     setup();
     return () => { disposed = true; ro?.disconnect(); chart?.remove(); };
-  }, [mounted, zData, style]);
+  }, [mounted, zData, hlData, style]);
 
   if (!mounted) return <div className="h-[380px] bg-card/50 rounded-2xl animate-pulse" />;
 
@@ -334,6 +358,11 @@ function ZScoreChart({ series }: { series: SeriesPoint[] }) {
           <span className="ml-2 text-foreground font-medium tabular-nums">
             z = {hovered.z >= 0 ? '+' : ''}{hovered.z.toFixed(3)}
           </span>
+          {hovered.hl != null && (
+            <span className="ml-2 text-amber-400 font-medium tabular-nums">
+              HL = {hovered.hl.toFixed(0)}日
+            </span>
+          )}
         </div>
       )}
       <div ref={containerRef} className="w-full h-[380px]" />
@@ -605,6 +634,10 @@ function PairChartContent({ tk1, tk2 }: { tk1: string; tk2: string }) {
                   <span className="flex items-center gap-1">
                     <span className="w-4 h-0 border-t border-dashed border-muted-foreground inline-block" />
                     <span className="text-muted-foreground">0</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-4 h-0 border-t border-amber-400/70 inline-block" />
+                    <span className="text-muted-foreground">半減期(左軸)</span>
                   </span>
                 </div>
               </div>
