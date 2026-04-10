@@ -82,14 +82,14 @@ const StatCard = ({ label, children, sub }: { label: string; children: React.Rea
     <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
     <div className="relative">
       <div className="text-muted-foreground text-sm mb-2">{label}</div>
-      <div className="text-xl font-bold text-right tabular-nums">{children}</div>
+      <div className="text-xl sm:text-2xl font-bold text-right tabular-nums">{children}</div>
       {sub && <div className="text-sm text-right mt-1 text-muted-foreground tabular-nums">{sub}</div>}
     </div>
   </div>
 );
 
 const Panel = ({ title, border, children, footer }: { title: React.ReactNode; border?: string; children: React.ReactNode; footer?: React.ReactNode }) => (
-  <section className="mb-5">
+  <section className="mb-6">
     <div className={`rounded-2xl border ${border || 'border-border/40'} bg-gradient-to-br from-card/50 via-card/80 to-card/50 shadow-lg shadow-black/5 backdrop-blur-xl overflow-hidden`}>
       <div className={`px-4 md:px-5 py-3 border-b ${border || 'border-b-border/40'}`}>
         {typeof title === 'string' ? <h2 className="text-base md:text-lg font-semibold text-foreground">{title}</h2> : title}
@@ -146,7 +146,7 @@ export default function PairsPage() {
     return (
       <main className="relative min-h-screen">
         <div className="fixed inset-0 -z-10"><div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20" /></div>
-        <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className="max-w-[1600px] mx-auto px-0 md:px-4 py-4">
           <div className="h-6 w-48 bg-muted/50 rounded mb-4 animate-pulse" />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
             {[...Array(4)].map((_, i) => <div key={i} className="rounded-xl border border-border/40 bg-card/50 p-5 h-24 animate-pulse" />)}
@@ -164,12 +164,12 @@ export default function PairsPage() {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.03)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.03)_1px,transparent_1px)] bg-[size:4rem_4rem]" />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-4">
+      <div className="max-w-[1600px] mx-auto px-0 md:px-4 py-4">
         {/* Header */}
         <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4 pb-3 border-b border-border/30">
           <div>
             <h1 className="text-xl font-bold text-foreground">Pairs v2 — ペアトレード</h1>
-            <p className="text-muted-foreground text-xs mt-0.5">
+            <p className="text-muted-foreground text-sm mt-0.5">
               共和分ベース161ペア | z=2.0エントリー | イントラデイ | 200万円 | |z|優先
               {signals?.signal_date ? ` (${signals.signal_date})` : ''}
             </p>
@@ -185,7 +185,7 @@ export default function PairsPage() {
         </header>
 
         {/* Status Bar */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <StatCard label="監視ペア数" sub="共和分+ADF検定済">
             <span className="text-foreground">{signals?.total ?? 0}</span>
           </StatCard>
@@ -317,7 +317,7 @@ export default function PairsPage() {
         } footer={`${allPairs.length} pairs | z_entry=2.0 | 200万円 (100株単位等金額)`}>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead><tr className="text-muted-foreground border-b border-border/30 bg-muted/10">
+              <thead><tr className="text-muted-foreground border-b border-border/30 bg-muted/30">
                 <th className="text-center px-2 py-2 text-xs font-medium">#</th>
                 <SortHeader<PairSignal> label="ペア" field="name1" {...pairSort} className="text-left px-2 py-2 text-xs font-medium" />
                 <SortHeader<PairSignal> label="終値1" field="c1" {...pairSort} className="text-right px-2 py-2 text-xs font-medium" />
@@ -337,10 +337,10 @@ export default function PairsPage() {
                   const isWatch = p.z_abs >= 1.5 && p.z_abs < 2.0;
                   return (
                     <tr key={`${p.tk1}-${p.tk2}`}
-                      className={`border-b border-border/20 hover:bg-muted/10 cursor-pointer ${isEntry ? 'bg-rose-500/5' : isWatch ? 'bg-amber-500/5' : ''}`}
+                      className={`border-b border-border/20 hover:bg-muted/50 cursor-pointer ${isEntry ? 'bg-rose-500/5' : isWatch ? 'bg-amber-500/5' : ''}`}
                       onClick={() => window.open(`/pairs/${p.tk1.replace('.', '')}-${p.tk2.replace('.', '')}`, 'pair-chart')}>
-                      <td className="text-center px-2 py-2 text-muted-foreground text-xs">{i + 1}</td>
-                      <td className="px-2 py-2">
+                      <td className="text-center px-2 py-2.5 text-muted-foreground text-xs">{i + 1}</td>
+                      <td className="px-2 py-2.5">
                         <div className="font-medium text-foreground text-sm">
                           {p.name1.length > 8 ? p.name1.slice(0, 8) + '…' : p.name1}
                         </div>
@@ -348,32 +348,32 @@ export default function PairsPage() {
                           {p.name2.length > 8 ? p.name2.slice(0, 8) + '…' : p.name2}
                         </div>
                       </td>
-                      <td className="px-2 py-2 text-right tabular-nums text-sm">¥{fmt(p.c1)}</td>
-                      <td className="px-2 py-2 text-right tabular-nums text-sm">¥{fmt(p.c2)}</td>
-                      <td className="px-2 py-2 text-right tabular-nums text-sm font-semibold">
+                      <td className="px-2 py-2.5 text-right tabular-nums text-sm">¥{fmt(p.c1)}</td>
+                      <td className="px-2 py-2.5 text-right tabular-nums text-sm">¥{fmt(p.c2)}</td>
+                      <td className="px-2 py-2.5 text-right tabular-nums text-sm font-semibold">
                         {fmtZ(p.z_latest)}
                       </td>
-                      <td className="px-2 py-2 text-center">
+                      <td className="px-2 py-2.5 text-center">
                         <DirectionBadge direction={p.direction} z={p.z_latest} />
                       </td>
-                      <td className="px-2 py-2 text-right tabular-nums text-xs text-muted-foreground hidden md:table-cell">
+                      <td className="px-2 py-2.5 text-right tabular-nums text-xs text-muted-foreground hidden md:table-cell">
                         {p.lookback}
                       </td>
-                      <td className="px-2 py-2 text-right tabular-nums text-rose-400/70 text-xs hidden md:table-cell">
+                      <td className="px-2 py-2.5 text-right tabular-nums text-rose-400/70 text-xs hidden md:table-cell">
                         ¥{fmt(Math.round(p.tk1_upper))}
                       </td>
-                      <td className="px-2 py-2 text-right tabular-nums text-emerald-400/70 text-xs hidden md:table-cell">
+                      <td className="px-2 py-2.5 text-right tabular-nums text-emerald-400/70 text-xs hidden md:table-cell">
                         ¥{fmt(Math.round(p.tk1_lower))}
                       </td>
-                      <td className="px-2 py-2 text-right tabular-nums font-semibold text-sm">
+                      <td className="px-2 py-2.5 text-right tabular-nums font-semibold text-sm">
                         <span className={p.full_pf >= 2.5 ? 'text-emerald-400' : p.full_pf >= 2.0 ? 'text-foreground' : 'text-muted-foreground'}>
                           {p.full_pf.toFixed(2)}
                         </span>
                       </td>
-                      <td className="px-2 py-2 text-right tabular-nums text-xs text-muted-foreground hidden md:table-cell">
+                      <td className="px-2 py-2.5 text-right tabular-nums text-xs text-muted-foreground hidden md:table-cell">
                         {p.shares1}/{p.shares2}
                       </td>
-                      <td className="px-2 py-2 text-right tabular-nums text-xs text-muted-foreground hidden lg:table-cell">
+                      <td className="px-2 py-2.5 text-right tabular-nums text-xs text-muted-foreground hidden lg:table-cell">
                         {p.half_life.toFixed(0)}
                       </td>
                     </tr>
