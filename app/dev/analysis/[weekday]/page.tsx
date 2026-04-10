@@ -481,12 +481,13 @@ export default function WeekdayAnalysisPage() {
     if (!segKey) return [];
 
     const items = chartStocks
-      .map(s => ({
-        ticker: s.ticker,
-        name: s.stockName,
-        date: s.date,
-        pnl: s.segments[segKey] ?? 0,
-      }))
+      .map(s => {
+        const rawPnl = s.segments[segKey] ?? 0;
+        const pnl = displayMode === 'pct' && s.buyPrice && s.buyPrice > 0
+          ? (rawPnl / (s.buyPrice * 100)) * 100
+          : rawPnl;
+        return { ticker: s.ticker, name: s.stockName, date: s.date, pnl };
+      })
       .sort((a, b) => b.pnl - a.pnl);
 
     const totalPositive = items.filter(i => i.pnl > 0).reduce((a, i) => a + i.pnl, 0);
@@ -499,7 +500,7 @@ export default function WeekdayAnalysisPage() {
         cumPct: totalPositive > 0 ? (cumulative / totalPositive) * 100 : 0,
       };
     });
-  }, [chartStocks, segments, paretoSegIdx]);
+  }, [chartStocks, segments, paretoSegIdx, displayMode]);
 
   if (loading) {
     return (
@@ -848,6 +849,15 @@ export default function WeekdayAnalysisPage() {
         const tSegs = segmentMode === '11seg' ? summaryData.timeSegments11 : summaryData.timeSegments4;
 
         // 個別銘柄データから分布を計算
+        const getVal = (s: DetailStock, segKey: string): number | null => {
+          const raw = s.segments[segKey];
+          if (raw === null) return null;
+          if (displayMode === 'pct' && s.buyPrice && s.buyPrice > 0) {
+            return (raw / (s.buyPrice * 100)) * 100;
+          }
+          return raw;
+        };
+
         const buildDistribution = (marginType: string, filterFn?: (s: DetailStock) => boolean) => {
           const stocks = chartStocks.filter(s => {
             if (s.marginType !== marginType) return false;
@@ -859,7 +869,7 @@ export default function WeekdayAnalysisPage() {
             const prStocks = stocks.filter(s => s.priceRange === pr);
             const segData = tSegs.map(seg => {
               const values = prStocks
-                .map(s => s.segments[seg.key])
+                .map(s => getVal(s, seg.key))
                 .filter((v): v is number => v !== null);
               return {
                 time: seg.label,
@@ -879,7 +889,7 @@ export default function WeekdayAnalysisPage() {
 
           const allSegData = tSegs.map(seg => {
             const values = stocks
-              .map(s => s.segments[seg.key])
+              .map(s => getVal(s, seg.key))
               .filter((v): v is number => v !== null);
             return {
               time: seg.label,
@@ -899,7 +909,7 @@ export default function WeekdayAnalysisPage() {
             const prStocks = stocks.filter(s => s.priceRange === pr);
             const lastSegKey = tSegs[tSegs.length - 1]?.key;
             const values = prStocks
-              .map(s => lastSegKey ? s.segments[lastSegKey] : null)
+              .map(s => lastSegKey ? getVal(s, lastSegKey) : null)
               .filter((v): v is number => v !== null);
             return {
               label: pr,
@@ -937,13 +947,23 @@ export default function WeekdayAnalysisPage() {
 
         type DistSegData = typeof seidoDist.all;
 
+        const distValueFmt = displayMode === 'pct'
+          ? (v: number) => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`
+          : (v: number) => formatProfit(Math.round(v));
+        const distTickFmt = displayMode === 'pct'
+          ? (v: number) => `${v.toFixed(1)}%`
+          : (v: number) => formatProfit(Math.round(v));
+        const distTooltipFmt = displayMode === 'pct'
+          ? (v: number) => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`
+          : (v: number) => `¥${formatProfit(Math.round(v))}`;
+
         const renderDistChart = (segData: DistSegData, _label: string) => (
           <div className="mb-4">
             <ResponsiveContainer width="100%" height={280}>
               <ComposedChart data={segData} margin={{ top: 5, right: 40, bottom: 5, left: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
                 <XAxis dataKey="time" tick={{ fill: '#a1a1aa', fontSize: 12 }} />
-                <YAxis yAxisId="val" tick={{ fill: '#a1a1aa', fontSize: 12 }} tickFormatter={(v) => formatProfit(Math.round(v))} />
+                <YAxis yAxisId="val" tick={{ fill: '#a1a1aa', fontSize: 12 }} tickFormatter={distTickFmt} />
                 <YAxis yAxisId="wr" orientation="right" domain={[0, 100]} tick={{ fill: '#a1a1aa', fontSize: 12 }} tickFormatter={(v) => `${v}%`} />
                 <ReferenceLine yAxisId="val" y={0} stroke="rgba(255,255,255,0.2)" />
                 <ReferenceLine yAxisId="wr" y={50} stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
@@ -952,7 +972,7 @@ export default function WeekdayAnalysisPage() {
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   formatter={(value: any, name: any) => {
                     if (name === '勝率') return [`${Number(value).toFixed(1)}%`, name];
-                    return [`¥${formatProfit(Math.round(value))}`, name];
+                    return [distTooltipFmt(Number(value)), name];
                   }}
                 />
                 <Bar yAxisId="val" dataKey="p10" stackId="band" fill="transparent" />
@@ -988,12 +1008,12 @@ export default function WeekdayAnalysisPage() {
                   {segData.map(d => (
                     <tr key={d.key} className="border-b border-border/20">
                       <td className="text-right px-2 py-2.5 tabular-nums text-foreground whitespace-nowrap">{d.time}</td>
-                      <td className={`text-right px-2 py-2.5 tabular-nums ${d.p90 >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatProfit(Math.round(d.p90))}</td>
-                      <td className={`text-right px-2 py-2.5 tabular-nums ${d.q3 >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatProfit(Math.round(d.q3))}</td>
-                      <td className={`text-right px-2 py-2.5 tabular-nums font-semibold ${d.median >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatProfit(Math.round(d.median))}</td>
-                      <td className={`text-right px-2 py-2.5 tabular-nums font-semibold ${d.mean >= 0 ? 'text-blue-400' : 'text-rose-400'}`}>{formatProfit(Math.round(d.mean))}</td>
-                      <td className={`text-right px-2 py-2.5 tabular-nums ${d.q1 >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatProfit(Math.round(d.q1))}</td>
-                      <td className={`text-right px-2 py-2.5 tabular-nums ${d.p10 >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatProfit(Math.round(d.p10))}</td>
+                      <td className={`text-right px-2 py-2.5 tabular-nums ${d.p90 >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{distValueFmt(d.p90)}</td>
+                      <td className={`text-right px-2 py-2.5 tabular-nums ${d.q3 >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{distValueFmt(d.q3)}</td>
+                      <td className={`text-right px-2 py-2.5 tabular-nums font-semibold ${d.median >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{distValueFmt(d.median)}</td>
+                      <td className={`text-right px-2 py-2.5 tabular-nums font-semibold ${d.mean >= 0 ? 'text-blue-400' : 'text-rose-400'}`}>{distValueFmt(d.mean)}</td>
+                      <td className={`text-right px-2 py-2.5 tabular-nums ${d.q1 >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{distValueFmt(d.q1)}</td>
+                      <td className={`text-right px-2 py-2.5 tabular-nums ${d.p10 >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{distValueFmt(d.p10)}</td>
                       <td className={`text-right px-2 py-2.5 tabular-nums ${d.winRate >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{d.winRate.toFixed(1)}%</td>
                       <td className="text-right px-2 py-2.5 tabular-nums text-foreground">{d.count}</td>
                     </tr>
@@ -1017,14 +1037,14 @@ export default function WeekdayAnalysisPage() {
               <ComposedChart data={dist.summaryByPR} layout="vertical" margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" horizontal={false} />
                 <YAxis dataKey="label" type="category" tick={{ fill: '#fafafa', fontSize: 13 }} width={110} />
-                <XAxis type="number" tick={{ fill: '#a1a1aa', fontSize: 12 }} tickFormatter={(v) => formatProfit(Math.round(v))} />
+                <XAxis type="number" tick={{ fill: '#a1a1aa', fontSize: 12 }} tickFormatter={distTickFmt} />
                 <ReferenceLine x={0} stroke="rgba(255,255,255,0.2)" />
                 <Tooltip
                   contentStyle={tooltipStyle} labelStyle={tooltipLabelStyle} itemStyle={tooltipItemStyle}
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   formatter={(value: any, name: any) => {
                     if (name === '勝率') return [`${Number(value).toFixed(1)}%`, name];
-                    return [`¥${formatProfit(Math.round(value))}`, name];
+                    return [distTooltipFmt(Number(value)), name];
                   }}
                 />
                 <Bar dataKey="p10" stackId="box" fill="transparent" name="P10" />
@@ -1058,14 +1078,14 @@ export default function WeekdayAnalysisPage() {
                       <tr key={d.label} className="border-b border-border/20">
                         <td className="text-right px-2 py-2.5 tabular-nums text-foreground whitespace-nowrap">{d.label}</td>
                         <td className="text-right px-2 py-2.5 tabular-nums text-foreground">{d.count}</td>
-                        <td className={`text-right px-2 py-2.5 tabular-nums ${d.p90 >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatProfit(Math.round(d.p90))}</td>
-                        <td className={`text-right px-2 py-2.5 tabular-nums ${d.q3 >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatProfit(Math.round(d.q3))}</td>
-                        <td className={`text-right px-2 py-2.5 tabular-nums font-semibold ${d.median >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatProfit(Math.round(d.median))}</td>
-                        <td className={`text-right px-2 py-2.5 tabular-nums font-semibold ${d.mean >= 0 ? 'text-blue-400' : 'text-rose-400'}`}>{formatProfit(Math.round(d.mean))}</td>
-                        <td className={`text-right px-2 py-2.5 tabular-nums ${d.q1 >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatProfit(Math.round(d.q1))}</td>
-                        <td className={`text-right px-2 py-2.5 tabular-nums ${d.p10 >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatProfit(Math.round(d.p10))}</td>
+                        <td className={`text-right px-2 py-2.5 tabular-nums ${d.p90 >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{distValueFmt(d.p90)}</td>
+                        <td className={`text-right px-2 py-2.5 tabular-nums ${d.q3 >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{distValueFmt(d.q3)}</td>
+                        <td className={`text-right px-2 py-2.5 tabular-nums font-semibold ${d.median >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{distValueFmt(d.median)}</td>
+                        <td className={`text-right px-2 py-2.5 tabular-nums font-semibold ${d.mean >= 0 ? 'text-blue-400' : 'text-rose-400'}`}>{distValueFmt(d.mean)}</td>
+                        <td className={`text-right px-2 py-2.5 tabular-nums ${d.q1 >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{distValueFmt(d.q1)}</td>
+                        <td className={`text-right px-2 py-2.5 tabular-nums ${d.p10 >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{distValueFmt(d.p10)}</td>
                         <td className={`text-right px-2 py-2.5 tabular-nums ${d.winRate >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{d.winRate.toFixed(1)}%</td>
-                        <td className="text-right px-2 py-2.5 tabular-nums text-amber-400">{formatProfit(Math.round(iqr))}</td>
+                        <td className="text-right px-2 py-2.5 tabular-nums text-amber-400">{distValueFmt(iqr)}</td>
                       </tr>
                     );
                   })}
@@ -1110,7 +1130,7 @@ export default function WeekdayAnalysisPage() {
       {/* ===== Chart 4: Pareto (P&L Contribution) ===== */}
       <section className="bg-card border border-border rounded-xl p-4 mb-4">
         <h2 className="text-sm font-semibold mb-2 text-muted-foreground">
-          P&L寄与度（パレート図）
+          {displayMode === 'pct' ? 'リターン率寄与度' : 'P&L寄与度'}（パレート図）
           <span className="text-xs ml-2 text-muted-foreground/70">
             特定銘柄依存 or 均等分散を判定
           </span>
@@ -1135,7 +1155,7 @@ export default function WeekdayAnalysisPage() {
           <ComposedChart data={paretoData.slice(0, 30)} margin={{ top: 10, right: 20, bottom: 5, left: 20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
             <XAxis dataKey="rank" tick={{ fill: '#a1a1aa', fontSize: 10 }} />
-            <YAxis yAxisId="pnl" tick={{ fill: '#a1a1aa', fontSize: 10 }} tickFormatter={(v) => fmt(v)} />
+            <YAxis yAxisId="pnl" tick={{ fill: '#a1a1aa', fontSize: 10 }} tickFormatter={(v) => displayMode === 'pct' ? `${v.toFixed(1)}%` : fmt(v)} />
             <YAxis yAxisId="cum" orientation="right" domain={[0, 100]} tick={{ fill: '#a1a1aa', fontSize: 10 }} tickFormatter={(v) => `${v}%`} />
             <ReferenceLine yAxisId="pnl" y={0} stroke="rgba(255,255,255,0.15)" />
             <Tooltip
@@ -1145,14 +1165,14 @@ export default function WeekdayAnalysisPage() {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               formatter={(value: any, name: any) => {
                 if (name === '累積寄与') return [`${value.toFixed(1)}%`, name];
-                return [`¥${fmt(value)}`, name];
+                return [displayMode === 'pct' ? `${Number(value).toFixed(2)}%` : `¥${fmt(value)}`, name];
               }}
               labelFormatter={(label) => {
                 const item = paretoData[Number(label) - 1];
                 return item ? `#${label} ${item.ticker} ${item.name} (${item.date})` : `#${label}`;
               }}
             />
-            <Bar yAxisId="pnl" dataKey="pnl" name="損益" radius={[2, 2, 0, 0]}>
+            <Bar yAxisId="pnl" dataKey="pnl" name={displayMode === 'pct' ? 'リターン率' : '損益'} radius={[2, 2, 0, 0]}>
               {paretoData.slice(0, 30).map((entry, idx) => (
                 <Cell key={idx} fill={entry.pnl >= 0 ? 'rgba(52,211,153,0.6)' : 'rgba(251,113,133,0.6)'} />
               ))}
@@ -1213,10 +1233,18 @@ export default function WeekdayAnalysisPage() {
         const lastSegKey = segments[segments.length - 1]?.key;
         const amSegKey = 'seg_1130';
 
+        const toVal = (s: typeof stocksWithGap[0], segKey: string): number => {
+          const raw = s.segments[segKey] ?? 0;
+          if (displayMode === 'pct' && s.buyPrice && s.buyPrice > 0) {
+            return (raw / (s.buyPrice * 100)) * 100;
+          }
+          return raw;
+        };
+
         const gapData = GAP_BUCKETS.map(bucket => {
           const group = stocksWithGap.filter(s => s.gapPct >= bucket.min && s.gapPct < bucket.max);
-          const finalPnls = group.map(s => lastSegKey ? s.segments[lastSegKey] ?? 0 : 0);
-          const amPnls = group.map(s => s.segments[amSegKey] ?? 0);
+          const finalPnls = group.map(s => lastSegKey ? toVal(s, lastSegKey) : 0);
+          const amPnls = group.map(s => toVal(s, amSegKey));
           const wins = finalPnls.filter(v => v > 0).length;
           return {
             label: bucket.label,
@@ -1246,7 +1274,7 @@ export default function WeekdayAnalysisPage() {
               <ComposedChart data={gapData} margin={{ top: 5, right: 40, bottom: 5, left: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
                 <XAxis dataKey="label" tick={{ fill: '#a1a1aa', fontSize: 12 }} />
-                <YAxis yAxisId="val" tick={{ fill: '#a1a1aa', fontSize: 12 }} tickFormatter={(v) => formatProfit(Math.round(v))} />
+                <YAxis yAxisId="val" tick={{ fill: '#a1a1aa', fontSize: 12 }} tickFormatter={(v) => displayMode === 'pct' ? `${v.toFixed(1)}%` : formatProfit(Math.round(v))} />
                 <YAxis yAxisId="wr" orientation="right" domain={[0, 100]} tick={{ fill: '#a1a1aa', fontSize: 12 }} tickFormatter={(v) => `${v}%`} />
                 <ReferenceLine yAxisId="val" y={0} stroke="rgba(255,255,255,0.2)" />
                 <ReferenceLine yAxisId="wr" y={50} stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
@@ -1257,16 +1285,16 @@ export default function WeekdayAnalysisPage() {
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   formatter={(value: any, name: any) => {
                     if (name === '勝率') return [`${Number(value).toFixed(1)}%`, name];
-                    return [`¥${formatProfit(Math.round(value))}`, name];
+                    return [displayMode === 'pct' ? `${Number(value).toFixed(2)}%` : `¥${formatProfit(Math.round(value))}`, name];
                   }}
                 />
-                <Bar yAxisId="val" dataKey="meanFinal" name="平均損益（大引け）" radius={[3, 3, 0, 0]}>
+                <Bar yAxisId="val" dataKey="meanFinal" name={displayMode === 'pct' ? '平均リターン（大引け）' : '平均損益（大引け）'} radius={[3, 3, 0, 0]}>
                   {gapData.map((d, i) => (
                     <Cell key={i} fill={d.meanFinal >= 0 ? 'rgba(52,211,153,0.6)' : 'rgba(251,113,133,0.6)'} />
                   ))}
                 </Bar>
                 <Line yAxisId="val" type="monotone" dataKey="medianFinal" stroke="#fbbf24" strokeWidth={2.5} strokeDasharray="5 3" dot={{ fill: '#fbbf24', r: 4 }} name="中央値（大引け）" />
-                <Line yAxisId="val" type="monotone" dataKey="meanAM" stroke="#a78bfa" strokeWidth={2} dot={{ fill: '#a78bfa', r: 3 }} name="平均損益（前場引け）" />
+                <Line yAxisId="val" type="monotone" dataKey="meanAM" stroke="#a78bfa" strokeWidth={2} dot={{ fill: '#a78bfa', r: 3 }} name={displayMode === 'pct' ? '平均リターン（前場引け）' : '平均損益（前場引け）'} />
                 <Line yAxisId="wr" type="monotone" dataKey="winRate" stroke="#34d399" strokeWidth={2.5} dot={{ fill: '#34d399', r: 4 }} name="勝率" />
               </ComposedChart>
             </ResponsiveContainer>
@@ -1292,13 +1320,13 @@ export default function WeekdayAnalysisPage() {
                     <tr key={d.label} className="border-b border-border/20">
                       <td className="text-right px-2 py-2.5 tabular-nums text-foreground whitespace-nowrap">{d.label}</td>
                       <td className="text-right px-2 py-2.5 tabular-nums text-foreground">{d.count}</td>
-                      <td className={`text-right px-2 py-2.5 tabular-nums ${d.meanAM >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatProfit(Math.round(d.meanAM))}</td>
-                      <td className={`text-right px-2 py-2.5 tabular-nums font-semibold ${d.meanFinal >= 0 ? 'text-blue-400' : 'text-rose-400'}`}>{formatProfit(Math.round(d.meanFinal))}</td>
-                      <td className={`text-right px-2 py-2.5 tabular-nums font-semibold ${d.medianFinal >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatProfit(Math.round(d.medianFinal))}</td>
-                      <td className={`text-right px-2 py-2.5 tabular-nums ${d.p90 >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatProfit(Math.round(d.p90))}</td>
-                      <td className={`text-right px-2 py-2.5 tabular-nums ${d.q3 >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatProfit(Math.round(d.q3))}</td>
-                      <td className={`text-right px-2 py-2.5 tabular-nums ${d.q1 >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatProfit(Math.round(d.q1))}</td>
-                      <td className={`text-right px-2 py-2.5 tabular-nums ${d.p10 >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatProfit(Math.round(d.p10))}</td>
+                      <td className={`text-right px-2 py-2.5 tabular-nums ${d.meanAM >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{displayMode === 'pct' ? formatPctLabel(d.meanAM) : formatProfit(Math.round(d.meanAM))}</td>
+                      <td className={`text-right px-2 py-2.5 tabular-nums font-semibold ${d.meanFinal >= 0 ? 'text-blue-400' : 'text-rose-400'}`}>{displayMode === 'pct' ? formatPctLabel(d.meanFinal) : formatProfit(Math.round(d.meanFinal))}</td>
+                      <td className={`text-right px-2 py-2.5 tabular-nums font-semibold ${d.medianFinal >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{displayMode === 'pct' ? formatPctLabel(d.medianFinal) : formatProfit(Math.round(d.medianFinal))}</td>
+                      <td className={`text-right px-2 py-2.5 tabular-nums ${d.p90 >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{displayMode === 'pct' ? formatPctLabel(d.p90) : formatProfit(Math.round(d.p90))}</td>
+                      <td className={`text-right px-2 py-2.5 tabular-nums ${d.q3 >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{displayMode === 'pct' ? formatPctLabel(d.q3) : formatProfit(Math.round(d.q3))}</td>
+                      <td className={`text-right px-2 py-2.5 tabular-nums ${d.q1 >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{displayMode === 'pct' ? formatPctLabel(d.q1) : formatProfit(Math.round(d.q1))}</td>
+                      <td className={`text-right px-2 py-2.5 tabular-nums ${d.p10 >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{displayMode === 'pct' ? formatPctLabel(d.p10) : formatProfit(Math.round(d.p10))}</td>
                       <td className={`text-right px-2 py-2.5 tabular-nums ${d.winRate >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>{d.winRate.toFixed(1)}%</td>
                     </tr>
                   ))}
@@ -1315,13 +1343,21 @@ export default function WeekdayAnalysisPage() {
         const lastKey = segments[segments.length - 1]?.key;
         if (!lastKey) return null;
 
+        const toPctVal = (s: DetailStock, segKey: string): number => {
+          const raw = s.segments[segKey] ?? 0;
+          if (displayMode === 'pct' && s.buyPrice && s.buyPrice > 0) {
+            return (raw / (s.buyPrice * 100)) * 100;
+          }
+          return raw;
+        };
+
         const stocksWithAM = chartStocks
           .filter(s => s.segments[amKey] !== null && s.segments[amKey] !== undefined
                     && s.segments[lastKey] !== null && s.segments[lastKey] !== undefined)
           .map(s => ({
             ...s,
-            amPnl: s.segments[amKey]!,
-            finalPnl: s.segments[lastKey]!,
+            amPnl: toPctVal(s, amKey),
+            finalPnl: toPctVal(s, lastKey),
           }));
 
         const amPlus = stocksWithAM.filter(s => s.amPnl > 0);
@@ -1339,7 +1375,7 @@ export default function WeekdayAnalysisPage() {
           const medianFinal = percentile(group.map(s => s.finalPnl), 50);
 
           const segTransition = segments.map(seg => {
-            const vals = group.map(s => s.segments[seg.key]).filter((v): v is number => v !== null);
+            const vals = group.map(s => toPctVal(s, seg.key)).filter((v): v is number => v !== null);
             return {
               time: seg.label,
               mean: vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 0,
@@ -1397,9 +1433,9 @@ export default function WeekdayAnalysisPage() {
                     <tr key={t.label} className="border-b border-border/20">
                       <td className="text-right px-2 py-2.5 tabular-nums text-foreground whitespace-nowrap font-semibold">{t.label}</td>
                       <td className="text-right px-2 py-2.5 tabular-nums text-foreground">{t.count}</td>
-                      <td className={`text-right px-2 py-2.5 tabular-nums ${t.avgAM >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatProfit(Math.round(t.avgAM))}</td>
-                      <td className={`text-right px-2 py-2.5 tabular-nums font-semibold ${t.avgFinal >= 0 ? 'text-blue-400' : 'text-rose-400'}`}>{formatProfit(Math.round(t.avgFinal))}</td>
-                      <td className={`text-right px-2 py-2.5 tabular-nums font-semibold ${t.medianFinal >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatProfit(Math.round(t.medianFinal))}</td>
+                      <td className={`text-right px-2 py-2.5 tabular-nums ${t.avgAM >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{displayMode === 'pct' ? formatPctLabel(t.avgAM) : formatProfit(Math.round(t.avgAM))}</td>
+                      <td className={`text-right px-2 py-2.5 tabular-nums font-semibold ${t.avgFinal >= 0 ? 'text-blue-400' : 'text-rose-400'}`}>{displayMode === 'pct' ? formatPctLabel(t.avgFinal) : formatProfit(Math.round(t.avgFinal))}</td>
+                      <td className={`text-right px-2 py-2.5 tabular-nums font-semibold ${t.medianFinal >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{displayMode === 'pct' ? formatPctLabel(t.medianFinal) : formatProfit(Math.round(t.medianFinal))}</td>
                       <td className="text-right px-2 py-2.5 tabular-nums text-emerald-400">{t.finalPlus}({t.maintainRate.toFixed(0)}%)</td>
                       <td className="text-right px-2 py-2.5 tabular-nums text-rose-400">{t.finalMinus}({t.reverseRate.toFixed(0)}%)</td>
                       <td className="text-right px-2 py-2.5 tabular-nums text-emerald-400">{t.improvedRate.toFixed(1)}%</td>
@@ -1417,7 +1453,7 @@ export default function WeekdayAnalysisPage() {
                   <ComposedChart data={t.segTransition} margin={{ top: 5, right: 40, bottom: 5, left: 20 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
                     <XAxis dataKey="time" tick={{ fill: '#a1a1aa', fontSize: 12 }} />
-                    <YAxis yAxisId="val" tick={{ fill: '#a1a1aa', fontSize: 12 }} tickFormatter={(v) => formatProfit(Math.round(v))} />
+                    <YAxis yAxisId="val" tick={{ fill: '#a1a1aa', fontSize: 12 }} tickFormatter={(v) => displayMode === 'pct' ? `${v.toFixed(1)}%` : formatProfit(Math.round(v))} />
                     <YAxis yAxisId="wr" orientation="right" domain={[0, 100]} tick={{ fill: '#a1a1aa', fontSize: 12 }} tickFormatter={(v) => `${v}%`} />
                     <ReferenceLine yAxisId="val" y={0} stroke="rgba(255,255,255,0.2)" />
                     <ReferenceLine yAxisId="wr" y={50} stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
@@ -1428,7 +1464,7 @@ export default function WeekdayAnalysisPage() {
                       // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       formatter={(value: any, name: any) => {
                         if (name === '勝率') return [`${Number(value).toFixed(1)}%`, name];
-                        return [`¥${formatProfit(Math.round(value))}`, name];
+                        return [displayMode === 'pct' ? `${Number(value).toFixed(2)}%` : `¥${formatProfit(Math.round(value))}`, name];
                       }}
                     />
                     <Line yAxisId="val" type="monotone" dataKey="mean" stroke="#60a5fa" strokeWidth={2.5} dot={{ fill: '#60a5fa', r: 4 }} name="平均" />
@@ -1447,16 +1483,24 @@ export default function WeekdayAnalysisPage() {
         if (segments.length === 0 || chartStocks.length === 0) return null;
 
         // 各銘柄の最大含み益セグメントを特定
+        const peakToVal = (s: DetailStock, segKey: string): number => {
+          const raw = s.segments[segKey] ?? 0;
+          if (displayMode === 'pct' && s.buyPrice && s.buyPrice > 0) {
+            return (raw / (s.buyPrice * 100)) * 100;
+          }
+          return raw;
+        };
+
         const peakAnalysis = chartStocks.map(s => {
           let peakSeg = segments[0]?.key || '';
           let peakVal = -Infinity;
           let peakIdx = 0;
           segments.forEach((seg, i) => {
-            const v = s.segments[seg.key] ?? -Infinity;
+            const v = peakToVal(s, seg.key);
             if (v > peakVal) { peakVal = v; peakSeg = seg.key; peakIdx = i; }
           });
           const lastKey = segments[segments.length - 1]?.key;
-          const finalVal = lastKey ? (s.segments[lastKey] ?? 0) : 0;
+          const finalVal = lastKey ? peakToVal(s, lastKey) : 0;
           const givenBack = peakVal > 0 ? peakVal - finalVal : 0;
           const retentionRate = peakVal > 0 ? (finalVal / peakVal) * 100 : (finalVal <= 0 ? 0 : 100);
           return { ...s, peakSeg, peakVal, peakIdx, finalVal, givenBack, retentionRate };
@@ -1474,9 +1518,9 @@ export default function WeekdayAnalysisPage() {
             key: seg.key,
             count: peaked.length,
             pct: chartStocks.length > 0 ? (peaked.length / chartStocks.length) * 100 : 0,
-            avgPeak: Math.round(avgPeak),
-            avgFinal: Math.round(avgFinal),
-            avgGivenBack: Math.round(avgGivenBack),
+            avgPeak,
+            avgFinal,
+            avgGivenBack,
             avgRetention,
           };
         });
@@ -1531,7 +1575,8 @@ export default function WeekdayAnalysisPage() {
                   formatter={(value: any, name: any) => {
                     if (name === '利益還元率') return [`${Number(value).toFixed(1)}%`, name];
                     if (name === '割合') return [`${Number(value).toFixed(1)}%`, name];
-                    return [name === 'ピーク件数' ? `${value}件` : `¥${formatProfit(value)}`, name];
+                    if (name === 'ピーク件数') return [`${value}件`, name];
+                    return [displayMode === 'pct' ? `${Number(value).toFixed(2)}%` : `¥${formatProfit(Math.round(value))}`, name];
                   }}
                 />
                 <Bar yAxisId="cnt" dataKey="count" name="ピーク件数" radius={[3, 3, 0, 0]}>
@@ -1564,9 +1609,9 @@ export default function WeekdayAnalysisPage() {
                       <td className="text-right px-2 py-2.5 tabular-nums text-foreground whitespace-nowrap">{d.time}</td>
                       <td className="text-right px-2 py-2.5 tabular-nums text-foreground">{d.count}</td>
                       <td className="text-right px-2 py-2.5 tabular-nums text-muted-foreground">{d.pct.toFixed(1)}%</td>
-                      <td className={`text-right px-2 py-2.5 tabular-nums ${d.avgPeak >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatProfit(d.avgPeak)}</td>
-                      <td className={`text-right px-2 py-2.5 tabular-nums font-semibold ${d.avgFinal >= 0 ? 'text-blue-400' : 'text-rose-400'}`}>{formatProfit(d.avgFinal)}</td>
-                      <td className={`text-right px-2 py-2.5 tabular-nums ${d.avgGivenBack > 0 ? 'text-rose-400' : 'text-foreground'}`}>{d.avgGivenBack > 0 ? `-${formatProfit(d.avgGivenBack)}` : '0'}</td>
+                      <td className={`text-right px-2 py-2.5 tabular-nums ${d.avgPeak >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{displayMode === 'pct' ? formatPctLabel(d.avgPeak) : formatProfit(Math.round(d.avgPeak))}</td>
+                      <td className={`text-right px-2 py-2.5 tabular-nums font-semibold ${d.avgFinal >= 0 ? 'text-blue-400' : 'text-rose-400'}`}>{displayMode === 'pct' ? formatPctLabel(d.avgFinal) : formatProfit(Math.round(d.avgFinal))}</td>
+                      <td className={`text-right px-2 py-2.5 tabular-nums ${d.avgGivenBack > 0 ? 'text-rose-400' : 'text-foreground'}`}>{d.avgGivenBack > 0 ? (displayMode === 'pct' ? `-${d.avgGivenBack.toFixed(2)}%` : `-${formatProfit(Math.round(d.avgGivenBack))}`) : '0'}</td>
                       <td className={`text-right px-2 py-2.5 tabular-nums font-semibold ${d.avgRetention >= 60 ? 'text-emerald-400' : d.avgRetention >= 30 ? 'text-amber-400' : 'text-rose-400'}`}>
                         {d.count > 0 ? `${d.avgRetention.toFixed(1)}%` : '-'}
                       </td>
@@ -1594,36 +1639,52 @@ export default function WeekdayAnalysisPage() {
         const lastKey = segments[segments.length - 1]?.key;
         if (!lastKey) return null;
 
-        // 含み益バケット（金額ベース）
-        const PNL_BUCKETS = [
-          { label: '損失 (<0)', min: -Infinity, max: 0 },
-          { label: '微益 (0~+500)', min: 0, max: 500 },
-          { label: '小益 (+500~+2000)', min: 500, max: 2000 },
-          { label: '中益 (+2000~+5000)', min: 2000, max: 5000 },
-          { label: '大益 (+5000~)', min: 5000, max: Infinity },
-        ];
+        // 含み益バケット
+        const PNL_BUCKETS = displayMode === 'pct'
+          ? [
+              { label: '損失 (<0%)', min: -Infinity, max: 0 },
+              { label: '微益 (0~+0.5%)', min: 0, max: 0.5 },
+              { label: '小益 (+0.5~+2%)', min: 0.5, max: 2 },
+              { label: '中益 (+2~+5%)', min: 2, max: 5 },
+              { label: '大益 (+5%~)', min: 5, max: Infinity },
+            ]
+          : [
+              { label: '損失 (<0)', min: -Infinity, max: 0 },
+              { label: '微益 (0~+500)', min: 0, max: 500 },
+              { label: '小益 (+500~+2000)', min: 500, max: 2000 },
+              { label: '中益 (+2000~+5000)', min: 2000, max: 5000 },
+              { label: '大益 (+5000~)', min: 5000, max: Infinity },
+            ];
+
+        const exitToVal = (s: DetailStock, segKey: string): number => {
+          const raw = s.segments[segKey] ?? 0;
+          if (displayMode === 'pct' && s.buyPrice && s.buyPrice > 0) {
+            return (raw / (s.buyPrice * 100)) * 100;
+          }
+          return raw;
+        };
 
         const checkpointData = checkpoints.map(cp => {
           const buckets = PNL_BUCKETS.map(bucket => {
             const group = chartStocks.filter(s => {
-              const cpVal = s.segments[cp.key] ?? 0;
+              const cpVal = exitToVal(s, cp.key);
               return cpVal >= bucket.min && cpVal < bucket.max;
             });
 
             if (group.length === 0) return { ...bucket, count: 0, avgAtCP: 0, avgFinal: 0, delta: 0, holdBetter: 0, exitBetter: 0, holdBetterPct: 0 };
 
-            const avgAtCP = group.reduce((a, s) => a + (s.segments[cp.key] ?? 0), 0) / group.length;
-            const avgFinal = group.reduce((a, s) => a + (s.segments[lastKey] ?? 0), 0) / group.length;
+            const avgAtCP = group.reduce((a, s) => a + exitToVal(s, cp.key), 0) / group.length;
+            const avgFinal = group.reduce((a, s) => a + exitToVal(s, lastKey), 0) / group.length;
             const delta = avgFinal - avgAtCP;
-            const holdBetter = group.filter(s => (s.segments[lastKey] ?? 0) > (s.segments[cp.key] ?? 0)).length;
+            const holdBetter = group.filter(s => exitToVal(s, lastKey) > exitToVal(s, cp.key)).length;
             const exitBetter = group.length - holdBetter;
 
             return {
               ...bucket,
               count: group.length,
-              avgAtCP: Math.round(avgAtCP),
-              avgFinal: Math.round(avgFinal),
-              delta: Math.round(delta),
+              avgAtCP,
+              avgFinal,
+              delta,
               holdBetter,
               exitBetter,
               holdBetterPct: (holdBetter / group.length) * 100,
@@ -1664,15 +1725,18 @@ export default function WeekdayAnalysisPage() {
                     </thead>
                     <tbody>
                       {cp.buckets.map(b => {
-                        const verdict = b.delta > 100 ? '持越し◎' : b.delta > 0 ? '持越し○' : b.delta > -100 ? '微妙' : '利確◎';
-                        const verdictClass = b.delta > 100 ? 'text-emerald-400' : b.delta > 0 ? 'text-emerald-500' : b.delta > -100 ? 'text-amber-400' : 'text-rose-400';
+                        const deltaThreshHigh = displayMode === 'pct' ? 0.1 : 100;
+                        const deltaThreshLow = displayMode === 'pct' ? -0.1 : -100;
+                        const verdict = b.delta > deltaThreshHigh ? '持越し◎' : b.delta > 0 ? '持越し○' : b.delta > deltaThreshLow ? '微妙' : '利確◎';
+                        const verdictClass = b.delta > deltaThreshHigh ? 'text-emerald-400' : b.delta > 0 ? 'text-emerald-500' : b.delta > deltaThreshLow ? 'text-amber-400' : 'text-rose-400';
+                        const fmtVal = (v: number) => displayMode === 'pct' ? formatPctLabel(v) : formatProfit(Math.round(v));
                         return (
                           <tr key={b.label} className="border-b border-border/20">
                             <td className="text-right px-2 py-2.5 tabular-nums text-foreground whitespace-nowrap">{b.label}</td>
                             <td className="text-right px-2 py-2.5 tabular-nums text-foreground">{b.count}</td>
-                            <td className={`text-right px-2 py-2.5 tabular-nums ${b.avgAtCP >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatProfit(b.avgAtCP)}</td>
-                            <td className={`text-right px-2 py-2.5 tabular-nums font-semibold ${b.avgFinal >= 0 ? 'text-blue-400' : 'text-rose-400'}`}>{formatProfit(b.avgFinal)}</td>
-                            <td className={`text-right px-2 py-2.5 tabular-nums font-semibold ${b.delta >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{formatProfit(b.delta)}</td>
+                            <td className={`text-right px-2 py-2.5 tabular-nums ${b.avgAtCP >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{fmtVal(b.avgAtCP)}</td>
+                            <td className={`text-right px-2 py-2.5 tabular-nums font-semibold ${b.avgFinal >= 0 ? 'text-blue-400' : 'text-rose-400'}`}>{fmtVal(b.avgFinal)}</td>
+                            <td className={`text-right px-2 py-2.5 tabular-nums font-semibold ${b.delta >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{fmtVal(b.delta)}</td>
                             <td className={`text-right px-2 py-2.5 font-semibold ${verdictClass}`}>{verdict}</td>
                             <td className={`text-right px-2 py-2.5 tabular-nums ${b.holdBetterPct >= 50 ? 'text-emerald-400' : 'text-rose-400'}`}>
                               {b.holdBetterPct.toFixed(0)}%
