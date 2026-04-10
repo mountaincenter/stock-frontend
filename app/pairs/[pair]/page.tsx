@@ -44,10 +44,12 @@ function usePairChartData(tk1: string, tk2: string, days: number) {
   const [data, setData] = useState<PairChartData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const initialLoaded = useRef(false);
 
   useEffect(() => {
     if (!tk1 || !tk2) return;
-    setLoading(true);
+    // 期間切替時はローディングスケルトンを出さない
+    if (!initialLoaded.current) setLoading(true);
     setError(null);
 
     const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || '';
@@ -61,7 +63,7 @@ function usePairChartData(tk1: string, tk2: string, days: number) {
         }
         return res.json();
       })
-      .then((d: PairChartData) => { setData(d); setLoading(false); })
+      .then((d: PairChartData) => { setData(d); setLoading(false); initialLoaded.current = true; })
       .catch((e) => { setError(e.message); setLoading(false); });
   }, [tk1, tk2, days]);
 
@@ -84,7 +86,7 @@ function PriceOverlayChart({ series, name1, name2 }: { series: SeriesPoint[]; na
   const containerRef = useRef<HTMLDivElement | null>(null);
   const s1Ref = useRef<any>(null);
   const s2Ref = useRef<any>(null);
-  const [hovered, setHovered] = useState<{ date: string; v1: number; v2: number } | null>(null);
+  const [hovered, setHovered] = useState<{ date: string; v1: number; v2: number; x: number; y: number } | null>(null);
 
   const style = useMemo(() => ({
     paper: isDark ? '#0b0b0c' : '#ffffff',
@@ -146,12 +148,12 @@ function PriceOverlayChart({ series, name1, name2 }: { series: SeriesPoint[]; na
 
       chartApi.subscribeCrosshairMove((param) => {
         if (disposed) return;
-        if (!param.time || !param.seriesData?.size) { setHovered(null); return; }
+        if (!param.time || !param.seriesData?.size || !param.point) { setHovered(null); return; }
         const t = param.time as BusinessDay;
         const date = `${t.year}/${String(t.month).padStart(2, '0')}/${String(t.day).padStart(2, '0')}`;
         const d1 = param.seriesData.get(s1Ref.current);
         const d2 = param.seriesData.get(s2Ref.current);
-        if (d1 && d2) setHovered({ date, v1: (d1 as any).value, v2: (d2 as any).value });
+        if (d1 && d2) setHovered({ date, v1: (d1 as any).value, v2: (d2 as any).value, x: param.point.x, y: param.point.y });
       });
 
       chartApi.timeScale().fitContent();
@@ -170,10 +172,18 @@ function PriceOverlayChart({ series, name1, name2 }: { series: SeriesPoint[]; na
 
   if (!mounted) return <div className="h-[420px] bg-card/50 rounded-2xl animate-pulse" />;
 
+  const tipFlip = hovered && containerRef.current ? hovered.x > containerRef.current.clientWidth * 0.65 : false;
+
   return (
     <div className="relative">
       {hovered && (
-        <div className="absolute top-2 left-2 z-10 bg-card/90 backdrop-blur-sm border border-border/30 rounded-lg px-3 py-2 text-xs space-y-0.5 pointer-events-none">
+        <div
+          style={{
+            ...(tipFlip ? { right: (containerRef.current?.clientWidth ?? 0) - hovered.x + 16 } : { left: hovered.x + 16 }),
+            top: Math.max(8, hovered.y - 20),
+          }}
+          className="absolute z-10 bg-card/90 backdrop-blur-sm border border-border/30 rounded-lg px-3 py-2 text-xs space-y-0.5 pointer-events-none whitespace-nowrap"
+        >
           <div className="text-muted-foreground">{hovered.date}</div>
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-0.5 bg-blue-500 inline-block rounded" />
@@ -201,7 +211,7 @@ function ZScoreChart({ series }: { series: SeriesPoint[] }) {
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const zSeriesRef = useRef<any>(null);
-  const [hovered, setHovered] = useState<{ date: string; z: number } | null>(null);
+  const [hovered, setHovered] = useState<{ date: string; z: number; x: number; y: number } | null>(null);
 
   const style = useMemo(() => ({
     paper: isDark ? '#0b0b0c' : '#ffffff',
@@ -284,11 +294,11 @@ function ZScoreChart({ series }: { series: SeriesPoint[] }) {
 
       chartApi.subscribeCrosshairMove((param) => {
         if (disposed) return;
-        if (!param.time || !param.seriesData?.size) { setHovered(null); return; }
+        if (!param.time || !param.seriesData?.size || !param.point) { setHovered(null); return; }
         const t = param.time as BusinessDay;
         const date = `${t.year}/${String(t.month).padStart(2, '0')}/${String(t.day).padStart(2, '0')}`;
         const d = param.seriesData.get(zSeriesRef.current);
-        if (d) setHovered({ date, z: (d as any).value });
+        if (d) setHovered({ date, z: (d as any).value, x: param.point.x, y: param.point.y });
       });
 
       chartApi.timeScale().fitContent();
@@ -307,10 +317,18 @@ function ZScoreChart({ series }: { series: SeriesPoint[] }) {
 
   if (!mounted) return <div className="h-[380px] bg-card/50 rounded-2xl animate-pulse" />;
 
+  const tipFlip = hovered && containerRef.current ? hovered.x > containerRef.current.clientWidth * 0.65 : false;
+
   return (
     <div className="relative">
       {hovered && (
-        <div className="absolute top-2 left-2 z-10 bg-card/90 backdrop-blur-sm border border-border/30 rounded-lg px-3 py-2 text-xs pointer-events-none">
+        <div
+          style={{
+            ...(tipFlip ? { right: (containerRef.current?.clientWidth ?? 0) - hovered.x + 16 } : { left: hovered.x + 16 }),
+            top: Math.max(8, hovered.y - 20),
+          }}
+          className="absolute z-10 bg-card/90 backdrop-blur-sm border border-border/30 rounded-lg px-3 py-2 text-xs pointer-events-none whitespace-nowrap"
+        >
           <span className="text-muted-foreground">{hovered.date}</span>
           <span className="ml-2 text-foreground font-medium tabular-nums">
             z = {hovered.z >= 0 ? '+' : ''}{hovered.z.toFixed(3)}
@@ -377,6 +395,19 @@ function PairChartContent({ tk1, tk2 }: { tk1: string; tk2: string }) {
   const zColor = Math.abs(data.z_latest) >= 2.0
     ? (data.z_latest > 0 ? 'text-rose-400' : 'text-emerald-400')
     : Math.abs(data.z_latest) >= 1.5 ? 'text-amber-400' : 'text-muted-foreground';
+
+  // z-score統計: 直近日付、最大、最小
+  const zStats = useMemo(() => {
+    if (!data?.series?.length) return null;
+    let maxZ = -Infinity, minZ = Infinity, maxDate = '', minDate = '';
+    for (const p of data.series) {
+      if (p.z === null) continue;
+      if (p.z > maxZ) { maxZ = p.z; maxDate = p.date; }
+      if (p.z < minZ) { minZ = p.z; minDate = p.date; }
+    }
+    const lastDate = data.series[data.series.length - 1]?.date ?? '';
+    return { maxZ, maxDate, minZ, minDate, lastDate };
+  }, [data?.series]);
 
   const dirBadge = data.direction === 'short_tk1'
     ? { label: `SHORT ${data.name1}`, cls: 'bg-rose-500/15 text-rose-400' }
@@ -544,35 +575,53 @@ function PairChartContent({ tk1, tk2 }: { tk1: string; tk2: string }) {
         <div className="rounded-2xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 md:p-6 shadow-xl shadow-black/5 backdrop-blur-xl">
           <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] via-transparent to-transparent pointer-events-none" />
           <div className="relative">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <h2 className="text-sm font-medium text-foreground">Z-Score</h2>
-                <span className={`text-sm font-bold tabular-nums ${zColor}`}>
-                  {data.z_latest >= 0 ? '+' : ''}{data.z_latest.toFixed(3)}
-                </span>
-                <div className="flex items-center gap-1 ml-1">
-                  {[
-                    { label: '2Y', d: 500 },
-                    { label: '3Y', d: 750 },
-                    { label: '5Y', d: 1250 },
-                  ].map(opt => (
-                    <button key={opt.d} onClick={() => setDays(opt.d)}
-                      className={`px-2 py-0.5 text-xs rounded transition-colors ${days === opt.d ? 'bg-primary/20 text-primary font-medium' : 'text-muted-foreground hover:text-foreground'}`}>
-                      {opt.label}
-                    </button>
-                  ))}
+            <div className="flex flex-col gap-2 mb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <h2 className="text-sm font-medium text-foreground">Z-Score</h2>
+                  <div className="flex items-center gap-1 ml-1">
+                    {[
+                      { label: '2Y', d: 500 },
+                      { label: '3Y', d: 750 },
+                      { label: '5Y', d: 1250 },
+                    ].map(opt => (
+                      <button key={opt.d} onClick={() => setDays(opt.d)}
+                        className={`px-2 py-0.5 text-xs rounded transition-colors ${days === opt.d ? 'bg-primary/20 text-primary font-medium' : 'text-muted-foreground hover:text-foreground'}`}>
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2.5 text-xs">
+                  <span className="flex items-center gap-1">
+                    <span className="w-4 h-0 border-t border-dashed border-rose-400 inline-block" />
+                    <span className="text-muted-foreground">±2.0</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-4 h-0 border-t border-dashed border-muted-foreground inline-block" />
+                    <span className="text-muted-foreground">0</span>
+                  </span>
                 </div>
               </div>
-              <div className="flex items-center gap-2.5 text-xs">
-                <span className="flex items-center gap-1">
-                  <span className="w-4 h-0 border-t border-dashed border-rose-400 inline-block" />
-                  <span className="text-muted-foreground">±2.0</span>
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="w-4 h-0 border-t border-dashed border-muted-foreground inline-block" />
-                  <span className="text-muted-foreground">0</span>
-                </span>
-              </div>
+              {zStats && (
+                <div className="flex items-center gap-4 text-xs">
+                  <span>
+                    <span className="text-muted-foreground">z-score </span>
+                    <span className={`font-bold tabular-nums ${zColor}`}>{data.z_latest >= 0 ? '+' : ''}{data.z_latest.toFixed(3)}</span>
+                    <span className="text-muted-foreground/70 ml-1">:{zStats.lastDate}</span>
+                  </span>
+                  <span>
+                    <span className="text-muted-foreground">最大 </span>
+                    <span className="font-bold tabular-nums text-rose-400">{zStats.maxZ >= 0 ? '+' : ''}{zStats.maxZ.toFixed(3)}</span>
+                    <span className="text-muted-foreground/70 ml-1">:{zStats.maxDate}</span>
+                  </span>
+                  <span>
+                    <span className="text-muted-foreground">最小 </span>
+                    <span className="font-bold tabular-nums text-emerald-400">{zStats.minZ >= 0 ? '+' : ''}{zStats.minZ.toFixed(3)}</span>
+                    <span className="text-muted-foreground/70 ml-1">:{zStats.minDate}</span>
+                  </span>
+                </div>
+              )}
             </div>
             <ZScoreChart series={data.series} />
           </div>
