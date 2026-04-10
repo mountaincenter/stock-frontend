@@ -525,39 +525,35 @@ function PairChartContent({ tk1, tk2 }: { tk1: string; tk2: string }) {
               })}
             </div>
 
-            {/* Z-score + direction */}
-            <div className="flex flex-wrap items-center justify-between gap-4">
+            {/* Z-score + direction + stats — 1行 */}
+            <div className="flex flex-wrap items-center gap-6">
               <div className="text-center">
                 <div className="text-xs text-muted-foreground">Z-Score</div>
-                <div className={`text-2xl md:text-3xl font-bold tabular-nums ${zColor}`}>
+                <div className={`text-sm md:text-base font-bold tabular-nums ${zColor}`}>
                   {data.z_latest >= 0 ? '+' : ''}{data.z_latest.toFixed(3)}
                 </div>
               </div>
               <span className={`px-3 py-1 rounded-full text-xs font-medium ${dirBadge.cls}`}>
                 {dirBadge.label}
               </span>
-            </div>
-          </div>
-
-          {/* Stats row */}
-          <div className="mt-4 pt-4 border-t border-border/30 grid grid-cols-4 gap-4 text-center">
-            <div>
-              <div className="text-xs text-muted-foreground">参照期間</div>
-              <div className="text-sm md:text-base font-medium text-foreground">{data.lookback}日</div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">PF</div>
-              <div className={`text-sm md:text-base font-medium ${data.full_pf >= 2.5 ? 'text-emerald-400' : data.full_pf >= 2.0 ? 'text-foreground' : 'text-muted-foreground'}`}>
-                {data.full_pf.toFixed(2)}
+              <div className="text-center">
+                <div className="text-xs text-muted-foreground">参照期間</div>
+                <div className="text-sm md:text-base font-medium text-foreground">{data.lookback}日</div>
               </div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">取引回数</div>
-              <div className="text-sm md:text-base font-medium text-foreground">{data.full_n}回</div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">半減期</div>
-              <div className="text-sm md:text-base font-medium text-foreground">{data.half_life.toFixed(0)}日</div>
+              <div className="text-center">
+                <div className="text-xs text-muted-foreground">PF</div>
+                <div className={`text-sm md:text-base font-medium ${data.full_pf >= 2.5 ? 'text-emerald-400' : data.full_pf >= 2.0 ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  {data.full_pf.toFixed(2)}
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="text-xs text-muted-foreground">取引回数</div>
+                <div className="text-sm md:text-base font-medium text-foreground">{data.full_n}回</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xs text-muted-foreground">半減期</div>
+                <div className="text-sm md:text-base font-medium text-foreground">{data.half_life.toFixed(0)}日</div>
+              </div>
             </div>
           </div>
         </div>
