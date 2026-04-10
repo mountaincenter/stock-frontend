@@ -364,6 +364,19 @@ function PairChartContent({ tk1, tk2 }: { tk1: string; tk2: string }) {
   const [days, setDays] = useState(500);
   const { data, loading, error } = usePairChartData(tk1, tk2, days);
 
+  // フック呼び出しは早期returnの前に配置（Rules of Hooks）
+  const zStats = useMemo(() => {
+    if (!data?.series?.length) return null;
+    let maxZ = -Infinity, minZ = Infinity, maxDate = '', minDate = '';
+    for (const p of data.series) {
+      if (p.z === null) continue;
+      if (p.z > maxZ) { maxZ = p.z; maxDate = p.date; }
+      if (p.z < minZ) { minZ = p.z; minDate = p.date; }
+    }
+    const lastDate = data.series[data.series.length - 1]?.date ?? '';
+    return { maxZ, maxDate, minZ, minDate, lastDate };
+  }, [data?.series]);
+
   if (loading) {
     return (
       <main className="relative min-h-screen">
@@ -395,19 +408,6 @@ function PairChartContent({ tk1, tk2 }: { tk1: string; tk2: string }) {
   const zColor = Math.abs(data.z_latest) >= 2.0
     ? (data.z_latest > 0 ? 'text-rose-400' : 'text-emerald-400')
     : Math.abs(data.z_latest) >= 1.5 ? 'text-amber-400' : 'text-muted-foreground';
-
-  // z-score統計: 直近日付、最大、最小
-  const zStats = useMemo(() => {
-    if (!data?.series?.length) return null;
-    let maxZ = -Infinity, minZ = Infinity, maxDate = '', minDate = '';
-    for (const p of data.series) {
-      if (p.z === null) continue;
-      if (p.z > maxZ) { maxZ = p.z; maxDate = p.date; }
-      if (p.z < minZ) { minZ = p.z; minDate = p.date; }
-    }
-    const lastDate = data.series[data.series.length - 1]?.date ?? '';
-    return { maxZ, maxDate, minZ, minDate, lastDate };
-  }, [data?.series]);
 
   const dirBadge = data.direction === 'short_tk1'
     ? { label: `SHORT ${data.name1}`, cls: 'bg-rose-500/15 text-rose-400' }
