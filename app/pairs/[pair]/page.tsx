@@ -26,6 +26,7 @@ interface PairChartData {
   chg1_pct: number; chg2_pct: number;
   lookback: number; full_pf: number; full_n: number; half_life: number;
   z_latest: number; direction: string;
+  tk1_upper: number; tk1_lower: number;
   series: SeriesPoint[];
 }
 
@@ -418,20 +419,27 @@ function PairChartContent({ tk1, tk2 }: { tk1: string; tk2: string }) {
     maximumFractionDigits: 0
   });
 
+  const isShortTk1 = data.direction === 'short_tk1';
   const pairedStocks = [
     {
       name: data.name1,
       ticker: data.tk1,
       close: data.c1,
       change: data.chg1,
-      pct: data.chg1_pct
+      pct: data.chg1_pct,
+      side: isShortTk1 ? 'Short' as const : 'Long' as const,
+      threshold: isShortTk1 ? data.tk1_upper : data.tk1_lower,
+      thresholdLabel: isShortTk1 ? '以上' : '以下',
     },
     {
       name: data.name2,
       ticker: data.tk2,
       close: data.c2,
       change: data.chg2,
-      pct: data.chg2_pct
+      pct: data.chg2_pct,
+      side: isShortTk1 ? 'Long' as const : 'Short' as const,
+      threshold: null as number | null,
+      thresholdLabel: null as string | null,
     }
   ];
 
@@ -481,6 +489,9 @@ function PairChartContent({ tk1, tk2 }: { tk1: string; tk2: string }) {
                         <h2 className="truncate text-xl font-bold leading-tight tracking-tight">
                           {stock.name}
                         </h2>
+                        <span className={`px-2 py-0.5 rounded text-xs font-bold leading-none ${stock.side === 'Short' ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                          {stock.side}
+                        </span>
                       </div>
                       <div className="flex items-baseline gap-2 flex-wrap">
                         <span className="font-mono text-base text-muted-foreground font-semibold">
@@ -492,6 +503,11 @@ function PairChartContent({ tk1, tk2 }: { tk1: string; tk2: string }) {
                           ¥{priceFormatter.format(stock.close)}
                         </span>
                         <span className="text-sm text-muted-foreground/70">Close</span>
+                        {stock.threshold != null && stock.threshold > 0 && (
+                          <span className={`text-sm font-medium tabular-nums ${stock.side === 'Short' ? 'text-rose-400' : 'text-emerald-400'}`}>
+                            ¥{priceFormatter.format(Math.round(stock.threshold))}{stock.thresholdLabel}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="flex-shrink-0">
