@@ -40,7 +40,7 @@ function parsePairSlug(slug: string): { tk1: string; tk2: string } | null {
 }
 
 // === Data hook ===
-function usePairChartData(tk1: string, tk2: string) {
+function usePairChartData(tk1: string, tk2: string, days: number) {
   const [data, setData] = useState<PairChartData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +51,7 @@ function usePairChartData(tk1: string, tk2: string) {
     setError(null);
 
     const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || '';
-    const url = `${apiBase}/api/dev/pairs/chart?tk1=${encodeURIComponent(tk1)}&tk2=${encodeURIComponent(tk2)}&days=500`;
+    const url = `${apiBase}/api/dev/pairs/chart?tk1=${encodeURIComponent(tk1)}&tk2=${encodeURIComponent(tk2)}&days=${days}`;
 
     fetch(url)
       .then(async (res) => {
@@ -63,7 +63,7 @@ function usePairChartData(tk1: string, tk2: string) {
       })
       .then((d: PairChartData) => { setData(d); setLoading(false); })
       .catch((e) => { setError(e.message); setLoading(false); });
-  }, [tk1, tk2]);
+  }, [tk1, tk2, days]);
 
   return { data, loading, error };
 }
@@ -82,6 +82,9 @@ function PriceOverlayChart({ series, name1, name2 }: { series: SeriesPoint[]; na
   const isDark = (resolvedTheme ?? theme) === 'dark';
 
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const s1Ref = useRef<any>(null);
+  const s2Ref = useRef<any>(null);
+  const [hovered, setHovered] = useState<{ date: string; v1: number; v2: number } | null>(null);
 
   const style = useMemo(() => ({
     paper: isDark ? '#0b0b0c' : '#ffffff',
@@ -125,21 +128,31 @@ function PriceOverlayChart({ series, name1, name2 }: { series: SeriesPoint[]; na
       });
       chart = chartApi;
 
-      // Series 1 (tk1)
       const s1 = chartApi.addSeries(LineSeries, {
         color: style.line1, lineWidth: 2,
-        priceLineVisible: false, lastValueVisible: true,
-        crosshairMarkerVisible: true, title: name1,
+        priceLineVisible: false, lastValueVisible: false,
+        crosshairMarkerVisible: true, title: '',
       });
       s1.setData(series.map(p => ({ time: toBusinessDay(p.date) as Time, value: p.norm1 })));
+      s1Ref.current = s1;
 
-      // Series 2 (tk2)
       const s2 = chartApi.addSeries(LineSeries, {
         color: style.line2, lineWidth: 2,
-        priceLineVisible: false, lastValueVisible: true,
-        crosshairMarkerVisible: true, title: name2,
+        priceLineVisible: false, lastValueVisible: false,
+        crosshairMarkerVisible: true, title: '',
       });
       s2.setData(series.map(p => ({ time: toBusinessDay(p.date) as Time, value: p.norm2 })));
+      s2Ref.current = s2;
+
+      chartApi.subscribeCrosshairMove((param) => {
+        if (disposed) return;
+        if (!param.time || !param.seriesData?.size) { setHovered(null); return; }
+        const t = param.time as BusinessDay;
+        const date = `${t.year}/${String(t.month).padStart(2, '0')}/${String(t.day).padStart(2, '0')}`;
+        const d1 = param.seriesData.get(s1Ref.current);
+        const d2 = param.seriesData.get(s2Ref.current);
+        if (d1 && d2) setHovered({ date, v1: (d1 as any).value, v2: (d2 as any).value });
+      });
 
       chartApi.timeScale().fitContent();
 
@@ -157,7 +170,26 @@ function PriceOverlayChart({ series, name1, name2 }: { series: SeriesPoint[]; na
 
   if (!mounted) return <div className="h-[420px] bg-card/50 rounded-2xl animate-pulse" />;
 
-  return <div ref={containerRef} className="w-full h-[420px]" />;
+  return (
+    <div className="relative">
+      {hovered && (
+        <div className="absolute top-2 left-2 z-10 bg-card/90 backdrop-blur-sm border border-border/30 rounded-lg px-3 py-2 text-xs space-y-0.5 pointer-events-none">
+          <div className="text-muted-foreground">{hovered.date}</div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-0.5 bg-blue-500 inline-block rounded" />
+            <span className="text-muted-foreground">{name1}</span>
+            <span className="text-foreground font-medium tabular-nums">{hovered.v1.toFixed(1)}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-0.5 bg-amber-500 inline-block rounded" />
+            <span className="text-muted-foreground">{name2}</span>
+            <span className="text-foreground font-medium tabular-nums">{hovered.v2.toFixed(1)}</span>
+          </div>
+        </div>
+      )}
+      <div ref={containerRef} className="w-full h-[420px]" />
+    </div>
+  );
 }
 
 // === Z-Score Chart (Panel 2) ===
@@ -168,6 +200,8 @@ function ZScoreChart({ series }: { series: SeriesPoint[] }) {
   const isDark = (resolvedTheme ?? theme) === 'dark';
 
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const zSeriesRef = useRef<any>(null);
+  const [hovered, setHovered] = useState<{ date: string; z: number } | null>(null);
 
   const style = useMemo(() => ({
     paper: isDark ? '#0b0b0c' : '#ffffff',
@@ -220,35 +254,42 @@ function ZScoreChart({ series }: { series: SeriesPoint[] }) {
       });
       chart = chartApi;
 
-      // Z-score line
       const zSeries = chartApi.addSeries(LineSeries, {
         color: style.zLine, lineWidth: 2,
-        priceLineVisible: false, lastValueVisible: true,
-        crosshairMarkerVisible: true, title: 'Z-Score',
+        priceLineVisible: false, lastValueVisible: false,
+        crosshairMarkerVisible: true, title: '',
       });
       zSeries.setData(zData);
+      zSeriesRef.current = zSeries;
 
-      // Band: +2.0 (entry short)
       const bandData = (val: number) => zData.map(p => ({ time: p.time, value: val }));
 
       const plus2 = chartApi.addSeries(LineSeries, {
-        color: style.entryHigh, lineWidth: 1, lineStyle: 2, // Dashed
+        color: style.entryHigh, lineWidth: 1, lineStyle: 2,
         priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false, title: '',
       });
       plus2.setData(bandData(2.0));
 
       const minus2 = chartApi.addSeries(LineSeries, {
-        color: style.entryLow, lineWidth: 1, lineStyle: 2, // Dashed
+        color: style.entryLow, lineWidth: 1, lineStyle: 2,
         priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false, title: '',
       });
       minus2.setData(bandData(-2.0));
 
-      // Zero line (mean reversion target)
       const zeroLine = chartApi.addSeries(LineSeries, {
-        color: style.zero, lineWidth: 1, lineStyle: 2, // Dashed
+        color: style.zero, lineWidth: 1, lineStyle: 2,
         priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false, title: '',
       });
       zeroLine.setData(bandData(0));
+
+      chartApi.subscribeCrosshairMove((param) => {
+        if (disposed) return;
+        if (!param.time || !param.seriesData?.size) { setHovered(null); return; }
+        const t = param.time as BusinessDay;
+        const date = `${t.year}/${String(t.month).padStart(2, '0')}/${String(t.day).padStart(2, '0')}`;
+        const d = param.seriesData.get(zSeriesRef.current);
+        if (d) setHovered({ date, z: (d as any).value });
+      });
 
       chartApi.timeScale().fitContent();
 
@@ -266,7 +307,19 @@ function ZScoreChart({ series }: { series: SeriesPoint[] }) {
 
   if (!mounted) return <div className="h-[380px] bg-card/50 rounded-2xl animate-pulse" />;
 
-  return <div ref={containerRef} className="w-full h-[380px]" />;
+  return (
+    <div className="relative">
+      {hovered && (
+        <div className="absolute top-2 left-2 z-10 bg-card/90 backdrop-blur-sm border border-border/30 rounded-lg px-3 py-2 text-xs pointer-events-none">
+          <span className="text-muted-foreground">{hovered.date}</span>
+          <span className="ml-2 text-foreground font-medium tabular-nums">
+            z = {hovered.z >= 0 ? '+' : ''}{hovered.z.toFixed(3)}
+          </span>
+        </div>
+      )}
+      <div ref={containerRef} className="w-full h-[380px]" />
+    </div>
+  );
 }
 
 // === Main Page ===
@@ -290,7 +343,8 @@ export default function PairChartPage() {
 }
 
 function PairChartContent({ tk1, tk2 }: { tk1: string; tk2: string }) {
-  const { data, loading, error } = usePairChartData(tk1, tk2);
+  const [days, setDays] = useState(500);
+  const { data, loading, error } = usePairChartData(tk1, tk2, days);
 
   if (loading) {
     return (
@@ -466,16 +520,20 @@ function PairChartContent({ tk1, tk2 }: { tk1: string; tk2: string }) {
           <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] via-transparent to-transparent pointer-events-none" />
           <div className="relative">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-medium text-foreground">Normalized Price (base=100)</h2>
-              <div className="flex items-center gap-3 text-xs">
-                <span className="flex items-center gap-1">
-                  <span className="w-3 h-0.5 bg-blue-500 inline-block rounded" />
-                  <span className="text-muted-foreground">{data.name1}</span>
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="w-3 h-0.5 bg-amber-500 inline-block rounded" />
-                  <span className="text-muted-foreground">{data.name2}</span>
-                </span>
+              <div className="flex items-center gap-3">
+                <h2 className="text-sm font-medium text-foreground">Normalized Price</h2>
+                <div className="flex items-center gap-2.5 text-xs">
+                  <span className="flex items-center gap-1">
+                    <span className="w-2.5 h-0.5 bg-blue-500 inline-block rounded" />
+                    <span className="text-muted-foreground">{data.name1}</span>
+                    <span className="text-foreground tabular-nums font-medium">{data.series[data.series.length - 1]?.norm1.toFixed(1)}</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-2.5 h-0.5 bg-amber-500 inline-block rounded" />
+                    <span className="text-muted-foreground">{data.name2}</span>
+                    <span className="text-foreground tabular-nums font-medium">{data.series[data.series.length - 1]?.norm2.toFixed(1)}</span>
+                  </span>
+                </div>
               </div>
             </div>
             <PriceOverlayChart series={data.series} name1={data.name1} name2={data.name2} />
@@ -487,19 +545,32 @@ function PairChartContent({ tk1, tk2 }: { tk1: string; tk2: string }) {
           <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] via-transparent to-transparent pointer-events-none" />
           <div className="relative">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-medium text-foreground">Z-Score</h2>
-              <div className="flex items-center gap-3 text-xs">
+              <div className="flex items-center gap-3">
+                <h2 className="text-sm font-medium text-foreground">Z-Score</h2>
+                <span className={`text-sm font-bold tabular-nums ${zColor}`}>
+                  {data.z_latest >= 0 ? '+' : ''}{data.z_latest.toFixed(3)}
+                </span>
+                <div className="flex items-center gap-1 ml-1">
+                  {[
+                    { label: '2Y', d: 500 },
+                    { label: '3Y', d: 750 },
+                    { label: '5Y', d: 1250 },
+                  ].map(opt => (
+                    <button key={opt.d} onClick={() => setDays(opt.d)}
+                      className={`px-2 py-0.5 text-xs rounded transition-colors ${days === opt.d ? 'bg-primary/20 text-primary font-medium' : 'text-muted-foreground hover:text-foreground'}`}>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5 text-xs">
                 <span className="flex items-center gap-1">
-                  <span className="w-6 h-0 border-t border-dashed border-rose-400 inline-block" />
-                  <span className="text-muted-foreground">+2.0 Entry</span>
+                  <span className="w-4 h-0 border-t border-dashed border-rose-400 inline-block" />
+                  <span className="text-muted-foreground">±2.0</span>
                 </span>
                 <span className="flex items-center gap-1">
-                  <span className="w-6 h-0 border-t border-dashed border-emerald-400 inline-block" />
-                  <span className="text-muted-foreground">-2.0 Entry</span>
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="w-6 h-0 border-t border-dashed border-muted-foreground inline-block" />
-                  <span className="text-muted-foreground">0 Target</span>
+                  <span className="w-4 h-0 border-t border-dashed border-muted-foreground inline-block" />
+                  <span className="text-muted-foreground">0</span>
                 </span>
               </div>
             </div>
