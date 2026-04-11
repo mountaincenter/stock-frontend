@@ -258,7 +258,7 @@ function GranvilleContent() {
       fetch(`${API_BASE}/api/dev/granville/positions`).then(r => r.json()).catch(() => ({ positions: [], exits: [], as_of: null })),
       fetch(`${API_BASE}/api/dev/granville/stats?rule=B4`).then(r => r.json()).catch(() => null),
       fetch(`${API_BASE}/api/dev/granville/b4_entry`).then(r => r.json()).catch(() => null),
-      fetch(`${API_BASE}/api/dev/granville/long-recommendations`).then(r => r.ok ? r.json() : { long_recommendations: [], count: 0, date: null, regime: {} }).catch(() => ({ long_recommendations: [], count: 0, date: null, regime: {} })),
+      fetch(`${API_BASE}/api/dev/granville/long-recommendations`).then(r => r.ok ? r.json() : { long_recommendations: [], count: 0, date: null, regime: null }).catch(() => ({ long_recommendations: [], count: 0, date: null, regime: null })),
     ]).then(([st, rec, sig, pos, sta, b4, lr]) => {
       setStatus(st); setRecommendations(rec); setSignals(sig); setPosData(pos); setStats(sta); setB4Entry(b4); setLongRecs(lr); setLoading(false);
     });
