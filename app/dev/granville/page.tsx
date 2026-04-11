@@ -94,6 +94,10 @@ interface Triggers {
   nk_close: number | null; sma20_60_gap: number | null; sma_signal: string;
   vix: number | null; vix_signal: string; strategy: string;
 }
+interface Regime {
+  n225_above_sma20: boolean | null; n225_ret20: number | null;
+  cme_gap: number | null; vi: number | null;
+}
 interface StatusResponse {
   triggers?: Triggers;
   cash_margin: number; credit_capacity: number; position_value: number;
@@ -102,6 +106,20 @@ interface StatusResponse {
   open_positions: number; exit_candidates: number;
   recommendation_count: number;
   rule_breakdown: Record<string, number>;
+  long_recommendation_count?: number;
+  long_grades?: Record<string, number>;
+  regime?: Regime;
+}
+
+interface LongRecommendation {
+  ticker: string; stock_name: string; sector: string; rule: string;
+  long_grade: string; hold_days: number;
+  close: number; entry_price_est: number; sma20: number;
+  dev_from_sma20: number; atr10_pct: number;
+}
+interface LongRecommendationsResponse {
+  long_recommendations: LongRecommendation[]; count: number;
+  date: string | null; regime: Regime;
 }
 
 interface RuleStats {
@@ -226,6 +244,7 @@ function GranvilleContent() {
   const [posData, setPosData] = useState<PositionsResponse | null>(null);
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [b4Entry, setB4Entry] = useState<B4EntryResponse | null>(null);
+  const [longRecs, setLongRecs] = useState<LongRecommendationsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAllSignals, setShowAllSignals] = useState(false);
   const [statsMode, setStatsMode] = useState<'expected' | 'actual'>('expected');
@@ -239,8 +258,9 @@ function GranvilleContent() {
       fetch(`${API_BASE}/api/dev/granville/positions`).then(r => r.json()).catch(() => ({ positions: [], exits: [], as_of: null })),
       fetch(`${API_BASE}/api/dev/granville/stats?rule=B4`).then(r => r.json()).catch(() => null),
       fetch(`${API_BASE}/api/dev/granville/b4_entry`).then(r => r.json()).catch(() => null),
-    ]).then(([st, rec, sig, pos, sta, b4]) => {
-      setStatus(st); setRecommendations(rec); setSignals(sig); setPosData(pos); setStats(sta); setB4Entry(b4); setLoading(false);
+      fetch(`${API_BASE}/api/dev/granville/long-recommendations`).then(r => r.json()).catch(() => ({ long_recommendations: [], count: 0, date: null, regime: {} })),
+    ]).then(([st, rec, sig, pos, sta, b4, lr]) => {
+      setStatus(st); setRecommendations(rec); setSignals(sig); setPosData(pos); setStats(sta); setB4Entry(b4); setLongRecs(lr); setLoading(false);
     });
   }, []);
 
@@ -320,6 +340,109 @@ function GranvilleContent() {
             </StatCard>
           </div>
         )}
+
+        {/* Market Regime + Long Recommendations */}
+        {(() => {
+          const regime = longRecs?.regime || status?.regime;
+          const lrCount = longRecs?.count ?? status?.long_recommendation_count ?? 0;
+          const gradeLabel = (g: string) => g === 'H1' ? 'VI≥30 反発' : g === 'H2' ? '上昇+CME静' : g === 'H3' ? '急落後B1' : g;
+          const gradeCls = (g: string) => g === 'H1' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30'
+            : g === 'H2' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+            : 'bg-amber-500/20 text-amber-400 border-amber-500/30';
+
+          return (
+            <Panel title={
+              <div className="flex items-center justify-between">
+                <h2 className="text-base md:text-lg font-semibold">
+                  B1-B3 ロング推奨
+                  {lrCount > 0 && <span className="ml-2 text-sm font-normal text-emerald-400">{lrCount}件</span>}
+                  {lrCount === 0 && <span className="ml-2 text-sm font-normal text-muted-foreground">条件不成立</span>}
+                </h2>
+              </div>
+            } border={lrCount > 0 ? 'border-emerald-500/30' : undefined}>
+              {/* Regime indicators */}
+              {regime && (
+                <div className="px-4 md:px-5 py-3 flex flex-wrap gap-3 text-sm">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-muted-foreground">N225 vs SMA20:</span>
+                    <span className={regime.n225_above_sma20 ? 'text-emerald-400' : 'text-rose-400'}>
+                      {regime.n225_above_sma20 ? '上昇' : '下降'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-muted-foreground">N225 ret20:</span>
+                    <span className={(regime.n225_ret20 ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
+                      {regime.n225_ret20 != null ? `${regime.n225_ret20 >= 0 ? '+' : ''}${regime.n225_ret20.toFixed(1)}%` : '-'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-muted-foreground">CME gap:</span>
+                    <span className={Math.abs(regime.cme_gap ?? 0) <= 0.5 ? 'text-emerald-400' : 'text-muted-foreground'}>
+                      {regime.cme_gap != null ? `${regime.cme_gap >= 0 ? '+' : ''}${regime.cme_gap.toFixed(2)}%` : '-'}
+                      {regime.cme_gap != null && Math.abs(regime.cme_gap) <= 0.5 && <span className="text-[10px] ml-0.5">(flat)</span>}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-muted-foreground">VI:</span>
+                    <span className={(regime.vi ?? 0) >= 30 ? 'text-rose-400 font-semibold' : (regime.vi ?? 0) >= 25 ? 'text-amber-400' : 'text-muted-foreground'}>
+                      {regime.vi?.toFixed(1) ?? '-'}
+                    </span>
+                  </div>
+                  {/* H1/H2/H3 条件判定 */}
+                  <div className="flex items-center gap-1.5 ml-auto">
+                    {regime.vi != null && regime.vi >= 30 && <span className="px-1.5 py-0.5 text-xs rounded border bg-rose-500/20 text-rose-400 border-rose-500/30">H1可</span>}
+                    {regime.n225_above_sma20 && regime.cme_gap != null && Math.abs(regime.cme_gap) <= 0.5 && <span className="px-1.5 py-0.5 text-xs rounded border bg-emerald-500/20 text-emerald-400 border-emerald-500/30">H2可</span>}
+                    {regime.n225_ret20 != null && regime.n225_ret20 < -5 && <span className="px-1.5 py-0.5 text-xs rounded border bg-amber-500/20 text-amber-400 border-amber-500/30">H3可</span>}
+                    {!(regime.vi != null && regime.vi >= 30) && !(regime.n225_above_sma20 && regime.cme_gap != null && Math.abs(regime.cme_gap) <= 0.5) && !(regime.n225_ret20 != null && regime.n225_ret20 < -5) && <span className="text-xs text-muted-foreground">フィルター不成立</span>}
+                  </div>
+                </div>
+              )}
+
+              {/* Long recommendation table */}
+              {longRecs && longRecs.long_recommendations.length > 0 && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-t border-border/30 text-muted-foreground text-xs">
+                        <th className="px-4 py-2 text-left">銘柄</th>
+                        <th className="px-2 py-2 text-center">ルール</th>
+                        <th className="px-2 py-2 text-center">グレード</th>
+                        <th className="px-2 py-2 text-right">終値</th>
+                        <th className="px-2 py-2 text-right">SMA20乖離</th>
+                        <th className="px-2 py-2 text-right">ATR%</th>
+                        <th className="px-2 py-2 text-center">保有日数</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {longRecs.long_recommendations.map((r, i) => (
+                        <tr key={i} className="border-t border-border/20 hover:bg-white/[0.02]">
+                          <td className="px-4 py-2">
+                            <a href={`/${r.ticker}`} className="text-primary hover:underline font-medium">{r.ticker}</a>
+                            <span className="ml-1.5 text-muted-foreground text-xs">{r.stock_name}</span>
+                          </td>
+                          <td className="px-2 py-2 text-center"><RuleBadge rule={r.rule} /></td>
+                          <td className="px-2 py-2 text-center">
+                            <span className={`inline-block px-1.5 py-0.5 text-xs rounded leading-none border ${gradeCls(r.long_grade)}`}>
+                              {r.long_grade} {gradeLabel(r.long_grade)}
+                            </span>
+                          </td>
+                          <td className="px-2 py-2 text-right tabular-nums">¥{r.close.toLocaleString()}</td>
+                          <td className="px-2 py-2 text-right tabular-nums">{fmtPct(r.dev_from_sma20, 1)}</td>
+                          <td className="px-2 py-2 text-right tabular-nums">{r.atr10_pct.toFixed(1)}%</td>
+                          <td className="px-2 py-2 text-center">{r.hold_days}d</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {longRecs && longRecs.long_recommendations.length === 0 && !regime && (
+                <div className="px-4 py-6 text-center text-muted-foreground text-sm">データなし</div>
+              )}
+            </Panel>
+          );
+        })()}
 
         {/* B4 Entry Decision */}
         {b4Entry && (
