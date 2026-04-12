@@ -113,7 +113,7 @@ interface StatusResponse {
 
 interface LongRecommendation {
   ticker: string; stock_name: string; sector: string; rule: string;
-  long_grade: string; hold_days: number;
+  long_grade: string; hold_days: number; expected_pf: number;
   close: number; entry_price_est: number; sma20: number;
   dev_from_sma20: number; atr10_pct: number;
 }
@@ -348,6 +348,7 @@ function GranvilleContent() {
           const gradeLabel = (g: string) => g === 'H1' ? 'VI≥30 反発' : g === 'H2' ? '上昇+CME静' : g === 'H3' ? '急落後B1' : g;
           const gradeCls = (g: string) => g === 'H1' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30'
             : g === 'H2' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+            : g === 'B4' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
             : 'bg-amber-500/20 text-amber-400 border-amber-500/30';
           const b4Decision = b4Entry?.decision;
           const hasB4 = b4Decision === 'strong_entry' || b4Decision === 'entry' || b4Decision === 'consider';
@@ -411,96 +412,73 @@ function GranvilleContent() {
                 {b4Entry?.excluded_rules && b4Entry.excluded_rules.length > 0 && <span className="px-1.5 py-0.5 text-xs rounded border bg-rose-500/10 text-rose-400 border-rose-500/30">除外: {b4Entry.excluded_rules.join(', ')}</span>}
               </div>
 
-              {/* B1-B3 ロング推奨 */}
-              {longRecs && longRecs.long_recommendations.length > 0 && (
-                <>
-                  <div className="px-4 pt-2 pb-1 text-xs text-muted-foreground border-t border-border/20">
-                    B1-B3 ロング推奨 — {longRecs.long_recommendations.length}件
+              {/* 統合テーブル（PF降順） */}
+              {(() => {
+                type UnifiedRow = { ticker: string; stock_name: string; rule: string; grade: string; close: number; dev_from_sma20: number; hold_days: number; expected_pf: number; max_cost?: number; };
+                const rows: UnifiedRow[] = [];
+                if (longRecs) {
+                  for (const r of longRecs.long_recommendations) {
+                    rows.push({ ticker: r.ticker, stock_name: r.stock_name, rule: r.rule, grade: r.long_grade, close: r.close, dev_from_sma20: r.dev_from_sma20, hold_days: r.hold_days, expected_pf: r.expected_pf || 0 });
+                  }
+                }
+                if (b4Entry?.selected) {
+                  for (const c of b4Entry.selected) {
+                    rows.push({ ticker: c.ticker, stock_name: c.stock_name, rule: 'B4', grade: 'B4', close: c.close, dev_from_sma20: c.dev_from_sma20, hold_days: 15, expected_pf: c.expected_pf ?? 2.79, max_cost: c.max_cost });
+                  }
+                }
+                rows.sort((a, b) => b.expected_pf - a.expected_pf);
+
+                if (rows.length === 0) return (
+                  <div className="px-4 py-4 text-center text-muted-foreground text-sm border-t border-border/20">
+                    {b4Decision === 'excluded' ? 'B4除外ルール該当' :
+                     b4Decision === 'wait' ? `B4待機 (VI=${b4Entry?.vi} < 25)` :
+                     lrCount === 0 && (!b4Entry || b4Entry.total_b4_signals === 0) ? 'B1-B3フィルター不成立 / B4シグナルなし' :
+                     'エントリー候補なし'}
                   </div>
-                  <div className="overflow-x-auto">
+                );
+
+                return (
+                  <div className="overflow-x-auto border-t border-border/20">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="text-muted-foreground text-xs">
-                          <th className="px-4 py-2 text-left">銘柄</th>
+                          <th className="px-2 py-2 text-center">#</th>
+                          <th className="px-3 py-2 text-left">銘柄</th>
                           <th className="px-2 py-2 text-center">ルール</th>
                           <th className="px-2 py-2 text-center">グレード</th>
+                          <th className="px-2 py-2 text-right">期待PF</th>
                           <th className="px-2 py-2 text-right">終値</th>
                           <th className="px-2 py-2 text-right">SMA20乖離</th>
-                          <th className="px-2 py-2 text-right">ATR%</th>
-                          <th className="px-2 py-2 text-center">保有日数</th>
+                          <th className="px-2 py-2 text-center">保有</th>
+                          {rows.some(r => r.max_cost) && <th className="px-2 py-2 text-right">取引上限</th>}
                         </tr>
                       </thead>
                       <tbody>
-                        {longRecs.long_recommendations.map((r, i) => (
-                          <tr key={i} className="border-t border-border/20 hover:bg-white/[0.02]">
-                            <td className="px-4 py-2">
-                              <a href={`/${r.ticker}`} className="text-primary hover:underline font-medium">{r.ticker}</a>
+                        {rows.map((r, i) => (
+                          <tr key={`${r.ticker}-${r.rule}`} className="border-t border-border/20 hover:bg-white/[0.02]">
+                            <td className="px-2 py-2 text-center text-muted-foreground">{i + 1}</td>
+                            <td className="px-3 py-2">
+                              <a href={`/${r.ticker.replace('.T', '')}`} className="text-primary hover:underline font-medium">{r.ticker.replace('.T', '')}</a>
                               <span className="ml-1.5 text-muted-foreground text-xs">{r.stock_name}</span>
                             </td>
                             <td className="px-2 py-2 text-center"><RuleBadge rule={r.rule} /></td>
                             <td className="px-2 py-2 text-center">
-                              <span className={`inline-block px-1.5 py-0.5 text-xs rounded leading-none border ${gradeCls(r.long_grade)}`}>
-                                {r.long_grade} {gradeLabel(r.long_grade)}
+                              <span className={`inline-block px-1.5 py-0.5 text-xs rounded leading-none border ${gradeCls(r.grade)}`}>
+                                {r.grade === 'B4' ? 'B4' : `${r.grade} ${gradeLabel(r.grade)}`}
                               </span>
                             </td>
+                            <td className="px-2 py-2 text-right tabular-nums font-semibold">{r.expected_pf.toFixed(2)}</td>
                             <td className="px-2 py-2 text-right tabular-nums">¥{r.close.toLocaleString()}</td>
                             <td className="px-2 py-2 text-right tabular-nums">{fmtPct(r.dev_from_sma20, 1)}</td>
-                            <td className="px-2 py-2 text-right tabular-nums">{r.atr10_pct.toFixed(1)}%</td>
                             <td className="px-2 py-2 text-center">{r.hold_days}d</td>
+                            {rows.some(x => x.max_cost) && <td className="px-2 py-2 text-right tabular-nums">{r.max_cost ? fmt(r.max_cost) : '-'}</td>}
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
-                </>
-              )}
-
-              {/* B4 エントリー */}
-              {b4Entry && b4Entry.selected && b4Entry.selected.length > 0 && (
-                <>
-                  <div className="px-4 pt-2 pb-1 text-xs text-muted-foreground border-t border-border/20">
-                    B4(-15%) {b4Entry.total_b4_signals}件 → {b4Entry.selected.length}件選定（乖離深い順）| 取引上限合計 {fmt(b4Entry.selected_cost)} | 出口: 直近高値更新→翌寄付 / MH15
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead><tr className="text-muted-foreground text-xs">
-                        <th className="text-center px-3 py-2">#</th>
-                        <th className="text-left px-3 py-2">コード</th>
-                        <th className="text-left px-3 py-2">銘柄</th>
-                        <th className="text-right px-3 py-2">終値</th>
-                        <th className="text-right px-3 py-2">乖離%</th>
-                        <th className="text-right px-3 py-2">取引上限</th>
-                      </tr></thead>
-                      <tbody>
-                        {b4Entry.selected.map((c, i) => (
-                          <tr key={c.ticker} className="border-t border-border/20 hover:bg-muted/10">
-                            <td className="text-center px-3 py-2.5 text-muted-foreground">{i + 1}</td>
-                            <td className="px-3 py-2.5 tabular-nums">
-                              <button type="button" className="hover:text-primary font-semibold" onClick={() => window.open(`/${c.ticker.replace('.T', '')}`, 'stock-detail')}>
-                                {c.ticker.replace('.T', '')}
-                              </button>
-                            </td>
-                            <td className="px-3 py-2.5">{c.stock_name}</td>
-                            <td className="text-right px-3 py-2.5 tabular-nums">{fmt(c.close)}</td>
-                            <td className="text-right px-3 py-2.5 tabular-nums text-rose-400">{c.dev_from_sma20.toFixed(1)}%</td>
-                            <td className="text-right px-3 py-2.5 tabular-nums">{fmt(c.max_cost)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </>
-              )}
-
-              {/* 候補なしメッセージ */}
-              {totalEntries === 0 && (
-                <div className="px-4 py-4 text-center text-muted-foreground text-sm border-t border-border/20">
-                  {b4Decision === 'excluded' ? 'B4除外ルール該当' :
-                   b4Decision === 'wait' ? `B4待機 (VI=${b4Entry?.vi} < 25)` :
-                   lrCount === 0 && (!b4Entry || b4Entry.total_b4_signals === 0) ? 'B1-B3フィルター不成立 / B4シグナルなし' :
-                   'エントリー候補なし'}
-                </div>
-              )}
+                );
+              })()}
             </Panel>
           );
         })()}
