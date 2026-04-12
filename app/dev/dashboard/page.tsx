@@ -415,7 +415,7 @@ export default function DashboardPage() {
             <Panel title={
               <div className="flex items-center justify-between">
                 <h2 className="text-base md:text-lg font-semibold">
-                  B1-B4 エントリー判定
+                  <a href="/dev/granville" className="hover:text-primary transition-colors">B1-B4 エントリー判定</a>
                   {b4Entry?.date && <span className="ml-2 text-sm font-normal text-muted-foreground">({b4Entry.date})</span>}
                 </h2>
                 {totalEntries > 0
@@ -538,7 +538,7 @@ export default function DashboardPage() {
         {/* ===== Bearish Entry Candidates ===== */}
         <Panel title={
           <div className="flex items-center gap-2">
-            <h2 className="text-base md:text-lg font-semibold">大陰線 エントリー候補</h2>
+            <h2 className="text-base md:text-lg font-semibold"><a href="/dev/reversal" className="hover:text-primary transition-colors">大陰線 エントリー候補</a></h2>
             <span className="text-xs text-muted-foreground">実体 &le; -5% / VI &ge; 20 / &le; &yen;15,000</span>
             {signals && signals.bearish.length > 0 && (
               <span className="ml-auto text-xs tabular-nums text-violet-400">{signals.bearish.length}件</span>
@@ -590,7 +590,7 @@ export default function DashboardPage() {
         {/* ===== Pairs Entry Candidates ===== */}
         <Panel title={
           <div className="flex items-center gap-2">
-            <h2 className="text-base md:text-lg font-semibold">ペア エントリー候補</h2>
+            <h2 className="text-base md:text-lg font-semibold"><a href="/dev/pairs" className="hover:text-primary transition-colors">ペア エントリー候補</a></h2>
             <span className="text-xs text-muted-foreground">|z| &ge; 2.0 / 共和分ベース161ペア</span>
             {pairsData && pairsData.entry.length > 0 && (
               <span className="ml-auto text-xs tabular-nums text-blue-400">{pairsData.entry.length}件</span>
@@ -605,9 +605,11 @@ export default function DashboardPage() {
                   <th className="text-center px-2 py-3 text-xs font-medium whitespace-nowrap">L/S</th>
                   <th className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap">コード1</th>
                   <th className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap">銘柄1</th>
+                  <th className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap">終値1</th>
                   <th className="text-center px-2 py-3 text-xs font-medium whitespace-nowrap">L/S</th>
                   <th className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap">コード2</th>
                   <th className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap">銘柄2</th>
+                  <th className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap">終値2</th>
                   <SortHeader<PairSignal> label="z-score" field="z_abs" {...pairSort} className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap" />
                   <th className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap">株数</th>
                   <SortHeader<PairSignal> label="PF" field="full_pf" {...pairSort} className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap" />
@@ -627,6 +629,7 @@ export default function DashboardPage() {
                         </td>
                         <td className="px-2 py-4 tabular-nums"><TickerLink ticker={p.tk1} /></td>
                         <td className="px-2 py-4 text-foreground">{p.name1}</td>
+                        <td className="px-2 py-4 text-right tabular-nums text-muted-foreground whitespace-nowrap">&yen;{fmt(p.c1)}</td>
                         <td className="text-center px-2 py-4">
                           <span className={`text-xs px-1.5 py-0.5 rounded ${isLong ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
                             {isLong ? 'S' : 'L'}
@@ -634,6 +637,7 @@ export default function DashboardPage() {
                         </td>
                         <td className="px-2 py-4 tabular-nums"><TickerLink ticker={p.tk2} /></td>
                         <td className="px-2 py-4 text-foreground">{p.name2}</td>
+                        <td className="px-2 py-4 text-right tabular-nums text-muted-foreground whitespace-nowrap">&yen;{fmt(p.c2)}</td>
                         <td className="text-right px-2 py-4 tabular-nums font-semibold">{fmtZ(p.z_latest)}</td>
                         <td className="text-right px-2 py-4 tabular-nums text-muted-foreground">{p.shares1}:{p.shares2}</td>
                         <td className="text-right px-2 py-4 tabular-nums text-foreground">{p.full_pf.toFixed(2)}</td>
