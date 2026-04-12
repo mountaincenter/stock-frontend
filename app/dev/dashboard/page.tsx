@@ -602,7 +602,6 @@ export default function DashboardPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm md:text-base">
                 <thead><tr className="text-foreground border-b border-border/40 bg-muted/30">
-                  <th className="text-center px-2 py-3 text-xs font-medium whitespace-nowrap">#</th>
                   <th className="text-center px-2 py-3 text-xs font-medium whitespace-nowrap">L/S</th>
                   <th className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap">コード1</th>
                   <th className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap">銘柄1</th>
@@ -621,7 +620,6 @@ export default function DashboardPage() {
                     const pairHref = `/pairs/${p.tk1.replace('.', '')}-${p.tk2.replace('.', '')}`;
                     return (
                       <tr key={`${p.tk1}-${p.tk2}`} className="hover:bg-muted/10 cursor-pointer" onClick={() => window.open(pairHref, '_blank')}>
-                        <td className="text-center px-2 py-4 text-muted-foreground">{i + 1}</td>
                         <td className="text-center px-2 py-4">
                           <span className={`text-xs px-1.5 py-0.5 rounded ${isLong ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
                             {isLong ? 'L' : 'S'}
