@@ -35,6 +35,7 @@ interface B4EntryResponse {
 interface Regime {
   n225_above_sma20: boolean | null; n225_ret20: number | null;
   cme_gap: number | null; vi: number | null;
+  n225_close: number | null; n225_sma20: number | null;
 }
 interface LongRecommendation {
   ticker: string; stock_name: string; sector: string; rule: string;
@@ -87,10 +88,10 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 // === Helpers ===
 const fmt = (v: number | null | undefined) => (v ?? 0).toLocaleString('ja-JP');
-const fmtPnl = (v: number | null | undefined) => { const n = v ?? 0; return <span className={n >= 0 ? 'text-emerald-400' : 'text-rose-400'}>{n >= 0 ? '+' : ''}{fmt(n)}円</span>; };
+const fmtPnl = (v: number | null | undefined) => { const n = v ?? 0; return <span className={n >= 0 ? 'text-price-up' : 'text-price-down'}>{n >= 0 ? '+' : ''}{fmt(n)}円</span>; };
 const fmtPct = (v: number | null | undefined, d = 1) => { const n = v ?? 0; return `${n >= 0 ? '+' : ''}${n.toFixed(d)}%`; };
 const shortDate = (d: string) => { const m = d.match(/\d{4}-(\d{2})-(\d{2})/); return m ? `${m[1]}/${m[2]}` : d; };
-const fmtZ = (v: number) => <span className={Math.abs(v) >= 2.0 ? (v > 0 ? 'text-rose-400' : 'text-emerald-400') : Math.abs(v) >= 1.5 ? 'text-amber-400' : 'text-muted-foreground'}>{v >= 0 ? '+' : ''}{v.toFixed(2)}</span>;
+const fmtZ = (v: number) => <span className={Math.abs(v) >= 2.0 ? (v > 0 ? 'text-price-down' : 'text-price-up') : Math.abs(v) >= 1.5 ? 'text-amber-400' : 'text-muted-foreground'}>{v >= 0 ? '+' : ''}{v.toFixed(2)}</span>;
 
 // === Sortable ===
 type SortDir = 'asc' | 'desc' | null;
@@ -131,19 +132,16 @@ const SortHeader = <T,>({ label, field, sortKey, sortDir, toggle, className }: {
 
 // === Layout Components ===
 const StatCard = ({ label, children, sub }: { label: string; children: React.ReactNode; sub?: React.ReactNode }) => (
-  <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-3 sm:p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
-    <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
-    <div className="relative">
-      <div className="text-muted-foreground text-xs mb-1">{label}</div>
-      <div className="text-xl sm:text-2xl font-bold text-right tabular-nums">{children}</div>
-      {sub && <div className="text-xs text-right mt-1 text-muted-foreground tabular-nums">{sub}</div>}
-    </div>
+  <div className="rounded-xl border border-border bg-card px-4 py-3">
+    <div className="text-muted-foreground text-xs mb-1">{label}</div>
+    <div className="text-xl sm:text-2xl font-bold text-right tabular-nums">{children}</div>
+    {sub && <div className="text-xs text-right mt-1 text-muted-foreground tabular-nums">{sub}</div>}
   </div>
 );
 
 const Panel = ({ title, border, children, footer }: { title: React.ReactNode; border?: string; children: React.ReactNode; footer?: React.ReactNode }) => (
   <section className="mb-5">
-    <div className={`rounded-2xl border ${border || 'border-border/40'} bg-gradient-to-br from-card/50 via-card/80 to-card/50 shadow-lg shadow-black/5 backdrop-blur-xl overflow-hidden`}>
+    <div className={`rounded-xl border ${border || 'border-border'} bg-card overflow-hidden`}>
       <div className={`px-4 md:px-5 py-3 border-b ${border || 'border-b-border/40'}`}>
         {typeof title === 'string' ? <h2 className="text-base md:text-lg font-semibold text-foreground">{title}</h2> : title}
       </div>
@@ -227,7 +225,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <main className="relative min-h-screen">
-        <div className="fixed inset-0 -z-10"><div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20" /></div>
+        <div className="fixed inset-0 -z-10 bg-background" />
         <div className="max-w-[1600px] mx-auto px-4 py-4 leading-[1.8] tracking-[0.02em]">
           <div className="h-6 w-64 bg-muted/50 rounded mb-4 animate-pulse" />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
@@ -241,11 +239,7 @@ export default function DashboardPage() {
 
   return (
     <main className="relative min-h-screen">
-      <div className="fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20" />
-        <div className="absolute -top-1/2 -right-1/4 w-[800px] h-[800px] rounded-full bg-gradient-to-br from-blue-500/8 via-indigo-500/3 to-transparent blur-3xl" />
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.03)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.03)_1px,transparent_1px)] bg-[size:4rem_4rem]" />
-      </div>
+      <div className="fixed inset-0 -z-10 bg-background" />
 
       <div className="max-w-[1600px] mx-auto px-4 py-4 leading-[1.8] tracking-[0.02em]">
         {/* Header */}
@@ -268,22 +262,35 @@ export default function DashboardPage() {
         </header>
 
         {/* ===== Market Summary ===== */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-5">
-          <StatCard label="日経VI" sub={vi !== null && vi >= 20 ? 'VI>=20: 逆張り有効' : 'VI<20'}>
-            <span className={vi !== null && vi >= 20 ? 'text-emerald-400' : 'text-rose-400'}>
-              {vi ?? '-'}
-            </span>
-          </StatCard>
-          <StatCard label="保有" sub={`Exit候補: ${exits.length}件`}>
-            <span className="text-foreground">{active.length}件</span>
-          </StatCard>
-          <StatCard label="含み損益">
-            {fmtPnl(totalPnl)}
-          </StatCard>
-          <StatCard label="本日シグナル" sub={`Granville: ${(longRecs?.count ?? 0) + (b4Entry?.selected?.length ?? 0)} / 大陰線: ${signals?.bearish_count ?? 0} / Pairs: ${pairsData?.entry_count ?? 0}`}>
-            <span className="text-foreground">{(longRecs?.count ?? 0) + (b4Entry?.selected?.length ?? 0) + (signals?.bearish_count ?? 0) + (pairsData?.entry_count ?? 0)}</span>
-          </StatCard>
-        </div>
+        {(() => {
+          const regime = longRecs?.regime;
+          const cmeGap = regime?.cme_gap ?? b4Entry?.cme_gap;
+          return (
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+              <StatCard label="N225 トレンド" sub={regime?.n225_close != null && regime?.n225_sma20 != null ? `${fmt(regime.n225_close)} / ${fmt(regime.n225_sma20)}` : undefined}>
+                <span className={regime?.n225_above_sma20 ? 'text-price-up' : regime?.n225_above_sma20 === false ? 'text-price-down' : 'text-muted-foreground'}>
+                  {regime?.n225_above_sma20 != null ? (regime.n225_above_sma20 ? 'Uptrend' : 'Downtrend') : '-'}
+                </span>
+              </StatCard>
+              <StatCard label="CME gap" sub={cmeGap != null && Math.abs(cmeGap) <= 0.5 ? 'flat (±0.5%)' : undefined}>
+                <span className={cmeGap != null ? (cmeGap >= 0 ? 'text-price-up' : 'text-price-down') : 'text-muted-foreground'}>
+                  {cmeGap != null ? `${cmeGap >= 0 ? '+' : ''}${cmeGap.toFixed(2)}%` : '-'}
+                </span>
+              </StatCard>
+              <StatCard label="日経VI" sub={vi !== null && vi >= 30 ? 'H1発動圏' : vi !== null && vi >= 25 ? 'B4発動圏' : vi !== null && vi >= 20 ? '逆張り有効' : undefined}>
+                <span className={vi !== null && vi >= 30 ? 'text-price-down' : vi !== null && vi >= 25 ? 'text-amber-400' : vi !== null && vi >= 20 ? 'text-price-up' : 'text-muted-foreground'}>
+                  {vi ?? '-'}
+                </span>
+              </StatCard>
+              <StatCard label="含み損益" sub={`${active.length}件保有 / Exit: ${exits.length}件`}>
+                <span className={totalPnl >= 0 ? 'text-price-up' : 'text-price-down'}>{totalPnl >= 0 ? '+' : ''}{fmt(totalPnl)}円</span>
+              </StatCard>
+              <StatCard label="本日シグナル" sub={`G: ${(longRecs?.count ?? 0) + (b4Entry?.selected?.length ?? 0)} / 陰線: ${signals?.bearish_count ?? 0} / P: ${pairsData?.entry_count ?? 0}`}>
+                <span className="text-foreground">{(longRecs?.count ?? 0) + (b4Entry?.selected?.length ?? 0) + (signals?.bearish_count ?? 0) + (pairsData?.entry_count ?? 0)}</span>
+              </StatCard>
+            </div>
+          );
+        })()}
 
         {/* ===== Exit Candidates ===== */}
         {exits.length > 0 && (
@@ -324,7 +331,7 @@ export default function DashboardPage() {
                       <td className={`px-2 py-4 text-right tabular-nums font-semibold ${p.high_20d > 0 ? 'text-amber-400' : 'text-muted-foreground'}`}>
                         {p.high_20d > 0 ? `¥${fmt(Math.round(p.high_20d))}` : '-'}
                       </td>
-                      <td className={`px-2 py-4 text-right tabular-nums ${p.unrealized_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{fmtPct(p.unrealized_pct, 2)}</td>
+                      <td className={`px-2 py-4 text-right tabular-nums ${p.unrealized_pct >= 0 ? 'text-price-up' : 'text-price-down'}`}>{fmtPct(p.unrealized_pct, 2)}</td>
                       <td className="px-2 py-4 text-right tabular-nums">{fmtPnl(p.unrealized_yen)}</td>
                       <td className="px-2 py-4 text-center">
                         {p.hold_days >= (p.max_hold || 15) ? (
@@ -380,7 +387,7 @@ export default function DashboardPage() {
                       <td className={`px-2 py-4 text-right tabular-nums font-semibold ${p.high_20d > 0 ? 'text-amber-400' : 'text-muted-foreground'}`}>
                         {p.high_20d > 0 ? `¥${fmt(Math.round(p.high_20d))}` : '-'}
                       </td>
-                      <td className={`px-2 py-4 text-right tabular-nums ${p.unrealized_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{fmtPct(p.unrealized_pct, 2)}</td>
+                      <td className={`px-2 py-4 text-right tabular-nums ${p.unrealized_pct >= 0 ? 'text-price-up' : 'text-price-down'}`}>{fmtPct(p.unrealized_pct, 2)}</td>
                       <td className="px-2 py-4 text-right tabular-nums">{fmtPnl(p.unrealized_yen)}</td>
                     </tr>
                   ))}
@@ -412,7 +419,7 @@ export default function DashboardPage() {
                   {b4Entry?.date && <span className="ml-2 text-sm font-normal text-muted-foreground">({b4Entry.date})</span>}
                 </h2>
                 {totalEntries > 0
-                  ? <span className="px-3 py-1 rounded-full text-sm font-bold border text-emerald-400 bg-emerald-500/10 border-emerald-500/30">{totalEntries}件</span>
+                  ? <span className="px-3 py-1 rounded-full text-sm font-bold border text-price-up bg-emerald-500/10 border-emerald-500/30">{totalEntries}件</span>
                   : <span className="px-3 py-1 rounded-full text-sm border text-muted-foreground bg-muted/10 border-border/40">候補なし</span>
                 }
               </div>
@@ -421,32 +428,32 @@ export default function DashboardPage() {
               <div className="grid grid-cols-2 md:grid-cols-5 gap-2 px-4 py-3">
                 <div className="rounded-lg border border-border/40 px-3 py-2">
                   <div className="text-xs text-muted-foreground">N225 vs SMA20</div>
-                  <div className={`text-lg font-bold ${regime?.n225_above_sma20 ? 'text-emerald-400' : regime?.n225_above_sma20 === false ? 'text-rose-400' : 'text-muted-foreground'}`}>
+                  <div className={`text-lg font-bold ${regime?.n225_above_sma20 ? 'text-price-up' : regime?.n225_above_sma20 === false ? 'text-price-down' : 'text-muted-foreground'}`}>
                     {regime?.n225_above_sma20 != null ? (regime.n225_above_sma20 ? '上昇' : '下降') : '-'}
                   </div>
                 </div>
                 <div className="rounded-lg border border-border/40 px-3 py-2">
                   <div className="text-xs text-muted-foreground">N225 ret20</div>
-                  <div className={`text-lg font-bold tabular-nums ${(regime?.n225_ret20 ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  <div className={`text-lg font-bold tabular-nums ${(regime?.n225_ret20 ?? 0) >= 0 ? 'text-price-up' : 'text-price-down'}`}>
                     {regime?.n225_ret20 != null ? `${regime.n225_ret20 >= 0 ? '+' : ''}${regime.n225_ret20.toFixed(1)}%` : '-'}
                   </div>
                 </div>
                 <div className="rounded-lg border border-border/40 px-3 py-2">
                   <div className="text-xs text-muted-foreground">CME gap</div>
-                  <div className={`text-lg font-bold tabular-nums ${regime?.cme_gap != null || b4Entry?.cme_gap != null ? (Math.abs((regime?.cme_gap ?? b4Entry?.cme_gap ?? 0)) <= 0.5 ? 'text-emerald-400' : 'text-muted-foreground') : 'text-muted-foreground'}`}>
+                  <div className={`text-lg font-bold tabular-nums ${(() => { const v = regime?.cme_gap ?? b4Entry?.cme_gap; return v != null ? (v >= 0 ? 'text-price-up' : 'text-price-down') : 'text-muted-foreground'; })()}`}>
                     {(() => { const v = regime?.cme_gap ?? b4Entry?.cme_gap; return v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '-'; })()}
                     {(() => { const v = regime?.cme_gap ?? b4Entry?.cme_gap; return v != null && Math.abs(v) <= 0.5 ? <span className="text-[10px] ml-0.5">(flat)</span> : null; })()}
                   </div>
                 </div>
                 <div className="rounded-lg border border-border/40 px-3 py-2">
                   <div className="text-xs text-muted-foreground">日経VI</div>
-                  <div className={`text-lg font-bold tabular-nums ${(regime?.vi ?? b4Entry?.vi ?? 0) >= 40 ? 'text-emerald-400' : (regime?.vi ?? b4Entry?.vi ?? 0) >= 30 ? 'text-rose-400 font-semibold' : (regime?.vi ?? b4Entry?.vi ?? 0) >= 25 ? 'text-amber-400' : 'text-muted-foreground'}`}>
+                  <div className={`text-lg font-bold tabular-nums ${(regime?.vi ?? b4Entry?.vi ?? 0) >= 40 ? 'text-price-up' : (regime?.vi ?? b4Entry?.vi ?? 0) >= 30 ? 'text-price-down font-semibold' : (regime?.vi ?? b4Entry?.vi ?? 0) >= 25 ? 'text-amber-400' : 'text-muted-foreground'}`}>
                     {(() => { const v = regime?.vi ?? b4Entry?.vi; return v != null ? v.toFixed(1) : '-'; })()}
                   </div>
                 </div>
                 <div className="rounded-lg border border-border/40 px-3 py-2">
                   <div className="text-xs text-muted-foreground">N225 前日比</div>
-                  <div className={`text-lg font-bold tabular-nums ${b4Entry?.n225_chg != null ? (b4Entry.n225_chg >= 0 ? 'text-emerald-400' : 'text-rose-400') : 'text-muted-foreground'}`}>
+                  <div className={`text-lg font-bold tabular-nums ${b4Entry?.n225_chg != null ? (b4Entry.n225_chg >= 0 ? 'text-price-up' : 'text-price-down') : 'text-muted-foreground'}`}>
                     {b4Entry?.n225_chg != null ? `${b4Entry.n225_chg > 0 ? '+' : ''}${b4Entry.n225_chg.toFixed(2)}%` : '-'}
                   </div>
                 </div>
@@ -595,8 +602,8 @@ export default function DashboardPage() {
                       <td className="px-2 py-4 tabular-nums"><TickerLink ticker={s.ticker} /></td>
                       <td className="px-2 py-4 text-foreground">{s.stock_name}</td>
                       <td className="text-right px-2 py-4 tabular-nums text-muted-foreground whitespace-nowrap">{fmt(s.close)}</td>
-                      <td className="text-right px-2 py-4 tabular-nums text-rose-400 font-semibold">{s.body_pct.toFixed(1)}%</td>
-                      <td className="text-right px-2 py-4 tabular-nums text-rose-400">{s.dev_from_sma20.toFixed(1)}%</td>
+                      <td className="text-right px-2 py-4 tabular-nums text-price-down font-semibold">{s.body_pct.toFixed(1)}%</td>
+                      <td className="text-right px-2 py-4 tabular-nums text-price-down">{s.dev_from_sma20.toFixed(1)}%</td>
                       <td className="text-right px-2 py-4 tabular-nums text-muted-foreground whitespace-nowrap">{fmt(Math.round(s.sma20))}</td>
                       <td className="text-right px-2 py-4 tabular-nums text-muted-foreground whitespace-nowrap">{fmt(s.entry_price_est)}</td>
                       <td className="px-2 py-4 text-muted-foreground text-xs max-w-[120px] truncate">{s.sector}</td>
