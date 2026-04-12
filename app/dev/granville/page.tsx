@@ -341,7 +341,7 @@ function GranvilleContent() {
           </div>
         )}
 
-        {/* Market Regime + Long Recommendations */}
+        {/* B1-B4 エントリー判定 */}
         {(() => {
           const regime = longRecs?.regime || status?.regime;
           const lrCount = longRecs?.count ?? status?.long_recommendation_count ?? 0;
@@ -349,210 +349,161 @@ function GranvilleContent() {
           const gradeCls = (g: string) => g === 'H1' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30'
             : g === 'H2' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
             : 'bg-amber-500/20 text-amber-400 border-amber-500/30';
+          const b4Decision = b4Entry?.decision;
+          const hasB4 = b4Decision === 'strong_entry' || b4Decision === 'entry' || b4Decision === 'consider';
+          const totalEntries = lrCount + (b4Entry?.selected?.length ?? 0);
+          const borderColor = totalEntries > 0 ? 'border-emerald-500/30' : hasB4 ? 'border-amber-500/30' : undefined;
 
           return (
             <Panel title={
               <div className="flex items-center justify-between">
                 <h2 className="text-base md:text-lg font-semibold">
-                  B1-B3 ロング推奨
-                  {lrCount > 0 && <span className="ml-2 text-sm font-normal text-emerald-400">{lrCount}件</span>}
-                  {lrCount === 0 && <span className="ml-2 text-sm font-normal text-muted-foreground">条件不成立</span>}
+                  B1-B4 エントリー判定
+                  {b4Entry?.date && <span className="ml-2 text-sm font-normal text-muted-foreground">({b4Entry.date})</span>}
                 </h2>
+                {totalEntries > 0
+                  ? <span className="px-3 py-1 rounded-full text-sm font-bold border text-emerald-400 bg-emerald-500/10 border-emerald-500/30">{totalEntries}件</span>
+                  : <span className="px-3 py-1 rounded-full text-sm border text-muted-foreground bg-muted/10 border-border/40">候補なし</span>
+                }
               </div>
-            } border={lrCount > 0 ? 'border-emerald-500/30' : undefined}>
-              {/* Regime indicators */}
-              {regime && (
-                <div className="px-4 md:px-5 py-3 flex flex-wrap gap-3 text-sm">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-muted-foreground">N225 vs SMA20:</span>
-                    <span className={regime.n225_above_sma20 ? 'text-emerald-400' : 'text-rose-400'}>
-                      {regime.n225_above_sma20 ? '上昇' : '下降'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-muted-foreground">N225 ret20:</span>
-                    <span className={(regime.n225_ret20 ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
-                      {regime.n225_ret20 != null ? `${regime.n225_ret20 >= 0 ? '+' : ''}${regime.n225_ret20.toFixed(1)}%` : '-'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-muted-foreground">CME gap:</span>
-                    <span className={Math.abs(regime.cme_gap ?? 0) <= 0.5 ? 'text-emerald-400' : 'text-muted-foreground'}>
-                      {regime.cme_gap != null ? `${regime.cme_gap >= 0 ? '+' : ''}${regime.cme_gap.toFixed(2)}%` : '-'}
-                      {regime.cme_gap != null && Math.abs(regime.cme_gap) <= 0.5 && <span className="text-[10px] ml-0.5">(flat)</span>}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-muted-foreground">VI:</span>
-                    <span className={(regime.vi ?? 0) >= 30 ? 'text-rose-400 font-semibold' : (regime.vi ?? 0) >= 25 ? 'text-amber-400' : 'text-muted-foreground'}>
-                      {regime.vi?.toFixed(1) ?? '-'}
-                    </span>
-                  </div>
-                  {/* H1/H2/H3 条件判定 */}
-                  <div className="flex items-center gap-1.5 ml-auto">
-                    {regime.vi != null && regime.vi >= 30 && <span className="px-1.5 py-0.5 text-xs rounded border bg-rose-500/20 text-rose-400 border-rose-500/30">H1可</span>}
-                    {regime.n225_above_sma20 && regime.cme_gap != null && Math.abs(regime.cme_gap) <= 0.5 && <span className="px-1.5 py-0.5 text-xs rounded border bg-emerald-500/20 text-emerald-400 border-emerald-500/30">H2可</span>}
-                    {regime.n225_ret20 != null && regime.n225_ret20 < -5 && <span className="px-1.5 py-0.5 text-xs rounded border bg-amber-500/20 text-amber-400 border-amber-500/30">H3可</span>}
-                    {!(regime.vi != null && regime.vi >= 30) && !(regime.n225_above_sma20 && regime.cme_gap != null && Math.abs(regime.cme_gap) <= 0.5) && !(regime.n225_ret20 != null && regime.n225_ret20 < -5) && <span className="text-xs text-muted-foreground">フィルター不成立</span>}
+            } border={borderColor}>
+              {/* 市場環境 — regime + b4Entry統合 */}
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2 px-4 py-3">
+                <div className="rounded-lg border border-border/40 px-3 py-2">
+                  <div className="text-xs text-muted-foreground">N225 vs SMA20</div>
+                  <div className={`text-lg font-bold ${regime?.n225_above_sma20 ? 'text-emerald-400' : regime?.n225_above_sma20 === false ? 'text-rose-400' : 'text-muted-foreground'}`}>
+                    {regime?.n225_above_sma20 != null ? (regime.n225_above_sma20 ? '上昇' : '下降') : '-'}
                   </div>
                 </div>
-              )}
+                <div className="rounded-lg border border-border/40 px-3 py-2">
+                  <div className="text-xs text-muted-foreground">N225 ret20</div>
+                  <div className={`text-lg font-bold tabular-nums ${(regime?.n225_ret20 ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {regime?.n225_ret20 != null ? `${regime.n225_ret20 >= 0 ? '+' : ''}${regime.n225_ret20.toFixed(1)}%` : '-'}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-border/40 px-3 py-2">
+                  <div className="text-xs text-muted-foreground">CME gap</div>
+                  <div className={`text-lg font-bold tabular-nums ${regime?.cme_gap != null || b4Entry?.cme_gap != null ? (Math.abs((regime?.cme_gap ?? b4Entry?.cme_gap ?? 0)) <= 0.5 ? 'text-emerald-400' : 'text-muted-foreground') : 'text-muted-foreground'}`}>
+                    {(() => { const v = regime?.cme_gap ?? b4Entry?.cme_gap; return v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '-'; })()}
+                    {(() => { const v = regime?.cme_gap ?? b4Entry?.cme_gap; return v != null && Math.abs(v) <= 0.5 ? <span className="text-[10px] ml-0.5">(flat)</span> : null; })()}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-border/40 px-3 py-2">
+                  <div className="text-xs text-muted-foreground">日経VI</div>
+                  <div className={`text-lg font-bold tabular-nums ${(regime?.vi ?? b4Entry?.vi ?? 0) >= 40 ? 'text-emerald-400' : (regime?.vi ?? b4Entry?.vi ?? 0) >= 30 ? 'text-rose-400 font-semibold' : (regime?.vi ?? b4Entry?.vi ?? 0) >= 25 ? 'text-amber-400' : 'text-muted-foreground'}`}>
+                    {(() => { const v = regime?.vi ?? b4Entry?.vi; return v != null ? v.toFixed(1) : '-'; })()}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-border/40 px-3 py-2">
+                  <div className="text-xs text-muted-foreground">N225 前日比</div>
+                  <div className={`text-lg font-bold tabular-nums ${b4Entry?.n225_chg != null ? (b4Entry.n225_chg >= 0 ? 'text-emerald-400' : 'text-rose-400') : 'text-muted-foreground'}`}>
+                    {b4Entry?.n225_chg != null ? `${b4Entry.n225_chg > 0 ? '+' : ''}${b4Entry.n225_chg.toFixed(2)}%` : '-'}
+                  </div>
+                </div>
+              </div>
 
-              {/* Long recommendation table */}
+              {/* フィルター判定バッジ */}
+              <div className="px-4 pb-2 flex flex-wrap gap-1.5">
+                {regime?.vi != null && regime.vi >= 30 && <span className="px-1.5 py-0.5 text-xs rounded border bg-rose-500/20 text-rose-400 border-rose-500/30">H1可</span>}
+                {regime?.n225_above_sma20 && regime?.cme_gap != null && Math.abs(regime.cme_gap) <= 0.5 && <span className="px-1.5 py-0.5 text-xs rounded border bg-emerald-500/20 text-emerald-400 border-emerald-500/30">H2可</span>}
+                {regime?.n225_ret20 != null && regime.n225_ret20 < -5 && <span className="px-1.5 py-0.5 text-xs rounded border bg-amber-500/20 text-amber-400 border-amber-500/30">H3可</span>}
+                {b4Entry && b4Entry.total_b4_signals > 0 && <span className="px-1.5 py-0.5 text-xs rounded border bg-blue-500/20 text-blue-400 border-blue-500/30">B4 {b4Entry.total_b4_signals}件</span>}
+                {b4Entry?.excluded_rules && b4Entry.excluded_rules.length > 0 && <span className="px-1.5 py-0.5 text-xs rounded border bg-rose-500/10 text-rose-400 border-rose-500/30">除外: {b4Entry.excluded_rules.join(', ')}</span>}
+              </div>
+
+              {/* B1-B3 ロング推奨 */}
               {longRecs && longRecs.long_recommendations.length > 0 && (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-t border-border/30 text-muted-foreground text-xs">
-                        <th className="px-4 py-2 text-left">銘柄</th>
-                        <th className="px-2 py-2 text-center">ルール</th>
-                        <th className="px-2 py-2 text-center">グレード</th>
-                        <th className="px-2 py-2 text-right">終値</th>
-                        <th className="px-2 py-2 text-right">SMA20乖離</th>
-                        <th className="px-2 py-2 text-right">ATR%</th>
-                        <th className="px-2 py-2 text-center">保有日数</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {longRecs.long_recommendations.map((r, i) => (
-                        <tr key={i} className="border-t border-border/20 hover:bg-white/[0.02]">
-                          <td className="px-4 py-2">
-                            <a href={`/${r.ticker}`} className="text-primary hover:underline font-medium">{r.ticker}</a>
-                            <span className="ml-1.5 text-muted-foreground text-xs">{r.stock_name}</span>
-                          </td>
-                          <td className="px-2 py-2 text-center"><RuleBadge rule={r.rule} /></td>
-                          <td className="px-2 py-2 text-center">
-                            <span className={`inline-block px-1.5 py-0.5 text-xs rounded leading-none border ${gradeCls(r.long_grade)}`}>
-                              {r.long_grade} {gradeLabel(r.long_grade)}
-                            </span>
-                          </td>
-                          <td className="px-2 py-2 text-right tabular-nums">¥{r.close.toLocaleString()}</td>
-                          <td className="px-2 py-2 text-right tabular-nums">{fmtPct(r.dev_from_sma20, 1)}</td>
-                          <td className="px-2 py-2 text-right tabular-nums">{r.atr10_pct.toFixed(1)}%</td>
-                          <td className="px-2 py-2 text-center">{r.hold_days}d</td>
+                <>
+                  <div className="px-4 pt-2 pb-1 text-xs text-muted-foreground border-t border-border/20">
+                    B1-B3 ロング推奨 — {longRecs.long_recommendations.length}件
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-muted-foreground text-xs">
+                          <th className="px-4 py-2 text-left">銘柄</th>
+                          <th className="px-2 py-2 text-center">ルール</th>
+                          <th className="px-2 py-2 text-center">グレード</th>
+                          <th className="px-2 py-2 text-right">終値</th>
+                          <th className="px-2 py-2 text-right">SMA20乖離</th>
+                          <th className="px-2 py-2 text-right">ATR%</th>
+                          <th className="px-2 py-2 text-center">保有日数</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {longRecs.long_recommendations.map((r, i) => (
+                          <tr key={i} className="border-t border-border/20 hover:bg-white/[0.02]">
+                            <td className="px-4 py-2">
+                              <a href={`/${r.ticker}`} className="text-primary hover:underline font-medium">{r.ticker}</a>
+                              <span className="ml-1.5 text-muted-foreground text-xs">{r.stock_name}</span>
+                            </td>
+                            <td className="px-2 py-2 text-center"><RuleBadge rule={r.rule} /></td>
+                            <td className="px-2 py-2 text-center">
+                              <span className={`inline-block px-1.5 py-0.5 text-xs rounded leading-none border ${gradeCls(r.long_grade)}`}>
+                                {r.long_grade} {gradeLabel(r.long_grade)}
+                              </span>
+                            </td>
+                            <td className="px-2 py-2 text-right tabular-nums">¥{r.close.toLocaleString()}</td>
+                            <td className="px-2 py-2 text-right tabular-nums">{fmtPct(r.dev_from_sma20, 1)}</td>
+                            <td className="px-2 py-2 text-right tabular-nums">{r.atr10_pct.toFixed(1)}%</td>
+                            <td className="px-2 py-2 text-center">{r.hold_days}d</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
 
-              {longRecs && longRecs.long_recommendations.length === 0 && !regime && (
-                <div className="px-4 py-6 text-center text-muted-foreground text-sm">データなし</div>
+              {/* B4 エントリー */}
+              {b4Entry && b4Entry.selected && b4Entry.selected.length > 0 && (
+                <>
+                  <div className="px-4 pt-2 pb-1 text-xs text-muted-foreground border-t border-border/20">
+                    B4(-15%) {b4Entry.total_b4_signals}件 → {b4Entry.selected.length}件選定（乖離深い順）| 取引上限合計 {fmt(b4Entry.selected_cost)} | 出口: 直近高値更新→翌寄付 / MH15
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead><tr className="text-muted-foreground text-xs">
+                        <th className="text-center px-3 py-2">#</th>
+                        <th className="text-left px-3 py-2">コード</th>
+                        <th className="text-left px-3 py-2">銘柄</th>
+                        <th className="text-right px-3 py-2">終値</th>
+                        <th className="text-right px-3 py-2">乖離%</th>
+                        <th className="text-right px-3 py-2">取引上限</th>
+                      </tr></thead>
+                      <tbody>
+                        {b4Entry.selected.map((c, i) => (
+                          <tr key={c.ticker} className="border-t border-border/20 hover:bg-muted/10">
+                            <td className="text-center px-3 py-2.5 text-muted-foreground">{i + 1}</td>
+                            <td className="px-3 py-2.5 tabular-nums">
+                              <button type="button" className="hover:text-primary font-semibold" onClick={() => window.open(`/${c.ticker.replace('.T', '')}`, 'stock-detail')}>
+                                {c.ticker.replace('.T', '')}
+                              </button>
+                            </td>
+                            <td className="px-3 py-2.5">{c.stock_name}</td>
+                            <td className="text-right px-3 py-2.5 tabular-nums">{fmt(c.close)}</td>
+                            <td className="text-right px-3 py-2.5 tabular-nums text-rose-400">{c.dev_from_sma20.toFixed(1)}%</td>
+                            <td className="text-right px-3 py-2.5 tabular-nums">{fmt(c.max_cost)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+
+              {/* 候補なしメッセージ */}
+              {totalEntries === 0 && (
+                <div className="px-4 py-4 text-center text-muted-foreground text-sm border-t border-border/20">
+                  {b4Decision === 'excluded' ? 'B4除外ルール該当' :
+                   b4Decision === 'wait' ? `B4待機 (VI=${b4Entry?.vi} < 25)` :
+                   lrCount === 0 && (!b4Entry || b4Entry.total_b4_signals === 0) ? 'B1-B3フィルター不成立 / B4シグナルなし' :
+                   'エントリー候補なし'}
+                </div>
               )}
             </Panel>
           );
         })()}
-
-        {/* B4 Entry Decision */}
-        {b4Entry && (
-          <Panel title={
-            <div className="flex items-center justify-between">
-              <h2 className="text-base md:text-lg font-semibold">
-                B4 エントリー判定
-                {b4Entry.date && <span className="ml-2 text-sm font-normal text-muted-foreground">({b4Entry.date} {b4Entry.weekday})</span>}
-              </h2>
-              <span className={`px-3 py-1 rounded-full text-sm font-bold border ${
-                b4Entry.decision === 'strong_entry' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' :
-                b4Entry.decision === 'entry' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' :
-                b4Entry.decision === 'consider' ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' :
-                b4Entry.decision === 'excluded' ? 'text-rose-400 bg-rose-500/10 border-rose-500/30' :
-                'text-muted-foreground bg-muted/10 border-border/40'
-              }`}>
-                {b4Entry.decision === 'strong_entry' ? '強エントリー' :
-                 b4Entry.decision === 'entry' ? 'エントリー' :
-                 b4Entry.decision === 'consider' ? '検討' :
-                 b4Entry.decision === 'excluded' ? '回避' :
-                 b4Entry.decision === 'wait' ? '待機' :
-                 b4Entry.decision === 'no_b4' ? 'B4なし' :
-                 b4Entry.decision === 'no_signal' ? 'シグナルなし' : '候補なし'}
-              </span>
-            </div>
-          } border={
-            b4Entry.decision === 'strong_entry' ? 'border-emerald-500/40' :
-            b4Entry.decision === 'entry' ? 'border-emerald-500/40' :
-            b4Entry.decision === 'excluded' ? 'border-rose-500/40' :
-            'border-border/40'
-          }>
-            {/* 市場環境カード */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 px-4 py-3">
-              <div className="rounded-lg border border-border/40 px-3 py-2">
-                <div className="text-xs text-muted-foreground">日経VI</div>
-                <div className={`text-lg font-bold tabular-nums ${b4Entry.vi && b4Entry.vi >= 40 ? 'text-emerald-400' : b4Entry.vi && b4Entry.vi >= 30 ? 'text-amber-400' : 'text-muted-foreground'}`}>
-                  {b4Entry.vi ?? '-'}
-                </div>
-              </div>
-              <div className="rounded-lg border border-border/40 px-3 py-2">
-                <div className="text-xs text-muted-foreground">CMEギャップ</div>
-                <div className={`text-lg font-bold tabular-nums ${b4Entry.cme_gap != null && Math.abs(b4Entry.cme_gap) > 1 ? (b4Entry.cme_gap < 0 ? 'text-rose-400' : 'text-emerald-400') : 'text-muted-foreground'}`}>
-                  {b4Entry.cme_gap != null ? `${b4Entry.cme_gap > 0 ? '+' : ''}${b4Entry.cme_gap.toFixed(2)}%` : '-'}
-                </div>
-              </div>
-              <div className="rounded-lg border border-border/40 px-3 py-2">
-                <div className="text-xs text-muted-foreground">N225変化</div>
-                <div className={`text-lg font-bold tabular-nums ${b4Entry.n225_chg != null ? (b4Entry.n225_chg >= 0 ? 'text-emerald-400' : 'text-rose-400') : 'text-muted-foreground'}`}>
-                  {b4Entry.n225_chg != null ? `${b4Entry.n225_chg > 0 ? '+' : ''}${b4Entry.n225_chg.toFixed(2)}%` : '-'}
-                </div>
-              </div>
-              <div className="rounded-lg border border-border/40 px-3 py-2">
-                <div className="text-xs text-muted-foreground">B4シグナル</div>
-                <div className="text-lg font-bold tabular-nums">{b4Entry.total_b4_signals}件</div>
-              </div>
-            </div>
-
-            {/* 警告表示 */}
-            {b4Entry.excluded_rules.length > 0 && (
-              <div className="mx-4 mb-2 px-3 py-2 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-sm">
-                除外ルール該当: {b4Entry.excluded_rules.join(', ')}
-              </div>
-            )}
-
-            {b4Entry.selected.length > 0 && (
-              <>
-                <div className="px-4 py-2 text-xs text-muted-foreground">
-                  B4(-15%) {b4Entry.total_b4_signals}件 → {b4Entry.selected.length}件選定（乖離深い順）| 取引上限合計 {fmt(b4Entry.selected_cost)} | 出口: 直近高値更新→翌寄付 / MH15
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead><tr className="text-muted-foreground border-b border-border/30 bg-muted/10">
-                      <th className="text-center px-3 py-2 text-xs font-medium">#</th>
-                      <th className="text-left px-3 py-2 text-xs font-medium">コード</th>
-                      <th className="text-left px-3 py-2 text-xs font-medium">銘柄</th>
-                      <th className="text-right px-3 py-2 text-xs font-medium">終値</th>
-                      <th className="text-right px-3 py-2 text-xs font-medium">乖離%</th>
-                      <th className="text-right px-3 py-2 text-xs font-medium">取引上限</th>
-                    </tr></thead>
-                    <tbody>
-                      {b4Entry.selected.map((c, i) => (
-                        <tr key={c.ticker} className="border-b border-border/20 hover:bg-muted/10">
-                          <td className="text-center px-3 py-2.5 text-muted-foreground">{i + 1}</td>
-                          <td className="px-3 py-2.5 tabular-nums">
-                            <button type="button" className="hover:text-primary font-semibold" onClick={() => window.open(`/${c.ticker.replace('.T', '')}`, 'stock-detail')}>
-                              {c.ticker.replace('.T', '')}
-                            </button>
-                          </td>
-                          <td className="px-3 py-2.5">{c.stock_name}</td>
-                          <td className="text-right px-3 py-2.5 tabular-nums">{fmt(c.close)}</td>
-                          <td className="text-right px-3 py-2.5 tabular-nums text-rose-400">{c.dev_from_sma20.toFixed(1)}%</td>
-                          <td className="text-right px-3 py-2.5 tabular-nums">{fmt(c.max_cost)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-            )}
-            {b4Entry.selected.length === 0 && (
-              <div className="px-4 py-6 text-center text-muted-foreground text-sm">
-                {b4Entry.decision === 'excluded' ? '除外ルール該当のためエントリー回避' :
-                 b4Entry.decision === 'no_b4' ? '本日B4(-15%)シグナルなし' :
-                 b4Entry.decision === 'no_signal' ? 'シグナル未生成' :
-                 b4Entry.decision === 'wait' ? `VI=${b4Entry.vi} < 25: 待機` :
-                 '該当なし'}
-              </div>
-            )}
-          </Panel>
-        )}
 
         {/* Exit Candidates Alert */}
         {posData && posData.exits.length > 0 && (
