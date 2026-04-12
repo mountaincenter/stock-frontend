@@ -34,7 +34,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 // === Helpers ===
 const fmt = (v: number | null | undefined) => (v ?? 0).toLocaleString('ja-JP');
-const fmtZ = (v: number) => <span className={Math.abs(v) >= 2.0 ? (v > 0 ? 'text-rose-400' : 'text-emerald-400') : Math.abs(v) >= 1.5 ? 'text-amber-400' : 'text-foreground/60'}>{v >= 0 ? '+' : ''}{v.toFixed(2)}</span>;
+const fmtZ = (v: number) => <span className={Math.abs(v) >= 2.0 ? (v > 0 ? 'text-price-down' : 'text-price-up') : Math.abs(v) >= 1.5 ? 'text-amber-400' : 'text-foreground/60'}>{v >= 0 ? '+' : ''}{v.toFixed(2)}</span>;
 
 // === Sortable ===
 type SortDir = 'asc' | 'desc' | null;
@@ -78,19 +78,16 @@ const SortHeader = <T,>({ label, field, sortKey, sortDir, toggle, className }: {
 
 // === Layout Components ===
 const StatCard = ({ label, children, sub }: { label: string; children: React.ReactNode; sub?: React.ReactNode }) => (
-  <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 px-5 py-4 shadow-lg shadow-black/5 backdrop-blur-xl">
-    <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
-    <div className="relative">
-      <div className="text-foreground/60 text-sm mb-2">{label}</div>
-      <div className="text-xl sm:text-2xl font-bold text-right tabular-nums">{children}</div>
-      {sub && <div className="text-sm text-right mt-1 text-foreground/50 tabular-nums">{sub}</div>}
-    </div>
+  <div className="rounded-xl border border-border bg-card px-4 py-3">
+    <div className="text-muted-foreground text-sm mb-1">{label}</div>
+    <div className="text-xl sm:text-2xl font-bold text-right tabular-nums">{children}</div>
+    {sub && <div className="text-xs text-right mt-1 text-muted-foreground tabular-nums">{sub}</div>}
   </div>
 );
 
 const Panel = ({ title, border, children, footer }: { title: React.ReactNode; border?: string; children: React.ReactNode; footer?: React.ReactNode }) => (
   <section className="mb-6">
-    <div className={`rounded-2xl border ${border || 'border-border/40'} bg-gradient-to-br from-card/50 via-card/80 to-card/50 shadow-lg shadow-black/5 backdrop-blur-xl overflow-hidden`}>
+    <div className={`rounded-xl border ${border || 'border-border'} bg-card overflow-hidden`}>
       <div className={`px-4 md:px-5 py-3 border-b ${border || 'border-b-border/40'}`}>
         {typeof title === 'string' ? <h2 className="text-base md:text-lg font-semibold text-foreground">{title}</h2> : title}
       </div>
@@ -190,7 +187,7 @@ export default function PairsPage() {
             <span className="text-foreground">{signals?.total ?? 0}</span>
           </StatCard>
           <StatCard label="エントリー可 (|z|>=2.0)" sub="|z|降順で推奨">
-            <span className={entryPairs.length > 0 ? 'text-rose-400' : 'text-muted-foreground'}>
+            <span className={entryPairs.length > 0 ? 'text-price-down' : 'text-muted-foreground'}>
               {entryPairs.length}
             </span>
           </StatCard>
@@ -207,7 +204,7 @@ export default function PairsPage() {
         {/* TOP 3 Recommendations */}
         {top3.length > 0 ? (
           <Panel title={
-            <h2 className="text-base md:text-lg font-semibold text-rose-400">
+            <h2 className="text-base md:text-lg font-semibold text-price-down">
               TOP {top3.length} 推奨 — |z|上位（明朝エントリー）
             </h2>
           } border="border-rose-500/40">
@@ -221,7 +218,7 @@ export default function PairsPage() {
                     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-rose-500/20 text-rose-400 text-xs font-bold">{rank + 1}</span>
+                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-rose-500/20 text-price-down text-xs font-bold">{rank + 1}</span>
                           <span className="text-base font-semibold text-foreground">{p.name1}</span>
                           <span className="text-sm text-foreground/50">{p.tk1}</span>
                           <span className="text-sm tabular-nums text-foreground/60">¥{fmt(p.c1)}</span>
@@ -234,25 +231,25 @@ export default function PairsPage() {
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 text-sm text-foreground/60 ml-8">
                           <div>z: <span className="text-foreground font-semibold">{p.z_latest >= 0 ? '+' : ''}{p.z_latest.toFixed(2)}</span></div>
                           <div>参照: <span className="text-foreground">{p.lookback}日</span></div>
-                          <div>PF: <span className={`${p.full_pf >= 2.5 ? 'text-emerald-400 font-semibold' : 'text-foreground'}`}>{p.full_pf.toFixed(2)}</span> ({p.full_n}回)</div>
+                          <div>PF: <span className={`${p.full_pf >= 2.5 ? 'text-price-up font-semibold' : 'text-foreground'}`}>{p.full_pf.toFixed(2)}</span> ({p.full_n}回)</div>
                           <div>半減期: <span className="text-foreground">{p.half_life.toFixed(0)}日</span></div>
                         </div>
                       </div>
                       <div className="text-right md:min-w-[280px]">
                         <div className="text-sm mb-1">
                           <span className="text-foreground/60">{p.name1}が</span>
-                          <span className="font-bold text-rose-400 mx-1">¥{fmt(Math.round(threshPrice))}</span>
+                          <span className="font-bold text-price-down mx-1">¥{fmt(Math.round(threshPrice))}</span>
                           <span className="text-foreground/60">{threshLabel}</span>
                         </div>
                         <div className="text-sm space-y-0.5 text-foreground/50">
                           <div>
-                            <span className={isShort ? 'text-rose-400' : 'text-emerald-400'}>{p.name1} {isShort ? 'Short' : 'Long'}</span>
+                            <span className={isShort ? 'text-price-down' : 'text-price-up'}>{p.name1} {isShort ? 'Short' : 'Long'}</span>
                             <span className="mx-1">×</span>
                             <span className="text-foreground">{p.shares1}株</span>
                             <span className="ml-1">(¥{fmt(p.notional1)})</span>
                           </div>
                           <div>
-                            <span className={isShort ? 'text-emerald-400' : 'text-rose-400'}>{p.name2} {isShort ? 'Long' : 'Short'}</span>
+                            <span className={isShort ? 'text-price-up' : 'text-price-down'}>{p.name2} {isShort ? 'Long' : 'Short'}</span>
                             <span className="mx-1">×</span>
                             <span className="text-foreground">{p.shares2}株</span>
                             <span className="ml-1">(¥{fmt(p.notional2)})</span>
@@ -359,14 +356,14 @@ export default function PairsPage() {
                       <td className="px-2 py-2.5 text-right tabular-nums text-sm text-foreground/50 hidden md:table-cell">
                         {p.lookback}
                       </td>
-                      <td className="px-2 py-2.5 text-right tabular-nums text-rose-400 text-sm hidden md:table-cell">
+                      <td className="px-2 py-2.5 text-right tabular-nums text-price-down text-sm hidden md:table-cell">
                         ¥{fmt(Math.round(p.tk1_upper))}
                       </td>
-                      <td className="px-2 py-2.5 text-right tabular-nums text-emerald-400 text-sm hidden md:table-cell">
+                      <td className="px-2 py-2.5 text-right tabular-nums text-price-up text-sm hidden md:table-cell">
                         ¥{fmt(Math.round(p.tk1_lower))}
                       </td>
                       <td className="px-2 py-2.5 text-right tabular-nums font-semibold text-sm">
-                        <span className={p.full_pf >= 2.5 ? 'text-emerald-400' : p.full_pf >= 2.0 ? 'text-foreground' : 'text-foreground/50'}>
+                        <span className={p.full_pf >= 2.5 ? 'text-price-up' : p.full_pf >= 2.0 ? 'text-foreground' : 'text-foreground/50'}>
                           {p.full_pf.toFixed(2)}
                         </span>
                       </td>
@@ -392,8 +389,8 @@ export default function PairsPage() {
               <div>
                 <span>9:00 寄付価格を確認</span>
                 <div className="mt-1 ml-2 space-y-0.5 text-sm">
-                  <div>→ tk1の寄付が<span className="text-rose-400">Short閾値以上</span> → tk1空売り + tk2買い</div>
-                  <div>→ tk1の寄付が<span className="text-emerald-400">Long閾値以下</span> → tk1買い + tk2空売り</div>
+                  <div>→ tk1の寄付が<span className="text-price-down">Short閾値以上</span> → tk1空売り + tk2買い</div>
+                  <div>→ tk1の寄付が<span className="text-price-up">Long閾値以下</span> → tk1買い + tk2空売り</div>
                 </div>
               </div>
             </div>

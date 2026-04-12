@@ -65,10 +65,10 @@ const GRADE_KEYS = ['G1', 'G2', 'G3', 'G4', 'G1+G2', '全体'];
 
 // Color helpers (analysis と統一)
 const profitClass = (val: number) =>
-  val > 0 ? 'text-emerald-400' : val < 0 ? 'text-rose-400' : 'text-foreground';
+  val > 0 ? 'text-price-up' : val < 0 ? 'text-price-down' : 'text-foreground';
 
 const winrateClass = (rate: number) =>
-  rate > 50 ? 'text-emerald-400' : rate < 50 ? 'text-rose-400' : 'text-foreground';
+  rate > 50 ? 'text-price-up' : rate < 50 ? 'text-price-down' : 'text-foreground';
 
 const formatProfit = (val: number) => {
   const sign = val >= 0 ? '+' : '';
@@ -80,8 +80,8 @@ const getQuadrantClasses = (me: number, p1: number, ae: number, p2: number): [st
   const positives = values.filter(v => v > 0);
   const negatives = values.filter(v => v < 0);
   const WHITE = 'text-foreground';
-  const GREEN = 'text-emerald-400';
-  const RED = 'text-rose-400';
+  const GREEN = 'text-price-up';
+  const RED = 'text-price-down';
 
   if (positives.length === 4) {
     const maxVal = Math.max(...values);
@@ -347,8 +347,7 @@ export default function AnalysisMlPage() {
           <h2 className="text-sm md:text-base font-semibold text-foreground mb-3">G1+G2 SHORT合計</h2>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {/* 総件数カード */}
-            <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-5 shadow-lg shadow-black/5 backdrop-blur-xl">
-              <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+            <div className="rounded-xl border border-border bg-card p-4">
               <div className="relative">
                 <div className="flex items-center mb-2">
                   <span className="text-muted-foreground text-sm">総件数</span>
@@ -380,9 +379,8 @@ export default function AnalysisMlPage() {
 
             {/* 4seg カード */}
             {g12Segs.map((s, i) => (
-              <div key={s.label} className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-5 shadow-lg shadow-black/5 backdrop-blur-xl">
-                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
-                <div className="relative">
+              <div key={s.label} className="rounded-xl border border-border bg-card p-4">
+                  <div className="relative">
                   <div className="flex items-center mb-2">
                     <span className="text-muted-foreground text-sm">{s.label}</span>
                   </div>
@@ -401,7 +399,7 @@ export default function AnalysisMlPage() {
         {/* Grade別サマリー (combined) */}
         <section className="mb-6">
           <h2 className="text-sm md:text-base font-semibold text-foreground mb-3">Grade別サマリー (SHORT)</h2>
-          <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
+          <div className="rounded-xl border border-border bg-card p-4">
             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
             <div className="relative overflow-x-auto">
               <table className="w-full text-sm">
@@ -462,9 +460,8 @@ export default function AnalysisMlPage() {
               <h2 className="text-sm font-semibold text-foreground mb-3">{wdName}曜</h2>
               <div className="grid grid-cols-1 gap-4">
                 {/* 制度信用カード */}
-                <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
-                  <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
-                  <div className="relative">
+                <div className="rounded-xl border border-border bg-card p-4">
+                      <div className="relative">
                     <div className="flex items-center gap-2 mb-3">
                       <span className="font-semibold text-lg text-foreground">制度信用</span>
                       <span className="text-muted-foreground text-base">
@@ -477,9 +474,8 @@ export default function AnalysisMlPage() {
                 </div>
 
                 {/* いちにち信用カード */}
-                <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
-                  <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
-                  <div className="relative">
+                <div className="rounded-xl border border-border bg-card p-4">
+                      <div className="relative">
                     <div className="flex items-center gap-2 mb-3">
                       <span className="font-semibold text-lg text-foreground">いちにち信用</span>
                       <span className="text-muted-foreground text-base">
@@ -547,8 +543,7 @@ export default function AnalysisMlPage() {
             </div>
           </div>
           {showMonthly && (
-            <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
-              <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+            <div className="rounded-xl border border-border bg-card p-4">
               <div className="relative overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>

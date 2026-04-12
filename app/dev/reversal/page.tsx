@@ -41,7 +41,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 // === Helpers ===
 const fmt = (v: number | null | undefined) => (v ?? 0).toLocaleString('ja-JP');
-const fmtPnl = (v: number | null | undefined) => { const n = v ?? 0; return <span className={n >= 0 ? 'text-emerald-400' : 'text-rose-400'}>{n >= 0 ? '+' : ''}{fmt(n)}円</span>; };
+const fmtPnl = (v: number | null | undefined) => { const n = v ?? 0; return <span className={n >= 0 ? 'text-price-up' : 'text-price-down'}>{n >= 0 ? '+' : ''}{fmt(n)}円</span>; };
 const fmtPct = (v: number | null | undefined, d = 1) => { const n = v ?? 0; return `${n >= 0 ? '+' : ''}${n.toFixed(d)}%`; };
 const shortDate = (d: string) => { const m = d.match(/\d{4}-(\d{2})-(\d{2})/); return m ? `${m[1]}/${m[2]}` : d; };
 
@@ -55,11 +55,11 @@ const StrategyBadge = ({ strategy }: { strategy: string }) => {
 };
 
 const exitLabel = (t: string) => {
-  if (t === 'sma20_return') return { text: 'SMA20回帰→SMA20指値', cls: 'text-emerald-400' };
-  if (t === 'stop_loss') return { text: 'Day3損切り→翌寄付', cls: 'text-rose-400' };
+  if (t === 'sma20_return') return { text: 'SMA20回帰→SMA20指値', cls: 'text-price-up' };
+  if (t === 'stop_loss') return { text: 'Day3損切り→翌寄付', cls: 'text-price-down' };
   if (t === 'max_hold') return { text: 'MAX_HOLD→翌寄付', cls: 'text-amber-400' };
-  if (t === 'high_update') return { text: '高値更新→翌寄付', cls: 'text-emerald-400' };
-  if (t === '20d_high') return { text: '高値更新→翌寄付', cls: 'text-emerald-400' };
+  if (t === 'high_update') return { text: '高値更新→翌寄付', cls: 'text-price-up' };
+  if (t === '20d_high') return { text: '高値更新→翌寄付', cls: 'text-price-up' };
   return { text: t || '保有中', cls: 'text-muted-foreground' };
 };
 
@@ -105,7 +105,7 @@ const SortHeader = <T,>({ label, field, sortKey, sortDir, toggle, className }: {
 
 // === Layout Components ===
 const StatCard = ({ label, children, sub }: { label: string; children: React.ReactNode; sub?: React.ReactNode }) => (
-  <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 px-5 py-4 shadow-lg shadow-black/5 backdrop-blur-xl">
+  <div className="rounded-xl border border-border bg-card px-4 py-3">
     <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
     <div className="relative">
       <div className="text-muted-foreground text-sm mb-2">{label}</div>
@@ -117,7 +117,7 @@ const StatCard = ({ label, children, sub }: { label: string; children: React.Rea
 
 const Panel = ({ title, border, children, footer }: { title: React.ReactNode; border?: string; children: React.ReactNode; footer?: React.ReactNode }) => (
   <section className="mb-5">
-    <div className={`rounded-2xl border ${border || 'border-border/40'} bg-gradient-to-br from-card/50 via-card/80 to-card/50 shadow-lg shadow-black/5 backdrop-blur-xl overflow-hidden`}>
+    <div className={`rounded-xl border ${border || 'border-border'} bg-card overflow-hidden`}>
       <div className={`px-4 md:px-5 py-3 border-b ${border || 'border-b-border/40'}`}>
         {typeof title === 'string' ? <h2 className="text-base md:text-lg font-semibold text-foreground">{title}</h2> : title}
       </div>
@@ -209,7 +209,7 @@ export default function ReversalPage() {
         {status && (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
             <StatCard label="日経VI" sub={status.vi_signal === 'green' ? 'VI≥20: 逆張り有効' : 'VI<20: 逆張り無効'}>
-              <span className={status.vi && status.vi >= 20 ? 'text-emerald-400' : 'text-rose-400'}>
+              <span className={status.vi && status.vi >= 20 ? 'text-price-up' : 'text-price-down'}>
                 {status.vi ?? '-'}
               </span>
             </StatCard>
@@ -222,7 +222,7 @@ export default function ReversalPage() {
               </span>
             </StatCard>
             <StatCard label="B4シグナル">
-              <span className={status.b4_count > 0 ? 'text-rose-400' : 'text-muted-foreground'}>
+              <span className={status.b4_count > 0 ? 'text-price-down' : 'text-muted-foreground'}>
                 {status.b4_count}
               </span>
             </StatCard>
@@ -271,7 +271,7 @@ export default function ReversalPage() {
                         <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">{shortDate(p.entry_date)}</td>
                         <td className="px-3 py-2.5 text-right tabular-nums">¥{fmt(p.entry_price)}</td>
                         <td className="px-3 py-2.5 text-right tabular-nums">¥{fmt(p.current_price)}</td>
-                        <td className={`px-3 py-2.5 text-right tabular-nums ${p.pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{fmtPct(p.pct, 2)}</td>
+                        <td className={`px-3 py-2.5 text-right tabular-nums ${p.pct >= 0 ? 'text-price-up' : 'text-price-down'}`}>{fmtPct(p.pct, 2)}</td>
                         <td className="px-3 py-2.5 text-right tabular-nums">{fmtPnl(p.pnl)}</td>
                         <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">{p.hold_days}/{p.max_hold}</td>
                         <td className={`px-3 py-2.5 ${el.cls}`}>{el.text}</td>
@@ -323,8 +323,8 @@ export default function ReversalPage() {
                         </td>
                         <td className="px-3 py-2.5">{s.stock_name}</td>
                         <td className="text-right px-3 py-2.5 tabular-nums">{fmt(s.close)}</td>
-                        <td className="text-right px-3 py-2.5 tabular-nums text-rose-400 font-semibold">{s.body_pct.toFixed(1)}%</td>
-                        <td className="text-right px-3 py-2.5 tabular-nums text-rose-400">{s.dev_from_sma20.toFixed(1)}%</td>
+                        <td className="text-right px-3 py-2.5 tabular-nums text-price-down font-semibold">{s.body_pct.toFixed(1)}%</td>
+                        <td className="text-right px-3 py-2.5 tabular-nums text-price-down">{s.dev_from_sma20.toFixed(1)}%</td>
                         <td className="text-right px-3 py-2.5 tabular-nums text-muted-foreground">{fmt(Math.round(s.sma20))}</td>
                         <td className="text-right px-3 py-2.5 tabular-nums">{fmt(s.entry_price_est)}</td>
                         <td className="px-3 py-2.5 text-muted-foreground text-xs max-w-[120px] truncate">{s.sector}</td>
@@ -373,7 +373,7 @@ export default function ReversalPage() {
                       </td>
                       <td className="px-3 py-2.5">{s.stock_name}</td>
                       <td className="text-right px-3 py-2.5 tabular-nums">{fmt(s.close)}</td>
-                      <td className="text-right px-3 py-2.5 tabular-nums text-rose-400 font-semibold">{s.dev_from_sma20.toFixed(1)}%</td>
+                      <td className="text-right px-3 py-2.5 tabular-nums text-price-down font-semibold">{s.dev_from_sma20.toFixed(1)}%</td>
                       <td className="text-right px-3 py-2.5 tabular-nums">{fmt(s.entry_price_est)}</td>
                       <td className="px-3 py-2.5 text-muted-foreground text-xs max-w-[120px] truncate">{s.sector}</td>
                     </tr>
@@ -422,7 +422,7 @@ export default function ReversalPage() {
                       <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground hidden md:table-cell">
                         {p.sma20 > 0 ? `¥${fmt(Math.round(p.sma20))}` : '-'}
                       </td>
-                      <td className={`px-3 py-2.5 text-right tabular-nums ${p.pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{fmtPct(p.pct, 2)}</td>
+                      <td className={`px-3 py-2.5 text-right tabular-nums ${p.pct >= 0 ? 'text-price-up' : 'text-price-down'}`}>{fmtPct(p.pct, 2)}</td>
                       <td className="px-3 py-2.5 text-right tabular-nums">{fmtPnl(p.pnl)}</td>
                       <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">{p.hold_days}/{p.max_hold}</td>
                     </tr>

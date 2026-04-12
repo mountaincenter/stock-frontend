@@ -470,7 +470,7 @@ export default function DevDashboard() {
                       <button
                         onClick={registerPasskey}
                         disabled={passkeyLoading}
-                        className="w-full mb-3 py-2 text-sm bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg hover:from-emerald-500 hover:to-teal-500 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                        className="w-full mb-3 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                       >
                         <Fingerprint className="w-4 h-4" />
                         新しいパスキーを登録
@@ -540,11 +540,10 @@ export default function DevDashboard() {
         {/* KPI Row */}
         <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-6">
           {/* Win Rate - All */}
-          <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+          <div className="rounded-xl border border-border bg-card p-4">
             <div className="relative">
               <div className="text-muted-foreground text-xs mb-2">勝率</div>
-              <div className={`text-2xl tabular-nums font-bold text-right ${displayStats.overall.win_rate >= 50 ? "text-emerald-400" : "text-rose-400"}`}>
+              <div className={`text-2xl tabular-nums font-bold text-right ${displayStats.overall.win_rate >= 50 ? "text-price-up" : "text-price-down"}`}>
                 {displayStats.overall.win_rate?.toFixed(1) ?? "—"}%
               </div>
               <div className="text-muted-foreground/70 text-xs mt-1 text-right">{displayStats.overall.valid_count}件</div>
@@ -552,22 +551,20 @@ export default function DevDashboard() {
           </div>
 
           {/* Win Rate - Top5 */}
-          <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+          <div className="rounded-xl border border-border bg-card p-4">
             <div className="relative">
               <div className="text-muted-foreground text-xs mb-2">Top5勝率</div>
-              <div className={`text-2xl tabular-nums font-bold text-right ${displayStats.top5.win_rate >= 50 ? "text-emerald-400" : "text-rose-400"}`}>
+              <div className={`text-2xl tabular-nums font-bold text-right ${displayStats.top5.win_rate >= 50 ? "text-price-up" : "text-price-down"}`}>
                 {displayStats.top5.win_rate.toFixed(1)}%
               </div>
             </div>
           </div>
 
           {/* Avg Profit - All */}
-          <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+          <div className="rounded-xl border border-border bg-card p-4">
             <div className="relative">
               <div className="text-muted-foreground text-xs mb-2">平均損益</div>
-              <div className={`text-2xl tabular-nums font-bold text-right ${displayStats.overall.avg_profit_per_100_shares >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+              <div className={`text-2xl tabular-nums font-bold text-right ${displayStats.overall.avg_profit_per_100_shares >= 0 ? "text-price-up" : "text-price-down"}`}>
                 {displayStats.overall.avg_profit_per_100_shares >= 0 ? "+" : ""}{Math.round(displayStats.overall.avg_profit_per_100_shares).toLocaleString()}円
               </div>
               <div className="text-muted-foreground/70 text-xs mt-1 text-right">100株あたり</div>
@@ -575,22 +572,20 @@ export default function DevDashboard() {
           </div>
 
           {/* Avg Profit - Top5 */}
-          <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+          <div className="rounded-xl border border-border bg-card p-4">
             <div className="relative">
               <div className="text-muted-foreground text-xs mb-2">Top5平均</div>
-              <div className={`text-2xl tabular-nums font-bold text-right ${displayStats.top5.avg_profit_per_100_shares >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+              <div className={`text-2xl tabular-nums font-bold text-right ${displayStats.top5.avg_profit_per_100_shares >= 0 ? "text-price-up" : "text-price-down"}`}>
                 {displayStats.top5.avg_profit_per_100_shares >= 0 ? "+" : ""}{Math.round(displayStats.top5.avg_profit_per_100_shares).toLocaleString()}円
               </div>
             </div>
           </div>
 
           {/* Total Profit - All */}
-          <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+          <div className="rounded-xl border border-border bg-card p-4">
             <div className="relative">
               <div className="text-muted-foreground text-xs mb-2">累計損益</div>
-              <div className={`text-2xl tabular-nums font-bold text-right ${displayStats.overall.total_profit_per_100_shares >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+              <div className={`text-2xl tabular-nums font-bold text-right ${displayStats.overall.total_profit_per_100_shares >= 0 ? "text-price-up" : "text-price-down"}`}>
                 {displayStats.overall.total_profit_per_100_shares >= 0 ? "+" : ""}{Math.round(displayStats.overall.total_profit_per_100_shares).toLocaleString()}円
               </div>
               <div className="text-muted-foreground/70 text-xs mt-1 text-right">{displayStats.overall.total_days}日</div>
@@ -598,11 +593,10 @@ export default function DevDashboard() {
           </div>
 
           {/* Total Profit - Top5 */}
-          <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 shadow-lg shadow-black/5 backdrop-blur-xl">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+          <div className="rounded-xl border border-border bg-card p-4">
             <div className="relative">
               <div className="text-muted-foreground text-xs mb-2">Top5累計</div>
-              <div className={`text-2xl tabular-nums font-bold text-right ${displayStats.top5.total_profit_per_100_shares >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+              <div className={`text-2xl tabular-nums font-bold text-right ${displayStats.top5.total_profit_per_100_shares >= 0 ? "text-price-up" : "text-price-down"}`}>
                 {displayStats.top5.total_profit_per_100_shares >= 0 ? "+" : ""}{Math.round(displayStats.top5.total_profit_per_100_shares).toLocaleString()}円
               </div>
             </div>
@@ -612,8 +606,7 @@ export default function DevDashboard() {
         {/* Chart + Table Grid */}
         <div className="grid lg:grid-cols-2 gap-4 mb-6">
           {/* Chart */}
-          <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 shadow-xl shadow-black/5 backdrop-blur-xl">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+          <div className="rounded-xl border border-border bg-card">
             <div className="relative">
               <div className="flex items-center justify-between px-4 py-3 border-b border-border/30">
                 <span className="text-sm font-semibold text-foreground">パフォーマンス</span>
@@ -681,8 +674,7 @@ export default function DevDashboard() {
           </div>
 
           {/* Table */}
-          <div className="relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 shadow-xl shadow-black/5 backdrop-blur-xl">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+          <div className="rounded-xl border border-border bg-card">
             <div className="relative">
               <div className="flex items-center justify-between px-4 py-3 border-b border-border/30">
                 <span className="text-sm font-semibold text-foreground">履歴</span>
@@ -723,10 +715,10 @@ export default function DevDashboard() {
                         <td className="px-4 py-2.5 tabular-nums text-foreground">{stat.date}</td>
                         <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">{stat.count}</td>
                         <td className="px-3 py-2.5 text-right tabular-nums text-foreground">{stat.win_rate?.toFixed(1) ?? "—"}%</td>
-                        <td className={`px-3 py-2.5 text-right tabular-nums font-medium ${stat.total_profit_per_100 >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                        <td className={`px-3 py-2.5 text-right tabular-nums font-medium ${stat.total_profit_per_100 >= 0 ? "text-price-up" : "text-price-down"}`}>
                           {stat.total_profit_per_100 >= 0 ? "+" : ""}{Math.round(stat.total_profit_per_100).toLocaleString()}円
                         </td>
-                        <td className={`px-3 py-2.5 text-right tabular-nums font-medium ${stat.top5_total_profit_per_100 >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                        <td className={`px-3 py-2.5 text-right tabular-nums font-medium ${stat.top5_total_profit_per_100 >= 0 ? "text-price-up" : "text-price-down"}`}>
                           {stat.top5_total_profit_per_100 >= 0 ? "+" : ""}{Math.round(stat.top5_total_profit_per_100).toLocaleString()}円
                         </td>
                         <td className="px-3 py-2.5">
