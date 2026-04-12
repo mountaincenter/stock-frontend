@@ -278,7 +278,7 @@ export default function DevDashboard() {
     return (
       <main className="relative min-h-screen">
         <div className="fixed inset-0 -z-10 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20" />
+          <div className="absolute inset-0 bg-background" />
         </div>
         <div className="max-w-7xl mx-auto px-4 py-4">
           {/* Header skeleton */}
@@ -313,8 +313,8 @@ export default function DevDashboard() {
   if (error || !dashboardData) {
     return (
       <main className="relative min-h-screen flex items-center justify-center">
-        <div className="fixed inset-0 -z-10 bg-gradient-to-br from-background via-background to-muted/20" />
-        <div className="text-rose-400 text-sm">エラー: {error || "データがありません"}</div>
+        <div className="fixed inset-0 -z-10 bg-background" />
+        <div className="text-destructive text-sm">エラー: {error || "データがありません"}</div>
       </main>
     );
   }
@@ -326,13 +326,7 @@ export default function DevDashboard() {
 
   return (
     <main className="relative min-h-screen">
-      {/* Premium background */}
-      <div className="fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20" />
-        <div className="absolute -top-1/2 -right-1/4 w-[800px] h-[800px] rounded-full bg-gradient-to-br from-primary/8 via-primary/3 to-transparent blur-3xl animate-pulse-slow" />
-        <div className="absolute -bottom-1/3 -left-1/4 w-[600px] h-[600px] rounded-full bg-gradient-to-tr from-accent/10 via-accent/4 to-transparent blur-3xl animate-pulse-slower" />
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.03)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.03)_1px,transparent_1px)] bg-[size:4rem_4rem]" />
-      </div>
+      <div className="fixed inset-0 -z-10 bg-background" />
 
       <div className="max-w-7xl mx-auto px-4 py-4 leading-[1.8] tracking-[0.02em] font-sans">
         {/* Header */}
@@ -413,7 +407,7 @@ export default function DevDashboard() {
                   </div>
 
                   {passkeyError && (
-                    <div className="p-2 mb-3 text-xs text-rose-400 bg-rose-400/10 rounded-lg">
+                    <div className="p-2 mb-3 text-xs text-destructive bg-destructive/10 rounded-lg">
                       {passkeyError}
                     </div>
                   )}
@@ -429,7 +423,7 @@ export default function DevDashboard() {
                       <p className="text-xs text-muted-foreground">パスキー登録・解除にはログインが必要です</p>
 
                       {settingsLoginError && (
-                        <div className="p-2 text-xs text-rose-400 bg-rose-400/10 rounded-lg">
+                        <div className="p-2 text-xs text-destructive bg-destructive/10 rounded-lg">
                           {settingsLoginError}
                         </div>
                       )}
@@ -498,7 +492,7 @@ export default function DevDashboard() {
                               <button
                                 onClick={() => deletePasskey(passkey.credentialId)}
                                 disabled={passkeyLoading || !passkey.credentialId}
-                                className="p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-400/10 rounded-lg transition-colors disabled:opacity-50"
+                                className="p-2 text-destructive hover:text-destructive/80 hover:bg-destructive/10 rounded-lg transition-colors disabled:opacity-50"
                                 title="削除"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -521,7 +515,7 @@ export default function DevDashboard() {
                       setPasskeys([]);
                       setShowSettings(false);
                     }}
-                    className="w-full py-2 text-sm text-rose-400 hover:text-rose-300 border border-rose-400/30 rounded-lg hover:bg-rose-400/10 transition-colors"
+                    className="w-full py-2 text-sm text-destructive hover:text-destructive/80 border border-destructive/30 rounded-lg hover:bg-destructive/10 transition-colors"
                   >
                     ログアウト
                   </button>

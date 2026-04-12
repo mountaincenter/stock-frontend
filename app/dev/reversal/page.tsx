@@ -106,8 +106,7 @@ const SortHeader = <T,>({ label, field, sortKey, sortDir, toggle, className }: {
 // === Layout Components ===
 const StatCard = ({ label, children, sub }: { label: string; children: React.ReactNode; sub?: React.ReactNode }) => (
   <div className="rounded-xl border border-border bg-card px-4 py-3">
-    <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
-    <div className="relative">
+    <div>
       <div className="text-muted-foreground text-sm mb-2">{label}</div>
       <div className="text-xl font-bold text-right tabular-nums">{children}</div>
       {sub && <div className="text-sm text-right mt-1 text-muted-foreground tabular-nums">{sub}</div>}
@@ -166,7 +165,7 @@ export default function ReversalPage() {
   if (loading) {
     return (
       <main className="relative min-h-screen">
-        <div className="fixed inset-0 -z-10"><div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20" /></div>
+        <div className="fixed inset-0 -z-10 bg-background" />
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="h-6 w-48 bg-muted/50 rounded mb-4 animate-pulse" />
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
@@ -179,11 +178,7 @@ export default function ReversalPage() {
 
   return (
     <main className="relative min-h-screen">
-      <div className="fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20" />
-        <div className="absolute -top-1/2 -right-1/4 w-[800px] h-[800px] rounded-full bg-gradient-to-br from-violet-500/8 via-violet-500/3 to-transparent blur-3xl" />
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.03)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.03)_1px,transparent_1px)] bg-[size:4rem_4rem]" />
-      </div>
+      <div className="fixed inset-0 -z-10 bg-background" />
 
       <div className="max-w-7xl mx-auto px-4 py-4">
         {/* Header */}

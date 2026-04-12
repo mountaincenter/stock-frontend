@@ -142,7 +142,7 @@ export default function PairsPage() {
   if (loading) {
     return (
       <main className="relative min-h-screen">
-        <div className="fixed inset-0 -z-10"><div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20" /></div>
+        <div className="fixed inset-0 -z-10 bg-background" />
         <div className="max-w-[1400px] mx-auto px-0 md:px-4 py-4">
           <div className="h-6 w-48 bg-muted/50 rounded mb-4 animate-pulse" />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
@@ -155,11 +155,7 @@ export default function PairsPage() {
 
   return (
     <main className="relative min-h-screen">
-      <div className="fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20" />
-        <div className="absolute -top-1/2 -right-1/4 w-[800px] h-[800px] rounded-full bg-gradient-to-br from-cyan-500/8 via-cyan-500/3 to-transparent blur-3xl" />
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.03)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.03)_1px,transparent_1px)] bg-[size:4rem_4rem]" />
-      </div>
+      <div className="fixed inset-0 -z-10 bg-background" />
 
       <div className="max-w-[1400px] mx-auto px-0 md:px-4 py-4">
         {/* Header */}

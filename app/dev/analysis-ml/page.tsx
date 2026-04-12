@@ -252,9 +252,7 @@ export default function AnalysisMlPage() {
   if (loading) {
     return (
       <main className="relative min-h-screen">
-        <div className="fixed inset-0 -z-10 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20" />
-        </div>
+        <div className="fixed inset-0 -z-10 bg-background" />
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4 pb-3 border-b border-border/30">
             <div>
@@ -272,9 +270,9 @@ export default function AnalysisMlPage() {
   if (error || !data) {
     return (
       <main className="relative min-h-screen">
-        <div className="fixed inset-0 -z-10 bg-gradient-to-br from-background via-background to-muted/20" />
+        <div className="fixed inset-0 -z-10 bg-background" />
         <div className="flex items-center justify-center min-h-screen">
-          <div className="text-rose-400 text-sm">Error: {error || 'No data'}</div>
+          <div className="text-destructive text-sm">Error: {error || 'No data'}</div>
         </div>
       </main>
     );
@@ -321,12 +319,7 @@ export default function AnalysisMlPage() {
 
   return (
     <main className="relative min-h-screen">
-      {/* Background */}
-      <div className="fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20" />
-        <div className="absolute -top-1/2 -right-1/4 w-[800px] h-[800px] rounded-full bg-gradient-to-br from-primary/8 via-primary/3 to-transparent blur-3xl animate-pulse-slow" />
-        <div className="absolute -bottom-1/3 -left-1/4 w-[600px] h-[600px] rounded-full bg-gradient-to-tr from-accent/10 via-accent/4 to-transparent blur-3xl animate-pulse-slower" />
-      </div>
+      <div className="fixed inset-0 -z-10 bg-background" />
 
       <div className="max-w-7xl mx-auto px-4 py-4 leading-[1.8] tracking-[0.02em] font-sans">
         {/* Header */}
@@ -400,8 +393,7 @@ export default function AnalysisMlPage() {
         <section className="mb-6">
           <h2 className="text-sm md:text-base font-semibold text-foreground mb-3">Grade別サマリー (SHORT)</h2>
           <div className="rounded-xl border border-border bg-card p-4">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
-            <div className="relative overflow-x-auto">
+            <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>{TABLE_HEADER}</thead>
                 <tbody>
