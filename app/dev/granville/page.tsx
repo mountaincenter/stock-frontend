@@ -49,7 +49,7 @@ interface B4Candidate {
   ticker: string; stock_name: string; sector: string;
   close: number; entry_price_est: number;
   dev_from_sma20: number; atr_pct: number; ret5d: number;
-  max_cost: number;
+  max_cost: number; expected_pf: number;
 }
 interface B4EntryResponse {
   decision: string; vi: number | null;
