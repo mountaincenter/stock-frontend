@@ -529,7 +529,7 @@ export default function DashboardPage() {
 
                 return (
                   <div className="overflow-x-auto border-t border-border/20">
-                    <table className="w-full text-sm">
+                    <table className="w-full text-sm md:text-base">
                       <thead>
                         <tr className="text-muted-foreground text-xs">
                           <th className="px-2 py-2 text-center">#</th>
@@ -544,22 +544,22 @@ export default function DashboardPage() {
                       </thead>
                       <tbody>
                         {rows.map((r, i) => (
-                          <tr key={`${r.ticker}-${r.rule}`} className="border-t border-border/20 hover:bg-white/[0.02]">
-                            <td className="px-2 py-2 text-center text-muted-foreground">{i + 1}</td>
-                            <td className="px-3 py-2">
-                              <button type="button" className="text-primary hover:underline font-medium" onClick={() => window.open(`/dev/${r.ticker.replace('.T', '')}`, 'stock-detail')}>{r.ticker.replace('.T', '')}</button>
-                              <span className="ml-1.5 text-muted-foreground text-xs">{r.stock_name}</span>
+                          <tr key={`${r.ticker}-${r.rule}`} className="border-t border-border/20 hover:bg-muted/5">
+                            <td className="px-2 py-3 text-center text-muted-foreground">{i + 1}</td>
+                            <td className="px-3 py-3">
+                              <button type="button" className="text-primary hover:underline font-semibold" onClick={() => window.open(`/dev/${r.ticker.replace('.T', '')}`, 'stock-detail')}>{r.ticker.replace('.T', '')}</button>
+                              <span className="ml-1.5 text-muted-foreground text-sm">{r.stock_name}</span>
                             </td>
-                            <td className="px-2 py-2 text-center"><RuleBadge rule={r.rule} /></td>
-                            <td className="px-2 py-2 text-center">
+                            <td className="px-2 py-3 text-center"><RuleBadge rule={r.rule} /></td>
+                            <td className="px-2 py-3 text-center">
                               <span className={`inline-block px-1.5 py-0.5 text-xs rounded leading-none border ${gradeCls(r.grade)}`}>
                                 {r.grade === 'B4' ? 'B4' : `${r.grade} ${gradeLabel(r.grade)}`}
                               </span>
                             </td>
-                            <td className="px-2 py-2 text-right tabular-nums">&yen;{r.close.toLocaleString()}</td>
-                            <td className="px-2 py-2 text-right tabular-nums">{fmtPct(r.dev_from_sma20, 1)}</td>
-                            <td className="px-2 py-2 text-center">{r.hold_days}d</td>
-                            {rows.some(x => x.max_cost) && <td className="px-2 py-2 text-right tabular-nums">{r.max_cost ? fmt(r.max_cost) : '-'}</td>}
+                            <td className="px-2 py-3 text-right tabular-nums">&yen;{r.close.toLocaleString()}</td>
+                            <td className="px-2 py-3 text-right tabular-nums">{fmtPct(r.dev_from_sma20, 1)}</td>
+                            <td className="px-2 py-3 text-center">{r.hold_days}d</td>
+                            {rows.some(x => x.max_cost) && <td className="px-2 py-3 text-right tabular-nums">{r.max_cost ? fmt(r.max_cost) : '-'}</td>}
                           </tr>
                         ))}
                       </tbody>
