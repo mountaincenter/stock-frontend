@@ -303,8 +303,8 @@ export default function DashboardPage() {
               <table className="w-full text-sm md:text-base">
                 <thead><tr className="text-foreground border-b border-border/40 bg-muted/30">
                   <th className="text-center px-2 py-3 text-xs font-medium whitespace-nowrap">売買</th>
-                  <SortHeader<Position> label="コード" field="ticker" {...exitSort} className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap" />
-                  <th className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap">銘柄</th>
+                  <SortHeader<Position> label="コード" field="ticker" {...exitSort} className="text-left w-[80px] px-2 py-3 text-xs font-medium whitespace-nowrap" />
+                  <th className="text-left w-[140px] px-2 py-3 text-xs font-medium whitespace-nowrap">銘柄</th>
                   <th className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap">建日</th>
                   <th className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap">日数/MH</th>
                   <th className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap">建単価</th>
@@ -322,8 +322,8 @@ export default function DashboardPage() {
                           {p.direction || '-'}
                         </span>
                       </td>
-                      <td className="px-2 py-4 tabular-nums"><TickerLink ticker={p.ticker} /></td>
-                      <td className="px-2 py-4 text-foreground max-w-[140px] truncate">{p.stock_name}</td>
+                      <td className="w-[80px] px-2 py-4 tabular-nums"><TickerLink ticker={p.ticker} /></td>
+                      <td className="w-[140px] px-2 py-4 text-foreground truncate">{p.stock_name}</td>
                       <td className="px-2 py-4 text-right tabular-nums text-muted-foreground text-xs">{p.entry_date ? shortDate(p.entry_date) : '-'}</td>
                       <td className="px-2 py-4 text-right tabular-nums text-muted-foreground">{p.hold_days}/{p.max_hold || 15}</td>
                       <td className="px-2 py-4 text-right tabular-nums text-muted-foreground whitespace-nowrap">&yen;{fmt(p.entry_price)}</td>
@@ -358,8 +358,8 @@ export default function DashboardPage() {
               <table className="w-full text-sm md:text-base">
                 <thead><tr className="text-foreground border-b border-border/40 bg-muted/30">
                   <th className="text-center px-2 py-3 text-xs font-medium whitespace-nowrap">売買</th>
-                  <SortHeader<Position> label="コード" field="ticker" {...activeSort} className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap" />
-                  <th className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap">銘柄</th>
+                  <SortHeader<Position> label="コード" field="ticker" {...activeSort} className="text-left w-[80px] px-2 py-3 text-xs font-medium whitespace-nowrap" />
+                  <th className="text-left w-[140px] px-2 py-3 text-xs font-medium whitespace-nowrap">銘柄</th>
                   <th className="text-center px-2 py-3 text-xs font-medium whitespace-nowrap">信用区分</th>
                   <th className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap">建日</th>
                   <th className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap">日数/MH</th>
@@ -377,8 +377,8 @@ export default function DashboardPage() {
                           {p.direction || '-'}
                         </span>
                       </td>
-                      <td className="px-2 py-4 tabular-nums"><TickerLink ticker={p.ticker} /></td>
-                      <td className="px-2 py-4 text-foreground max-w-[140px] truncate">{p.stock_name}</td>
+                      <td className="w-[80px] px-2 py-4 tabular-nums"><TickerLink ticker={p.ticker} /></td>
+                      <td className="w-[140px] px-2 py-4 text-foreground truncate">{p.stock_name}</td>
                       <td className="px-2 py-4 text-center text-xs text-muted-foreground">{p.margin_type}</td>
                       <td className="px-2 py-4 text-right tabular-nums text-muted-foreground text-xs">{p.entry_date ? shortDate(p.entry_date) : '-'}</td>
                       <td className="px-2 py-4 text-right tabular-nums text-muted-foreground">{p.hold_days}/{p.max_hold || 15}</td>
@@ -533,8 +533,8 @@ export default function DashboardPage() {
                       <thead>
                         <tr className="text-muted-foreground text-xs">
                           <th className="px-2 py-2 text-center">#</th>
-                          <th className="px-2 py-2 text-left">コード</th>
-                          <th className="px-2 py-2 text-left">銘柄</th>
+                          <th className="w-[80px] px-2 py-2 text-left">コード</th>
+                          <th className="w-[140px] px-2 py-2 text-left">銘柄</th>
                           <th className="px-2 py-2 text-left">セクター</th>
                           <th className="px-2 py-2 text-center">ルール</th>
                           <th className="px-2 py-2 text-center">グレード</th>
@@ -548,8 +548,8 @@ export default function DashboardPage() {
                         {rows.map((r, i) => (
                           <tr key={`${r.ticker}-${r.rule}`} className="border-t border-border/20 hover:bg-muted/5">
                             <td className="px-2 py-3 text-center text-muted-foreground">{i + 1}</td>
-                            <td className="px-2 py-3 tabular-nums"><TickerLink ticker={r.ticker} /></td>
-                            <td className="px-2 py-3 text-foreground">{r.stock_name}</td>
+                            <td className="w-[80px] px-2 py-3 tabular-nums"><TickerLink ticker={r.ticker} /></td>
+                            <td className="w-[140px] px-2 py-3 text-foreground">{r.stock_name}</td>
                             <td className="px-2 py-3 text-muted-foreground text-xs max-w-[120px] truncate">{r.sector}</td>
                             <td className="px-2 py-3 text-center"><RuleBadge rule={r.rule} /></td>
                             <td className="px-2 py-3 text-center">
@@ -587,8 +587,8 @@ export default function DashboardPage() {
               <table className="w-full text-sm md:text-base">
                 <thead><tr className="text-foreground border-b border-border/40 bg-muted/30">
                   <th className="text-center px-2 py-3 text-xs font-medium whitespace-nowrap">#</th>
-                  <SortHeader<Signal> label="コード" field="ticker" {...bearishSort} className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap" />
-                  <th className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap">銘柄</th>
+                  <SortHeader<Signal> label="コード" field="ticker" {...bearishSort} className="text-left w-[80px] px-2 py-3 text-xs font-medium whitespace-nowrap" />
+                  <th className="text-left w-[140px] px-2 py-3 text-xs font-medium whitespace-nowrap">銘柄</th>
                   <SortHeader<Signal> label="終値" field="close" {...bearishSort} className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap" />
                   <SortHeader<Signal> label="実体%" field="body_pct" {...bearishSort} className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap" />
                   <SortHeader<Signal> label="SMA20乖離" field="dev_from_sma20" {...bearishSort} className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap" />
@@ -600,8 +600,8 @@ export default function DashboardPage() {
                   {bearishSort.sorted.map((s, i) => (
                     <tr key={s.ticker} className="hover:bg-muted/10">
                       <td className="text-center px-2 py-4 text-muted-foreground">{i + 1}</td>
-                      <td className="px-2 py-4 tabular-nums"><TickerLink ticker={s.ticker} /></td>
-                      <td className="px-2 py-4 text-foreground">{s.stock_name}</td>
+                      <td className="w-[80px] px-2 py-4 tabular-nums"><TickerLink ticker={s.ticker} /></td>
+                      <td className="w-[140px] px-2 py-4 text-foreground">{s.stock_name}</td>
                       <td className="text-right px-2 py-4 tabular-nums text-muted-foreground whitespace-nowrap">{fmt(s.close)}</td>
                       <td className="text-right px-2 py-4 tabular-nums text-price-down font-semibold">{s.body_pct.toFixed(1)}%</td>
                       <td className="text-right px-2 py-4 tabular-nums text-price-down">{s.dev_from_sma20.toFixed(1)}%</td>
