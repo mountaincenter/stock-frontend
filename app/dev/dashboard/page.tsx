@@ -504,16 +504,16 @@ export default function DashboardPage() {
               {/* 統合テーブル（グレード優先） */}
               {(() => {
                 const gradeOrder: Record<string, number> = { B4: 0, H2: 1, H3: 2, H1: 3 };
-                type UnifiedRow = { ticker: string; stock_name: string; rule: string; grade: string; close: number; dev_from_sma20: number; hold_days: number; max_cost?: number; };
+                type UnifiedRow = { ticker: string; stock_name: string; sector: string; rule: string; grade: string; close: number; dev_from_sma20: number; hold_days: number; max_cost?: number; };
                 const rows: UnifiedRow[] = [];
                 if (longRecs) {
                   for (const r of longRecs.long_recommendations) {
-                    rows.push({ ticker: r.ticker, stock_name: r.stock_name, rule: r.rule, grade: r.long_grade, close: r.close, dev_from_sma20: r.dev_from_sma20, hold_days: r.hold_days });
+                    rows.push({ ticker: r.ticker, stock_name: r.stock_name, sector: r.sector, rule: r.rule, grade: r.long_grade, close: r.close, dev_from_sma20: r.dev_from_sma20, hold_days: r.hold_days });
                   }
                 }
                 if (b4Entry?.selected) {
                   for (const c of b4Entry.selected) {
-                    rows.push({ ticker: c.ticker, stock_name: c.stock_name, rule: 'B4', grade: 'B4', close: c.close, dev_from_sma20: c.dev_from_sma20, hold_days: 15, max_cost: c.max_cost });
+                    rows.push({ ticker: c.ticker, stock_name: c.stock_name, sector: c.sector, rule: 'B4', grade: 'B4', close: c.close, dev_from_sma20: c.dev_from_sma20, hold_days: 15, max_cost: c.max_cost });
                   }
                 }
                 rows.sort((a, b) => (gradeOrder[a.grade] ?? 99) - (gradeOrder[b.grade] ?? 99));
@@ -533,7 +533,9 @@ export default function DashboardPage() {
                       <thead>
                         <tr className="text-muted-foreground text-xs">
                           <th className="px-2 py-2 text-center">#</th>
-                          <th className="px-3 py-2 text-left">銘柄</th>
+                          <th className="px-2 py-2 text-left">コード</th>
+                          <th className="px-2 py-2 text-left">銘柄</th>
+                          <th className="px-2 py-2 text-left">セクター</th>
                           <th className="px-2 py-2 text-center">ルール</th>
                           <th className="px-2 py-2 text-center">グレード</th>
                           <th className="px-2 py-2 text-right">終値</th>
@@ -546,10 +548,9 @@ export default function DashboardPage() {
                         {rows.map((r, i) => (
                           <tr key={`${r.ticker}-${r.rule}`} className="border-t border-border/20 hover:bg-muted/5">
                             <td className="px-2 py-3 text-center text-muted-foreground">{i + 1}</td>
-                            <td className="px-3 py-3">
-                              <button type="button" className="text-primary hover:underline font-semibold" onClick={() => window.open(`/dev/${r.ticker.replace('.T', '')}`, 'stock-detail')}>{r.ticker.replace('.T', '')}</button>
-                              <span className="ml-1.5 text-muted-foreground text-sm">{r.stock_name}</span>
-                            </td>
+                            <td className="px-2 py-3 tabular-nums"><TickerLink ticker={r.ticker} /></td>
+                            <td className="px-2 py-3 text-foreground">{r.stock_name}</td>
+                            <td className="px-2 py-3 text-muted-foreground text-xs max-w-[120px] truncate">{r.sector}</td>
                             <td className="px-2 py-3 text-center"><RuleBadge rule={r.rule} /></td>
                             <td className="px-2 py-3 text-center">
                               <span className={`inline-block px-1.5 py-0.5 text-xs rounded leading-none border ${gradeCls(r.grade)}`}>
@@ -637,7 +638,11 @@ export default function DashboardPage() {
               <table className="w-full text-sm md:text-base">
                 <thead><tr className="text-foreground border-b border-border/40 bg-muted/30">
                   <th className="text-center px-2 py-3 text-xs font-medium whitespace-nowrap">#</th>
+                  <th className="text-center px-2 py-3 text-xs font-medium whitespace-nowrap">L/S</th>
+                  <th className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap">コード1</th>
                   <th className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap">銘柄1</th>
+                  <th className="text-center px-2 py-3 text-xs font-medium whitespace-nowrap">L/S</th>
+                  <th className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap">コード2</th>
                   <th className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap">銘柄2</th>
                   <SortHeader<PairSignal> label="z-score" field="z_abs" {...pairSort} className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap" />
                   <th className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap">株数</th>
@@ -651,34 +656,26 @@ export default function DashboardPage() {
                     const pairHref = `/pairs/${p.tk1.replace('.', '')}-${p.tk2.replace('.', '')}`;
                     return (
                       <tr key={`${p.tk1}-${p.tk2}`} className="hover:bg-muted/10 cursor-pointer" onClick={() => window.open(pairHref, '_blank')}>
-                        <td className="text-center px-2 py-4 text-muted-foreground align-top">{i + 1}</td>
-                        <td className="px-2 py-4 align-top">
-                          <div className="flex items-start gap-2">
-                            <span className={`text-xs px-1.5 py-0.5 rounded mt-0.5 shrink-0 ${isLong ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
-                              {isLong ? 'L' : 'S'}
-                            </span>
-                            <div className="min-w-0">
-                              <div className="text-foreground leading-snug">{p.name1}</div>
-                              <div className="text-xs tabular-nums text-muted-foreground"><TickerLink ticker={p.tk1} /></div>
-                            </div>
-                          </div>
+                        <td className="text-center px-2 py-4 text-muted-foreground">{i + 1}</td>
+                        <td className="text-center px-2 py-4">
+                          <span className={`text-xs px-1.5 py-0.5 rounded ${isLong ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+                            {isLong ? 'L' : 'S'}
+                          </span>
                         </td>
-                        <td className="px-2 py-4 align-top">
-                          <div className="flex items-start gap-2">
-                            <span className={`text-xs px-1.5 py-0.5 rounded mt-0.5 shrink-0 ${isLong ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
-                              {isLong ? 'S' : 'L'}
-                            </span>
-                            <div className="min-w-0">
-                              <div className="text-foreground leading-snug">{p.name2}</div>
-                              <div className="text-xs tabular-nums text-muted-foreground"><TickerLink ticker={p.tk2} /></div>
-                            </div>
-                          </div>
+                        <td className="px-2 py-4 tabular-nums"><TickerLink ticker={p.tk1} /></td>
+                        <td className="px-2 py-4 text-foreground">{p.name1}</td>
+                        <td className="text-center px-2 py-4">
+                          <span className={`text-xs px-1.5 py-0.5 rounded ${isLong ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                            {isLong ? 'S' : 'L'}
+                          </span>
                         </td>
-                        <td className="text-right px-2 py-4 tabular-nums font-semibold align-top">{fmtZ(p.z_latest)}</td>
-                        <td className="text-right px-2 py-4 tabular-nums text-muted-foreground align-top">{p.shares1}:{p.shares2}</td>
-                        <td className="text-right px-2 py-4 tabular-nums text-foreground align-top">{p.full_pf.toFixed(2)}</td>
-                        <td className="text-right px-2 py-4 tabular-nums text-muted-foreground hidden md:table-cell align-top">{p.lookback}</td>
-                        <td className="text-right px-2 py-4 tabular-nums text-muted-foreground hidden md:table-cell align-top">{p.half_life.toFixed(1)}d</td>
+                        <td className="px-2 py-4 tabular-nums"><TickerLink ticker={p.tk2} /></td>
+                        <td className="px-2 py-4 text-foreground">{p.name2}</td>
+                        <td className="text-right px-2 py-4 tabular-nums font-semibold">{fmtZ(p.z_latest)}</td>
+                        <td className="text-right px-2 py-4 tabular-nums text-muted-foreground">{p.shares1}:{p.shares2}</td>
+                        <td className="text-right px-2 py-4 tabular-nums text-foreground">{p.full_pf.toFixed(2)}</td>
+                        <td className="text-right px-2 py-4 tabular-nums text-muted-foreground hidden md:table-cell">{p.lookback}</td>
+                        <td className="text-right px-2 py-4 tabular-nums text-muted-foreground hidden md:table-cell">{p.half_life.toFixed(1)}d</td>
                       </tr>
                     );
                   })}
