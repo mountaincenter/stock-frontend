@@ -457,22 +457,22 @@ function GranvilleContent() {
                 </div>
               </details>
 
-              {/* 統合テーブル（PF降順） */}
+              {/* 統合テーブル（グレード優先） */}
               {(() => {
-                type UnifiedRow = { ticker: string; stock_name: string; rule: string; grade: string; close: number; dev_from_sma20: number; hold_days: number; expected_pf: number; max_cost?: number; };
+                const gradeOrder: Record<string, number> = { B4: 0, H2: 1, H3: 2, H1: 3 };
+                type UnifiedRow = { ticker: string; stock_name: string; rule: string; grade: string; close: number; dev_from_sma20: number; hold_days: number; max_cost?: number; };
                 const rows: UnifiedRow[] = [];
                 if (longRecs) {
                   for (const r of longRecs.long_recommendations) {
-                    const fallbackPf: Record<string, number> = { H1: 2.13, H2: 2.67, H3: 2.38 };
-                    rows.push({ ticker: r.ticker, stock_name: r.stock_name, rule: r.rule, grade: r.long_grade, close: r.close, dev_from_sma20: r.dev_from_sma20, hold_days: r.hold_days, expected_pf: r.expected_pf || fallbackPf[r.long_grade] || 0 });
+                    rows.push({ ticker: r.ticker, stock_name: r.stock_name, rule: r.rule, grade: r.long_grade, close: r.close, dev_from_sma20: r.dev_from_sma20, hold_days: r.hold_days });
                   }
                 }
                 if (b4Entry?.selected) {
                   for (const c of b4Entry.selected) {
-                    rows.push({ ticker: c.ticker, stock_name: c.stock_name, rule: 'B4', grade: 'B4', close: c.close, dev_from_sma20: c.dev_from_sma20, hold_days: 15, expected_pf: c.expected_pf ?? 2.79, max_cost: c.max_cost });
+                    rows.push({ ticker: c.ticker, stock_name: c.stock_name, rule: 'B4', grade: 'B4', close: c.close, dev_from_sma20: c.dev_from_sma20, hold_days: 15, max_cost: c.max_cost });
                   }
                 }
-                rows.sort((a, b) => b.expected_pf - a.expected_pf);
+                rows.sort((a, b) => (gradeOrder[a.grade] ?? 99) - (gradeOrder[b.grade] ?? 99));
 
                 if (rows.length === 0) return (
                   <div className="px-4 py-4 text-center text-muted-foreground text-sm border-t border-border/20">
@@ -492,7 +492,6 @@ function GranvilleContent() {
                           <th className="px-3 py-2 text-left">銘柄</th>
                           <th className="px-2 py-2 text-center">ルール</th>
                           <th className="px-2 py-2 text-center">グレード</th>
-                          <th className="px-2 py-2 text-right">期待PF</th>
                           <th className="px-2 py-2 text-right">終値</th>
                           <th className="px-2 py-2 text-right">SMA20乖離</th>
                           <th className="px-2 py-2 text-center">保有</th>
@@ -513,7 +512,6 @@ function GranvilleContent() {
                                 {r.grade === 'B4' ? 'B4' : `${r.grade} ${gradeLabel(r.grade)}`}
                               </span>
                             </td>
-                            <td className="px-2 py-2 text-right tabular-nums font-semibold">{r.expected_pf.toFixed(2)}</td>
                             <td className="px-2 py-2 text-right tabular-nums">¥{r.close.toLocaleString()}</td>
                             <td className="px-2 py-2 text-right tabular-nums">{fmtPct(r.dev_from_sma20, 1)}</td>
                             <td className="px-2 py-2 text-center">{r.hold_days}d</td>
