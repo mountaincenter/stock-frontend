@@ -267,12 +267,12 @@ export default function DashboardPage() {
           const cmeGap = regime?.cme_gap ?? b4Entry?.cme_gap;
           return (
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
-              <StatCard label={`N225 トレンド${b4Entry?.date ? ` ${b4Entry.date}` : ''}`} sub={regime?.n225_close != null && regime?.n225_sma20 != null ? `N225: ${fmt(regime.n225_close)} / SMA20: ${fmt(regime.n225_sma20)}` : undefined}>
+              <StatCard label={`N225 トレンド${b4Entry?.date ? ` ${b4Entry.date}` : ''}`} sub={regime?.n225_close != null && regime?.n225_sma20 != null ? `N225: ${fmt(regime.n225_close)} / SMA20: ${fmt(regime.n225_sma20)}${regime?.n225_ret20 != null ? ` / ret20: ${regime.n225_ret20 >= 0 ? '+' : ''}${regime.n225_ret20.toFixed(1)}%` : ''}` : undefined}>
                 <span className={regime?.n225_above_sma20 ? 'text-price-up' : regime?.n225_above_sma20 === false ? 'text-price-down' : 'text-muted-foreground'}>
                   {regime?.n225_above_sma20 != null ? (regime.n225_above_sma20 ? 'Uptrend' : 'Downtrend') : '-'}
                 </span>
               </StatCard>
-              <StatCard label="CME gap" sub={regime?.cme_close != null && regime?.n225_close != null ? `CME: ${fmt(regime.cme_close)} / N225: ${fmt(regime.n225_close)}` : cmeGap != null && Math.abs(cmeGap) <= 0.5 ? 'flat (±0.5%)' : undefined}>
+              <StatCard label="CME gap" sub={regime?.cme_close != null && regime?.n225_close != null ? `CME: ${fmt(regime.cme_close)} / N225: ${fmt(regime.n225_close)}${b4Entry?.n225_chg != null ? ` / 前日比: ${b4Entry.n225_chg >= 0 ? '+' : ''}${b4Entry.n225_chg.toFixed(2)}%` : ''}` : cmeGap != null && Math.abs(cmeGap) <= 0.5 ? 'flat (±0.5%)' : undefined}>
                 <span className={cmeGap != null ? (cmeGap >= 0 ? 'text-price-up' : 'text-price-down') : 'text-muted-foreground'}>
                   {cmeGap != null ? `${cmeGap >= 0 ? '+' : ''}${cmeGap.toFixed(2)}%` : '-'}
                 </span>
@@ -426,41 +426,6 @@ export default function DashboardPage() {
                 }
               </div>
             } border={borderColor}>
-              {/* 市場環境 */}
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-2 px-4 py-3">
-                <div className="rounded-lg border border-border/40 px-3 py-2">
-                  <div className="text-xs text-muted-foreground">N225 vs SMA20</div>
-                  <div className={`text-xl sm:text-2xl font-bold ${regime?.n225_above_sma20 ? 'text-price-up' : regime?.n225_above_sma20 === false ? 'text-price-down' : 'text-muted-foreground'}`}>
-                    {regime?.n225_above_sma20 != null ? (regime.n225_above_sma20 ? '上昇' : '下降') : '-'}
-                  </div>
-                </div>
-                <div className="rounded-lg border border-border/40 px-3 py-2">
-                  <div className="text-xs text-muted-foreground">N225 ret20</div>
-                  <div className={`text-xl sm:text-2xl font-bold tabular-nums ${(regime?.n225_ret20 ?? 0) >= 0 ? 'text-price-up' : 'text-price-down'}`}>
-                    {regime?.n225_ret20 != null ? `${regime.n225_ret20 >= 0 ? '+' : ''}${regime.n225_ret20.toFixed(1)}%` : '-'}
-                  </div>
-                </div>
-                <div className="rounded-lg border border-border/40 px-3 py-2">
-                  <div className="text-xs text-muted-foreground">CME gap</div>
-                  <div className={`text-xl sm:text-2xl font-bold tabular-nums ${(() => { const v = regime?.cme_gap ?? b4Entry?.cme_gap; return v != null ? (v >= 0 ? 'text-price-up' : 'text-price-down') : 'text-muted-foreground'; })()}`}>
-                    {(() => { const v = regime?.cme_gap ?? b4Entry?.cme_gap; return v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '-'; })()}
-                    {(() => { const v = regime?.cme_gap ?? b4Entry?.cme_gap; return v != null && Math.abs(v) <= 0.5 ? <span className="text-[10px] ml-0.5">(flat)</span> : null; })()}
-                  </div>
-                </div>
-                <div className="rounded-lg border border-border/40 px-3 py-2">
-                  <div className="text-xs text-muted-foreground">日経VI</div>
-                  <div className={`text-xl sm:text-2xl font-bold tabular-nums ${(regime?.vi ?? b4Entry?.vi ?? 0) >= 40 ? 'text-price-up' : (regime?.vi ?? b4Entry?.vi ?? 0) >= 30 ? 'text-price-down font-semibold' : (regime?.vi ?? b4Entry?.vi ?? 0) >= 25 ? 'text-amber-400' : 'text-muted-foreground'}`}>
-                    {(() => { const v = regime?.vi ?? b4Entry?.vi; return v != null ? v.toFixed(1) : '-'; })()}
-                  </div>
-                </div>
-                <div className="rounded-lg border border-border/40 px-3 py-2">
-                  <div className="text-xs text-muted-foreground">N225 前日比</div>
-                  <div className={`text-xl sm:text-2xl font-bold tabular-nums ${b4Entry?.n225_chg != null ? (b4Entry.n225_chg >= 0 ? 'text-price-up' : 'text-price-down') : 'text-muted-foreground'}`}>
-                    {b4Entry?.n225_chg != null ? `${b4Entry.n225_chg > 0 ? '+' : ''}${b4Entry.n225_chg.toFixed(2)}%` : '-'}
-                  </div>
-                </div>
-              </div>
-
               {/* フィルター判定バッジ */}
               <div className="px-4 pb-2 flex flex-wrap gap-1.5">
                 {regime?.vi != null && regime.vi >= 30 && <span className="px-1.5 py-0.5 text-xs rounded border bg-rose-500/20 text-rose-400 border-rose-500/30">H1可</span>}
