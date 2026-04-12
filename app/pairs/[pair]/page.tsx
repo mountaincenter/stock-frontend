@@ -410,11 +410,11 @@ function PairChartContent({ tk1, tk2 }: { tk1: string; tk2: string }) {
   if (loading) {
     return (
       <main className="relative min-h-screen">
-        <div className="fixed inset-0 -z-10 bg-gradient-to-br from-background via-background to-muted/20" />
-        <div className="w-full md:w-[92%] lg:w-[90%] xl:w-[88%] 2xl:w-[86%] mx-auto px-3 md:px-4 py-6 space-y-4">
+        <div className="fixed inset-0 -z-10 bg-background" />
+        <div className="max-w-7xl mx-auto px-4 py-4 space-y-4">
           <div className="h-8 w-64 bg-muted/30 rounded animate-pulse" />
-          <div className="h-[420px] bg-card/50 rounded-2xl animate-pulse" />
-          <div className="h-[380px] bg-card/50 rounded-2xl animate-pulse" />
+          <div className="h-[420px] bg-card/50 rounded-xl animate-pulse" />
+          <div className="h-[380px] bg-card/50 rounded-xl animate-pulse" />
         </div>
       </main>
     );
@@ -423,9 +423,9 @@ function PairChartContent({ tk1, tk2 }: { tk1: string; tk2: string }) {
   if (error || !data) {
     return (
       <main className="relative min-h-screen">
-        <div className="fixed inset-0 -z-10 bg-gradient-to-br from-background via-background to-muted/20" />
-        <div className="w-full md:w-[92%] lg:w-[90%] xl:w-[88%] 2xl:w-[86%] mx-auto px-3 md:px-4 py-6">
-          <div className="rounded-2xl border border-border/40 bg-card/80 p-8 text-center">
+        <div className="fixed inset-0 -z-10 bg-background" />
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="rounded-xl border border-border bg-card p-8 text-center">
             <h1 className="text-xl font-bold mb-2">Error</h1>
             <p className="text-muted-foreground text-sm">{error || 'Data not found'}</p>
             <Link href="/dev/pairs" className="text-primary text-sm mt-4 inline-block hover:underline">Back to Pairs</Link>
@@ -436,7 +436,7 @@ function PairChartContent({ tk1, tk2 }: { tk1: string; tk2: string }) {
   }
 
   const zColor = Math.abs(data.z_latest) >= 2.0
-    ? (data.z_latest > 0 ? 'text-rose-400' : 'text-emerald-400')
+    ? (data.z_latest > 0 ? 'text-price-down' : 'text-price-up')
     : Math.abs(data.z_latest) >= 1.5 ? 'text-amber-400' : 'text-muted-foreground';
 
   const priceFormatter = new Intl.NumberFormat('ja-JP', {
@@ -470,21 +470,16 @@ function PairChartContent({ tk1, tk2 }: { tk1: string; tk2: string }) {
 
   const getBadgeTone = (value: number | null | undefined) =>
     value != null && value > 0
-      ? 'bg-emerald-500/20 text-emerald-300 ring-2 ring-emerald-400/60 shadow-[0_0_12px_rgba(52,211,153,0.3)]'
+      ? 'bg-emerald-500/20 text-emerald-400'
       : value != null && value < 0
-        ? 'bg-rose-500/20 text-rose-300 ring-2 ring-rose-400/60 shadow-[0_0_12px_rgba(251,113,133,0.3)]'
-        : 'bg-muted text-muted-foreground ring-1 ring-border/40';
+        ? 'bg-rose-500/20 text-rose-400'
+        : 'bg-muted text-muted-foreground';
 
   return (
     <main className="relative min-h-screen leading-[1.8] tracking-[0.02em]">
-      {/* Background */}
-      <div className="fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20" />
-        <div className="absolute -top-1/2 -right-1/4 w-[800px] h-[800px] rounded-full bg-gradient-to-br from-primary/8 via-primary/3 to-transparent blur-3xl animate-pulse" />
-        <div className="absolute -bottom-1/3 -left-1/4 w-[600px] h-[600px] rounded-full bg-gradient-to-tr from-accent/10 via-accent/4 to-transparent blur-3xl" />
-      </div>
+      <div className="fixed inset-0 -z-10 bg-background" />
 
-      <div className="w-full md:w-[92%] lg:w-[90%] xl:w-[88%] 2xl:w-[86%] mx-auto px-3 md:px-4 py-4 md:py-6 space-y-4">
+      <div className="max-w-7xl mx-auto px-4 py-4 leading-[1.8] tracking-[0.02em] font-sans space-y-4">
         {/* Navigation */}
         <div className="flex items-center gap-3">
           <Link href="/dev/pairs" className="text-muted-foreground hover:text-foreground text-sm transition-colors">
@@ -496,7 +491,7 @@ function PairChartContent({ tk1, tk2 }: { tk1: string; tk2: string }) {
         </div>
 
         {/* Header */}
-        <div className="rounded-2xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 md:p-6 shadow-xl shadow-black/5 backdrop-blur-xl">
+        <div className="rounded-xl border border-border bg-card p-4 md:p-6">
           <div className="space-y-6">
             <div className="grid gap-4 md:grid-cols-2">
               {pairedStocks.map((stock) => {
@@ -581,9 +576,8 @@ function PairChartContent({ tk1, tk2 }: { tk1: string; tk2: string }) {
         </div>
 
         {/* Panel 1: Normalized Price Overlay */}
-        <div className="rounded-2xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 md:p-6 shadow-xl shadow-black/5 backdrop-blur-xl">
-          <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] via-transparent to-transparent pointer-events-none" />
-          <div className="relative">
+        <div className="rounded-xl border border-border bg-card p-4 md:p-6">
+          <div>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
                 <h2 className="text-sm font-medium text-foreground">Normalized Price</h2>
@@ -606,9 +600,8 @@ function PairChartContent({ tk1, tk2 }: { tk1: string; tk2: string }) {
         </div>
 
         {/* Panel 2: Z-Score */}
-        <div className="rounded-2xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 p-4 md:p-6 shadow-xl shadow-black/5 backdrop-blur-xl">
-          <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] via-transparent to-transparent pointer-events-none" />
-          <div className="relative">
+        <div className="rounded-xl border border-border bg-card p-4 md:p-6">
+          <div>
             <div className="flex flex-col gap-2 mb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -650,12 +643,12 @@ function PairChartContent({ tk1, tk2 }: { tk1: string; tk2: string }) {
                   </span>
                   <span>
                     <span className="text-muted-foreground">最大 </span>
-                    <span className="font-bold tabular-nums text-rose-400">{zStats.maxZ >= 0 ? '+' : ''}{zStats.maxZ.toFixed(3)}</span>
+                    <span className="font-bold tabular-nums text-price-down">{zStats.maxZ >= 0 ? '+' : ''}{zStats.maxZ.toFixed(3)}</span>
                     <span className="text-muted-foreground/70 ml-1">:{zStats.maxDate}</span>
                   </span>
                   <span>
                     <span className="text-muted-foreground">最小 </span>
-                    <span className="font-bold tabular-nums text-emerald-400">{zStats.minZ >= 0 ? '+' : ''}{zStats.minZ.toFixed(3)}</span>
+                    <span className="font-bold tabular-nums text-price-up">{zStats.minZ >= 0 ? '+' : ''}{zStats.minZ.toFixed(3)}</span>
                     <span className="text-muted-foreground/70 ml-1">:{zStats.minDate}</span>
                   </span>
                 </div>
