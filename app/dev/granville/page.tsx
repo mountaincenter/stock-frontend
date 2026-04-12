@@ -463,7 +463,8 @@ function GranvilleContent() {
                 const rows: UnifiedRow[] = [];
                 if (longRecs) {
                   for (const r of longRecs.long_recommendations) {
-                    rows.push({ ticker: r.ticker, stock_name: r.stock_name, rule: r.rule, grade: r.long_grade, close: r.close, dev_from_sma20: r.dev_from_sma20, hold_days: r.hold_days, expected_pf: r.expected_pf || 0 });
+                    const fallbackPf: Record<string, number> = { H1: 2.13, H2: 2.67, H3: 2.38 };
+                    rows.push({ ticker: r.ticker, stock_name: r.stock_name, rule: r.rule, grade: r.long_grade, close: r.close, dev_from_sma20: r.dev_from_sma20, hold_days: r.hold_days, expected_pf: r.expected_pf || fallbackPf[r.long_grade] || 0 });
                   }
                 }
                 if (b4Entry?.selected) {
