@@ -18,12 +18,33 @@ interface Position {
 interface PositionsResponse { positions: Position[]; exits: Position[]; as_of: string | null; }
 
 // B4 Entry (vi情報含む)
+interface B4Candidate {
+  ticker: string; stock_name: string; sector: string;
+  close: number; entry_price_est: number;
+  dev_from_sma20: number; max_cost?: number;
+}
 interface B4EntryResponse {
   vi: number | null; cme_gap: number | null; n225_chg: number | null;
   decision: string; date: string | null;
+  excluded_rules: string[];
   total_b4_signals: number;
-  candidates: { ticker: string; stock_name: string; close: number; dev_from_sma20: number; entry_price_est: number; sector: string }[];
-  selected: { ticker: string; stock_name: string; close: number; dev_from_sma20: number; entry_price_est: number; sector: string }[];
+  candidates: B4Candidate[]; selected: B4Candidate[];
+}
+
+// Regime + Long Recommendations (Granville B1-B3)
+interface Regime {
+  n225_above_sma20: boolean | null; n225_ret20: number | null;
+  cme_gap: number | null; vi: number | null;
+}
+interface LongRecommendation {
+  ticker: string; stock_name: string; sector: string; rule: string;
+  long_grade: string; hold_days: number; expected_pf: number;
+  close: number; entry_price_est: number; sma20: number;
+  dev_from_sma20: number; atr10_pct: number;
+}
+interface LongRecommendationsResponse {
+  long_recommendations: LongRecommendation[]; count: number;
+  date: string | null; regime: Regime;
 }
 
 // Reversal signals (bearish + b4)
@@ -143,10 +164,19 @@ const TickerLink = ({ ticker }: { ticker: string }) => (
   </button>
 );
 
+const RuleBadge = ({ rule }: { rule: string }) => {
+  const cls = rule === 'B4' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30'
+    : rule === 'B1' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+    : rule === 'B3' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+    : 'bg-purple-500/20 text-purple-400 border-purple-500/30';
+  return <span className={`inline-block px-1.5 py-0.5 text-xs rounded leading-none border ${cls}`}>{rule}</span>;
+};
+
 // === Main ===
 export default function DashboardPage() {
   const [posData, setPosData] = useState<PositionsResponse | null>(null);
   const [b4Entry, setB4Entry] = useState<B4EntryResponse | null>(null);
+  const [longRecs, setLongRecs] = useState<LongRecommendationsResponse | null>(null);
   const [signals, setSignals] = useState<SignalsResponse | null>(null);
   const [pairsData, setPairsData] = useState<PairsResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -157,10 +187,11 @@ export default function DashboardPage() {
     Promise.all([
       fetch(`${API_BASE}/api/dev/granville/positions`).then(r => r.json()).catch(() => null),
       fetch(`${API_BASE}/api/dev/granville/b4_entry`).then(r => r.json()).catch(() => null),
+      fetch(`${API_BASE}/api/dev/granville/long-recommendations`).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(`${API_BASE}/api/dev/reversal/signals`).then(r => r.json()).catch(() => null),
       fetch(`${API_BASE}/api/dev/pairs/signals`).then(r => r.json()).catch(() => null),
-    ]).then(([pos, b4, sig, pairs]) => {
-      setPosData(pos); setB4Entry(b4); setSignals(sig); setPairsData(pairs);
+    ]).then(([pos, b4, lr, sig, pairs]) => {
+      setPosData(pos); setB4Entry(b4); setLongRecs(lr); setSignals(sig); setPairsData(pairs);
       setLoading(false);
     });
   };
@@ -190,7 +221,6 @@ export default function DashboardPage() {
   // Sortable hooks
   const exitSort = useSortable<Position>(exits, 'unrealized_pct');
   const activeSort = useSortable<Position>(active, 'unrealized_pct');
-  const b4Sort = useSortable<Signal>(signals?.b4 || [], 'dev_from_sma20');
   const bearishSort = useSortable<Signal>(signals?.bearish || [], 'body_pct');
   const pairSort = useSortable<PairSignal>(pairsData?.entry || [], 'z_abs');
 
@@ -250,8 +280,8 @@ export default function DashboardPage() {
           <StatCard label="含み損益">
             {fmtPnl(totalPnl)}
           </StatCard>
-          <StatCard label="本日シグナル" sub={`B4: ${signals?.b4_count ?? 0} / 大陰線: ${signals?.bearish_count ?? 0} / Pairs: ${pairsData?.entry_count ?? 0}`}>
-            <span className="text-foreground">{(signals?.b4_count ?? 0) + (signals?.bearish_count ?? 0) + (pairsData?.entry_count ?? 0)}</span>
+          <StatCard label="本日シグナル" sub={`Granville: ${(longRecs?.count ?? 0) + (b4Entry?.selected?.length ?? 0)} / 大陰線: ${signals?.bearish_count ?? 0} / Pairs: ${pairsData?.entry_count ?? 0}`}>
+            <span className="text-foreground">{(longRecs?.count ?? 0) + (b4Entry?.selected?.length ?? 0) + (signals?.bearish_count ?? 0) + (pairsData?.entry_count ?? 0)}</span>
           </StatCard>
         </div>
 
@@ -360,47 +390,179 @@ export default function DashboardPage() {
           </Panel>
         )}
 
-        {/* ===== B4 Entry Candidates ===== */}
-        <Panel title={
-          <div className="flex items-center gap-2">
-            <h2 className="text-base md:text-lg font-semibold">B4 エントリー候補</h2>
-            <span className="text-xs text-muted-foreground">SMA20乖離 &le; -15% / 前日比陽線</span>
-            {signals && signals.b4.length > 0 && (
-              <span className="ml-auto text-xs tabular-nums text-rose-400">{signals.b4.length}件</span>
-            )}
-          </div>
-        } border={signals && signals.b4.length > 0 ? 'border-rose-500/40' : undefined}>
-          {signals && signals.b4.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm md:text-base">
-                <thead><tr className="text-foreground border-b border-border/40 bg-muted/30">
-                  <th className="text-center px-2 py-3 text-xs font-medium whitespace-nowrap">#</th>
-                  <SortHeader<Signal> label="コード" field="ticker" {...b4Sort} className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap" />
-                  <th className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap">銘柄</th>
-                  <SortHeader<Signal> label="終値" field="close" {...b4Sort} className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap" />
-                  <SortHeader<Signal> label="SMA20乖離" field="dev_from_sma20" {...b4Sort} className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap" />
-                  <th className="text-right px-2 py-3 text-xs font-medium whitespace-nowrap">推定IN</th>
-                  <th className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap">セクター</th>
-                </tr></thead>
-                <tbody className="divide-y divide-border/30">
-                  {b4Sort.sorted.map((s, i) => (
-                    <tr key={s.ticker} className="hover:bg-muted/10">
-                      <td className="text-center px-2 py-4 text-muted-foreground">{i + 1}</td>
-                      <td className="px-2 py-4 tabular-nums"><TickerLink ticker={s.ticker} /></td>
-                      <td className="px-2 py-4 text-foreground">{s.stock_name}</td>
-                      <td className="text-right px-2 py-4 tabular-nums text-muted-foreground whitespace-nowrap">{fmt(s.close)}</td>
-                      <td className="text-right px-2 py-4 tabular-nums text-rose-400 font-semibold">{s.dev_from_sma20.toFixed(1)}%</td>
-                      <td className="text-right px-2 py-4 tabular-nums text-muted-foreground whitespace-nowrap">{fmt(s.entry_price_est)}</td>
-                      <td className="px-2 py-4 text-muted-foreground text-xs max-w-[120px] truncate">{s.sector}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <EmptyState message="本日のB4シグナルなし" />
-          )}
-        </Panel>
+        {/* ===== B1-B4 エントリー判定 (Granville統合) ===== */}
+        {(() => {
+          const regime = longRecs?.regime;
+          const lrCount = longRecs?.count ?? 0;
+          const gradeLabel = (g: string) => g === 'H1' ? 'VI≥30 反発' : g === 'H2' ? '上昇+CME静' : g === 'H3' ? '急落後B1' : g;
+          const gradeCls = (g: string) => g === 'H1' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30'
+            : g === 'H2' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+            : g === 'B4' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+            : 'bg-amber-500/20 text-amber-400 border-amber-500/30';
+          const b4Decision = b4Entry?.decision;
+          const hasB4 = b4Decision === 'strong_entry' || b4Decision === 'entry' || b4Decision === 'consider';
+          const totalEntries = lrCount + (b4Entry?.selected?.length ?? 0);
+          const borderColor = totalEntries > 0 ? 'border-emerald-500/30' : hasB4 ? 'border-amber-500/30' : undefined;
+
+          return (
+            <Panel title={
+              <div className="flex items-center justify-between">
+                <h2 className="text-base md:text-lg font-semibold">
+                  B1-B4 エントリー判定
+                  {b4Entry?.date && <span className="ml-2 text-sm font-normal text-muted-foreground">({b4Entry.date})</span>}
+                </h2>
+                {totalEntries > 0
+                  ? <span className="px-3 py-1 rounded-full text-sm font-bold border text-emerald-400 bg-emerald-500/10 border-emerald-500/30">{totalEntries}件</span>
+                  : <span className="px-3 py-1 rounded-full text-sm border text-muted-foreground bg-muted/10 border-border/40">候補なし</span>
+                }
+              </div>
+            } border={borderColor}>
+              {/* 市場環境 */}
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2 px-4 py-3">
+                <div className="rounded-lg border border-border/40 px-3 py-2">
+                  <div className="text-xs text-muted-foreground">N225 vs SMA20</div>
+                  <div className={`text-lg font-bold ${regime?.n225_above_sma20 ? 'text-emerald-400' : regime?.n225_above_sma20 === false ? 'text-rose-400' : 'text-muted-foreground'}`}>
+                    {regime?.n225_above_sma20 != null ? (regime.n225_above_sma20 ? '上昇' : '下降') : '-'}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-border/40 px-3 py-2">
+                  <div className="text-xs text-muted-foreground">N225 ret20</div>
+                  <div className={`text-lg font-bold tabular-nums ${(regime?.n225_ret20 ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {regime?.n225_ret20 != null ? `${regime.n225_ret20 >= 0 ? '+' : ''}${regime.n225_ret20.toFixed(1)}%` : '-'}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-border/40 px-3 py-2">
+                  <div className="text-xs text-muted-foreground">CME gap</div>
+                  <div className={`text-lg font-bold tabular-nums ${regime?.cme_gap != null || b4Entry?.cme_gap != null ? (Math.abs((regime?.cme_gap ?? b4Entry?.cme_gap ?? 0)) <= 0.5 ? 'text-emerald-400' : 'text-muted-foreground') : 'text-muted-foreground'}`}>
+                    {(() => { const v = regime?.cme_gap ?? b4Entry?.cme_gap; return v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '-'; })()}
+                    {(() => { const v = regime?.cme_gap ?? b4Entry?.cme_gap; return v != null && Math.abs(v) <= 0.5 ? <span className="text-[10px] ml-0.5">(flat)</span> : null; })()}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-border/40 px-3 py-2">
+                  <div className="text-xs text-muted-foreground">日経VI</div>
+                  <div className={`text-lg font-bold tabular-nums ${(regime?.vi ?? b4Entry?.vi ?? 0) >= 40 ? 'text-emerald-400' : (regime?.vi ?? b4Entry?.vi ?? 0) >= 30 ? 'text-rose-400 font-semibold' : (regime?.vi ?? b4Entry?.vi ?? 0) >= 25 ? 'text-amber-400' : 'text-muted-foreground'}`}>
+                    {(() => { const v = regime?.vi ?? b4Entry?.vi; return v != null ? v.toFixed(1) : '-'; })()}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-border/40 px-3 py-2">
+                  <div className="text-xs text-muted-foreground">N225 前日比</div>
+                  <div className={`text-lg font-bold tabular-nums ${b4Entry?.n225_chg != null ? (b4Entry.n225_chg >= 0 ? 'text-emerald-400' : 'text-rose-400') : 'text-muted-foreground'}`}>
+                    {b4Entry?.n225_chg != null ? `${b4Entry.n225_chg > 0 ? '+' : ''}${b4Entry.n225_chg.toFixed(2)}%` : '-'}
+                  </div>
+                </div>
+              </div>
+
+              {/* フィルター判定バッジ */}
+              <div className="px-4 pb-2 flex flex-wrap gap-1.5">
+                {regime?.vi != null && regime.vi >= 30 && <span className="px-1.5 py-0.5 text-xs rounded border bg-rose-500/20 text-rose-400 border-rose-500/30">H1可</span>}
+                {regime?.n225_above_sma20 && regime?.cme_gap != null && Math.abs(regime.cme_gap) <= 0.5 && <span className="px-1.5 py-0.5 text-xs rounded border bg-emerald-500/20 text-emerald-400 border-emerald-500/30">H2可</span>}
+                {regime?.n225_ret20 != null && regime.n225_ret20 < -5 && <span className="px-1.5 py-0.5 text-xs rounded border bg-amber-500/20 text-amber-400 border-amber-500/30">H3可</span>}
+                {b4Entry && b4Entry.total_b4_signals > 0 && <span className="px-1.5 py-0.5 text-xs rounded border bg-blue-500/20 text-blue-400 border-blue-500/30">B4 {b4Entry.total_b4_signals}件</span>}
+                {b4Entry?.excluded_rules && b4Entry.excluded_rules.length > 0 && <span className="px-1.5 py-0.5 text-xs rounded border bg-rose-500/10 text-rose-400 border-rose-500/30">除外: {b4Entry.excluded_rules.join(', ')}</span>}
+              </div>
+
+              {/* シグナル・フィルター説明（折りたたみ） */}
+              <details className="px-4 pb-3">
+                <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground/70 select-none">シグナル・フィルター定義</summary>
+                <div className="mt-2 space-y-3 text-xs leading-relaxed">
+                  <div>
+                    <div className="font-medium text-foreground/80 mb-1">Granville買いシグナル</div>
+                    <table className="w-full border-collapse">
+                      <tbody className="text-muted-foreground">
+                        <tr className="border-b border-border/20"><td className="py-1 pr-3 font-medium text-foreground/70 w-10">B1</td><td className="py-1">MA上抜けブレイク — 前日SMA20下→当日上抜け、SMA上昇中</td></tr>
+                        <tr className="border-b border-border/20"><td className="py-1 pr-3 font-medium text-foreground/70">B2</td><td className="py-1">上昇中の押し目 — SMA上昇中、乖離-5~0%、陽線、SMA下</td></tr>
+                        <tr className="border-b border-border/20"><td className="py-1 pr-3 font-medium text-foreground/70">B3</td><td className="py-1">MA接近で反発 — SMA上昇中+上、乖離0~3%で縮小中、陽線</td></tr>
+                        <tr><td className="py-1 pr-3 font-medium text-foreground/70">B4</td><td className="py-1">暴落リバウンド — SMA20乖離 &lt; -15%、陽線、急騰フィルター付き</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div>
+                    <div className="font-medium text-foreground/80 mb-1">ロングフィルター（B1-B3に適用）</div>
+                    <table className="w-full border-collapse">
+                      <tbody className="text-muted-foreground">
+                        <tr className="border-b border-border/20"><td className="py-1 pr-3 w-10"><span className="px-1 py-0.5 rounded border bg-rose-500/20 text-rose-400 border-rose-500/30">H1</span></td><td className="py-1">VI&ge;30 + B1 &rarr; 9日保有 — 恐怖局面でのMA上抜け反発</td><td className="py-1 text-right tabular-nums">PF 2.13</td></tr>
+                        <tr className="border-b border-border/20"><td className="py-1 pr-3"><span className="px-1 py-0.5 rounded border bg-emerald-500/20 text-emerald-400 border-emerald-500/30">H2</span></td><td className="py-1">N225&gt;SMA20 + CME flat(&plusmn;0.5%) + B3 &rarr; 9日保有 — 静かな上昇トレンドの押し目</td><td className="py-1 text-right tabular-nums">PF 2.67</td></tr>
+                        <tr><td className="py-1 pr-3"><span className="px-1 py-0.5 rounded border bg-amber-500/20 text-amber-400 border-amber-500/30">H3</span></td><td className="py-1">N225 ret20&lt;-5% + B1 &rarr; 4日保有 — 急落後のブレイク反発</td><td className="py-1 text-right tabular-nums">PF 2.38</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div>
+                    <div className="font-medium text-foreground/80 mb-1">B4エントリー条件</div>
+                    <p className="text-muted-foreground">VI&ge;25で発動。乖離深い順に資金枠内で選定。出口: 直近高値更新&rarr;翌寄付 or MH15。PF 2.79（全期間）</p>
+                    <p className="text-muted-foreground mt-0.5">除外: VI30-40&times;CME膠着 / VI30-40&times;GU / N225&lt;-3%</p>
+                  </div>
+                </div>
+              </details>
+
+              {/* 統合テーブル（グレード優先） */}
+              {(() => {
+                const gradeOrder: Record<string, number> = { B4: 0, H2: 1, H3: 2, H1: 3 };
+                type UnifiedRow = { ticker: string; stock_name: string; rule: string; grade: string; close: number; dev_from_sma20: number; hold_days: number; max_cost?: number; };
+                const rows: UnifiedRow[] = [];
+                if (longRecs) {
+                  for (const r of longRecs.long_recommendations) {
+                    rows.push({ ticker: r.ticker, stock_name: r.stock_name, rule: r.rule, grade: r.long_grade, close: r.close, dev_from_sma20: r.dev_from_sma20, hold_days: r.hold_days });
+                  }
+                }
+                if (b4Entry?.selected) {
+                  for (const c of b4Entry.selected) {
+                    rows.push({ ticker: c.ticker, stock_name: c.stock_name, rule: 'B4', grade: 'B4', close: c.close, dev_from_sma20: c.dev_from_sma20, hold_days: 15, max_cost: c.max_cost });
+                  }
+                }
+                rows.sort((a, b) => (gradeOrder[a.grade] ?? 99) - (gradeOrder[b.grade] ?? 99));
+
+                if (rows.length === 0) return (
+                  <div className="px-4 py-4 text-center text-muted-foreground text-sm border-t border-border/20">
+                    {b4Decision === 'excluded' ? 'B4除外ルール該当' :
+                     b4Decision === 'wait' ? `B4待機 (VI=${b4Entry?.vi} < 25)` :
+                     lrCount === 0 && (!b4Entry || b4Entry.total_b4_signals === 0) ? 'B1-B3フィルター不成立 / B4シグナルなし' :
+                     'エントリー候補なし'}
+                  </div>
+                );
+
+                return (
+                  <div className="overflow-x-auto border-t border-border/20">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-muted-foreground text-xs">
+                          <th className="px-2 py-2 text-center">#</th>
+                          <th className="px-3 py-2 text-left">銘柄</th>
+                          <th className="px-2 py-2 text-center">ルール</th>
+                          <th className="px-2 py-2 text-center">グレード</th>
+                          <th className="px-2 py-2 text-right">終値</th>
+                          <th className="px-2 py-2 text-right">SMA20乖離</th>
+                          <th className="px-2 py-2 text-center">保有</th>
+                          {rows.some(r => r.max_cost) && <th className="px-2 py-2 text-right">取引上限</th>}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rows.map((r, i) => (
+                          <tr key={`${r.ticker}-${r.rule}`} className="border-t border-border/20 hover:bg-white/[0.02]">
+                            <td className="px-2 py-2 text-center text-muted-foreground">{i + 1}</td>
+                            <td className="px-3 py-2">
+                              <button type="button" className="text-primary hover:underline font-medium" onClick={() => window.open(`/dev/${r.ticker.replace('.T', '')}`, 'stock-detail')}>{r.ticker.replace('.T', '')}</button>
+                              <span className="ml-1.5 text-muted-foreground text-xs">{r.stock_name}</span>
+                            </td>
+                            <td className="px-2 py-2 text-center"><RuleBadge rule={r.rule} /></td>
+                            <td className="px-2 py-2 text-center">
+                              <span className={`inline-block px-1.5 py-0.5 text-xs rounded leading-none border ${gradeCls(r.grade)}`}>
+                                {r.grade === 'B4' ? 'B4' : `${r.grade} ${gradeLabel(r.grade)}`}
+                              </span>
+                            </td>
+                            <td className="px-2 py-2 text-right tabular-nums">&yen;{r.close.toLocaleString()}</td>
+                            <td className="px-2 py-2 text-right tabular-nums">{fmtPct(r.dev_from_sma20, 1)}</td>
+                            <td className="px-2 py-2 text-center">{r.hold_days}d</td>
+                            {rows.some(x => x.max_cost) && <td className="px-2 py-2 text-right tabular-nums">{r.max_cost ? fmt(r.max_cost) : '-'}</td>}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
+            </Panel>
+          );
+        })()}
 
         {/* ===== Bearish Entry Candidates ===== */}
         <Panel title={
