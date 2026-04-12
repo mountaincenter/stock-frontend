@@ -300,8 +300,7 @@ export default function DashboardPage() {
             </h2>
           } border="border-amber-500/40">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm md:text-base" style={{ tableLayout: 'fixed' }}>
-                <colgroup><col className="w-[60px]" /><col className="w-[80px]" /><col className="w-[140px]" /></colgroup>
+              <table className="w-full text-sm md:text-base">
                 <thead><tr className="text-foreground border-b border-border/40 bg-muted/30">
                   <th className="text-center px-2 py-3 text-xs font-medium whitespace-nowrap">売買</th>
                   <SortHeader<Position> label="コード" field="ticker" {...exitSort} className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap" />
@@ -356,8 +355,7 @@ export default function DashboardPage() {
           <Panel title={`保有ポジション — ${active.length}件 (${posData?.as_of || '-'})`}
             footer={<span>合計含み損益: <span className="font-bold tabular-nums ml-1">{fmtPnl(totalPnl)}</span></span>}>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm md:text-base" style={{ tableLayout: 'fixed' }}>
-                <colgroup><col className="w-[60px]" /><col className="w-[80px]" /><col className="w-[140px]" /></colgroup>
+              <table className="w-full text-sm md:text-base">
                 <thead><tr className="text-foreground border-b border-border/40 bg-muted/30">
                   <th className="text-center px-2 py-3 text-xs font-medium whitespace-nowrap">売買</th>
                   <SortHeader<Position> label="コード" field="ticker" {...activeSort} className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap" />
@@ -496,9 +494,8 @@ export default function DashboardPage() {
 
                 return (
                   <div className="overflow-x-auto border-t border-border/20">
-                    <table className="w-full text-sm md:text-base" style={{ tableLayout: 'fixed' }}>
-                      <colgroup><col className="w-[60px]" /><col className="w-[80px]" /><col className="w-[140px]" /></colgroup>
-                      <thead>
+                    <table className="w-full text-sm md:text-base">
+                            <thead>
                         <tr className="text-foreground border-b border-border/40 bg-muted/30">
                           <th className="text-center px-2 py-3 text-xs font-medium whitespace-nowrap">ルール</th>
                           <th className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap">コード</th>
@@ -550,8 +547,7 @@ export default function DashboardPage() {
         } border={signals && signals.bearish.length > 0 ? 'border-violet-500/40' : undefined}>
           {signals && signals.bearish.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm md:text-base" style={{ tableLayout: 'fixed' }}>
-                <colgroup><col className="w-[60px]" /><col className="w-[80px]" /><col className="w-[140px]" /></colgroup>
+              <table className="w-full text-sm md:text-base">
                 <thead><tr className="text-foreground border-b border-border/40 bg-muted/30">
                   <th className="text-center px-2 py-3 text-xs font-medium whitespace-nowrap">戦略</th>
                   <SortHeader<Signal> label="コード" field="ticker" {...bearishSort} className="text-left px-2 py-3 text-xs font-medium whitespace-nowrap" />
