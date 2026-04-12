@@ -167,7 +167,7 @@ const RuleBadge = ({ rule }: { rule: string }) => {
     : rule === 'B1' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
     : rule === 'B3' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
     : 'bg-purple-500/20 text-purple-400 border-purple-500/30';
-  return <span className={`inline-block px-1.5 py-0.5 text-xs rounded leading-none border ${cls}`}>{rule}</span>;
+  return <span className={`inline-block min-w-[40px] text-center px-2 py-1 text-xs rounded border ${cls}`}>{rule}</span>;
 };
 
 // === Main ===
@@ -318,7 +318,7 @@ export default function DashboardPage() {
                   {exitSort.sorted.map((p, i) => (
                     <tr key={`exit-${p.ticker}-${i}`} className="hover:bg-amber-500/5">
                       <td className="px-2 py-4 text-center">
-                        <span className={`inline-block px-1.5 py-0.5 text-xs rounded leading-none border ${p.direction === '売建' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'}`}>
+                        <span className={`inline-block min-w-[40px] text-center px-2 py-1 text-xs rounded border ${p.direction === '売建' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'}`}>
                           {p.direction || '-'}
                         </span>
                       </td>
@@ -373,7 +373,7 @@ export default function DashboardPage() {
                   {activeSort.sorted.map((p, i) => (
                     <tr key={`pos-${p.ticker}-${i}`} className="hover:bg-muted/5">
                       <td className="px-2 py-4 text-center">
-                        <span className={`inline-block px-1.5 py-0.5 text-xs rounded leading-none border ${p.direction === '売建' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'}`}>
+                        <span className={`inline-block min-w-[40px] text-center px-2 py-1 text-xs rounded border ${p.direction === '売建' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'}`}>
                           {p.direction || '-'}
                         </span>
                       </td>
@@ -551,7 +551,7 @@ export default function DashboardPage() {
                             <td className="px-2 py-4 text-foreground">{r.stock_name}</td>
                             <td className="px-2 py-4 text-muted-foreground text-xs max-w-[120px] truncate">{r.sector}</td>
                             <td className="px-2 py-4 text-center">
-                              <span className={`inline-block px-1.5 py-0.5 text-xs rounded leading-none border ${gradeCls(r.grade)}`}>
+                              <span className={`inline-block min-w-[40px] text-center px-2 py-1 text-xs rounded border ${gradeCls(r.grade)}`}>
                                 {r.grade === 'B4' ? 'B4' : `${r.grade} ${gradeLabel(r.grade)}`}
                               </span>
                             </td>
@@ -598,7 +598,7 @@ export default function DashboardPage() {
                   {bearishSort.sorted.map((s, i) => (
                     <tr key={s.ticker} className="hover:bg-muted/10">
                       <td className="px-2 py-4 text-center">
-                        <span className="inline-block px-1.5 py-0.5 text-xs rounded leading-none border bg-violet-500/20 text-violet-400 border-violet-500/30">陰線</span>
+                        <span className="inline-block min-w-[40px] text-center px-2 py-1 text-xs rounded border bg-violet-500/20 text-violet-400 border-violet-500/30">陰線</span>
                       </td>
                       <td className="px-2 py-4 tabular-nums"><TickerLink ticker={s.ticker} /></td>
                       <td className="px-2 py-4 text-foreground">{s.stock_name}</td>
