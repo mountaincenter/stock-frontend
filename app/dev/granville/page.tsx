@@ -412,6 +412,51 @@ function GranvilleContent() {
                 {b4Entry?.excluded_rules && b4Entry.excluded_rules.length > 0 && <span className="px-1.5 py-0.5 text-xs rounded border bg-rose-500/10 text-rose-400 border-rose-500/30">除外: {b4Entry.excluded_rules.join(', ')}</span>}
               </div>
 
+              {/* シグナル・フィルター説明（折りたたみ） */}
+              <details className="px-4 pb-3">
+                <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground/70 select-none">シグナル・フィルター定義</summary>
+                <div className="mt-2 space-y-3 text-xs leading-relaxed">
+                  <div>
+                    <div className="font-medium text-foreground/80 mb-1">Granville買いシグナル</div>
+                    <table className="w-full border-collapse">
+                      <tbody className="text-muted-foreground">
+                        <tr className="border-b border-border/20"><td className="py-1 pr-3 font-medium text-foreground/70 w-10">B1</td><td className="py-1">MA上抜けブレイク — 前日SMA20下→当日上抜け、SMA上昇中</td></tr>
+                        <tr className="border-b border-border/20"><td className="py-1 pr-3 font-medium text-foreground/70">B2</td><td className="py-1">上昇中の押し目 — SMA上昇中、乖離-5~0%、陽線、SMA下</td></tr>
+                        <tr className="border-b border-border/20"><td className="py-1 pr-3 font-medium text-foreground/70">B3</td><td className="py-1">MA接近で反発 — SMA上昇中+上、乖離0~3%で縮小中、陽線</td></tr>
+                        <tr><td className="py-1 pr-3 font-medium text-foreground/70">B4</td><td className="py-1">暴落リバウンド — SMA20乖離 &lt; -15%、陽線、急騰フィルター付き</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div>
+                    <div className="font-medium text-foreground/80 mb-1">ロングフィルター（B1-B3に適用）</div>
+                    <table className="w-full border-collapse">
+                      <tbody className="text-muted-foreground">
+                        <tr className="border-b border-border/20"><td className="py-1 pr-3 w-10"><span className="px-1 py-0.5 rounded border bg-rose-500/20 text-rose-400 border-rose-500/30">H1</span></td><td className="py-1">VI&ge;30 + B1 &rarr; 9日保有 — 恐怖局面でのMA上抜け反発</td><td className="py-1 text-right tabular-nums">PF 2.13</td></tr>
+                        <tr className="border-b border-border/20"><td className="py-1 pr-3"><span className="px-1 py-0.5 rounded border bg-emerald-500/20 text-emerald-400 border-emerald-500/30">H2</span></td><td className="py-1">N225&gt;SMA20 + CME flat(&plusmn;0.5%) + B3 &rarr; 9日保有 — 静かな上昇トレンドの押し目</td><td className="py-1 text-right tabular-nums">PF 2.67</td></tr>
+                        <tr><td className="py-1 pr-3"><span className="px-1 py-0.5 rounded border bg-amber-500/20 text-amber-400 border-amber-500/30">H3</span></td><td className="py-1">N225 ret20&lt;-5% + B1 &rarr; 4日保有 — 急落後のブレイク反発</td><td className="py-1 text-right tabular-nums">PF 2.38</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div>
+                    <div className="font-medium text-foreground/80 mb-1">B4エントリー条件</div>
+                    <p className="text-muted-foreground">VI&ge;25で発動。乖離深い順に資金枠内で選定。出口: 直近高値更新&rarr;翌寄付 or MH15。PF 2.79（全期間）</p>
+                    <p className="text-muted-foreground mt-0.5">除外: VI30-40&times;CME膠着 / VI30-40&times;GU / N225&lt;-3%</p>
+                  </div>
+                  <div>
+                    <div className="font-medium text-foreground/80 mb-1">市場環境指標</div>
+                    <table className="w-full border-collapse">
+                      <tbody className="text-muted-foreground">
+                        <tr className="border-b border-border/20"><td className="py-1 pr-3 font-medium text-foreground/70 whitespace-nowrap">N225 vs SMA20</td><td className="py-1">日経平均がSMA20の上(上昇)か下(下降)か</td></tr>
+                        <tr className="border-b border-border/20"><td className="py-1 pr-3 font-medium text-foreground/70 whitespace-nowrap">N225 ret20</td><td className="py-1">過去20営業日リターン（H3の-5%判定に使用）</td></tr>
+                        <tr className="border-b border-border/20"><td className="py-1 pr-3 font-medium text-foreground/70 whitespace-nowrap">CME gap</td><td className="py-1">CME日経先物(NKD)終値 vs N225前日終値の乖離率</td></tr>
+                        <tr className="border-b border-border/20"><td className="py-1 pr-3 font-medium text-foreground/70 whitespace-nowrap">日経VI</td><td className="py-1">恐怖指数。&ge;30でH1発動、&ge;25でB4発動</td></tr>
+                        <tr><td className="py-1 pr-3 font-medium text-foreground/70 whitespace-nowrap">N225 前日比</td><td className="py-1">日経平均の前日終値比（B4除外の-3%判定に使用）</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </details>
+
               {/* 統合テーブル（PF降順） */}
               {(() => {
                 type UnifiedRow = { ticker: string; stock_name: string; rule: string; grade: string; close: number; dev_from_sma20: number; hold_days: number; expected_pf: number; max_cost?: number; };
