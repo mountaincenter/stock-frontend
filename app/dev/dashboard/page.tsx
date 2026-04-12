@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { DevNavLinks } from '../../../components/dev';
 import { RefreshCw } from 'lucide-react';
 
@@ -36,6 +35,7 @@ interface Regime {
   n225_above_sma20: boolean | null; n225_ret20: number | null;
   cme_gap: number | null; vi: number | null;
   n225_close: number | null; n225_sma20: number | null;
+  cme_close: number | null;
 }
 interface LongRecommendation {
   ticker: string; stock_name: string; sector: string; rule: string;
@@ -183,11 +183,11 @@ export default function DashboardPage() {
   const fetchData = () => {
     setLoading(true);
     Promise.all([
-      fetch(`${API_BASE}/api/dev/granville/positions`).then(r => r.json()).catch(() => null),
-      fetch(`${API_BASE}/api/dev/granville/b4_entry`).then(r => r.json()).catch(() => null),
+      fetch(`${API_BASE}/api/dev/granville/positions`).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(`${API_BASE}/api/dev/granville/b4_entry`).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(`${API_BASE}/api/dev/granville/long-recommendations`).then(r => r.ok ? r.json() : null).catch(() => null),
-      fetch(`${API_BASE}/api/dev/reversal/signals`).then(r => r.json()).catch(() => null),
-      fetch(`${API_BASE}/api/dev/pairs/signals`).then(r => r.json()).catch(() => null),
+      fetch(`${API_BASE}/api/dev/reversal/signals`).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(`${API_BASE}/api/dev/pairs/signals`).then(r => r.ok ? r.json() : null).catch(() => null),
     ]).then(([pos, b4, lr, sig, pairs]) => {
       setPosData(pos); setB4Entry(b4); setLongRecs(lr); setSignals(sig); setPairsData(pairs);
       setLoading(false);
@@ -272,7 +272,7 @@ export default function DashboardPage() {
                   {regime?.n225_above_sma20 != null ? (regime.n225_above_sma20 ? 'Uptrend' : 'Downtrend') : '-'}
                 </span>
               </StatCard>
-              <StatCard label="CME gap" sub={cmeGap != null && Math.abs(cmeGap) <= 0.5 ? 'flat (±0.5%)' : undefined}>
+              <StatCard label="CME gap" sub={regime?.cme_close != null && regime?.n225_close != null ? `${fmt(regime.cme_close)} / ${fmt(regime.n225_close)}` : cmeGap != null && Math.abs(cmeGap) <= 0.5 ? 'flat (±0.5%)' : undefined}>
                 <span className={cmeGap != null ? (cmeGap >= 0 ? 'text-price-up' : 'text-price-down') : 'text-muted-foreground'}>
                   {cmeGap != null ? `${cmeGap >= 0 ? '+' : ''}${cmeGap.toFixed(2)}%` : '-'}
                 </span>
