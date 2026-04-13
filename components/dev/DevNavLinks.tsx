@@ -2,109 +2,69 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
 
-interface NavLinkConfig {
+const isDev = process.env.NODE_ENV === "development";
+
+interface NavItem {
   href: string;
   label: string;
 }
 
-const isDev = process.env.NODE_ENV === "development";
-
-const NAV_LINKS: Record<string, NavLinkConfig> = {
-  dashboard: {
-    href: "/dev",
-    label: "Dashboard",
-  },
-  analysis: {
-    href: "/dev/analysis",
-    label: "Analysis",
-  },
-  "exit-lab": {
-    href: "/dev/analysis/exit",
-    label: "Exit Lab",
-  },
-  "analysis-ml": {
-    href: "/dev/analysis-ml",
-    label: "ML",
-  },
-  recommendations: {
-    href: "/dev/recommendations",
-    label: "Recommendations",
-  },
-  "stock-results": {
-    href: isDev ? "/dev/dev-stock-results" : "/dev/stock-results",
-    label: "Stock Results",
-  },
-  reports: {
-    href: "/dev/reports",
-    label: "Reports",
-  },
-  granville: {
-    href: "/dev/granville",
-    label: "Granville",
-  },
-  strategy: {
-    href: "/dev/strategy/granville",
-    label: "Strategy",
-  },
-  // v3: {
-  //   href: "/dev/v3",
-  //   label: "v3 Analysis",
-  // },
-  // ifo: {
-  //   href: "/dev/ifo",
-  //   label: "IFO",
-  // },
-};
+// 3グループに分類
+const NAV_GROUPS: NavItem[][] = [
+  // Core
+  [
+    { href: "/dev", label: "Dashboard" },
+    { href: "/dev/dashboard", label: "Trading" },
+    { href: "/dev/analysis", label: "Analysis" },
+  ],
+  // Data
+  [
+    { href: "/dev/recommendations", label: "Recs" },
+    { href: "/dev/reports", label: "Reports" },
+    { href: isDev ? "/dev/dev-stock-results" : "/dev/stock-results", label: "Results" },
+  ],
+  // Strategy
+  [
+    { href: "/dev/granville", label: "Granville" },
+    { href: "/dev/pairs", label: "Pairs" },
+    { href: "/dev/reversal", label: "Reversal" },
+  ],
+];
 
 interface DevNavLinksProps {
-  links?: (keyof typeof NAV_LINKS)[];
+  links?: string[];
   className?: string;
 }
 
-export function DevNavLinks({ links, className = "" }: DevNavLinksProps) {
+export function DevNavLinks({ className = "" }: DevNavLinksProps) {
   const pathname = usePathname();
 
-  // If no links provided, show all except current
-  const linksToShow = links || (Object.keys(NAV_LINKS) as (keyof typeof NAV_LINKS)[]);
-
   return (
-    <nav className={`flex items-center gap-1 ${className}`}>
-      {/* Back to dashboard if not on dashboard */}
-      {pathname !== "/dev" && (
-        <Link
-          href="/dev"
-          className="flex items-center gap-1 px-2 py-1 text-muted-foreground hover:text-foreground transition-colors text-xs"
-        >
-          <ChevronLeft className="w-3 h-3" />
-          Back
-        </Link>
-      )}
-
-      {/* Separator */}
-      {pathname !== "/dev" && (
-        <span className="text-border mx-1">|</span>
-      )}
-
-      {/* Nav links */}
-      {linksToShow.map((key) => {
-        const link = NAV_LINKS[key];
-        if (!link) return null;
-
-        const isActive = pathname === link.href;
-        if (isActive) return null; // Don't show current page
-
-        return (
-          <Link
-            key={key}
-            href={link.href}
-            className="px-2 py-1 text-xs text-muted-foreground hover:text-primary transition-colors"
-          >
-            {link.label}
-          </Link>
-        );
-      })}
+    <nav className={`flex items-center h-8 ${className}`}>
+      {NAV_GROUPS.map((group, gi) => (
+        <div key={gi} className="flex items-center">
+          {gi > 0 && <div className="w-px h-3.5 bg-border/40 mx-1.5" />}
+          <div className="flex items-center gap-0.5">
+            {group.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                    isActive
+                      ? "text-foreground bg-muted/60"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </nav>
   );
 }
