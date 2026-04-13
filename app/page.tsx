@@ -89,7 +89,6 @@ async function fetchInitial(tag: string) {
 
   const normalizedTag = tag.trim();
   const canonical = canonicalizeTag(normalizedTag);
-  const isCore30 = canonical === "TOPIX_CORE30";
   const isScalpingEntry = normalizedTag === "scalping_entry" || canonical === "SCALPING_ENTRY";
   const isScalpingActive = normalizedTag === "scalping_active" || canonical === "SCALPING_ACTIVE";
   const tagParam = normalizedTag || canonical || undefined;
@@ -152,7 +151,7 @@ async function fetchInitial(tag: string) {
           );
           if (unfiltered.length > 0) {
             meta = filterMetaByTag(unfiltered, tagParam, {
-              allowMissingTagInfo: isCore30,
+              allowMissingTagInfo: false,
             }) as StockMeta[];
           }
         }
@@ -171,7 +170,7 @@ async function fetchInitial(tag: string) {
     ]);
 
     const filteredMeta = filterMetaByTag(initialMeta, tagParam, {
-      allowMissingTagInfo: isCore30,
+      allowMissingTagInfo: false,
     });
     const allowedTickers = pickAllowedTickers(filteredMeta);
     const initialSnapshot = rawSnapshot.filter((s) =>

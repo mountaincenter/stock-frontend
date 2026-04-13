@@ -1,27 +1,12 @@
-export type CanonicalTag = "政策銘柄" | "TOPIX_CORE30" | "TOPIX_LARGE70" | "SCALPING_ENTRY" | "SCALPING_ACTIVE" | "GROK";
+export type CanonicalTag = "PORTFOLIO" | "GROK" | "SCALPING_ENTRY" | "SCALPING_ACTIVE";
 
 const TAG_CANONICAL_MAP: Record<string, CanonicalTag> = {
-  policy: "政策銘柄",
-  policy_stock: "政策銘柄",
-  "政策": "政策銘柄",
-  "政策銘柄": "政策銘柄",
-  core30: "TOPIX_CORE30",
-  "topix core30": "TOPIX_CORE30",
-  topix: "TOPIX_CORE30",
-  topix_core30: "TOPIX_CORE30",
-  topixcore30: "TOPIX_CORE30",
-  TOPIX_CORE30: "TOPIX_CORE30",
-  large70: "TOPIX_LARGE70",
-  topix_large70: "TOPIX_LARGE70",
-  topixlarge70: "TOPIX_LARGE70",
-  "topix large70": "TOPIX_LARGE70",
-  TOPIX_LARGE70: "TOPIX_LARGE70",
+  portfolio: "PORTFOLIO",
+  PORTFOLIO: "PORTFOLIO",
   scalping_entry: "SCALPING_ENTRY",
   scalping_active: "SCALPING_ACTIVE",
   SCALPING_ENTRY: "SCALPING_ENTRY",
   SCALPING_ACTIVE: "SCALPING_ACTIVE",
-  "スキャルピング entry": "SCALPING_ENTRY",
-  "スキャルピング active": "SCALPING_ACTIVE",
   grok: "GROK",
   grok_trending: "GROK",
   "grok トレンド": "GROK",
@@ -41,39 +26,13 @@ export function canonicalizeTag(tag?: string): CanonicalTag | undefined {
 
 export function normalizeSelectTag(
   value?: string
-): "policy" | "core30" | "large70" | "grok" | "all" | undefined {
+): "portfolio" | "grok" | "all" | undefined {
   if (!value) return undefined;
   const trimmed = value.trim();
   if (!trimmed) return undefined;
   const lower = trimmed.toLowerCase();
-  if (
-    lower === "policy" ||
-    lower === "policy_stock" ||
-    trimmed === "政策銘柄" ||
-    trimmed === "政策"
-  ) {
-    return "policy";
-  }
-  if (
-    lower === "core30" ||
-    lower === "topix_core30" ||
-    lower === "topixcore30" ||
-    lower === "topix" ||
-    lower === "topix core30" ||
-    trimmed === "TOPIX_CORE30" ||
-    trimmed === "TOPIX Core30"
-  ) {
-    return "core30";
-  }
-  if (
-    lower === "large70" ||
-    lower === "topix_large70" ||
-    lower === "topixlarge70" ||
-    lower === "topix large70" ||
-    trimmed === "TOPIX_LARGE70" ||
-    trimmed === "TOPIX Large70"
-  ) {
-    return "large70";
+  if (lower === "portfolio" || trimmed === "PORTFOLIO") {
+    return "portfolio";
   }
   if (
     lower === "grok" ||

@@ -34,7 +34,8 @@ npm run build  # ビルド
 ### スタイリング（HTML / CSS / Tailwind）
 - Claude Code が完全に管理する
 - ファイル分割・可読性・DRY は不要
-- 動けばよい
+- UIコンポーネント生成時は必ず親ディレクトリの `DESIGN.md`（セクション1〜9）を参照すること
+- `DESIGN.md` で定義された色・フォント・余白のルールに従うこと
 
 ### ロジック（TypeScript）
 - Claude Code が実装するが、ユーザーが読んで理解できる粒度を維持

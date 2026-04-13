@@ -7,7 +7,6 @@ import { useStockData } from "./hooks/useStockData";
 import { SearchInput } from "./wrappers/SearchInput";
 import StockListsDesktop from "./views/StockListsDesktop";
 import StockListsMobile, { MobileTab } from "./views/StockListsMobile";
-import { PolicyFilters } from "./parts/PolicyFilters";
 import { shouldFetchRealtimePrice } from "@/lib/market-hours";
 import { getTseMarketState, getMarketStateLabel, type TseMarketState } from "@/lib/tse-market-state";
 import {
@@ -58,22 +57,10 @@ interface RealtimeQuote {
 
 const TAG_OPTIONS = [
   {
-    value: "policy",
-    label: "政策銘柄",
+    value: "portfolio",
+    label: "保有+Granville",
     description:
-      "連立政権の重点政策に関連する銘柄 - 防衛・安全保障、半導体・先端技術、エネルギー安全保障、経済安全保障、インフラ・建設、デジタル・AI、地方創生などの政策分野",
-  },
-  {
-    value: "core30",
-    label: "TOPIX Core30",
-    description:
-      "東証TOPIX構成銘柄のうち時価総額・流動性が特に高い30銘柄 - 日本を代表する超大型株",
-  },
-  {
-    value: "large70",
-    label: "TOPIX Large70",
-    description:
-      "東証TOPIX構成銘柄のうち時価総額・流動性が高い大型株70銘柄 - Core30に次ぐ日本の主要企業群",
+      "保有銘柄とGranville推奨銘柄 - hold_stocks + granville recommendations",
   },
   {
     value: "grok",
@@ -132,7 +119,6 @@ export default function StockLists(props: Props & { className?: string }) {
     tag: selectedTag,
   });
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedPolicies, setSelectedPolicies] = useState<string[]>([]);
   const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
   const [realtimeData, setRealtimeData] = useState<{ticker: string; price: number; timestamp: string} | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -231,7 +217,6 @@ export default function StockLists(props: Props & { className?: string }) {
 
   useEffect(() => {
     setSearchTerm("");
-    setSelectedPolicies([]);
     setMobileToolsOpen(false);
   }, [selectedTag]);
 
@@ -256,50 +241,13 @@ export default function StockLists(props: Props & { className?: string }) {
     });
   }, [selectedTag]);
 
-  const policyOptions = useMemo(() => {
-    if (selectedTag !== "policy") return [];
-    const set = new Set<string>();
-    rows.forEach((row) => {
-      // tags配列から政策フィルタを抽出
-      const tagsArray = Array.isArray(row.tags) ? row.tags : [];
-      tagsArray.forEach((tag) => {
-        const value = tag?.toString().trim();
-        if (value) set.add(value);
-      });
-    });
-    return Array.from(set).sort((a, b) => a.localeCompare(b, "ja"));
-  }, [rows, selectedTag]);
-
   const rowsAfterPolicy = useMemo(() => {
-    let result = rows;
-
-    // Policy tag: フィルタリング
-    if (selectedTag === "policy" && selectedPolicies.length > 0) {
-      const policySet = new Set(selectedPolicies);
-      result = rows.filter((row) => {
-        // tags配列から政策タグを取得してフィルタリング
-        const tagsArray = Array.isArray(row.tags) ? row.tags : [];
-        const tags = tagsArray
-          .map((value) => value?.toString().trim())
-          .filter((value): value is string => Boolean(value));
-        return tags.some((tag) => policySet.has(tag));
-      });
-    }
-
     // GROK tag: 選定スコアでソート（降順）
     if (selectedTag === "grok") {
-      result = sortByGrokScore(result);
+      return sortByGrokScore(rows);
     }
-
-    return result;
-  }, [rows, selectedPolicies, selectedTag]);
-
-  useEffect(() => {
-    if (selectedTag !== "policy") return;
-    setSelectedPolicies((prev) =>
-      prev.filter((value) => policyOptions.includes(value))
-    );
-  }, [policyOptions, selectedTag]);
+    return rows;
+  }, [rows, selectedTag]);
 
   const filtered: Row[] = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
@@ -470,28 +418,7 @@ export default function StockLists(props: Props & { className?: string }) {
     }
   })();
 
-  const hasPolicyFilters =
-    selectedTag === "policy" && policyOptions.length > 0;
 
-  const renderPolicyFilters = () => {
-    if (!hasPolicyFilters) return null;
-    return (
-      <PolicyFilters
-        options={policyOptions}
-        selected={selectedPolicies}
-        onToggle={(value, checked) =>
-          setSelectedPolicies((prev) => {
-            if (checked) {
-              if (prev.includes(value)) return prev;
-              return [...prev, value];
-            }
-            return prev.filter((item) => item !== value);
-          })
-        }
-        onReset={() => setSelectedPolicies([])}
-      />
-    );
-  };
 
   if (status === "loading" || status === "idle") {
     return (
@@ -713,7 +640,6 @@ export default function StockLists(props: Props & { className?: string }) {
           </button>
           {mobileToolsOpen && (
             <div className="pt-2 space-y-3">
-              {hasPolicyFilters && <div>{renderPolicyFilters()}</div>}
               <div className="overflow-x-auto -mx-1 px-1">
                 {mobileSortToolbar}
               </div>
@@ -721,10 +647,6 @@ export default function StockLists(props: Props & { className?: string }) {
           )}
         </div>
       </div>
-
-      {hasPolicyFilters && (
-        <div className="hidden md:block">{renderPolicyFilters()}</div>
-      )}
 
       {/* Grok Backtest Banner - GROK タグの場合のみ表示（リスト選択の下、テーブルの上） */}
       {selectedTag === "grok" && <GrokBacktestBanner />}
