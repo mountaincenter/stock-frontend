@@ -72,7 +72,7 @@ interface PairSignal {
   notional1: number; notional2: number;
   imbalance_pct: number;
   full_pf: number; full_n: number;
-  revert_1d: number;
+  revert_1d: number; half_life?: number;
   is_entry: boolean; direction: string;
   signal_date: string;
 }
@@ -643,7 +643,7 @@ export default function DashboardPage() {
                         <td className="text-right px-2 py-2.5 tabular-nums text-muted-foreground">{p.shares1}:{p.shares2}</td>
                         <td className="text-right px-2 py-2.5 tabular-nums text-foreground">{p.full_pf.toFixed(2)}</td>
                         <td className="text-right px-2 py-2.5 tabular-nums text-muted-foreground hidden md:table-cell">{p.lookback}</td>
-                        <td className="text-right px-2 py-2.5 tabular-nums text-muted-foreground hidden md:table-cell">{p.revert_1d.toFixed(0)}%</td>
+                        <td className="text-right px-2 py-2.5 tabular-nums text-muted-foreground hidden md:table-cell">{(p.revert_1d ?? p.half_life ?? 0).toFixed(0)}%</td>
                       </tr>
                     );
                   })}

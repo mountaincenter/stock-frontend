@@ -25,7 +25,7 @@ interface PairChartData {
   c1: number; c2: number;
   chg1: number; chg2: number;
   chg1_pct: number; chg2_pct: number;
-  lookback: number; full_pf: number; full_n: number; revert_1d: number;
+  lookback: number; full_pf: number; full_n: number; revert_1d: number; half_life?: number;
   z_latest: number; direction: string;
   tk1_upper: number; tk1_lower: number;
   series: SeriesPoint[];
@@ -569,7 +569,7 @@ function PairChartContent({ tk1, tk2 }: { tk1: string; tk2: string }) {
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">1d回帰率</div>
-                <div className="text-xl font-bold text-foreground">{data.revert_1d.toFixed(0)}%</div>
+                <div className="text-xl font-bold text-foreground">{(data.revert_1d ?? data.half_life ?? 0).toFixed(0)}%</div>
               </div>
             </div>
           </div>
