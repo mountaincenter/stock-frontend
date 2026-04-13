@@ -190,14 +190,7 @@ export default function DashboardPage() {
       fetch(`${API_BASE}/api/dev/pairs/signals`).then(r => r.ok ? r.json() : null).catch(() => null),
     ]).then(([pos, b4, lr, sig, pairs]) => {
       setPosData(pos); setB4Entry(b4); setLongRecs(lr); setSignals(sig);
-      // API returns { pairs, hot, ... } but dashboard expects { entry, entry_count, ... }
-      if (pairs) {
-        setPairsData({
-          ...pairs,
-          entry: pairs.hot || [],
-          entry_count: pairs.hot_count ?? (pairs.hot || []).length,
-        });
-      } else { setPairsData(null); }
+      setPairsData(pairs ?? null);
       setLoading(false);
     });
   };
