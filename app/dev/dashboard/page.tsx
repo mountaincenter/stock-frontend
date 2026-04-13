@@ -72,7 +72,7 @@ interface PairSignal {
   notional1: number; notional2: number;
   imbalance_pct: number;
   full_pf: number; full_n: number;
-  half_life: number;
+  revert_1d: number;
   is_entry: boolean; direction: string;
   signal_date: string;
 }
@@ -615,7 +615,7 @@ export default function DashboardPage() {
                   <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">株数</th>
                   <SortHeader<PairSignal> label="PF" field="full_pf" {...pairSort} className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap" />
                   <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap hidden md:table-cell">LB</th>
-                  <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap hidden md:table-cell">半減期</th>
+                  <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap hidden md:table-cell">1d回帰</th>
                 </tr></thead>
                 <tbody className="divide-y divide-border/30">
                   {pairSort.sorted.map((p, i) => {
@@ -643,7 +643,7 @@ export default function DashboardPage() {
                         <td className="text-right px-2 py-2.5 tabular-nums text-muted-foreground">{p.shares1}:{p.shares2}</td>
                         <td className="text-right px-2 py-2.5 tabular-nums text-foreground">{p.full_pf.toFixed(2)}</td>
                         <td className="text-right px-2 py-2.5 tabular-nums text-muted-foreground hidden md:table-cell">{p.lookback}</td>
-                        <td className="text-right px-2 py-2.5 tabular-nums text-muted-foreground hidden md:table-cell">{p.half_life.toFixed(1)}d</td>
+                        <td className="text-right px-2 py-2.5 tabular-nums text-muted-foreground hidden md:table-cell">{p.revert_1d.toFixed(0)}%</td>
                       </tr>
                     );
                   })}
