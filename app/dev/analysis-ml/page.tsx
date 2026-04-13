@@ -108,8 +108,8 @@ const gradeRowBg = (g: string) => {
   if (g === 'G2') return 'bg-emerald-500/5';
   if (g === 'G3') return '';
   if (g === 'G4') return 'bg-rose-500/5';
-  if (g === 'G1+G2') return 'bg-emerald-500/10 border-t border-border';
-  return 'border-t border-border';
+  if (g === 'G1+G2') return 'bg-emerald-500/10 border-t border-border/50';
+  return 'border-t border-border/40';
 };
 
 const gradeLabelCls = (g: string) => {
@@ -152,7 +152,7 @@ const SummaryPnl = ({ segs }: { segs: SegStat[] }) => {
     : ['text-foreground', 'text-foreground', 'text-foreground', 'text-foreground'];
   const cls = [meC, p1C, aeC, p2C];
   return (
-    <div className="flex justify-end gap-5 mb-3 pb-3 border-b border-border">
+    <div className="flex justify-end gap-5 mb-3 pb-3 border-b border-border/30">
       {segs.map((s, i) => (
         <div key={s.label} className="text-right">
           <div className="text-muted-foreground text-sm">{s.label}</div>
@@ -170,7 +170,7 @@ const GradeTable = ({ gradeStats, wdIdx }: { gradeStats: GradeStat[]; wdIdx: num
   <div className="overflow-x-auto">
     <table className="w-full text-sm">
       <thead>
-        <tr className="text-muted-foreground text-sm border-b border-border">
+        <tr className="text-muted-foreground text-sm border-b border-border/30">
           <th className="text-left px-2 py-2.5 font-medium whitespace-nowrap">Grade</th>
           <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">件</th>
           <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">10:25</th>
@@ -189,7 +189,7 @@ const GradeTable = ({ gradeStats, wdIdx }: { gradeStats: GradeStat[]; wdIdx: num
           const wd = gs?.weekdays[wdIdx];
           if (!wd) return null;
           return (
-            <tr key={gn} className={`${gradeRowBg(gn)} hover:bg-muted/20 transition-colors border-b border-border`}>
+            <tr key={gn} className={`${gradeRowBg(gn)} hover:bg-muted/20 transition-colors border-b border-border/20`}>
               <td className={`px-2 py-2.5 whitespace-nowrap ${gradeLabelCls(gn)}`}>{gn}</td>
               <td className="text-right px-2 py-2.5 tabular-nums text-foreground">{wd.count}</td>
               <SegCells segs={wd.segs} show={wd.count > 0} />
@@ -203,7 +203,7 @@ const GradeTable = ({ gradeStats, wdIdx }: { gradeStats: GradeStat[]; wdIdx: num
 
 /* テーブルヘッダー（共通） */
 const TABLE_HEADER = (
-  <tr className="text-muted-foreground text-sm border-b border-border">
+  <tr className="text-muted-foreground text-sm border-b border-border/30">
     <th className="text-left px-2 py-2.5 font-medium whitespace-nowrap">Grade</th>
     <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">件</th>
     <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">10:25</th>
@@ -254,14 +254,14 @@ export default function AnalysisMlPage() {
       <main className="relative min-h-screen">
         <div className="fixed inset-0 -z-10 bg-background" />
         <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4 pb-3 border-b border-border">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4 pb-3 border-b border-border/30">
             <div>
               <div className="h-6 w-48 bg-muted/50 rounded mb-2 animate-pulse" />
               <div className="h-4 w-64 bg-muted/50 rounded animate-pulse" />
             </div>
           </div>
-          <div className="rounded-xl border border-border bg-card h-64 animate-pulse mb-4" />
-          <div className="rounded-xl border border-border bg-card h-48 animate-pulse" />
+          <div className="rounded-xl border border-border/40 bg-card/50 h-64 animate-pulse mb-4" />
+          <div className="rounded-xl border border-border/40 bg-card/50 h-48 animate-pulse" />
         </div>
       </main>
     );
@@ -323,7 +323,7 @@ export default function AnalysisMlPage() {
 
       <div className="max-w-7xl mx-auto px-4 py-4 leading-[1.8] tracking-[0.02em] font-sans">
         {/* Header */}
-        <header className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4 pb-3 border-b border-border">
+        <header className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4 pb-3 border-b border-border/30">
           <div>
             <h1 className="text-xl font-bold text-foreground">ML Grade分析</h1>
             <p className="text-muted-foreground text-sm">
@@ -350,7 +350,7 @@ export default function AnalysisMlPage() {
                       className={`px-2 py-0.5 text-xs rounded border transition-colors ${
                         topFilter === 'all'
                           ? 'bg-primary text-primary-foreground border-primary'
-                          : 'bg-muted/30 border-border text-muted-foreground hover:bg-muted/50'
+                          : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
                       }`}
                     >全</button>
                     <button
@@ -358,7 +358,7 @@ export default function AnalysisMlPage() {
                       className={`px-2 py-0.5 text-xs rounded border transition-colors ${
                         topFilter === 'ex0'
                           ? 'bg-primary text-primary-foreground border-primary'
-                          : 'bg-muted/30 border-border text-muted-foreground hover:bg-muted/50'
+                          : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
                       }`}
                     >除0</button>
                   </div>
@@ -400,7 +400,7 @@ export default function AnalysisMlPage() {
                   {data.gradeStats.map(gs => (
                     <Fragment key={gs.grade}>
                       <tr
-                        className={`${gradeRowBg(gs.grade)} hover:bg-muted/20 cursor-pointer transition-colors border-b border-border`}
+                        className={`${gradeRowBg(gs.grade)} hover:bg-muted/20 cursor-pointer transition-colors border-b border-border/20`}
                         onClick={() => toggleGrade(gs.grade)}
                       >
                         <td className={`px-2 py-2.5 whitespace-nowrap ${gradeLabelCls(gs.grade)}`}>
@@ -416,7 +416,7 @@ export default function AnalysisMlPage() {
                       </tr>
 
                       {expandedGrades.has(gs.grade) && gs.weekdays.map(wd => (
-                        <tr key={`${gs.grade}-${wd.name}`} className="border-b border-border">
+                        <tr key={`${gs.grade}-${wd.name}`} className="border-b border-border/20">
                           <td className="px-2 py-2.5 pl-9 text-muted-foreground whitespace-nowrap">{wd.name}</td>
                           <td className="text-right px-2 py-2.5 tabular-nums text-foreground">{wd.count}</td>
                           <SegCells segs={wd.segs} show={wd.count > 0} />
@@ -479,7 +479,7 @@ export default function AnalysisMlPage() {
                           className={`px-2.5 py-1 text-sm rounded border transition-colors ${
                             ichiFilter === 'all'
                               ? 'bg-primary text-primary-foreground border-primary'
-                              : 'bg-muted/30 border-border text-muted-foreground hover:bg-muted/50'
+                              : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
                           }`}
                         >
                           全数
@@ -489,7 +489,7 @@ export default function AnalysisMlPage() {
                           className={`px-2.5 py-1 text-sm rounded border transition-colors ${
                             ichiFilter === 'ex0'
                               ? 'bg-primary text-primary-foreground border-primary'
-                              : 'bg-muted/30 border-border text-muted-foreground hover:bg-muted/50'
+                              : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
                           }`}
                         >
                           除0
@@ -521,7 +521,7 @@ export default function AnalysisMlPage() {
                 className={`px-2 py-0.5 text-xs rounded border transition-colors ${
                   monthlyFilter === 'all'
                     ? 'bg-primary text-primary-foreground border-primary'
-                    : 'bg-muted/30 border-border text-muted-foreground hover:bg-muted/50'
+                    : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
                 }`}
               >全</button>
               <button
@@ -529,7 +529,7 @@ export default function AnalysisMlPage() {
                 className={`px-2 py-0.5 text-xs rounded border transition-colors ${
                   monthlyFilter === 'ex0'
                     ? 'bg-primary text-primary-foreground border-primary'
-                    : 'bg-muted/30 border-border text-muted-foreground hover:bg-muted/50'
+                    : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
                 }`}
               >除0</button>
             </div>
@@ -539,7 +539,7 @@ export default function AnalysisMlPage() {
               <div className="relative overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="text-muted-foreground text-sm border-b border-border">
+                    <tr className="text-muted-foreground text-sm border-b border-border/30">
                       <th className="text-left px-2 py-2.5 font-medium whitespace-nowrap">月</th>
                       <th className="text-left px-2 py-2.5 font-medium whitespace-nowrap">Grade</th>
                       <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">件</th>
@@ -562,7 +562,7 @@ export default function AnalysisMlPage() {
                           return (
                             <tr
                               key={`${m.month}-${gn}`}
-                              className={`${gi === 0 ? 'border-t border-border' : ''} ${gradeRowBg(gn)} hover:bg-muted/20 transition-colors border-b border-border`}
+                              className={`${gi === 0 ? 'border-t border-border/40' : ''} ${gradeRowBg(gn)} hover:bg-muted/20 transition-colors border-b border-border/20`}
                             >
                               <td className="px-2 py-2.5 text-muted-foreground whitespace-nowrap">{gi === 0 ? m.month : ''}</td>
                               <td className={`px-2 py-2.5 whitespace-nowrap ${gradeLabelCls(gn)}`}>{gn}</td>
