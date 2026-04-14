@@ -39,7 +39,7 @@ interface Regime {
 }
 interface LongRecommendation {
   ticker: string; stock_name: string; sector: string; rule: string;
-  long_grade: string; hold_days: number; expected_pf: number;
+  long_grade: string; hvb_grade?: string; hold_days: number; expected_pf: number;
   close: number; entry_price_est: number; sma20: number;
   dev_from_sma20: number; atr10_pct: number;
 }
@@ -469,11 +469,11 @@ export default function DashboardPage() {
               {/* 統合テーブル（グレード優先） */}
               {(() => {
                 const gradeOrder: Record<string, number> = { B4: 0, H2: 1, H3: 2, H1: 3 };
-                type UnifiedRow = { ticker: string; stock_name: string; sector: string; rule: string; grade: string; close: number; dev_from_sma20: number; hold_days: number; max_cost?: number; };
+                type UnifiedRow = { ticker: string; stock_name: string; sector: string; rule: string; grade: string; hvb_grade?: string; close: number; dev_from_sma20: number; hold_days: number; max_cost?: number; };
                 const rows: UnifiedRow[] = [];
                 if (longRecs) {
                   for (const r of longRecs.long_recommendations) {
-                    rows.push({ ticker: r.ticker, stock_name: r.stock_name, sector: r.sector, rule: r.rule, grade: r.long_grade, close: r.close, dev_from_sma20: r.dev_from_sma20, hold_days: r.hold_days });
+                    rows.push({ ticker: r.ticker, stock_name: r.stock_name, sector: r.sector, rule: r.rule, grade: r.long_grade, hvb_grade: r.hvb_grade, close: r.close, dev_from_sma20: r.dev_from_sma20, hold_days: r.hold_days });
                   }
                 }
                 if (b4Entry?.selected) {
@@ -502,6 +502,7 @@ export default function DashboardPage() {
                           <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">銘柄</th>
                           <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">セクター</th>
                           <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">グレード</th>
+                          <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">HVB</th>
                           <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">終値</th>
                           <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">SMA20乖離</th>
                           <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">保有</th>
@@ -519,6 +520,9 @@ export default function DashboardPage() {
                               <span className={`inline-block min-w-[40px] text-center px-2 py-1 text-xs rounded border ${gradeCls(r.grade)}`}>
                                 {r.grade === 'B4' ? 'B4' : `${r.grade} ${gradeLabel(r.grade)}`}
                               </span>
+                            </td>
+                            <td className="px-2 py-2.5 text-center">
+                              {r.hvb_grade ? <span className={`inline-block px-1.5 py-0.5 text-xs rounded leading-none border ${r.hvb_grade === 'A' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30'}`}>{r.hvb_grade}</span> : '-'}
                             </td>
                             <td className="px-2 py-2.5 text-right tabular-nums">&yen;{r.close.toLocaleString()}</td>
                             <td className="px-2 py-2.5 text-right tabular-nums">{fmtPct(r.dev_from_sma20, 1)}</td>

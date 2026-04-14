@@ -74,7 +74,7 @@ interface RecommendationsResponse { recommendations: Recommendation[]; count: nu
 interface Signal {
   ticker: string; stock_name: string; sector: string; rule: string;
   close: number; sma20: number; dev_from_sma20: number; sma20_slope: number;
-  entry_price_est: number; prev_close: number;
+  entry_price_est: number; prev_close: number; hvb_grade?: string;
 }
 interface SignalsResponse { signals: Signal[]; count: number; signal_date: string | null; }
 
@@ -113,7 +113,7 @@ interface StatusResponse {
 
 interface LongRecommendation {
   ticker: string; stock_name: string; sector: string; rule: string;
-  long_grade: string; hold_days: number; expected_pf: number;
+  long_grade: string; hvb_grade?: string; hold_days: number; expected_pf: number;
   close: number; entry_price_est: number; sma20: number;
   dev_from_sma20: number; atr10_pct: number;
 }
@@ -460,11 +460,11 @@ function GranvilleContent() {
               {/* 統合テーブル（グレード優先） */}
               {(() => {
                 const gradeOrder: Record<string, number> = { B4: 0, H2: 1, H3: 2, H1: 3 };
-                type UnifiedRow = { ticker: string; stock_name: string; rule: string; grade: string; close: number; dev_from_sma20: number; hold_days: number; max_cost?: number; };
+                type UnifiedRow = { ticker: string; stock_name: string; rule: string; grade: string; hvb_grade?: string; close: number; dev_from_sma20: number; hold_days: number; max_cost?: number; };
                 const rows: UnifiedRow[] = [];
                 if (longRecs) {
                   for (const r of longRecs.long_recommendations) {
-                    rows.push({ ticker: r.ticker, stock_name: r.stock_name, rule: r.rule, grade: r.long_grade, close: r.close, dev_from_sma20: r.dev_from_sma20, hold_days: r.hold_days });
+                    rows.push({ ticker: r.ticker, stock_name: r.stock_name, rule: r.rule, grade: r.long_grade, hvb_grade: r.hvb_grade, close: r.close, dev_from_sma20: r.dev_from_sma20, hold_days: r.hold_days });
                   }
                 }
                 if (b4Entry?.selected) {
@@ -492,6 +492,7 @@ function GranvilleContent() {
                           <th className="px-3 py-2 text-left">銘柄</th>
                           <th className="px-2 py-2 text-center">ルール</th>
                           <th className="px-2 py-2 text-center">グレード</th>
+                          <th className="px-2 py-2 text-center">HVB</th>
                           <th className="px-2 py-2 text-right">終値</th>
                           <th className="px-2 py-2 text-right">SMA20乖離</th>
                           <th className="px-2 py-2 text-center">保有</th>
@@ -511,6 +512,9 @@ function GranvilleContent() {
                               <span className={`inline-block px-1.5 py-0.5 text-xs rounded leading-none border ${gradeCls(r.grade)}`}>
                                 {r.grade === 'B4' ? 'B4' : `${r.grade} ${gradeLabel(r.grade)}`}
                               </span>
+                            </td>
+                            <td className="px-2 py-2 text-center">
+                              {r.hvb_grade ? <span className={`inline-block px-1.5 py-0.5 text-xs rounded leading-none border ${r.hvb_grade === 'A' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30'}`}>{r.hvb_grade}</span> : '-'}
                             </td>
                             <td className="px-2 py-2 text-right tabular-nums">¥{r.close.toLocaleString()}</td>
                             <td className="px-2 py-2 text-right tabular-nums">{fmtPct(r.dev_from_sma20, 1)}</td>
@@ -693,6 +697,7 @@ function GranvilleContent() {
                     <SortHeader<Signal> label="終値" field="close" {...sigSort} className="text-right px-4 py-2.5 text-xs font-medium" />
                     <th className="text-right px-4 py-2.5 text-xs font-medium hidden md:table-cell">SMA20</th>
                     <SortHeader<Signal> label="乖離%" field="dev_from_sma20" {...sigSort} className="text-right px-4 py-2.5 text-xs font-medium" />
+                    <th className="text-center px-3 py-2.5 text-xs font-medium">HVB</th>
                     <th className="text-right px-4 py-2.5 text-xs font-medium hidden md:table-cell">Slope</th>
                   </tr></thead>
                   <tbody>
@@ -709,6 +714,9 @@ function GranvilleContent() {
                         <td className="px-4 py-2.5 text-right tabular-nums">¥{fmt(s.close)}</td>
                         <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground hidden md:table-cell">¥{fmt(Math.round(s.sma20))}</td>
                         <td className={`px-4 py-2.5 text-right tabular-nums ${s.dev_from_sma20 < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>{fmtPct(s.dev_from_sma20, 2)}</td>
+                        <td className="px-3 py-2.5 text-center">
+                          {s.hvb_grade ? <span className={`inline-block px-1.5 py-0.5 text-xs rounded leading-none border ${s.hvb_grade === 'A' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30'}`}>{s.hvb_grade}</span> : '-'}
+                        </td>
                         <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground hidden md:table-cell">{s.sma20_slope.toFixed(1)}</td>
                       </tr>
                     ))}

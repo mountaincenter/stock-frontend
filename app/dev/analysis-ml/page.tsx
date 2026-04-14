@@ -104,20 +104,20 @@ const getQuadrantClasses = (me: number, p1: number, ae: number, p2: number): [st
 };
 
 const gradeRowBg = (g: string) => {
-  if (g === 'G1') return 'bg-emerald-950/30';
-  if (g === 'G2') return 'bg-emerald-950/15';
+  if (g === 'G1') return 'bg-emerald-500/10';
+  if (g === 'G2') return 'bg-emerald-500/5';
   if (g === 'G3') return '';
-  if (g === 'G4') return 'bg-rose-950/15';
-  if (g === 'G1+G2') return 'bg-emerald-900/20 border-t border-border/50';
+  if (g === 'G4') return 'bg-rose-500/5';
+  if (g === 'G1+G2') return 'bg-emerald-500/10 border-t border-border/50';
   return 'border-t border-border/40';
 };
 
 const gradeLabelCls = (g: string) => {
-  if (g === 'G1') return 'text-emerald-400 font-bold';
-  if (g === 'G2') return 'text-emerald-500';
+  if (g === 'G1') return 'text-price-up-bright font-bold';
+  if (g === 'G2') return 'text-price-up';
   if (g === 'G3') return 'text-muted-foreground';
-  if (g === 'G4') return 'text-rose-400';
-  if (g === 'G1+G2') return 'text-emerald-300 font-bold';
+  if (g === 'G4') return 'text-price-down';
+  if (g === 'G1+G2') return 'text-price-up-bright font-bold';
   return 'text-foreground font-bold';
 };
 
