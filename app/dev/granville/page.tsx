@@ -443,6 +443,29 @@ function GranvilleContent() {
                     <p className="text-muted-foreground mt-0.5">除外: VI30-40&times;CME膠着 / VI30-40&times;GU / N225&lt;-3%</p>
                   </div>
                   <div>
+                    <div className="font-medium text-foreground/80 mb-1">HVB（High Volume Bearish）グレード</div>
+                    <table className="w-full border-collapse">
+                      <tbody className="text-muted-foreground">
+                        <tr className="border-b border-border/20"><td className="py-1 pr-3 font-medium w-10"><span className="px-1.5 py-0.5 rounded border bg-emerald-500/20 text-emerald-400 border-emerald-500/30">A</span></td><td className="py-1">出来高急増 + 直近5日に大陰線 — vol_ratio &gt; 1.5 かつ 5日以内に実体 &le; -3%の陰線あり。セリクラ後の反発を狙う高確度シグナル</td></tr>
+                        <tr><td className="py-1 pr-3 font-medium"><span className="px-1.5 py-0.5 rounded border bg-zinc-500/20 text-zinc-400 border-zinc-500/30">B</span></td><td className="py-1">上記条件を満たさない通常シグナル</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div>
+                    <div className="font-medium text-foreground/80 mb-1">全体パフォーマンス（バックテスト）</div>
+                    <table className="w-full border-collapse">
+                      <thead><tr className="border-b border-border/30 text-foreground/70"><th className="py-1 text-left text-xs">区分</th><th className="py-1 text-right text-xs">PF</th><th className="py-1 text-right text-xs">平均損益</th><th className="py-1 text-right text-xs">勝率</th><th className="py-1 text-right text-xs">最大DD</th><th className="py-1 text-right text-xs">N</th></tr></thead>
+                      <tbody className="text-muted-foreground">
+                        <tr className="border-b border-border/20 font-medium text-foreground/80"><td className="py-1">全体</td><td className="py-1 text-right tabular-nums">1.36</td><td className="py-1 text-right tabular-nums">+0.38%</td><td className="py-1 text-right tabular-nums">67%</td><td className="py-1 text-right tabular-nums">-49.1%</td><td className="py-1 text-right tabular-nums">54,034</td></tr>
+                        <tr className="border-b border-border/20"><td className="py-1">B1</td><td className="py-1 text-right tabular-nums">1.26</td><td className="py-1 text-right tabular-nums">+0.30%</td><td className="py-1 text-right tabular-nums">66%</td><td className="py-1 text-right tabular-nums">-49.1%</td><td className="py-1 text-right tabular-nums">20,062</td></tr>
+                        <tr className="border-b border-border/20"><td className="py-1">B2</td><td className="py-1 text-right tabular-nums">1.35</td><td className="py-1 text-right tabular-nums">+0.36%</td><td className="py-1 text-right tabular-nums">66%</td><td className="py-1 text-right tabular-nums">-47.5%</td><td className="py-1 text-right tabular-nums">22,543</td></tr>
+                        <tr className="border-b border-border/20"><td className="py-1">B3</td><td className="py-1 text-right tabular-nums">1.26</td><td className="py-1 text-right tabular-nums">+0.26%</td><td className="py-1 text-right tabular-nums">66%</td><td className="py-1 text-right tabular-nums">-41.3%</td><td className="py-1 text-right tabular-nums">10,558</td></tr>
+                        <tr><td className="py-1">B4</td><td className="py-1 text-right tabular-nums">6.46</td><td className="py-1 text-right tabular-nums">+4.40%</td><td className="py-1 text-right tabular-nums">82%</td><td className="py-1 text-right tabular-nums">-29.1%</td><td className="py-1 text-right tabular-nums">871</td></tr>
+                      </tbody>
+                    </table>
+                    <p className="text-muted-foreground/60 mt-1">※ フィルター前の全シグナル。ロングフィルター適用後はH1/H2/H3のPFを参照</p>
+                  </div>
+                  <div>
                     <div className="font-medium text-foreground/80 mb-1">市場環境指標</div>
                     <table className="w-full border-collapse">
                       <tbody className="text-muted-foreground">

@@ -17,7 +17,7 @@ interface PairSignal {
   notional1: number; notional2: number;
   imbalance_pct: number;
   full_pf: number; full_n: number;
-  half_life: number;
+  revert_1d: number;
   is_entry: boolean; direction: string;
   signal_date: string;
 }
@@ -228,7 +228,7 @@ export default function PairsPage() {
                           <div>z: <span className="text-foreground font-semibold">{p.z_latest >= 0 ? '+' : ''}{p.z_latest.toFixed(2)}</span></div>
                           <div>参照: <span className="text-foreground">{p.lookback}日</span></div>
                           <div>PF: <span className={`${p.full_pf >= 2.5 ? 'text-price-up font-semibold' : 'text-foreground'}`}>{p.full_pf.toFixed(2)}</span> ({p.full_n}回)</div>
-                          <div>半減期: <span className="text-foreground">{p.half_life.toFixed(0)}日</span></div>
+                          <div>1d回帰: <span className="text-foreground">{p.revert_1d.toFixed(0)}%</span></div>
                         </div>
                       </div>
                       <div className="text-right md:min-w-[280px]">
@@ -322,7 +322,7 @@ export default function PairsPage() {
                 <th className="text-right px-2 py-2.5 text-sm font-medium hidden md:table-cell">Long閾値</th>
                 <SortHeader<PairSignal> label="PF" field="full_pf" {...pairSort} className="text-right px-2 py-2.5 text-sm font-medium" />
                 <th className="text-right px-2 py-2.5 text-sm font-medium hidden md:table-cell">株数</th>
-                <SortHeader<PairSignal> label="HL" field="half_life" {...pairSort} className="text-right px-2 py-2.5 text-sm font-medium hidden lg:table-cell" />
+                <SortHeader<PairSignal> label="HL" field="revert_1d" {...pairSort} className="text-right px-2 py-2.5 text-sm font-medium hidden lg:table-cell" />
               </tr></thead>
               <tbody>
                 {pairSort.sorted.map((p, i) => {
@@ -367,7 +367,7 @@ export default function PairsPage() {
                         {p.shares1}/{p.shares2}
                       </td>
                       <td className="px-2 py-2.5 text-right tabular-nums text-sm text-foreground/50 hidden lg:table-cell">
-                        {p.half_life.toFixed(0)}
+                        {p.revert_1d.toFixed(0)}
                       </td>
                     </tr>
                   );

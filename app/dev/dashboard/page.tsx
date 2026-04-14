@@ -179,6 +179,7 @@ export default function DashboardPage() {
   const [pairsData, setPairsData] = useState<PairsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showOtherEntries, setShowOtherEntries] = useState(false);
 
   const fetchData = () => {
     setLoading(true);
@@ -433,7 +434,91 @@ export default function DashboardPage() {
                 {b4Entry?.excluded_rules && b4Entry.excluded_rules.length > 0 && <span className="px-1.5 py-0.5 text-xs rounded border bg-rose-500/10 text-rose-400 border-rose-500/30">除外: {b4Entry.excluded_rules.join(', ')}</span>}
               </div>
 
-              {/* シグナル・フィルター説明（折りたたみ） */}
+              {/* 統合テーブル（グレード優先） */}
+              {(() => {
+                const gradeOrder: Record<string, number> = { B4: 0, H2: 1, H3: 2, H1: 3 };
+                type UnifiedRow = { ticker: string; stock_name: string; sector: string; rule: string; grade: string; hvb_grade?: string; close: number; dev_from_sma20: number; hold_days: number; max_cost?: number; };
+                const rows: UnifiedRow[] = [];
+                if (longRecs) {
+                  for (const r of longRecs.long_recommendations) {
+                    rows.push({ ticker: r.ticker, stock_name: r.stock_name, sector: r.sector, rule: r.rule, grade: r.long_grade, hvb_grade: r.hvb_grade, close: r.close, dev_from_sma20: r.dev_from_sma20, hold_days: r.hold_days });
+                  }
+                }
+                if (b4Entry?.selected) {
+                  for (const c of b4Entry.selected) {
+                    rows.push({ ticker: c.ticker, stock_name: c.stock_name, sector: c.sector, rule: 'B4', grade: 'B4', close: c.close, dev_from_sma20: c.dev_from_sma20, hold_days: 15, max_cost: c.max_cost });
+                  }
+                }
+                const hvbOrder: Record<string, number> = { A: 0, B: 1 };
+                rows.sort((a, b) => (hvbOrder[a.hvb_grade ?? 'B'] ?? 2) - (hvbOrder[b.hvb_grade ?? 'B'] ?? 2) || (gradeOrder[a.grade] ?? 99) - (gradeOrder[b.grade] ?? 99));
+
+                if (rows.length === 0) return (
+                  <div className="px-4 py-4 text-center text-muted-foreground text-sm border-t border-border/20">
+                    {b4Decision === 'excluded' ? 'B4除外ルール該当' :
+                     b4Decision === 'wait' ? `B4待機 (VI=${b4Entry?.vi} < 25)` :
+                     lrCount === 0 && (!b4Entry || b4Entry.total_b4_signals === 0) ? 'B1-B3フィルター不成立 / B4シグナルなし' :
+                     'エントリー候補なし'}
+                  </div>
+                );
+
+                const hvbARows = rows.filter(r => r.hvb_grade === 'A');
+                const otherRows = rows.filter(r => r.hvb_grade !== 'A');
+                const renderRow = (r: UnifiedRow) => (
+                  <tr key={`${r.ticker}-${r.rule}`} className="hover:bg-muted/5">
+                    <td className="px-2 py-2.5 text-center"><RuleBadge rule={r.rule} /></td>
+                    <td className="px-2 py-2.5 tabular-nums"><TickerLink ticker={r.ticker} /></td>
+                    <td className="px-2 py-2.5 text-foreground">{r.stock_name}</td>
+                    <td className="px-2 py-2.5 text-muted-foreground text-xs max-w-[120px] truncate">{r.sector}</td>
+                    <td className="px-2 py-2.5 text-center">
+                      <span className={`inline-block min-w-[40px] text-center px-2 py-1 text-xs rounded border ${gradeCls(r.grade)}`}>
+                        {r.grade === 'B4' ? 'B4' : `${r.grade} ${gradeLabel(r.grade)}`}
+                      </span>
+                    </td>
+                    <td className="px-2 py-2.5 text-center">
+                      {r.hvb_grade ? <span className={`inline-block px-1.5 py-0.5 text-xs rounded leading-none border ${r.hvb_grade === 'A' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30'}`}>{r.hvb_grade}</span> : '-'}
+                    </td>
+                    <td className="px-2 py-2.5 text-right tabular-nums">&yen;{r.close.toLocaleString()}</td>
+                    <td className="px-2 py-2.5 text-right tabular-nums">{fmtPct(r.dev_from_sma20, 1)}</td>
+                    <td className="px-2 py-2.5 text-center">{r.hold_days}d</td>
+                    {rows.some(x => x.max_cost) && <td className="px-2 py-2.5 text-right tabular-nums">{r.max_cost ? fmt(r.max_cost) : '-'}</td>}
+                  </tr>
+                );
+
+                const hasMaxCost = rows.some(r => r.max_cost);
+                return (
+                  <div className="overflow-x-auto border-t border-border/20">
+                    <table className="w-full text-sm md:text-base">
+                      <thead>
+                        <tr className="text-foreground border-b border-border/40 bg-muted/30">
+                          <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">ルール</th>
+                          <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">コード</th>
+                          <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">銘柄</th>
+                          <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">セクター</th>
+                          <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">グレード</th>
+                          <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">HVB</th>
+                          <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">終値</th>
+                          <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">SMA20乖離</th>
+                          <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">保有</th>
+                          {hasMaxCost && <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">取引上限</th>}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/30">
+                        {hvbARows.map(renderRow)}
+                        {otherRows.length > 0 && (
+                          <tr className="cursor-pointer hover:bg-muted/10" onClick={() => setShowOtherEntries(!showOtherEntries)}>
+                            <td colSpan={hasMaxCost ? 10 : 9} className="px-4 py-2 text-center text-xs text-muted-foreground">
+                              {showOtherEntries ? '▲ 折りたたむ' : `▼ HVB B 他 ${otherRows.length}件を表示`}
+                            </td>
+                          </tr>
+                        )}
+                        {showOtherEntries && otherRows.map(renderRow)}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
+
+              {/* シグナル・フィルター定義（折りたたみ） */}
               <details className="px-4 pb-3">
                 <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground/70 select-none">シグナル・フィルター定義</summary>
                 <div className="mt-2 space-y-3 text-xs leading-relaxed">
@@ -459,82 +544,35 @@ export default function DashboardPage() {
                     </table>
                   </div>
                   <div>
+                    <div className="font-medium text-foreground/80 mb-1">HVB（High Volume Bearish）グレード</div>
+                    <table className="w-full border-collapse">
+                      <tbody className="text-muted-foreground">
+                        <tr className="border-b border-border/20"><td className="py-1 pr-3 font-medium w-10"><span className="px-1.5 py-0.5 rounded border bg-emerald-500/20 text-emerald-400 border-emerald-500/30">A</span></td><td className="py-1">出来高急増 + 直近5日に大陰線 — vol_ratio &gt; 1.5 かつ 5日以内に実体 &le; -3%の陰線あり。セリクラ後の反発を狙う高確度シグナル</td></tr>
+                        <tr><td className="py-1 pr-3 font-medium"><span className="px-1.5 py-0.5 rounded border bg-zinc-500/20 text-zinc-400 border-zinc-500/30">B</span></td><td className="py-1">上記条件を満たさない通常シグナル</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div>
+                    <div className="font-medium text-foreground/80 mb-1">全体パフォーマンス（バックテスト）</div>
+                    <table className="w-full border-collapse">
+                      <thead><tr className="border-b border-border/30 text-foreground/70"><th className="py-1 text-left text-xs">区分</th><th className="py-1 text-right text-xs">PF</th><th className="py-1 text-right text-xs">平均損益</th><th className="py-1 text-right text-xs">勝率</th><th className="py-1 text-right text-xs">最大DD</th><th className="py-1 text-right text-xs">N</th></tr></thead>
+                      <tbody className="text-muted-foreground">
+                        <tr className="border-b border-border/20 font-medium text-foreground/80"><td className="py-1">全体</td><td className="py-1 text-right tabular-nums">1.36</td><td className="py-1 text-right tabular-nums">+0.38%</td><td className="py-1 text-right tabular-nums">67%</td><td className="py-1 text-right tabular-nums">-49.1%</td><td className="py-1 text-right tabular-nums">54,034</td></tr>
+                        <tr className="border-b border-border/20"><td className="py-1">B1</td><td className="py-1 text-right tabular-nums">1.26</td><td className="py-1 text-right tabular-nums">+0.30%</td><td className="py-1 text-right tabular-nums">66%</td><td className="py-1 text-right tabular-nums">-49.1%</td><td className="py-1 text-right tabular-nums">20,062</td></tr>
+                        <tr className="border-b border-border/20"><td className="py-1">B2</td><td className="py-1 text-right tabular-nums">1.35</td><td className="py-1 text-right tabular-nums">+0.36%</td><td className="py-1 text-right tabular-nums">66%</td><td className="py-1 text-right tabular-nums">-47.5%</td><td className="py-1 text-right tabular-nums">22,543</td></tr>
+                        <tr className="border-b border-border/20"><td className="py-1">B3</td><td className="py-1 text-right tabular-nums">1.26</td><td className="py-1 text-right tabular-nums">+0.26%</td><td className="py-1 text-right tabular-nums">66%</td><td className="py-1 text-right tabular-nums">-41.3%</td><td className="py-1 text-right tabular-nums">10,558</td></tr>
+                        <tr><td className="py-1">B4</td><td className="py-1 text-right tabular-nums">6.46</td><td className="py-1 text-right tabular-nums">+4.40%</td><td className="py-1 text-right tabular-nums">82%</td><td className="py-1 text-right tabular-nums">-29.1%</td><td className="py-1 text-right tabular-nums">871</td></tr>
+                      </tbody>
+                    </table>
+                    <p className="text-muted-foreground/60 mt-1">※ フィルター前の全シグナル。ロングフィルター適用後はH1/H2/H3のPFを参照</p>
+                  </div>
+                  <div>
                     <div className="font-medium text-foreground/80 mb-1">B4エントリー条件</div>
                     <p className="text-muted-foreground">VI&ge;25で発動。乖離深い順に資金枠内で選定。出口: 直近高値更新&rarr;翌寄付 or MH15。PF 2.79（全期間）</p>
                     <p className="text-muted-foreground mt-0.5">除外: VI30-40&times;CME膠着 / VI30-40&times;GU / N225&lt;-3%</p>
                   </div>
                 </div>
               </details>
-
-              {/* 統合テーブル（グレード優先） */}
-              {(() => {
-                const gradeOrder: Record<string, number> = { B4: 0, H2: 1, H3: 2, H1: 3 };
-                type UnifiedRow = { ticker: string; stock_name: string; sector: string; rule: string; grade: string; hvb_grade?: string; close: number; dev_from_sma20: number; hold_days: number; max_cost?: number; };
-                const rows: UnifiedRow[] = [];
-                if (longRecs) {
-                  for (const r of longRecs.long_recommendations) {
-                    rows.push({ ticker: r.ticker, stock_name: r.stock_name, sector: r.sector, rule: r.rule, grade: r.long_grade, hvb_grade: r.hvb_grade, close: r.close, dev_from_sma20: r.dev_from_sma20, hold_days: r.hold_days });
-                  }
-                }
-                if (b4Entry?.selected) {
-                  for (const c of b4Entry.selected) {
-                    rows.push({ ticker: c.ticker, stock_name: c.stock_name, sector: c.sector, rule: 'B4', grade: 'B4', close: c.close, dev_from_sma20: c.dev_from_sma20, hold_days: 15, max_cost: c.max_cost });
-                  }
-                }
-                rows.sort((a, b) => (gradeOrder[a.grade] ?? 99) - (gradeOrder[b.grade] ?? 99));
-
-                if (rows.length === 0) return (
-                  <div className="px-4 py-4 text-center text-muted-foreground text-sm border-t border-border/20">
-                    {b4Decision === 'excluded' ? 'B4除外ルール該当' :
-                     b4Decision === 'wait' ? `B4待機 (VI=${b4Entry?.vi} < 25)` :
-                     lrCount === 0 && (!b4Entry || b4Entry.total_b4_signals === 0) ? 'B1-B3フィルター不成立 / B4シグナルなし' :
-                     'エントリー候補なし'}
-                  </div>
-                );
-
-                return (
-                  <div className="overflow-x-auto border-t border-border/20">
-                    <table className="w-full text-sm md:text-base">
-                            <thead>
-                        <tr className="text-foreground border-b border-border/40 bg-muted/30">
-                          <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">ルール</th>
-                          <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">コード</th>
-                          <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">銘柄</th>
-                          <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">セクター</th>
-                          <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">グレード</th>
-                          <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">HVB</th>
-                          <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">終値</th>
-                          <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">SMA20乖離</th>
-                          <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">保有</th>
-                          {rows.some(r => r.max_cost) && <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">取引上限</th>}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border/30">
-                        {rows.map((r, i) => (
-                          <tr key={`${r.ticker}-${r.rule}`} className="hover:bg-muted/5">
-                            <td className="px-2 py-2.5 text-center"><RuleBadge rule={r.rule} /></td>
-                            <td className="px-2 py-2.5 tabular-nums"><TickerLink ticker={r.ticker} /></td>
-                            <td className="px-2 py-2.5 text-foreground">{r.stock_name}</td>
-                            <td className="px-2 py-2.5 text-muted-foreground text-xs max-w-[120px] truncate">{r.sector}</td>
-                            <td className="px-2 py-2.5 text-center">
-                              <span className={`inline-block min-w-[40px] text-center px-2 py-1 text-xs rounded border ${gradeCls(r.grade)}`}>
-                                {r.grade === 'B4' ? 'B4' : `${r.grade} ${gradeLabel(r.grade)}`}
-                              </span>
-                            </td>
-                            <td className="px-2 py-2.5 text-center">
-                              {r.hvb_grade ? <span className={`inline-block px-1.5 py-0.5 text-xs rounded leading-none border ${r.hvb_grade === 'A' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30'}`}>{r.hvb_grade}</span> : '-'}
-                            </td>
-                            <td className="px-2 py-2.5 text-right tabular-nums">&yen;{r.close.toLocaleString()}</td>
-                            <td className="px-2 py-2.5 text-right tabular-nums">{fmtPct(r.dev_from_sma20, 1)}</td>
-                            <td className="px-2 py-2.5 text-center">{r.hold_days}d</td>
-                            {rows.some(x => x.max_cost) && <td className="px-2 py-2.5 text-right tabular-nums">{r.max_cost ? fmt(r.max_cost) : '-'}</td>}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                );
-              })()}
             </Panel>
           );
         })()}
