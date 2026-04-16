@@ -403,13 +403,19 @@ export default function DayTradeListPage() {
     }
 
     if (sortKey) {
+      const bucketRank: Record<string, number> = { SHORT: 0, DISC: 1, LONG: 2 };
       list = [...list].sort((a, b) => {
         const av = a[sortKey];
         const bv = b[sortKey];
         if (av == null && bv == null) return 0;
         if (av == null) return 1;
         if (bv == null) return -1;
-        const cmp = typeof av === "string" ? av.localeCompare(bv as string) : (av as number) - (bv as number);
+        let cmp: number;
+        if (sortKey === "bucket") {
+          cmp = (bucketRank[av as string] ?? 99) - (bucketRank[bv as string] ?? 99);
+        } else {
+          cmp = typeof av === "string" ? av.localeCompare(bv as string) : (av as number) - (bv as number);
+        }
         return sortDir === "asc" ? cmp : -cmp;
       });
     }
