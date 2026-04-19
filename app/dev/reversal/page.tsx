@@ -19,7 +19,7 @@ interface SignalsResponse {
 
 interface StatusResponse {
   vi: number | null; vi_signal: string;
-  cash_margin: number; position_count: number;
+  position_count: number;
   bearish_count: number; bearish_date: string | null;
   bearish_open: number; bearish_exit: number;
   b4_count: number; b4_date: string | null;
@@ -202,14 +202,11 @@ export default function ReversalPage() {
 
         {/* Status Bar */}
         {status && (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
             <StatCard label="日経VI" sub={status.vi_signal === 'green' ? 'VI≥20: 逆張り有効' : 'VI<20: 逆張り無効'}>
               <span className={status.vi && status.vi >= 20 ? 'text-price-up' : 'text-price-down'}>
                 {status.vi ?? '-'}
               </span>
-            </StatCard>
-            <StatCard label="現金保証金">
-              <span className="text-foreground">¥{fmt(status.cash_margin)}</span>
             </StatCard>
             <StatCard label="大陰線シグナル" sub={status.bearish_open > 0 ? `保有中: ${status.bearish_open}件` : undefined}>
               <span className={status.bearish_count > 0 ? 'text-violet-400' : 'text-muted-foreground'}>
