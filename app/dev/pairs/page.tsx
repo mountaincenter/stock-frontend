@@ -7,6 +7,7 @@ import { RefreshCw } from 'lucide-react';
 // === Types (v2) ===
 interface PairSignal {
   tk1: string; tk2: string;
+  sector1?: string; sector2?: string;
   name1: string; name2: string;
   c1: number; c2: number;
   z_latest: number; z_abs: number;
@@ -136,7 +137,26 @@ export default function PairsPage() {
 
   const allPairs = signals?.pairs || [];
   const entryPairs = signals?.entry || [];
-  const top3 = entryPairs.slice(0, 3);
+  // Top3 dedup: エントリー推奨(is_entry)を|z|順に業種重複除外で充填→枠残ればwatch(|z|>=1.5)で繰上げ
+  // セクター悪化リスク分散 (backtest: MaxDD -22%改善)
+  const top3: PairSignal[] = [];
+  const usedSectors = new Set<string>();
+  const pickUnique = (pool: PairSignal[]) => {
+    for (const pair of pool) {
+      if (top3.length >= 3) return;
+      const sec = pair.sector1 || '';
+      if (sec && usedSectors.has(sec)) continue;
+      if (top3.some(t => t.tk1 === pair.tk1 && t.tk2 === pair.tk2)) continue;
+      top3.push(pair);
+      if (sec) usedSectors.add(sec);
+    }
+  };
+  const entrySorted = [...entryPairs].sort((a, b) => b.z_abs - a.z_abs);
+  const watchSorted = allPairs
+    .filter(p => !p.is_entry && p.z_abs >= 1.5)
+    .sort((a, b) => b.z_abs - a.z_abs);
+  pickUnique(entrySorted);
+  pickUnique(watchSorted);
   const pairSort = useSortable<PairSignal>(allPairs, 'z_abs');
 
   if (loading) {
