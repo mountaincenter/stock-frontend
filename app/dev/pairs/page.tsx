@@ -151,9 +151,10 @@ export default function PairsPage() {
       if (sec) usedSectors.add(sec);
     }
   };
+  // PF>=1.5 を watch 繰上げの必須条件に追加 (memory: PF<1.0 見送り、PF>=1.5 優先)
   const entrySorted = [...entryPairs].sort((a, b) => b.z_abs - a.z_abs);
   const watchSorted = allPairs
-    .filter(p => !p.is_entry && p.z_abs >= 1.5)
+    .filter(p => !p.is_entry && p.z_abs >= 1.5 && p.full_pf >= 1.5)
     .sort((a, b) => b.z_abs - a.z_abs);
   pickUnique(entrySorted);
   pickUnique(watchSorted);
