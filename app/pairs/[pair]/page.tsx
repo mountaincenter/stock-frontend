@@ -444,6 +444,13 @@ function PairChartContent({ tk1, tk2 }: { tk1: string; tk2: string }) {
     maximumFractionDigits: 0
   });
 
+  const lastCloseDate = (() => {
+    const d = data.series[data.series.length - 1]?.date;
+    if (!d) return '';
+    const [y, m, day] = d.split('-');
+    return `${y}/${m}/${day}`;
+  })();
+
   const isShortTk1 = data.direction === 'short_tk1';
   const pairedStocks = [
     {
@@ -522,7 +529,9 @@ function PairChartContent({ tk1, tk2 }: { tk1: string; tk2: string }) {
                         <span className="text-3xl font-black font-sans tabular-nums leading-none text-foreground">
                           ¥{priceFormatter.format(stock.close)}
                         </span>
-                        <span className="text-sm text-muted-foreground/70">Close</span>
+                        <span className="text-sm text-muted-foreground/70">
+                          Close{lastCloseDate && <span className="ml-1 tabular-nums">({lastCloseDate})</span>}
+                        </span>
                         {stock.threshold != null && stock.threshold > 0 && (
                           <span className={`text-sm font-medium tabular-nums ${stock.side === 'Short' ? 'text-rose-400' : 'text-emerald-400'}`}>
                             ¥{priceFormatter.format(Math.round(stock.threshold))}{stock.thresholdLabel}
