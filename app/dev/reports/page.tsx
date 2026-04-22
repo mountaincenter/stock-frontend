@@ -5,12 +5,20 @@ import { Download, FileText, Loader2, ChevronDown, ChevronUp } from "lucide-reac
 import { DevNavLinks } from "@/components/dev";
 import { buildApiUrl } from "@/lib/api-base";
 
+type ReportType = "market_report" | "results_report";
+
 type Report = {
   filename: string;
   date: string;
   title: string;
   size_bytes: number;
   uploaded_at: string;
+  report_type: ReportType;
+};
+
+const TAB_LABELS: Record<ReportType, string> = {
+  market_report: "市況レポート",
+  results_report: "取引結果",
 };
 
 function formatBytes(bytes: number): string {
@@ -31,6 +39,9 @@ export default function ReportsPage() {
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState<string | null>(null);
   const [expandedFilename, setExpandedFilename] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<ReportType>("market_report");
+
+  const filteredReports = reports.filter((r) => r.report_type === activeTab);
 
   useEffect(() => {
     (async () => {
@@ -88,6 +99,31 @@ export default function ReportsPage() {
           <DevNavLinks />
         </div>
 
+        {/* Tabs */}
+        <div className="flex items-center gap-1 mb-4 border-b border-border">
+          {(Object.keys(TAB_LABELS) as ReportType[]).map((tab) => {
+            const isActive = activeTab === tab;
+            const count = reports.filter((r) => r.report_type === tab).length;
+            return (
+              <button
+                key={tab}
+                onClick={() => {
+                  setActiveTab(tab);
+                  setExpandedFilename(null);
+                }}
+                className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                  isActive
+                    ? "border-primary text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {TAB_LABELS[tab]}
+                <span className="ml-1.5 text-xs text-muted-foreground">({count})</span>
+              </button>
+            );
+          })}
+        </div>
+
         {/* Loading */}
         {loading && (
           <div className="flex items-center justify-center py-20 text-muted-foreground">
@@ -104,16 +140,16 @@ export default function ReportsPage() {
         )}
 
         {/* Empty */}
-        {!loading && !error && reports.length === 0 && (
+        {!loading && !error && filteredReports.length === 0 && (
           <div className="text-center py-20 text-muted-foreground text-sm">
             レポートがありません
           </div>
         )}
 
         {/* Report list */}
-        {!loading && !error && reports.length > 0 && (
+        {!loading && !error && filteredReports.length > 0 && (
           <div className="space-y-2">
-            {reports.map((r) => {
+            {filteredReports.map((r) => {
               const isExpanded = expandedFilename === r.filename;
               return (
                 <div key={r.filename}>
