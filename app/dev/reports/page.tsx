@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Download, FileText, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { DevNavLinks } from "@/components/dev";
 import { buildApiUrl } from "@/lib/api-base";
 
@@ -29,7 +29,6 @@ export default function ReportsPage() {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [downloading, setDownloading] = useState<string | null>(null);
   const [expandedFilename, setExpandedFilename] = useState<string | null>(null);
 
   useEffect(() => {
@@ -49,34 +48,6 @@ export default function ReportsPage() {
 
   const toggleExpand = (filename: string) => {
     setExpandedFilename((prev) => (prev === filename ? null : filename));
-  };
-
-  const handleDownload = async (filename: string) => {
-    setDownloading(filename);
-    try {
-      const res = await fetch(
-        buildApiUrl(`/api/dev/reports/${filename}/download`)
-      );
-      if (!res.ok) throw new Error("ダウンロードに失敗しました");
-
-      const contentType = res.headers.get("content-type") ?? "";
-      if (contentType.includes("text/html")) {
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
-        a.click();
-        URL.revokeObjectURL(url);
-      } else {
-        const data = await res.json();
-        window.open(data.url, "_blank");
-      }
-    } catch (err) {
-      console.error("download error:", err);
-    } finally {
-      setDownloading(null);
-    }
   };
 
   return (
@@ -139,21 +110,6 @@ export default function ReportsPage() {
                         </p>
                       </div>
                     </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDownload(r.filename);
-                      }}
-                      disabled={downloading === r.filename}
-                      className="shrink-0 ml-4 inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
-                    >
-                      {downloading === r.filename ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <Download className="w-3.5 h-3.5" />
-                      )}
-                      DL
-                    </button>
                   </div>
 
                   {/* Expanded content */}
