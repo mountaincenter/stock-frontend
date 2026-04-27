@@ -50,31 +50,30 @@ type Summary = {
   total_required_funds: number;
 };
 
-type LendingRatioPfCell = {
-  pf: number | null;
-  n: number;
-  avg: number | null;
-  winRate: number | null;
-};
-
-type LendingRatioRow = {
+type ProbBinCell = {
   label: string;
-  SHORT: LendingRatioPfCell;
-  DISC: LendingRatioPfCell;
-  LONG: LendingRatioPfCell;
+  n: number;
+  pf: number | null;
+  winRate: number | null;
+  avg: number | null;
+  total: number | null;
 };
 
-type LendingRatioData = {
-  rows: LendingRatioRow[];
-  dataRange: { start: string | null; end: string | null; tradingDays: number };
-  totalWithBalance: number;
-  totalAll: number;
+type ProbBinGroup = {
+  key: string;
+  count: number;
+  total: number;
+  pf: number | null;
+  winRate: number | null;
+  bins: ProbBinCell[];
 };
 
-type FuturesGapData = {
-  rows: LendingRatioRow[];
+type ProbBinPfData = {
+  view: string;
+  probLabels: string[];
   dataRange: { start: string | null; end: string | null; tradingDays: number };
   total: number;
+  results: ProbBinGroup[];
 };
 
 type FilterType = "all" | "unchecked" | "shortable" | "day_trade" | "ng";
@@ -111,14 +110,15 @@ export default function DayTradeListPage() {
   const [realtimeLoading, setRealtimeLoading] = useState(false);
   const [realtimeTimestamp, setRealtimeTimestamp] = useState<string | null>(null);
 
-  // 貸借倍率×Bucket PFテーブル
-  const [lendingRatioData, setLendingRatioData] = useState<LendingRatioData | null>(null);
-
   // マーケット指標（先物変化率等）
   const [marketData, setMarketData] = useState<{ futures_change_pct: number | null; nikkei_change_pct: number | null } | null>(null);
 
-  // 先物gap×Bucket PFテーブル
-  const [futuresGapData, setFuturesGapData] = useState<FuturesGapData | null>(null);
+  // prob別パフォーマンス
+  const [probPfData, setProbPfData] = useState<ProbBinPfData | null>(null);
+  const [probPfView, setProbPfView] = useState<string>("daily");
+  const [probPfPriceFilter, setProbPfPriceFilter] = useState<string>("all");
+  const [probPfMarginFilter, setProbPfMarginFilter] = useState<string>("");
+  const [probPfLoading, setProbPfLoading] = useState(false);
 
   // 曜日ルール
   const [weekdayRule, setWeekdayRule] = useState<{
@@ -145,19 +145,31 @@ export default function DayTradeListPage() {
     }
   };
 
+  const fetchProbPf = useCallback(async (view: string, priceFilter: string, marginFilter: string) => {
+    setProbPfLoading(true);
+    try {
+      const params = new URLSearchParams({ view });
+      if (priceFilter !== "all") {
+        const [min, max] = priceFilter.split("-").map(Number);
+        params.set("price_min", String(min));
+        params.set("price_max", String(max));
+      }
+      if (marginFilter) params.set("margin_type", marginFilter);
+      const res = await fetch(`/api/dev/prob-bin-pf?${params.toString()}`);
+      if (res.ok) {
+        const data = await res.json();
+        setProbPfData(data);
+      }
+    } catch {
+    } finally {
+      setProbPfLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchData();
-    // 先物gap PFテーブル取得
-    fetch("/api/dev/futures-gap-pf")
-      .then(res => res.ok ? res.json() : null)
-      .then(data => { if (data) setFuturesGapData(data); })
-      .catch(() => {});
-    // 貸借倍率PFテーブル取得
-    fetch("/api/dev/lending-ratio-pf")
-      .then(res => res.ok ? res.json() : null)
-      .then(data => { if (data) setLendingRatioData(data); })
-      .catch(() => {});
-  }, []);
+    fetchProbPf("daily", "all", "");
+  }, [fetchProbPf]);
 
   const fetchRealtime = useCallback(async (force: boolean = false) => {
     if (stocks.length === 0) return;
@@ -1043,67 +1055,138 @@ export default function DayTradeListPage() {
           </div>
         </div>
 
-        {/* Bucket×指標 PFテーブル群 */}
-        {[
-          { data: futuresGapData, title: "先物gap帯 × Bucket別 PF", colLabel: "gap帯", note: null, metaFn: (d: FuturesGapData) => `${d.dataRange.start}～${d.dataRange.end}（${d.dataRange.tradingDays}日 / n=${d.total}）` },
-          { data: lendingRatioData, title: "貸借倍率（買残/売残）× Bucket別 PF", colLabel: "倍率帯", note: "ホバーで勝率・平均損益表示 / 楽天証券の売買残を手入力で蓄積", metaFn: (d: LendingRatioData) => `${d.dataRange.start}～${d.dataRange.end}（${d.dataRange.tradingDays}日 / n=${d.totalWithBalance}）` },
-        ].map(({ data, title, colLabel, note, metaFn }) => data && data.rows.length > 0 && (
-          <div key={title} className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 mt-4 shadow-lg shadow-black/5 backdrop-blur-xl">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
-            <div className="relative px-4 py-3">
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-xs text-muted-foreground font-medium">{title}</div>
-                <div className="text-xs text-muted-foreground">{metaFn(data as any)}</div>
+        {/* prob別パフォーマンス */}
+        <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 mt-4 shadow-lg shadow-black/5 backdrop-blur-xl">
+          <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+          <div className="relative px-4 py-3">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-xs text-muted-foreground font-medium">prob別パフォーマンス（SHORT基準 / 残0除外）</div>
+              {probPfData && (
+                <div className="text-xs text-muted-foreground">
+                  {probPfData.dataRange.start}～{probPfData.dataRange.end}（{probPfData.dataRange.tradingDays}日 / n={probPfData.total}）
+                </div>
+              )}
+            </div>
+
+            {/* タブ */}
+            <div className="flex gap-1 mb-3">
+              {[
+                { key: "daily", label: "日別" },
+                { key: "weekly", label: "週別" },
+                { key: "monthly", label: "月別" },
+                { key: "weekday", label: "曜日別" },
+              ].map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => { setProbPfView(key); fetchProbPf(key, probPfPriceFilter, probPfMarginFilter); }}
+                  className={`px-3 py-1 text-xs rounded-md transition-colors ${probPfView === key ? "bg-primary/20 text-primary font-medium" : "text-muted-foreground hover:bg-muted/30"}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* フィルター */}
+            <div className="flex flex-wrap gap-2 mb-3">
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <span>価格帯:</span>
+                {[
+                  { key: "all", label: "全" },
+                  { key: "0-1000", label: "~1,000円" },
+                  { key: "1000-3000", label: "1,000~3,000円" },
+                  { key: "3000-5000", label: "3,000~5,000円" },
+                  { key: "5000-10000", label: "5,000~10,000円" },
+                  { key: "10000-999999", label: "10,000円~" },
+                ].map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => { setProbPfPriceFilter(key); fetchProbPf(probPfView, key, probPfMarginFilter); }}
+                    className={`px-2 py-0.5 rounded text-xs transition-colors ${probPfPriceFilter === key ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-muted/30"}`}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm md:text-base">
-                  <thead>
-                    <tr className="border-b border-border/40 bg-muted/30">
-                      <th className="px-2 py-3 text-left text-foreground font-medium text-xs whitespace-nowrap">{colLabel}</th>
-                      <th className="px-2 py-3 text-center font-medium text-xs whitespace-nowrap"><span className="text-rose-400">SHORT</span><span className="text-muted-foreground text-[10px] ml-0.5">&lt;0.45</span></th>
-                      <th className="px-2 py-3 text-center font-medium text-xs whitespace-nowrap"><span className="text-amber-400">DISC</span><span className="text-muted-foreground text-[10px] ml-0.5">0.45-0.70</span></th>
-                      <th className="px-2 py-3 text-center font-medium text-xs whitespace-nowrap"><span className="text-emerald-400">LONG</span><span className="text-muted-foreground text-[10px] ml-0.5">&gt;0.70</span></th>
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <span>区分:</span>
+                {[
+                  { key: "", label: "全" },
+                  { key: "制度", label: "制度" },
+                  { key: "いちにち", label: "いちにち" },
+                ].map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => { setProbPfMarginFilter(key); fetchProbPf(probPfView, probPfPriceFilter, key); }}
+                    className={`px-2 py-0.5 rounded text-xs transition-colors ${probPfMarginFilter === key ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-muted/30"}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* テーブル */}
+            {probPfLoading ? (
+              <div className="text-xs text-muted-foreground py-4 text-center">読み込み中...</div>
+            ) : probPfData && probPfData.results.length > 0 ? (
+              <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+                <table className="w-full text-xs">
+                  <thead className="sticky top-0 z-10 bg-card">
+                    <tr className="border-b border-border/40">
+                      <th className="px-2 py-2 text-left text-muted-foreground font-medium whitespace-nowrap">
+                        {probPfView === "daily" ? "日付" : probPfView === "weekly" ? "週" : probPfView === "monthly" ? "月" : "曜日"}
+                      </th>
+                      <th className="px-1 py-2 text-right text-muted-foreground font-medium">N</th>
+                      {probPfData.probLabels.map((label) => (
+                        <th key={label} className="px-1 py-2 text-center text-muted-foreground font-medium whitespace-nowrap">{label}</th>
+                      ))}
+                      <th className="px-2 py-2 text-right text-muted-foreground font-medium">合計PnL</th>
+                      <th className="px-1 py-2 text-right text-muted-foreground font-medium">PF</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {data.rows.map((row) => {
-                      const cells = [
-                        { key: "SHORT", data: row.SHORT },
-                        { key: "DISC", data: row.DISC },
-                        { key: "LONG", data: row.LONG },
-                      ];
-                      return (
-                        <tr key={row.label} className="border-b border-border/20 hover:bg-muted/30">
-                          <td className="px-2 py-3 font-medium text-foreground whitespace-nowrap">{row.label}</td>
-                          {cells.map(({ key, data: cellData }) => {
-                            const pf = cellData.pf;
-                            const color = pf === null || cellData.n === 0
-                              ? "text-muted-foreground"
-                              : pf >= 3 ? "text-emerald-400 font-medium"
-                              : pf >= 1.5 ? "text-teal-400"
-                              : pf >= 1 ? "text-muted-foreground"
-                              : "text-rose-400";
-                            return (
-                              <td key={key} className={`px-2 py-3 text-center tabular-nums ${color}`}>
-                                {cellData.n === 0 ? "-" : (
-                                  <span title={cellData.avg !== null && cellData.winRate !== null ? `勝率${cellData.winRate}% avg${cellData.avg >= 0 ? "+" : ""}${cellData.avg.toLocaleString()}円` : `n=${cellData.n} (n<10)`}>
-                                    {pf !== null ? pf.toFixed(2) : "-"}
-                                    <span className="text-muted-foreground text-xs ml-0.5">({cellData.n})</span>
-                                  </span>
-                                )}
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      );
-                    })}
+                    {probPfData.results.map((group) => (
+                      <tr key={group.key} className="border-b border-border/20 hover:bg-muted/30">
+                        <td className="px-2 py-2 font-medium text-foreground whitespace-nowrap">{group.key}</td>
+                        <td className="px-1 py-2 text-right text-muted-foreground tabular-nums">{group.count}</td>
+                        {group.bins.map((bin) => {
+                          const pf = bin.pf;
+                          const color = bin.n === 0 ? "text-muted-foreground/30"
+                            : pf === null ? "text-muted-foreground"
+                            : pf >= 3 ? "text-emerald-400 font-medium"
+                            : pf >= 1.5 ? "text-teal-400"
+                            : pf >= 1 ? "text-muted-foreground"
+                            : "text-rose-400";
+                          return (
+                            <td key={bin.label} className={`px-1 py-2 text-center tabular-nums ${color}`}>
+                              {bin.n === 0 ? <span className="text-muted-foreground/20">-</span> : (
+                                <span title={bin.winRate !== null && bin.avg !== null
+                                  ? `n=${bin.n} 勝率${bin.winRate}% avg${bin.avg >= 0 ? "+" : ""}${bin.avg.toLocaleString()}円 合計${bin.total !== null ? (bin.total >= 0 ? "+" : "") + bin.total.toLocaleString() : "-"}円`
+                                  : `n=${bin.n}`
+                                }>
+                                  {pf !== null ? pf.toFixed(2) : "-"}
+                                  <span className="text-muted-foreground/50 text-[10px] ml-0.5">({bin.n})</span>
+                                </span>
+                              )}
+                            </td>
+                          );
+                        })}
+                        <td className={`px-2 py-2 text-right tabular-nums ${group.total > 0 ? "text-emerald-400" : group.total < 0 ? "text-rose-400" : "text-muted-foreground"}`}>
+                          ¥{group.total.toLocaleString()}
+                        </td>
+                        <td className={`px-1 py-2 text-right tabular-nums ${group.pf === null ? "text-muted-foreground" : group.pf >= 1.5 ? "text-teal-400" : group.pf >= 1 ? "text-muted-foreground" : "text-rose-400"}`}>
+                          {group.pf !== null ? group.pf.toFixed(2) : "-"}
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
-              {note && <div className="text-[10px] text-muted-foreground mt-1">{note}</div>}
-            </div>
+            ) : (
+              <div className="text-xs text-muted-foreground py-4 text-center">データなし</div>
+            )}
           </div>
-        ))}
+        </div>
       </div>
     </main>
   );
