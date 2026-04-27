@@ -57,6 +57,7 @@ type ProbBinCell = {
   winRate: number | null;
   avg: number | null;
   total: number | null;
+  avgReturn: number | null;
 };
 
 type ProbBinGroup = {
@@ -65,6 +66,7 @@ type ProbBinGroup = {
   total: number;
   pf: number | null;
   winRate: number | null;
+  avgReturn: number | null;
   bins: ProbBinCell[];
 };
 
@@ -119,6 +121,7 @@ export default function DayTradeListPage() {
   const [probPfPriceFilter, setProbPfPriceFilter] = useState<string>("all");
   const [probPfMarginFilter, setProbPfMarginFilter] = useState<string>("");
   const [probPfLoading, setProbPfLoading] = useState(false);
+  const [probPfExpanded, setProbPfExpanded] = useState<Set<string>>(new Set());
 
   // 曜日ルール
   const [weekdayRule, setWeekdayRule] = useState<{
@@ -1125,62 +1128,98 @@ export default function DayTradeListPage() {
               </div>
             </div>
 
-            {/* テーブル */}
+            {/* 折りたたみ式テーブル */}
             {probPfLoading ? (
               <div className="text-xs text-muted-foreground py-4 text-center">読み込み中...</div>
             ) : probPfData && probPfData.results.length > 0 ? (
-              <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
-                <table className="w-full text-xs">
-                  <thead className="sticky top-0 z-10 bg-card">
-                    <tr className="border-b border-border/40">
-                      <th className="px-2 py-2 text-left text-muted-foreground font-medium whitespace-nowrap">
-                        {probPfView === "daily" ? "日付" : probPfView === "weekly" ? "週" : probPfView === "monthly" ? "月" : "曜日"}
-                      </th>
-                      <th className="px-1 py-2 text-right text-muted-foreground font-medium">N</th>
-                      {probPfData.probLabels.map((label) => (
-                        <th key={label} className="px-1 py-2 text-center text-muted-foreground font-medium whitespace-nowrap">{label}</th>
-                      ))}
-                      <th className="px-2 py-2 text-right text-muted-foreground font-medium">合計PnL</th>
-                      <th className="px-1 py-2 text-right text-muted-foreground font-medium">PF</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {probPfData.results.map((group) => (
-                      <tr key={group.key} className="border-b border-border/20 hover:bg-muted/30">
-                        <td className="px-2 py-2 font-medium text-foreground whitespace-nowrap">{group.key}</td>
-                        <td className="px-1 py-2 text-right text-muted-foreground tabular-nums">{group.count}</td>
-                        {group.bins.map((bin) => {
-                          const pf = bin.pf;
-                          const color = bin.n === 0 ? "text-muted-foreground/30"
-                            : pf === null ? "text-muted-foreground"
-                            : pf >= 3 ? "text-emerald-400 font-medium"
-                            : pf >= 1.5 ? "text-teal-400"
-                            : pf >= 1 ? "text-muted-foreground"
-                            : "text-rose-400";
-                          return (
-                            <td key={bin.label} className={`px-1 py-2 text-center tabular-nums ${color}`}>
-                              {bin.n === 0 ? <span className="text-muted-foreground/20">-</span> : (
-                                <span title={bin.winRate !== null && bin.avg !== null
-                                  ? `n=${bin.n} 勝率${bin.winRate}% avg${bin.avg >= 0 ? "+" : ""}${bin.avg.toLocaleString()}円 合計${bin.total !== null ? (bin.total >= 0 ? "+" : "") + bin.total.toLocaleString() : "-"}円`
-                                  : `n=${bin.n}`
-                                }>
-                                  {pf !== null ? pf.toFixed(2) : "-"}
-                                  <span className="text-muted-foreground/50 text-[10px] ml-0.5">({bin.n})</span>
-                                </span>
-                              )}
-                            </td>
-                          );
-                        })}
-                        <td className={`px-2 py-2 text-right tabular-nums ${group.total > 0 ? "text-emerald-400" : group.total < 0 ? "text-rose-400" : "text-muted-foreground"}`}>
+              <div className="space-y-1 max-h-[700px] overflow-y-auto">
+                {probPfData.results.map((group) => {
+                  const isOpen = probPfExpanded.has(group.key);
+                  const maxTotal = Math.max(...group.bins.filter(b => b.total !== null).map(b => Math.abs(b.total!)), 1);
+                  return (
+                    <div key={group.key} className="border border-border/30 rounded-lg overflow-hidden">
+                      <button
+                        onClick={() => {
+                          const next = new Set(probPfExpanded);
+                          if (isOpen) next.delete(group.key); else next.add(group.key);
+                          setProbPfExpanded(next);
+                        }}
+                        className="w-full flex items-center gap-3 px-3 py-2 text-xs hover:bg-muted/30 transition-colors"
+                      >
+                        <span className="text-muted-foreground/60">{isOpen ? "▼" : "▶"}</span>
+                        <span className="font-medium text-foreground min-w-[80px] text-left">{group.key}</span>
+                        <span className="text-muted-foreground">N={group.count}</span>
+                        <span className={group.winRate !== null && group.winRate >= 55 ? "text-emerald-400" : group.winRate !== null && group.winRate < 45 ? "text-rose-400" : "text-muted-foreground"}>
+                          勝率{group.winRate ?? "-"}%
+                        </span>
+                        <span className={group.pf !== null && group.pf >= 1.5 ? "text-teal-400" : group.pf !== null && group.pf < 1 ? "text-rose-400" : "text-muted-foreground"}>
+                          PF {group.pf?.toFixed(2) ?? "-"}
+                        </span>
+                        <span className={`tabular-nums ${group.total > 0 ? "text-emerald-400" : group.total < 0 ? "text-rose-400" : "text-muted-foreground"}`}>
                           ¥{group.total.toLocaleString()}
-                        </td>
-                        <td className={`px-1 py-2 text-right tabular-nums ${group.pf === null ? "text-muted-foreground" : group.pf >= 1.5 ? "text-teal-400" : group.pf >= 1 ? "text-muted-foreground" : "text-rose-400"}`}>
-                          {group.pf !== null ? group.pf.toFixed(2) : "-"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </span>
+                      </button>
+                      {isOpen && (
+                        <div className="px-3 pb-3">
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="border-b border-border/40">
+                                <th className="px-2 py-1.5 text-left text-muted-foreground font-medium">prob区間</th>
+                                <th className="px-2 py-1.5 text-right text-muted-foreground font-medium">件数</th>
+                                <th className="px-2 py-1.5 text-right text-muted-foreground font-medium">勝率</th>
+                                <th className="px-2 py-1.5 text-right text-muted-foreground font-medium">平均リターン</th>
+                                <th className="px-2 py-1.5 text-right text-muted-foreground font-medium">平均損益/100株</th>
+                                <th className="px-2 py-1.5 text-right text-muted-foreground font-medium">合計損益/100株</th>
+                                <th className="px-2 py-1.5 text-muted-foreground font-medium" style={{ minWidth: 100 }}>損益バー</th>
+                                <th className="px-2 py-1.5 text-right text-muted-foreground font-medium">PF</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {group.bins.map((bin) => {
+                                if (bin.n === 0) return (
+                                  <tr key={bin.label} className="border-b border-border/20">
+                                    <td className="px-2 py-1.5 font-medium">{bin.label}</td>
+                                    <td className="px-2 py-1.5 text-right text-muted-foreground/40">0</td>
+                                    <td colSpan={6} className="px-2 py-1.5 text-center text-muted-foreground/30">-</td>
+                                  </tr>
+                                );
+                                const wrColor = bin.winRate !== null && bin.winRate >= 55 ? "text-emerald-400" : bin.winRate !== null && bin.winRate < 45 ? "text-rose-400" : "text-muted-foreground";
+                                const avgColor = bin.avg !== null && bin.avg > 0 ? "text-emerald-400" : bin.avg !== null && bin.avg < 0 ? "text-rose-400" : "text-muted-foreground";
+                                const totalColor = bin.total !== null && bin.total > 0 ? "text-emerald-400" : bin.total !== null && bin.total < 0 ? "text-rose-400" : "text-muted-foreground";
+                                const pfColor = bin.pf !== null && bin.pf >= 1.5 ? "text-emerald-400" : bin.pf !== null && bin.pf >= 1 ? "text-muted-foreground" : "text-rose-400";
+                                const retColor = bin.avgReturn !== null && bin.avgReturn > 0 ? "text-emerald-400" : bin.avgReturn !== null && bin.avgReturn < 0 ? "text-rose-400" : "text-muted-foreground";
+                                const barWidth = bin.total !== null ? Math.min(Math.abs(bin.total) / maxTotal * 100, 100) : 0;
+                                const barColor = bin.total !== null && bin.total >= 0 ? "bg-emerald-500/60" : "bg-rose-500/60";
+                                return (
+                                  <tr key={bin.label} className="border-b border-border/20 hover:bg-muted/20">
+                                    <td className="px-2 py-1.5 font-medium">{bin.label}</td>
+                                    <td className="px-2 py-1.5 text-right tabular-nums">{bin.n}</td>
+                                    <td className={`px-2 py-1.5 text-right tabular-nums ${wrColor}`}>{bin.winRate !== null ? `${bin.winRate}%` : "-"}</td>
+                                    <td className={`px-2 py-1.5 text-right tabular-nums ${retColor}`}>{bin.avgReturn !== null ? `${bin.avgReturn >= 0 ? "+" : ""}${bin.avgReturn.toFixed(2)}%` : "-"}</td>
+                                    <td className={`px-2 py-1.5 text-right tabular-nums ${avgColor}`}>{bin.avg !== null ? `¥${bin.avg >= 0 ? "+" : ""}${bin.avg.toLocaleString()}` : "-"}</td>
+                                    <td className={`px-2 py-1.5 text-right tabular-nums ${totalColor}`}>{bin.total !== null ? `¥${bin.total >= 0 ? "+" : ""}${bin.total.toLocaleString()}` : "-"}</td>
+                                    <td className="px-2 py-1.5"><div className={`${barColor} rounded-sm`} style={{ width: `${barWidth}%`, height: 14 }} /></td>
+                                    <td className={`px-2 py-1.5 text-right tabular-nums ${pfColor}`}>{bin.pf !== null ? bin.pf.toFixed(2) : "-"}</td>
+                                  </tr>
+                                );
+                              })}
+                              <tr className="bg-muted/20 font-medium">
+                                <td className="px-2 py-1.5">合計</td>
+                                <td className="px-2 py-1.5 text-right tabular-nums">{group.count}</td>
+                                <td className={`px-2 py-1.5 text-right tabular-nums ${group.winRate !== null && group.winRate >= 55 ? "text-emerald-400" : group.winRate !== null && group.winRate < 45 ? "text-rose-400" : "text-muted-foreground"}`}>{group.winRate ?? "-"}%</td>
+                                <td className={`px-2 py-1.5 text-right tabular-nums ${group.avgReturn !== null && group.avgReturn > 0 ? "text-emerald-400" : group.avgReturn !== null && group.avgReturn < 0 ? "text-rose-400" : "text-muted-foreground"}`}>{group.avgReturn !== null ? `${group.avgReturn >= 0 ? "+" : ""}${group.avgReturn.toFixed(2)}%` : "-"}</td>
+                                <td className="px-2 py-1.5 text-right tabular-nums text-muted-foreground">-</td>
+                                <td className={`px-2 py-1.5 text-right tabular-nums ${group.total > 0 ? "text-emerald-400" : group.total < 0 ? "text-rose-400" : "text-muted-foreground"}`}>¥{group.total >= 0 ? "+" : ""}{group.total.toLocaleString()}</td>
+                                <td className="px-2 py-1.5"></td>
+                                <td className={`px-2 py-1.5 text-right tabular-nums ${group.pf !== null && group.pf >= 1.5 ? "text-emerald-400" : group.pf !== null && group.pf < 1 ? "text-rose-400" : "text-muted-foreground"}`}>{group.pf?.toFixed(2) ?? "-"}</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <div className="text-xs text-muted-foreground py-4 text-center">データなし</div>
