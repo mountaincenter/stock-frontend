@@ -1063,9 +1063,9 @@ export default function DayTradeListPage() {
           <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
           <div className="relative px-4 py-3">
             <div className="flex items-center justify-between mb-3">
-              <div className="text-xs text-muted-foreground font-medium">prob別パフォーマンス（SHORT基準 / 残0除外）</div>
+              <div className="text-sm text-muted-foreground font-medium">prob別パフォーマンス（SHORT基準 / 残0除外）</div>
               {probPfData && (
-                <div className="text-xs text-muted-foreground">
+                <div className="text-sm text-muted-foreground">
                   {probPfData.dataRange.start}～{probPfData.dataRange.end}（{probPfData.dataRange.tradingDays}日 / n={probPfData.total}）
                 </div>
               )}
@@ -1082,7 +1082,7 @@ export default function DayTradeListPage() {
                 <button
                   key={key}
                   onClick={() => { setProbPfView(key); fetchProbPf(key, probPfPriceFilter, probPfMarginFilter); }}
-                  className={`px-3 py-1 text-xs rounded-md transition-colors ${probPfView === key ? "bg-primary/20 text-primary font-medium" : "text-muted-foreground hover:bg-muted/30"}`}
+                  className={`px-3 py-1 text-sm rounded-md transition-colors ${probPfView === key ? "bg-primary/20 text-primary font-medium" : "text-muted-foreground hover:bg-muted/30"}`}
                 >
                   {label}
                 </button>
@@ -1091,7 +1091,7 @@ export default function DayTradeListPage() {
 
             {/* フィルター */}
             <div className="flex flex-wrap gap-2 mb-3">
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1 text-sm text-muted-foreground">
                 <span>価格帯:</span>
                 {[
                   { key: "all", label: "全" },
@@ -1104,13 +1104,13 @@ export default function DayTradeListPage() {
                   <button
                     key={key}
                     onClick={() => { setProbPfPriceFilter(key); fetchProbPf(probPfView, key, probPfMarginFilter); }}
-                    className={`px-2 py-0.5 rounded text-xs transition-colors ${probPfPriceFilter === key ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-muted/30"}`}
+                    className={`px-2 py-0.5 rounded text-sm transition-colors ${probPfPriceFilter === key ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-muted/30"}`}
                   >
                     {label}
                   </button>
                 ))}
               </div>
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1 text-sm text-muted-foreground">
                 <span>区分:</span>
                 {[
                   { key: "", label: "全" },
@@ -1120,7 +1120,7 @@ export default function DayTradeListPage() {
                   <button
                     key={key}
                     onClick={() => { setProbPfMarginFilter(key); fetchProbPf(probPfView, probPfPriceFilter, key); }}
-                    className={`px-2 py-0.5 rounded text-xs transition-colors ${probPfMarginFilter === key ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-muted/30"}`}
+                    className={`px-2 py-0.5 rounded text-sm transition-colors ${probPfMarginFilter === key ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-muted/30"}`}
                   >
                     {label}
                   </button>
@@ -1130,7 +1130,7 @@ export default function DayTradeListPage() {
 
             {/* 折りたたみ式テーブル */}
             {probPfLoading ? (
-              <div className="text-xs text-muted-foreground py-4 text-center">読み込み中...</div>
+              <div className="text-sm text-muted-foreground py-4 text-center">読み込み中...</div>
             ) : probPfData && probPfData.results.length > 0 ? (
               <div className="space-y-1 max-h-[700px] overflow-y-auto">
                 {probPfData.results.map((group) => {
@@ -1144,7 +1144,7 @@ export default function DayTradeListPage() {
                           if (isOpen) next.delete(group.key); else next.add(group.key);
                           setProbPfExpanded(next);
                         }}
-                        className="w-full flex items-center gap-3 px-3 py-2 text-xs hover:bg-muted/30 transition-colors"
+                        className="w-full flex items-center gap-3 px-3 py-2 text-sm hover:bg-muted/30 transition-colors"
                       >
                         <span className="text-muted-foreground/60">{isOpen ? "▼" : "▶"}</span>
                         <span className="font-medium text-foreground min-w-[80px] text-left">{group.key}</span>
@@ -1161,7 +1161,7 @@ export default function DayTradeListPage() {
                       </button>
                       {isOpen && (
                         <div className="px-3 pb-3">
-                          <table className="w-full text-xs">
+                          <table className="w-full text-sm">
                             <thead>
                               <tr className="border-b border-border/40">
                                 <th className="px-2 py-1.5 text-left text-muted-foreground font-medium">prob区間</th>
@@ -1222,7 +1222,7 @@ export default function DayTradeListPage() {
                 })}
               </div>
             ) : (
-              <div className="text-xs text-muted-foreground py-4 text-center">データなし</div>
+              <div className="text-sm text-muted-foreground py-4 text-center">データなし</div>
             )}
           </div>
         </div>
