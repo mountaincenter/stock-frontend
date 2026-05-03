@@ -5,13 +5,13 @@ import { DevNavLinks } from '../../../components/dev';
 import { RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
 
 // === Types ===
-interface UpcomingEvent { date: string; flags: string[]; qe_remain: number | null; }
+interface UpcomingEvent { date: string; flags: string[]; }
 interface EtfLatest { date: string; close: number; prev_close: number | null; change: number | null; change_pct: number | null; }
 interface Trade { entry_date: string; exit_date: string; month: number; year: number; ret_pct: number; entry_price: number | null; exit_price: number | null; pnl_100: number | null; }
 interface YearSummary { year: number; n: number; wins: number; wr: number; total_ret: number; pnl_100: number | null; pf: number | null; max_dd: number; }
 interface Stats { total: number; wins: number; losses: number; wr: number; avg: number; median: number; max: number; min: number; pf: number; total_ret: number; pnl_100: number; }
 interface CalendarResponse {
-  today: { sq_day?: boolean; sq4_entry?: boolean; sq3_exit?: boolean; qe_remain?: number | null; qe_1306_buy?: boolean; qe_1306_sell?: boolean; };
+  today: { flags: string[] };
   upcoming: UpcomingEvent[];
   etf_latest: EtfLatest;
   etf1306: { stats: Stats; year_summary: YearSummary[]; trades: Trade[]; };
@@ -40,8 +40,10 @@ const pnlColor = (v: number | null | undefined) => {
 
 const flagStyle = (flag: string) =>
   flag.includes('買い') ? 'bg-emerald-500/20 text-emerald-400' :
-  flag.includes('売り') ? 'bg-rose-500/20 text-rose-400' :
+  flag.includes('決済') ? 'bg-amber-500/20 text-amber-400' :
   'bg-white/5 text-muted-foreground';
+
+const isQFlag = (flag: string) => /^\dQ/.test(flag);
 
 export default function CalendarPage() {
   const [data, setData] = useState<CalendarResponse | null>(null);
@@ -96,7 +98,33 @@ export default function CalendarPage() {
 
   const { today, upcoming, etf_latest, etf1306 } = data;
   const { stats, year_summary, trades } = etf1306;
-  const hasActiveFlag = today.sq4_entry || today.sq3_exit || today.qe_1306_buy || today.qe_1306_sell || today.sq_day;
+
+  // Upcoming の Q イベントに過去パフォーマンスを紐付け
+  const tradesByQMonth: Record<number, Trade[]> = {};
+  for (const t of trades) {
+    if (!tradesByQMonth[t.month]) tradesByQMonth[t.month] = [];
+    tradesByQMonth[t.month].push(t);
+  }
+
+  const upcomingWithPerf = upcoming.slice(0, 15).map(ev => {
+    const hasQ = ev.flags.some(isQFlag);
+    if (!hasQ) return { ...ev, q_avg_ret: null, prev_year_ret: null, prev_year_pnl: null };
+
+    const evMonth = parseInt(ev.date.slice(5, 7), 10);
+    const evYear = parseInt(ev.date.slice(0, 4), 10);
+    // 四半期末月を特定（3,6,9,12）
+    const qMonth = Math.ceil(evMonth / 3) * 3;
+    const qTrades = tradesByQMonth[qMonth] || [];
+    const allRets = qTrades.map(t => t.ret_pct);
+    const avgRet = allRets.length > 0 ? allRets.reduce((a, b) => a + b, 0) / allRets.length : null;
+    const prevYearTrade = qTrades.find(t => t.year === evYear - 1);
+    return {
+      ...ev,
+      q_avg_ret: avgRet,
+      prev_year_ret: prevYearTrade?.ret_pct ?? null,
+      prev_year_pnl: prevYearTrade?.pnl_100 ?? null,
+    };
+  });
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-4 space-y-4">
@@ -112,26 +140,23 @@ export default function CalendarPage() {
       <h1 className="text-xl font-bold">Calendar Trades</h1>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Today */}
-        <div className="rounded-xl border border-border bg-card px-4 py-3">
+        <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
           <p className="text-sm text-muted-foreground mb-1">Today</p>
-          {hasActiveFlag ? (
+          {today.flags.length > 0 ? (
             <div className="space-y-1">
-              {today.sq4_entry && <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-primary/10 text-primary">SQ-4 買い</span>}
-              {today.sq3_exit && <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-amber-500/20 text-amber-400">SQ-3 売り</span>}
-              {today.sq_day && <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-white/5 text-muted-foreground">SQ日</span>}
-              {today.qe_1306_buy && <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/20 text-emerald-400">1306 買い</span>}
-              {today.qe_1306_sell && <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-rose-500/20 text-rose-400">1306 売り</span>}
-              {today.qe_remain != null && <p className="text-sm text-muted-foreground">四半期末 残{today.qe_remain}日</p>}
+              {today.flags.map((f, i) => (
+                <span key={i} className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${flagStyle(f)}`}>{f}</span>
+              ))}
             </div>
           ) : (
-            <p className="text-xl sm:text-2xl font-bold text-muted-foreground tabular-nums">—</p>
+            <p className="text-xl sm:text-2xl font-bold text-muted-foreground/40 tabular-nums">No Event</p>
           )}
         </div>
 
         {/* 1306 Price */}
-        <div className="rounded-xl border border-border bg-card px-4 py-3">
+        <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
           <p className="text-sm text-muted-foreground mb-1">1306.T ({etf_latest.date?.slice(5) ?? ''})</p>
           {etf_latest.close ? (
             <>
@@ -146,51 +171,64 @@ export default function CalendarPage() {
         </div>
 
         {/* PF / WR */}
-        <div className="rounded-xl border border-border bg-card px-4 py-3">
+        <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
           <p className="text-sm text-muted-foreground mb-1">PF / WR</p>
           <p className="text-xl sm:text-2xl font-bold tabular-nums">{stats.pf?.toFixed(2) ?? '—'}</p>
           <p className="text-sm text-muted-foreground tabular-nums">{stats.wr}% ({stats.wins}W {stats.losses}L / {stats.total})</p>
         </div>
 
         {/* Cumulative PnL */}
-        <div className="rounded-xl border border-border bg-card px-4 py-3">
+        <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
           <p className="text-sm text-muted-foreground mb-1">累計 PnL(100株)</p>
           <p className={`text-xl sm:text-2xl font-bold tabular-nums ${pnlColor(stats.pnl_100)}`}>{fmtPnl(stats.pnl_100)}円</p>
           <p className={`text-sm tabular-nums ${pnlColor(stats.total_ret)}`}>{fmtPct(stats.total_ret)}</p>
         </div>
       </div>
 
-      {/* Upcoming Events — テーブル形式 */}
+      {/* Upcoming Events */}
       {upcoming.length > 0 && (
         <div className="rounded-xl border border-border bg-card">
           <div className="px-4 py-2 border-b border-border/30">
             <p className="text-lg font-semibold">Upcoming</p>
           </div>
-          <table className="w-full">
-            <thead>
-              <tr className="text-xs text-muted-foreground border-b border-border/30">
-                <th className="px-4 py-1.5 text-left w-24">日付</th>
-                <th className="px-4 py-1.5 text-left w-10">曜日</th>
-                <th className="px-4 py-1.5 text-left">イベント</th>
-              </tr>
-            </thead>
-            <tbody>
-              {upcoming.slice(0, 12).map((ev, i) => (
-                <tr key={i} className="border-b border-border/10 hover:bg-muted/50 transition-colors h-9">
-                  <td className="px-4 py-1.5 text-sm tabular-nums">{ev.date.slice(5)}</td>
-                  <td className="px-4 py-1.5 text-sm text-muted-foreground">{getWeekday(ev.date)}</td>
-                  <td className="px-4 py-1.5">
-                    <div className="flex items-center gap-1.5">
-                      {ev.flags.map((f, fi) => (
-                        <span key={fi} className={`inline-flex px-1.5 py-0.5 rounded text-[10px] md:text-[11px] font-medium ${flagStyle(f)}`}>{f}</span>
-                      ))}
-                      {ev.qe_remain != null && <span className="text-[10px] md:text-[11px] text-muted-foreground">残{ev.qe_remain}日</span>}
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="text-xs text-muted-foreground border-b border-border/30">
+                  <th className="px-4 py-1.5 text-left w-20">日付</th>
+                  <th className="px-4 py-1.5 text-left w-10">曜日</th>
+                  <th className="px-4 py-1.5 text-left">イベント</th>
+                  <th className="px-4 py-1.5 text-right">Q平均(%)</th>
+                  <th className="px-4 py-1.5 text-right">前年同Q(%)</th>
+                  <th className="px-4 py-1.5 text-right">前年同Q(100株)</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {upcomingWithPerf.map((ev, i) => (
+                  <tr key={i} className="border-b border-border/10 hover:bg-muted/50 transition-colors h-9 md:h-12">
+                    <td className="px-4 py-1.5 text-sm md:text-base tabular-nums">{ev.date.slice(5)}</td>
+                    <td className="px-4 py-1.5 text-sm md:text-base text-muted-foreground">{getWeekday(ev.date)}</td>
+                    <td className="px-4 py-1.5">
+                      <div className="flex items-center gap-1.5">
+                        {ev.flags.map((f, fi) => (
+                          <span key={fi} className={`inline-flex px-2 py-0.5 rounded text-xs md:text-sm font-medium ${flagStyle(f)}`}>{f}</span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className={`px-4 py-1.5 text-sm md:text-base text-right tabular-nums ${pnlColor(ev.q_avg_ret)}`}>
+                      {ev.q_avg_ret != null ? fmtPct(ev.q_avg_ret) : '—'}
+                    </td>
+                    <td className={`px-4 py-1.5 text-sm md:text-base text-right tabular-nums ${pnlColor(ev.prev_year_ret)}`}>
+                      {ev.prev_year_ret != null ? fmtPct(ev.prev_year_ret) : '—'}
+                    </td>
+                    <td className={`px-4 py-1.5 text-sm md:text-base text-right tabular-nums ${pnlColor(ev.prev_year_pnl)}`}>
+                      {ev.prev_year_pnl != null ? fmtPnl(ev.prev_year_pnl) : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -236,12 +274,13 @@ export default function CalendarPage() {
                 if (isExpanded) {
                   rows.push(
                     <tr key={`h-${ys.year}`} className="border-b border-border/20 bg-muted/10">
-                      <td className="px-4 py-1 pl-8 text-[10px] md:text-[11px] text-muted-foreground">エントリー日</td>
-                      <td className="px-4 py-1 text-[10px] md:text-[11px] text-muted-foreground text-left" colSpan={2}>イグジット日</td>
-                      <td className="px-4 py-1 text-[10px] md:text-[11px] text-muted-foreground text-right">Entry → Exit</td>
+                      <td className="px-4 py-1 pl-8 text-[10px] md:text-[11px] text-muted-foreground">Entry日</td>
+                      <td className="px-4 py-1 text-[10px] md:text-[11px] text-muted-foreground text-left" colSpan={2}>Exit日</td>
+                      <td className="px-4 py-1 text-[10px] md:text-[11px] text-muted-foreground text-right">Entry</td>
+                      <td className="px-4 py-1 text-[10px] md:text-[11px] text-muted-foreground text-right">Exit</td>
                       <td className="px-4 py-1 text-[10px] md:text-[11px] text-muted-foreground text-right">PnL(100株)</td>
                       <td className="px-4 py-1 text-[10px] md:text-[11px] text-muted-foreground text-right">PnL(%)</td>
-                      <td colSpan={2}></td>
+                      <td></td>
                     </tr>
                   );
                   yearTrades.forEach(t => {
@@ -249,10 +288,11 @@ export default function CalendarPage() {
                       <tr key={`t-${t.entry_date}`} className="border-b border-border/10 hover:bg-muted/30 transition-colors h-9">
                         <td className="px-4 py-1.5 pl-8 text-xs md:text-sm tabular-nums">{t.entry_date} ({getWeekday(t.entry_date)})</td>
                         <td className="px-4 py-1.5 text-xs md:text-sm tabular-nums text-muted-foreground text-left" colSpan={2}>{t.exit_date} ({getWeekday(t.exit_date)})</td>
-                        <td className="px-4 py-1.5 text-xs md:text-sm text-right tabular-nums">{fmtPrice(t.entry_price)} → {fmtPrice(t.exit_price)}</td>
+                        <td className="px-4 py-1.5 text-xs md:text-sm text-right tabular-nums">{fmtPrice(t.entry_price)}</td>
+                        <td className="px-4 py-1.5 text-xs md:text-sm text-right tabular-nums">{fmtPrice(t.exit_price)}</td>
                         <td className={`px-4 py-1.5 text-xs md:text-sm text-right tabular-nums font-medium ${pnlColor(t.pnl_100)}`}>{fmtPnl(t.pnl_100)}</td>
                         <td className={`px-4 py-1.5 text-xs md:text-sm text-right tabular-nums ${pnlColor(t.ret_pct)}`}>{fmtPct(t.ret_pct)}</td>
-                        <td colSpan={2}></td>
+                        <td></td>
                       </tr>
                     );
                   });
