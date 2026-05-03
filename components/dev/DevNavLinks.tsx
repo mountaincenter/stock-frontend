@@ -29,6 +29,7 @@ const NAV_GROUPS: NavItem[][] = [
     { href: "/dev/granville", label: "Granville" },
     { href: "/dev/reversal", label: "Reversal" },
     { href: "/dev/pairs", label: "Pairs" },
+    { href: "/dev/calendar", label: "Calendar" },
     { href: "/dev/dashboard", label: "Trading" },
     { href: "/dev/strategy/granville", label: "Strategy" },
   ],
