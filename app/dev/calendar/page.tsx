@@ -106,25 +106,23 @@ export default function CalendarPage() {
     tradesByQMonth[t.month].push(t);
   }
 
-  const upcomingWithPerf = upcoming.slice(0, 15).map(ev => {
-    const hasQ = ev.flags.some(isQFlag);
-    if (!hasQ) return { ...ev, q_avg_ret: null, prev_year_ret: null, prev_year_pnl: null };
-
-    const evMonth = parseInt(ev.date.slice(5, 7), 10);
-    const evYear = parseInt(ev.date.slice(0, 4), 10);
-    // 四半期末月を特定（3,6,9,12）
-    const qMonth = Math.ceil(evMonth / 3) * 3;
-    const qTrades = tradesByQMonth[qMonth] || [];
-    const allRets = qTrades.map(t => t.ret_pct);
-    const avgRet = allRets.length > 0 ? allRets.reduce((a, b) => a + b, 0) / allRets.length : null;
-    const prevYearTrade = qTrades.find(t => t.year === evYear - 1);
-    return {
-      ...ev,
-      q_avg_ret: avgRet,
-      prev_year_ret: prevYearTrade?.ret_pct ?? null,
-      prev_year_pnl: prevYearTrade?.pnl_100 ?? null,
-    };
-  });
+  const upcomingEtf = upcoming
+    .filter(ev => ev.flags.some(isQFlag))
+    .map(ev => {
+      const evMonth = parseInt(ev.date.slice(5, 7), 10);
+      const evYear = parseInt(ev.date.slice(0, 4), 10);
+      const qMonth = Math.ceil(evMonth / 3) * 3;
+      const qTrades = tradesByQMonth[qMonth] || [];
+      const allRets = qTrades.map(t => t.ret_pct);
+      const avgRet = allRets.length > 0 ? allRets.reduce((a, b) => a + b, 0) / allRets.length : null;
+      const prevYearTrade = qTrades.find(t => t.year === evYear - 1);
+      return {
+        ...ev,
+        q_avg_ret: avgRet,
+        prev_year_ret: prevYearTrade?.ret_pct ?? null,
+        prev_year_pnl: prevYearTrade?.pnl_100 ?? null,
+      };
+    });
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-4 space-y-4">
@@ -185,8 +183,8 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* Upcoming Events */}
-      {upcoming.length > 0 && (
+      {/* Upcoming Events (ETFのみ、SQは別実装) */}
+      {upcomingEtf.length > 0 && (
         <div className="rounded-xl border border-border bg-card">
           <div className="px-4 py-2 border-b border-border/30">
             <p className="text-lg font-semibold">Upcoming</p>
@@ -204,7 +202,7 @@ export default function CalendarPage() {
                 </tr>
               </thead>
               <tbody>
-                {upcomingWithPerf.map((ev, i) => (
+                {upcomingEtf.map((ev, i) => (
                   <tr key={i} className="border-b border-border/10 hover:bg-muted/50 transition-colors h-9 md:h-12">
                     <td className="px-4 py-1.5 text-sm md:text-base tabular-nums">{ev.date.slice(5)}</td>
                     <td className="px-4 py-1.5 text-sm md:text-base text-muted-foreground">{getWeekday(ev.date)}</td>
