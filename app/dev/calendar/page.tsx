@@ -10,11 +10,16 @@ interface EtfLatest { date: string; close: number; prev_close: number | null; ch
 interface Trade { entry_date: string; exit_date: string; month: number; year: number; ret_pct: number; entry_price: number | null; exit_price: number | null; pnl_1000: number | null; }
 interface YearSummary { year: number; n: number; wins: number; wr: number; total_ret: number; pnl_1000: number | null; pf: number | null; max_dd: number; }
 interface Stats { total: number; wins: number; losses: number; wr: number; avg: number; median: number; max: number; min: number; pf: number; total_ret: number; pnl_1000: number; }
+interface Sq4Stats { total: number; wins: number; losses: number; wr: number; avg_ret: number; pf: number | null; total_ret: number; total_pnl_100: number; }
+interface Sq4Pick { code: string; prev_close: number; entry_price: number; exit_price: number; gap_pct: number; ret_pct: number; pnl_100: number; entry_date?: string; exit_date?: string; }
+interface Sq4Monthly { month: string; entry_date: string; exit_date: string; n_picks: number; total_ret: number; total_pnl_100: number; picks: Sq4Pick[]; }
+interface Sq4Data { stats: Sq4Stats; stats_by_price: Record<string, Sq4Stats>; next_sq4: { entry_date: string; exit_date: string | null } | null; candidates: { as_of: string; count: number; price_5000_plus: number; price_under_5000: number }; monthly: Sq4Monthly[]; }
 interface CalendarResponse {
   today: { flags: string[] };
   upcoming: UpcomingEvent[];
   etf_latest: EtfLatest;
   etf1306: { stats: Stats; year_summary: YearSummary[]; trades: Trade[]; };
+  sq4: Sq4Data;
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
@@ -50,6 +55,7 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [expandedYears, setExpandedYears] = useState<Set<number>>(new Set());
+  const [expandedSq4Months, setExpandedSq4Months] = useState<Set<string>>(new Set());
 
   const fetchData = async () => {
     try {
@@ -78,6 +84,14 @@ export default function CalendarPage() {
     });
   };
 
+  const toggleSq4Month = (month: string) => {
+    setExpandedSq4Months(prev => {
+      const next = new Set(prev);
+      if (next.has(month)) next.delete(month); else next.add(month);
+      return next;
+    });
+  };
+
   if (loading) return (
     <div className="max-w-7xl mx-auto px-4 py-4">
       <DevNavLinks />
@@ -96,7 +110,7 @@ export default function CalendarPage() {
     </div>
   );
 
-  const { today, upcoming, etf_latest, etf1306 } = data;
+  const { today, upcoming, etf_latest, etf1306, sq4 } = data;
   const { stats, year_summary, trades } = etf1306;
 
   // Upcoming の Q イベントに過去パフォーマンスを紐付け
@@ -228,6 +242,103 @@ export default function CalendarPage() {
             </table>
           </div>
         </div>
+      )}
+
+      {/* SQ-4 Section */}
+      {sq4 && (
+        <>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
+              <p className="text-sm text-muted-foreground mb-1">SQ-4 Next</p>
+              {sq4.next_sq4 ? (
+                <>
+                  <p className="text-xl font-bold tabular-nums">{sq4.next_sq4.entry_date.slice(5)}</p>
+                  <p className="text-xs text-muted-foreground">→ {sq4.next_sq4.exit_date?.slice(5) ?? '?'} 決済</p>
+                </>
+              ) : <p className="text-xl font-bold text-muted-foreground/40">—</p>}
+            </div>
+            <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
+              <p className="text-sm text-muted-foreground mb-1">SQ-4 PF</p>
+              <p className="text-xl font-bold tabular-nums">{sq4.stats.pf?.toFixed(2) ?? '—'}</p>
+              <p className="text-sm text-muted-foreground tabular-nums">{sq4.stats.wr}% ({sq4.stats.wins}W / {sq4.stats.total})</p>
+            </div>
+            <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
+              <p className="text-sm text-muted-foreground mb-1">SQ-4 5000円+</p>
+              <p className="text-xl font-bold tabular-nums">{sq4.stats_by_price?.['5000_10000']?.pf?.toFixed(2) ?? '—'}</p>
+              <p className="text-sm text-muted-foreground tabular-nums">N={sq4.stats_by_price?.['5000_10000']?.total ?? 0}</p>
+            </div>
+            <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
+              <p className="text-sm text-muted-foreground mb-1">候補銘柄</p>
+              <p className="text-xl font-bold tabular-nums">{sq4.candidates.count}</p>
+              <p className="text-sm text-muted-foreground tabular-nums">≥5000: {sq4.candidates.price_5000_plus}</p>
+            </div>
+          </div>
+
+          {/* SQ-4 Monthly Results */}
+          <div className="rounded-xl border border-border bg-card">
+            <div className="px-4 py-2 border-b border-border/30">
+              <p className="text-lg font-semibold">SQ-4 Gap-down Top10 — 月次結果</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="text-xs text-muted-foreground border-b border-border/30">
+                    <th className="px-4 py-2 text-left">月</th>
+                    <th className="px-4 py-2 text-left">Entry → Exit</th>
+                    <th className="px-4 py-2 text-right">N</th>
+                    <th className="px-4 py-2 text-right">Total Ret</th>
+                    <th className="px-4 py-2 text-right">PnL(100株)</th>
+                    <th className="px-4 py-2 w-8"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sq4.monthly.slice().reverse().flatMap(m => {
+                    const isExpanded = expandedSq4Months.has(m.month);
+                    const rows = [
+                      <tr key={`sq4-${m.month}`}
+                          className="border-b border-border/20 hover:bg-muted/50 transition-colors cursor-pointer h-9 md:h-12"
+                          onClick={() => toggleSq4Month(m.month)}>
+                        <td className="px-4 py-1.5 text-sm md:text-base font-medium">{m.month}</td>
+                        <td className="px-4 py-1.5 text-sm md:text-base tabular-nums text-muted-foreground">{m.entry_date.slice(5)} → {m.exit_date.slice(5)}</td>
+                        <td className="px-4 py-1.5 text-sm md:text-base text-right tabular-nums">{m.n_picks}</td>
+                        <td className={`px-4 py-1.5 text-sm md:text-base text-right tabular-nums font-medium ${pnlColor(m.total_ret)}`}>{m.total_ret > 0 ? '+' : ''}{m.total_ret.toFixed(2)}%</td>
+                        <td className={`px-4 py-1.5 text-sm md:text-base text-right tabular-nums ${pnlColor(m.total_pnl_100)}`}>{fmtPnl(m.total_pnl_100)}</td>
+                        <td className="px-4 py-1.5 text-muted-foreground">
+                          {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                        </td>
+                      </tr>,
+                    ];
+                    if (isExpanded) {
+                      rows.push(
+                        <tr key={`sq4h-${m.month}`} className="border-b border-border/20 bg-muted/10">
+                          <td className="px-4 py-1 pl-8 text-[10px] text-muted-foreground">Code</td>
+                          <td className="px-4 py-1 text-[10px] text-muted-foreground">Gap</td>
+                          <td className="px-4 py-1 text-[10px] text-muted-foreground text-right">Entry</td>
+                          <td className="px-4 py-1 text-[10px] text-muted-foreground text-right">Exit</td>
+                          <td className="px-4 py-1 text-[10px] text-muted-foreground text-right">Ret</td>
+                          <td></td>
+                        </tr>
+                      );
+                      m.picks.forEach((p, pi) => {
+                        rows.push(
+                          <tr key={`sq4p-${m.month}-${pi}`} className="border-b border-border/10 hover:bg-muted/30 transition-colors h-8">
+                            <td className="px-4 py-1 pl-8 text-xs tabular-nums font-mono">{p.code}</td>
+                            <td className="px-4 py-1 text-xs tabular-nums text-muted-foreground">{p.gap_pct.toFixed(2)}%</td>
+                            <td className="px-4 py-1 text-xs text-right tabular-nums">{p.entry_price.toFixed(1)}</td>
+                            <td className="px-4 py-1 text-xs text-right tabular-nums">{p.exit_price.toFixed(1)}</td>
+                            <td className={`px-4 py-1 text-xs text-right tabular-nums font-medium ${pnlColor(p.ret_pct)}`}>{p.ret_pct > 0 ? '+' : ''}{p.ret_pct.toFixed(2)}%</td>
+                            <td></td>
+                          </tr>
+                        );
+                      });
+                    }
+                    return rows;
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
 
       {/* Year Summary + Trade Detail */}
