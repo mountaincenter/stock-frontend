@@ -7,9 +7,9 @@ import { RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
 // === Types ===
 interface UpcomingEvent { date: string; flags: string[]; }
 interface EtfLatest { date: string; close: number; prev_close: number | null; change: number | null; change_pct: number | null; }
-interface Trade { entry_date: string; exit_date: string; month: number; year: number; ret_pct: number; entry_price: number | null; exit_price: number | null; pnl_100: number | null; }
-interface YearSummary { year: number; n: number; wins: number; wr: number; total_ret: number; pnl_100: number | null; pf: number | null; max_dd: number; }
-interface Stats { total: number; wins: number; losses: number; wr: number; avg: number; median: number; max: number; min: number; pf: number; total_ret: number; pnl_100: number; }
+interface Trade { entry_date: string; exit_date: string; month: number; year: number; ret_pct: number; entry_price: number | null; exit_price: number | null; pnl_1000: number | null; }
+interface YearSummary { year: number; n: number; wins: number; wr: number; total_ret: number; pnl_1000: number | null; pf: number | null; max_dd: number; }
+interface Stats { total: number; wins: number; losses: number; wr: number; avg: number; median: number; max: number; min: number; pf: number; total_ret: number; pnl_1000: number; }
 interface CalendarResponse {
   today: { flags: string[] };
   upcoming: UpcomingEvent[];
@@ -120,7 +120,7 @@ export default function CalendarPage() {
         ...ev,
         q_avg_ret: avgRet,
         prev_year_ret: prevYearTrade?.ret_pct ?? null,
-        prev_year_pnl: prevYearTrade?.pnl_100 ?? null,
+        prev_year_pnl: prevYearTrade?.pnl_1000 ?? null,
       };
     });
 
@@ -177,8 +177,8 @@ export default function CalendarPage() {
 
         {/* Cumulative PnL */}
         <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
-          <p className="text-sm text-muted-foreground mb-1">累計 PnL(100株)</p>
-          <p className={`text-xl sm:text-2xl font-bold tabular-nums ${pnlColor(stats.pnl_100)}`}>{fmtPnl(stats.pnl_100)}円</p>
+          <p className="text-sm text-muted-foreground mb-1">累計 PnL(1000株)</p>
+          <p className={`text-xl sm:text-2xl font-bold tabular-nums ${pnlColor(stats.pnl_1000)}`}>{fmtPnl(stats.pnl_1000)}円</p>
           <p className={`text-sm tabular-nums ${pnlColor(stats.total_ret)}`}>{fmtPct(stats.total_ret)}</p>
         </div>
       </div>
@@ -198,7 +198,7 @@ export default function CalendarPage() {
                   <th className="px-4 py-1.5 text-left">イベント</th>
                   <th className="px-4 py-1.5 text-right">Q平均(%)</th>
                   <th className="px-4 py-1.5 text-right">前年同Q(%)</th>
-                  <th className="px-4 py-1.5 text-right">前年同Q(100株)</th>
+                  <th className="px-4 py-1.5 text-right">前年同Q(1000株)</th>
                 </tr>
               </thead>
               <tbody>
@@ -242,7 +242,7 @@ export default function CalendarPage() {
                 <th className="px-4 py-2 text-left">年</th>
                 <th className="px-4 py-2 text-right">Trades</th>
                 <th className="px-4 py-2 text-right">WR</th>
-                <th className="px-4 py-2 text-right">PnL(100株)</th>
+                <th className="px-4 py-2 text-right">PnL(1000株)</th>
                 <th className="px-4 py-2 text-right">PnL(%)</th>
                 <th className="px-4 py-2 text-right">PF</th>
                 <th className="px-4 py-2 text-right">MaxDD</th>
@@ -260,7 +260,7 @@ export default function CalendarPage() {
                     <td className="px-4 py-2 text-sm md:text-base font-medium">{ys.year}</td>
                     <td className="px-4 py-2 text-sm md:text-base text-right tabular-nums">{ys.n}</td>
                     <td className="px-4 py-2 text-sm md:text-base text-right tabular-nums">{ys.wr.toFixed(1)}%</td>
-                    <td className={`px-4 py-2 text-sm md:text-base text-right tabular-nums font-medium ${pnlColor(ys.pnl_100)}`}>{fmtPnl(ys.pnl_100)}</td>
+                    <td className={`px-4 py-2 text-sm md:text-base text-right tabular-nums font-medium ${pnlColor(ys.pnl_1000)}`}>{fmtPnl(ys.pnl_1000)}</td>
                     <td className={`px-4 py-2 text-sm md:text-base text-right tabular-nums ${pnlColor(ys.total_ret)}`}>{fmtPct(ys.total_ret)}</td>
                     <td className="px-4 py-2 text-sm md:text-base text-right tabular-nums">{ys.pf ?? '—'}</td>
                     <td className={`px-4 py-2 text-sm md:text-base text-right tabular-nums ${ys.max_dd < 0 ? 'text-price-down' : ''}`}>{ys.max_dd < 0 ? ys.max_dd.toFixed(3) + '%' : '—'}</td>
@@ -276,7 +276,7 @@ export default function CalendarPage() {
                       <td className="px-4 py-1 text-[10px] md:text-[11px] text-muted-foreground text-left" colSpan={2}>Exit日</td>
                       <td className="px-4 py-1 text-[10px] md:text-[11px] text-muted-foreground text-right">Entry</td>
                       <td className="px-4 py-1 text-[10px] md:text-[11px] text-muted-foreground text-right">Exit</td>
-                      <td className="px-4 py-1 text-[10px] md:text-[11px] text-muted-foreground text-right">PnL(100株)</td>
+                      <td className="px-4 py-1 text-[10px] md:text-[11px] text-muted-foreground text-right">PnL(1000株)</td>
                       <td className="px-4 py-1 text-[10px] md:text-[11px] text-muted-foreground text-right">PnL(%)</td>
                       <td></td>
                     </tr>
@@ -288,7 +288,7 @@ export default function CalendarPage() {
                         <td className="px-4 py-1.5 text-xs md:text-sm tabular-nums text-muted-foreground text-left" colSpan={2}>{t.exit_date} ({getWeekday(t.exit_date)})</td>
                         <td className="px-4 py-1.5 text-xs md:text-sm text-right tabular-nums">{fmtPrice(t.entry_price)}</td>
                         <td className="px-4 py-1.5 text-xs md:text-sm text-right tabular-nums">{fmtPrice(t.exit_price)}</td>
-                        <td className={`px-4 py-1.5 text-xs md:text-sm text-right tabular-nums font-medium ${pnlColor(t.pnl_100)}`}>{fmtPnl(t.pnl_100)}</td>
+                        <td className={`px-4 py-1.5 text-xs md:text-sm text-right tabular-nums font-medium ${pnlColor(t.pnl_1000)}`}>{fmtPnl(t.pnl_1000)}</td>
                         <td className={`px-4 py-1.5 text-xs md:text-sm text-right tabular-nums ${pnlColor(t.ret_pct)}`}>{fmtPct(t.ret_pct)}</td>
                         <td></td>
                       </tr>
