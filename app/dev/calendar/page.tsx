@@ -12,8 +12,8 @@ interface YearSummary { year: number; n: number; wins: number; wr: number; total
 interface Stats { total: number; wins: number; losses: number; wr: number; avg: number; median: number; max: number; min: number; pf: number; total_ret: number; pnl_1000: number; }
 interface Sq4Stats { total: number; wins: number; losses: number; wr: number; avg_ret: number; pf: number | null; total_ret: number; total_pnl_100: number; }
 interface Sq4Pick { code: string; name: string; prev_close: number; entry_price: number; exit_price: number; gap_pct: number; ret_pct: number; pnl_100: number; entry_date?: string; exit_date?: string; }
-interface Sq4Monthly { month: string; entry_date: string; exit_date: string; n_picks: number; total_ret: number; total_pnl_100: number; picks: Sq4Pick[]; }
-interface Sq4Data { stats: Sq4Stats; stats_by_price: Record<string, Sq4Stats>; next_sq4: { entry_date: string; exit_date: string | null } | null; candidates: { as_of: string; count: number; price_5000_plus: number; price_under_5000: number }; monthly: Sq4Monthly[]; }
+interface Sq4Monthly { month: string; entry_date: string; exit_date: string; n_picks: number; total_ret: number; total_pnl_100: number; cme_change: number | null; cme_ret: number | null; picks: Sq4Pick[]; }
+interface Sq4Data { stats: Sq4Stats; stats_by_price: Record<string, Sq4Stats>; stats_cme_down: Sq4Stats; stats_cme_up: Sq4Stats; next_sq4: { entry_date: string; exit_date: string | null } | null; candidates: { as_of: string; count: number; price_5000_plus: number; price_under_5000: number }; monthly: Sq4Monthly[]; }
 interface CalendarResponse {
   today: { flags: string[] };
   upcoming: UpcomingEvent[];
@@ -265,25 +265,25 @@ export default function CalendarPage() {
               <p className="text-sm text-muted-foreground mb-1">SQ-4 Next</p>
               {sq4.next_sq4 ? (
                 <>
-                  <p className="text-xl font-bold tabular-nums">{sq4.next_sq4.entry_date.slice(5)}</p>
-                  <p className="text-xs text-muted-foreground">→ {sq4.next_sq4.exit_date?.slice(5) ?? '?'} 決済</p>
+                  <p className="text-xl font-bold tabular-nums">{fmtDateWd(sq4.next_sq4.entry_date)}</p>
+                  <p className="text-xs text-muted-foreground">→ {sq4.next_sq4.exit_date ? fmtDateWd(sq4.next_sq4.exit_date) : '?'} 決済</p>
                 </>
               ) : <p className="text-xl font-bold text-muted-foreground/40">—</p>}
             </div>
             <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
-              <p className="text-sm text-muted-foreground mb-1">SQ-4 PF</p>
-              <p className="text-xl font-bold tabular-nums">{sq4.stats.pf?.toFixed(2) ?? '—'}</p>
-              <p className="text-sm text-muted-foreground tabular-nums">{sq4.stats.wr}% ({sq4.stats.wins}W / {sq4.stats.total})</p>
+              <p className="text-sm text-muted-foreground mb-1">全体 PnL(100株)</p>
+              <p className={`text-xl font-bold tabular-nums ${pnlColor(sq4.stats.total_pnl_100)}`}>{fmtPnl(sq4.stats.total_pnl_100)}</p>
+              <p className="text-sm text-muted-foreground tabular-nums">PF {sq4.stats.pf?.toFixed(2) ?? '—'} / N={sq4.stats.total}</p>
             </div>
             <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
-              <p className="text-sm text-muted-foreground mb-1">SQ-4 5000円+</p>
-              <p className="text-xl font-bold tabular-nums">{sq4.stats_by_price?.['5000_10000']?.pf?.toFixed(2) ?? '—'}</p>
-              <p className="text-sm text-muted-foreground tabular-nums">N={sq4.stats_by_price?.['5000_10000']?.total ?? 0}</p>
+              <p className="text-sm text-muted-foreground mb-1">CME下落時 PnL(100株)</p>
+              <p className={`text-xl font-bold tabular-nums ${pnlColor(sq4.stats_cme_down?.total_pnl_100)}`}>{fmtPnl(sq4.stats_cme_down?.total_pnl_100)}</p>
+              <p className="text-sm text-muted-foreground tabular-nums">PF {sq4.stats_cme_down?.pf?.toFixed(2) ?? '—'} / N={sq4.stats_cme_down?.total ?? 0}</p>
             </div>
             <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
-              <p className="text-sm text-muted-foreground mb-1">候補銘柄</p>
-              <p className="text-xl font-bold tabular-nums">{sq4.candidates.count}</p>
-              <p className="text-sm text-muted-foreground tabular-nums">≥5000: {sq4.candidates.price_5000_plus}</p>
+              <p className="text-sm text-muted-foreground mb-1">CME上昇時 PnL(100株)</p>
+              <p className={`text-xl font-bold tabular-nums ${pnlColor(sq4.stats_cme_up?.total_pnl_100)}`}>{fmtPnl(sq4.stats_cme_up?.total_pnl_100)}</p>
+              <p className="text-sm text-muted-foreground tabular-nums">PF {sq4.stats_cme_up?.pf?.toFixed(2) ?? '—'} / N={sq4.stats_cme_up?.total ?? 0}</p>
             </div>
           </div>
 
@@ -296,8 +296,9 @@ export default function CalendarPage() {
               <table className="w-full">
                 <thead>
                   <tr className="text-xs text-muted-foreground border-b border-border/30">
-                    <th className="px-4 py-2 text-left" colSpan={2}>月</th>
+                    <th className="px-4 py-2 text-left">月</th>
                     <th className="px-4 py-2 text-left" colSpan={2}>Entry → Exit</th>
+                    <th className="px-4 py-2 text-right">CME(土曜朝)</th>
                     <th className="px-4 py-2 text-right">N</th>
                     <th className="px-4 py-2 text-right">PnL(100株)</th>
                     <th className="px-4 py-2 text-right">PnL(%)</th>
@@ -310,8 +311,9 @@ export default function CalendarPage() {
                       <tr key={`sq4-${m.month}`}
                           className="border-b border-border/20 hover:bg-muted/50 transition-colors cursor-pointer h-9 md:h-12"
                           onClick={() => toggleSq4Month(m.month)}>
-                        <td className="px-4 py-1.5 text-sm md:text-base font-medium" colSpan={2}>{m.month}</td>
+                        <td className="px-4 py-1.5 text-sm md:text-base font-medium">{m.month}</td>
                         <td className="px-4 py-1.5 text-sm md:text-base tabular-nums text-muted-foreground" colSpan={2}>{fmtDateWd(m.entry_date)} → {fmtDateWd(m.exit_date)}</td>
+                        <td className={`px-4 py-1.5 text-sm md:text-base text-right tabular-nums ${pnlColor(m.cme_change)}`}>{m.cme_change != null ? `${m.cme_change > 0 ? '+' : ''}${m.cme_change.toLocaleString()}(${fmtPct2(m.cme_ret)})` : '—'}</td>
                         <td className="px-4 py-1.5 text-sm md:text-base text-right tabular-nums">{m.n_picks}</td>
                         <td className={`px-4 py-1.5 text-sm md:text-base text-right tabular-nums font-medium ${pnlColor(m.total_pnl_100)}`}>{fmtPnl(m.total_pnl_100)}</td>
                         <td className={`px-4 py-1.5 text-sm md:text-base text-right tabular-nums font-medium ${pnlColor(m.total_ret)}`}>{fmtPct2(m.total_ret)}</td>
