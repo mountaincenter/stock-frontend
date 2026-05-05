@@ -13,12 +13,15 @@ interface Stats { total: number; wins: number; losses: number; wr: number; avg: 
 interface Sq4Stats { total: number; wins: number; losses: number; wr: number; avg_ret: number; pf: number | null; total_ret: number; total_pnl_100: number; }
 interface Sq4Pick { code: string; name: string; prev_close: number; entry_price: number; exit_price: number; gap_pct: number; ret_pct: number; pnl_100: number; entry_date?: string; exit_date?: string; }
 interface Sq4Monthly { month: string; entry_date: string; exit_date: string; n_picks: number; total_ret: number; total_pnl_100: number; cme_change: number | null; cme_ret: number | null; picks: Sq4Pick[]; }
-interface Sq4Data { stats: Sq4Stats; stats_by_price: Record<string, Sq4Stats>; stats_cme_down: Sq4Stats; stats_cme_up: Sq4Stats; next_sq4: { entry_date: string; exit_date: string | null } | null; candidates: { as_of: string; count: number; price_5000_plus: number; price_under_5000: number }; monthly: Sq4Monthly[]; }
+interface MaxDD { amount: number; pct: number; }
+interface CmeLatest { date: string; close: number; prev_close: number; change: number; change_pct: number; }
+interface Sq4Data { stats: Sq4Stats; stats_by_price: Record<string, Sq4Stats>; stats_cme_down: Sq4Stats; stats_cme_up: Sq4Stats; max_dd: MaxDD; max_dd_cme_down: MaxDD; next_sq4: { entry_date: string; exit_date: string | null } | null; candidates: { as_of: string; count: number; price_5000_plus: number; price_under_5000: number }; monthly: Sq4Monthly[]; }
 interface CalendarResponse {
   today: { flags: string[] };
   upcoming: UpcomingEvent[];
   etf_latest: EtfLatest;
-  etf1306: { stats: Stats; year_summary: YearSummary[]; trades: Trade[]; };
+  cme_latest: CmeLatest;
+  etf1306: { stats: Stats; max_dd: MaxDD; year_summary: YearSummary[]; trades: Trade[]; };
   sq4: Sq4Data;
 }
 
@@ -123,8 +126,8 @@ export default function CalendarPage() {
     </div>
   );
 
-  const { today, upcoming, etf_latest, etf1306, sq4 } = data;
-  const { stats, year_summary, trades } = etf1306;
+  const { today, upcoming, etf_latest, cme_latest, etf1306, sq4 } = data;
+  const { stats, max_dd: etfMaxDd, year_summary, trades } = etf1306;
 
   // Upcoming の Q イベントに過去パフォーマンスを紐付け
   const tradesByQMonth: Record<number, Trade[]> = {};
@@ -176,9 +179,15 @@ export default function CalendarPage() {
           ) : <p className="text-xl font-bold text-muted-foreground/40">—</p>}
         </div>
         <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
-          <p className="text-sm text-muted-foreground mb-1">全体 PnL(100株)</p>
-          <p className={`text-xl font-bold tabular-nums ${pnlColor(sq4?.stats.total_pnl_100)}`}>{fmtPnl(sq4?.stats.total_pnl_100)}</p>
-          <p className="text-sm text-muted-foreground tabular-nums">PF {sq4?.stats.pf?.toFixed(2) ?? '—'} / N={sq4?.stats.total ?? 0}</p>
+          <p className="text-sm text-muted-foreground mb-1">CME ({cme_latest?.date?.slice(5) ?? ''})</p>
+          {cme_latest?.close ? (
+            <>
+              <p className="text-xl font-bold tabular-nums">{cme_latest.close.toLocaleString('ja-JP')}</p>
+              <p className={`text-sm tabular-nums ${pnlColor(cme_latest.change)}`}>
+                {fmtPnl(cme_latest.change)} ({cme_latest.change_pct > 0 ? '+' : ''}{cme_latest.change_pct.toFixed(2)}%)
+              </p>
+            </>
+          ) : <p className="text-xl font-bold text-muted-foreground tabular-nums">—</p>}
         </div>
         <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
           <p className="text-sm text-muted-foreground mb-1">CME下落時 PnL(100株)</p>
@@ -186,9 +195,9 @@ export default function CalendarPage() {
           <p className="text-sm text-muted-foreground tabular-nums">PF {sq4?.stats_cme_down?.pf?.toFixed(2) ?? '—'} / N={sq4?.stats_cme_down?.total ?? 0}</p>
         </div>
         <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
-          <p className="text-sm text-muted-foreground mb-1">CME上昇時 PnL(100株)</p>
-          <p className={`text-xl font-bold tabular-nums ${pnlColor(sq4?.stats_cme_up?.total_pnl_100)}`}>{fmtPnl(sq4?.stats_cme_up?.total_pnl_100)}</p>
-          <p className="text-sm text-muted-foreground tabular-nums">PF {sq4?.stats_cme_up?.pf?.toFixed(2) ?? '—'} / N={sq4?.stats_cme_up?.total ?? 0}</p>
+          <p className="text-sm text-muted-foreground mb-1">MaxDD</p>
+          <p className={`text-xl font-bold tabular-nums text-price-down`}>{fmtPnl(sq4?.max_dd_cme_down?.amount)}</p>
+          <p className="text-sm text-muted-foreground tabular-nums">{sq4?.max_dd_cme_down?.pct != null ? `${sq4.max_dd_cme_down.pct.toFixed(2)}%` : '—'}</p>
         </div>
       </div>
 
@@ -220,18 +229,18 @@ export default function CalendarPage() {
           ) : <p className="text-xl font-bold text-muted-foreground tabular-nums">—</p>}
         </div>
 
-        {/* PF / WR */}
-        <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
-          <p className="text-sm text-muted-foreground mb-1">PF / WR</p>
-          <p className="text-xl font-bold tabular-nums">{stats.pf?.toFixed(2) ?? '—'}</p>
-          <p className="text-sm text-muted-foreground tabular-nums">{stats.wr}% ({stats.wins}W {stats.losses}L / {stats.total})</p>
-        </div>
-
         {/* Cumulative PnL */}
         <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
           <p className="text-sm text-muted-foreground mb-1">累計 PnL(1000株)</p>
           <p className={`text-xl font-bold tabular-nums ${pnlColor(stats.pnl_1000)}`}>{fmtPnl(stats.pnl_1000)}円</p>
-          <p className={`text-sm tabular-nums ${pnlColor(stats.total_ret)}`}>{fmtPct(stats.total_ret)}</p>
+          <p className="text-sm text-muted-foreground tabular-nums">PF {stats.pf?.toFixed(2) ?? '—'} / N={stats.total}</p>
+        </div>
+
+        {/* MaxDD */}
+        <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
+          <p className="text-sm text-muted-foreground mb-1">MaxDD</p>
+          <p className="text-xl font-bold tabular-nums text-price-down">{fmtPnl(etfMaxDd?.amount)}</p>
+          <p className="text-sm text-muted-foreground tabular-nums">{etfMaxDd?.pct != null ? `${etfMaxDd.pct.toFixed(3)}%` : '—'}</p>
         </div>
       </div>
 
