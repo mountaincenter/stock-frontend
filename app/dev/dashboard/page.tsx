@@ -48,19 +48,6 @@ interface LongRecommendationsResponse {
   date: string | null; regime: Regime;
 }
 
-// Reversal signals (bearish + b4)
-interface Signal {
-  ticker: string; stock_name: string; sector: string; strategy: string;
-  close: number; open: number; body_pct: number;
-  sma20: number; dev_from_sma20: number;
-  entry_price_est: number; prev_close: number; vi: number;
-}
-interface SignalsResponse {
-  bearish: Signal[]; b4: Signal[];
-  bearish_count: number; b4_count: number;
-  bearish_date: string | null; b4_date: string | null;
-}
-
 // Pairs
 interface PairSignal {
   tk1: string; tk2: string;
@@ -175,7 +162,6 @@ export default function DashboardPage() {
   const [posData, setPosData] = useState<PositionsResponse | null>(null);
   const [b4Entry, setB4Entry] = useState<B4EntryResponse | null>(null);
   const [longRecs, setLongRecs] = useState<LongRecommendationsResponse | null>(null);
-  const [signals, setSignals] = useState<SignalsResponse | null>(null);
   const [pairsData, setPairsData] = useState<PairsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -187,10 +173,9 @@ export default function DashboardPage() {
       fetch(`${API_BASE}/api/dev/granville/positions`).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(`${API_BASE}/api/dev/granville/b4_entry`).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(`${API_BASE}/api/dev/granville/long-recommendations`).then(r => r.ok ? r.json() : null).catch(() => null),
-      fetch(`${API_BASE}/api/dev/reversal/signals`).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(`${API_BASE}/api/dev/pairs/signals`).then(r => r.ok ? r.json() : null).catch(() => null),
-    ]).then(([pos, b4, lr, sig, pairs]) => {
-      setPosData(pos); setB4Entry(b4); setLongRecs(lr); setSignals(sig); setPairsData(pairs);
+    ]).then(([pos, b4, lr, pairs]) => {
+      setPosData(pos); setB4Entry(b4); setLongRecs(lr); setPairsData(pairs);
       setLoading(false);
     });
   };
@@ -202,7 +187,6 @@ export default function DashboardPage() {
     try {
       await Promise.all([
         fetch(`${API_BASE}/api/dev/granville/refresh`, { method: 'POST' }),
-        fetch(`${API_BASE}/api/dev/reversal/refresh`, { method: 'POST' }),
         fetch(`${API_BASE}/api/dev/pairs/refresh`, { method: 'POST' }),
       ]);
       fetchData();
@@ -220,7 +204,6 @@ export default function DashboardPage() {
   // Sortable hooks
   const exitSort = useSortable<Position>(exits, 'unrealized_pct');
   const activeSort = useSortable<Position>(active, 'unrealized_pct');
-  const bearishSort = useSortable<Signal>(signals?.bearish || [], 'body_pct');
   const pairSort = useSortable<PairSignal>(pairsData?.entry || [], 'z_abs');
 
   if (loading) {
@@ -248,7 +231,7 @@ export default function DashboardPage() {
           <div>
             <h1 className="text-xl font-bold text-foreground">Trading Dashboard</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Granville + Bearish Reversal + Pairs
+              Granville + Pairs
               {b4Entry?.date ? ` (${b4Entry.date})` : ''}
             </p>
           </div>
@@ -286,8 +269,8 @@ export default function DashboardPage() {
               <StatCard label="含み損益" sub={`${active.length}件保有 / Exit: ${exits.length}件`}>
                 <span className={totalPnl >= 0 ? 'text-price-up' : 'text-price-down'}>{totalPnl >= 0 ? '+' : ''}{fmt(totalPnl)}円</span>
               </StatCard>
-              <StatCard label="本日シグナル" sub={`G: ${(longRecs?.count ?? 0) + (b4Entry?.selected?.length ?? 0)} / 陰線: ${signals?.bearish_count ?? 0} / P: ${pairsData?.entry_count ?? 0}`}>
-                <span className="text-foreground">{(longRecs?.count ?? 0) + (b4Entry?.selected?.length ?? 0) + (signals?.bearish_count ?? 0) + (pairsData?.entry_count ?? 0)}</span>
+              <StatCard label="本日シグナル" sub={`G: ${(longRecs?.count ?? 0) + (b4Entry?.selected?.length ?? 0)} / P: ${pairsData?.entry_count ?? 0}`}>
+                <span className="text-foreground">{(longRecs?.count ?? 0) + (b4Entry?.selected?.length ?? 0) + (pairsData?.entry_count ?? 0)}</span>
               </StatCard>
             </div>
           );
@@ -576,58 +559,6 @@ export default function DashboardPage() {
             </Panel>
           );
         })()}
-
-        {/* ===== Bearish Entry Candidates ===== */}
-        <Panel title={
-          <div className="flex items-center gap-2">
-            <h2 className="text-base md:text-lg font-semibold"><a href="/dev/reversal" className="hover:text-primary transition-colors">大陰線 エントリー候補</a></h2>
-            <span className="text-xs text-muted-foreground">実体 &le; -5% / VI &ge; 20 / &le; &yen;15,000</span>
-            {signals && signals.bearish.length > 0 && (
-              <span className="ml-auto text-xs tabular-nums text-violet-400">{signals.bearish.length}件</span>
-            )}
-          </div>
-        } border={signals && signals.bearish.length > 0 ? 'border-violet-500/40' : undefined}>
-          {signals && signals.bearish.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm md:text-base">
-                <thead><tr className="text-foreground border-b border-border/40 bg-muted/30">
-                  <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">戦略</th>
-                  <SortHeader<Signal> label="コード" field="ticker" {...bearishSort} className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap" />
-                  <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">銘柄</th>
-                  <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">セクター</th>
-                  <SortHeader<Signal> label="終値" field="close" {...bearishSort} className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap" />
-                  <SortHeader<Signal> label="実体%" field="body_pct" {...bearishSort} className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap" />
-                  <SortHeader<Signal> label="SMA20乖離" field="dev_from_sma20" {...bearishSort} className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap" />
-                  <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">SMA20</th>
-                  <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">推定IN</th>
-                </tr></thead>
-                <tbody className="divide-y divide-border/30">
-                  {bearishSort.sorted.map((s, i) => (
-                    <tr key={s.ticker} className="hover:bg-muted/10">
-                      <td className="px-2 py-2.5 text-center">
-                        <span className="inline-block min-w-[40px] text-center px-2 py-1 text-xs rounded border bg-violet-500/20 text-violet-400 border-violet-500/30">陰線</span>
-                      </td>
-                      <td className="px-2 py-2.5 tabular-nums"><TickerLink ticker={s.ticker} /></td>
-                      <td className="px-2 py-2.5 text-foreground">{s.stock_name}</td>
-                      <td className="px-2 py-2.5 text-muted-foreground text-xs max-w-[120px] truncate">{s.sector}</td>
-                      <td className="text-right px-2 py-2.5 tabular-nums text-muted-foreground whitespace-nowrap">{fmt(s.close)}</td>
-                      <td className="text-right px-2 py-2.5 tabular-nums text-price-down font-semibold">{s.body_pct.toFixed(1)}%</td>
-                      <td className="text-right px-2 py-2.5 tabular-nums text-price-down">{s.dev_from_sma20.toFixed(1)}%</td>
-                      <td className="text-right px-2 py-2.5 tabular-nums text-muted-foreground whitespace-nowrap">{fmt(Math.round(s.sma20))}</td>
-                      <td className="text-right px-2 py-2.5 tabular-nums text-muted-foreground whitespace-nowrap">{fmt(s.entry_price_est)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <EmptyState message={
-              vi !== null && vi < 20
-                ? `VI=${vi} < 20: 平穏相場では大陰線シグナルは発生しません`
-                : '本日の大陰線シグナルなし'
-            } />
-          )}
-        </Panel>
 
         {/* ===== Pairs Entry Candidates ===== */}
         <Panel title={
