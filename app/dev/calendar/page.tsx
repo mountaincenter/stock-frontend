@@ -404,40 +404,28 @@ export default function CalendarPage() {
 
             {/* Loss Month Macro Analysis */}
             <details className="px-4 py-3 border-t border-border/20">
-              <summary className="text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors">負け月マクロ要因分析</summary>
-              <div className="mt-3 overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-xs text-muted-foreground border-b border-border/30">
-                      <th className="px-3 py-1.5 text-left">月</th>
-                      <th className="px-3 py-1.5 text-right">ret</th>
-                      <th className="px-3 py-1.5 text-center">CME</th>
-                      <th className="px-3 py-1.5 text-left">要因</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-xs">
-                    {[
-                      { month: '2022-05', ret: -9.78, cme: '上昇', reason: 'FOMC 0.5%利上げ+QT開始決定→世界的リスクオフ' },
-                      { month: '2022-10', ret: -24.78, cme: '横ばい', reason: '米金利急騰+円安152円突破、外需全面安' },
-                      { month: '2022-12', ret: -6.40, cme: '下落', reason: 'BOJ利上げ観測（12/20 YCC変更直前）' },
-                      { month: '2023-07', ret: -17.33, cme: '上昇', reason: '米利上げ継続観測+円高142円→外需に売り' },
-                      { month: '2023-12', ret: -3.88, cme: '下落', reason: 'BOJ政策転換観測' },
-                      { month: '2024-02', ret: -13.68, cme: '上昇', reason: '日経34年ぶり高値更新の過熱反落' },
-                      { month: '2024-10', ret: -15.89, cme: '上昇', reason: '石破ショック余波（政策不透明感）' },
-                      { month: '2025-10', ret: -7.75, cme: '上昇', reason: 'トランプ対中100%関税+ソフトウェア輸出規制' },
-                      { month: '2025-11', ret: -2.26, cme: '上昇', reason: 'AIバブル警戒→半導体関連急落' },
-                      { month: '2026-04', ret: -11.43, cme: '下落', reason: 'イラン地政学（ホルムズ海峡封鎖脅威、原油急騰）' },
-                    ].map(r => (
-                      <tr key={r.month} className="border-b border-border/10">
-                        <td className="px-3 py-1.5 tabular-nums">{r.month}</td>
-                        <td className="px-3 py-1.5 text-right tabular-nums text-red-400">{r.ret.toFixed(2)}%</td>
-                        <td className="px-3 py-1.5 text-center">{r.cme}</td>
-                        <td className="px-3 py-1.5 text-muted-foreground">{r.reason}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <p className="mt-2 text-xs text-muted-foreground px-3">CME下落で負けた3回は全て構造的ショック（金融政策変更・地政学）。テクニカルな一時売りではミーンリバーション不発。</p>
+              <summary className="text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors">負け月分析（10回 / 49回）</summary>
+              <div className="mt-3 space-y-1.5 text-xs">
+                {[
+                  { month: '2022/05', cme: 'UP', pnl: -9.78, reason: 'FOMC 0.5%利上げ+QT決定→世界リスクオフ' },
+                  { month: '2022/10', cme: '横', pnl: -24.78, reason: '米雇用統計+3連休前売り（日経-0.71%小幅）' },
+                  { month: '2022/12', cme: 'DOWN', pnl: -6.40, reason: 'SQ週膠着。FOMC前+SQ需給（本格下落は12/20 YCC修正）' },
+                  { month: '2023/07', cme: 'UP', pnl: -17.33, reason: '急速な円高145→142。外需5日続落' },
+                  { month: '2023/12', cme: 'DOWN', pnl: -3.88, reason: '植田「チャレンジング」発言→円高141円+SQデルタヘッジ' },
+                  { month: '2024/02', cme: 'UP', pnl: -13.68, reason: '日経+0.54%上昇日。マクロ要因なし、銘柄固有' },
+                  { month: '2024/10', cme: 'UP', pnl: -15.89, reason: '石破ショック回復+697円。外需worst銘柄は戻り遅く逆行' },
+                  { month: '2025/10', cme: 'UP', pnl: -7.75, reason: '高市トレード+2175円急騰。外需worst銘柄は恩恵外' },
+                  { month: '2025/11', cme: 'UP', pnl: -2.26, reason: '11/5 AI急落余波。SQ-4反発だが半導体戻り鈍い' },
+                  { month: '2026/04', cme: 'DOWN', pnl: -11.43, reason: 'イラン地政学（ホルムズ海峡封鎖脅威、原油急騰）' },
+                ].map(r => (
+                  <div key={r.month} className="flex items-baseline gap-2 px-2 py-1 rounded hover:bg-muted/30">
+                    <span className="tabular-nums font-medium w-[58px] shrink-0">{r.month}</span>
+                    <span className={`w-[40px] shrink-0 text-center font-medium ${r.cme === 'DOWN' ? 'text-red-400' : r.cme === 'UP' ? 'text-green-400' : 'text-muted-foreground'}`}>{r.cme}</span>
+                    <span className="tabular-nums text-red-400 w-[60px] shrink-0 text-right">{r.pnl.toFixed(1)}%</span>
+                    <span className="text-muted-foreground">{r.reason}</span>
+                  </div>
+                ))}
+                <p className="pt-2 text-muted-foreground/70 px-2">CME DOWN=構造ショック（金融政策・地政学）。CME UP=市場上昇中の銘柄固有損失。</p>
               </div>
             </details>
           </div>
