@@ -405,27 +405,28 @@ export default function CalendarPage() {
             {/* Loss Month Macro Analysis */}
             <details className="px-4 py-3 border-t border-border/20">
               <summary className="text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors">負け月分析（10回 / 49回）</summary>
-              <div className="mt-3 space-y-1.5 text-xs">
+              <div className="mt-3 space-y-2 text-sm">
                 {[
-                  { month: '2022/05', cme: 'UP', pnl: -9.78, reason: 'FOMC 0.5%利上げ+QT決定→世界リスクオフ' },
-                  { month: '2022/10', cme: '横', pnl: -24.78, reason: '米雇用統計+3連休前売り（日経-0.71%小幅）' },
-                  { month: '2022/12', cme: 'DOWN', pnl: -6.40, reason: 'SQ週膠着。FOMC前+SQ需給（本格下落は12/20 YCC修正）' },
-                  { month: '2023/07', cme: 'UP', pnl: -17.33, reason: '急速な円高145→142。外需5日続落' },
-                  { month: '2023/12', cme: 'DOWN', pnl: -3.88, reason: '植田「チャレンジング」発言→円高141円+SQデルタヘッジ' },
-                  { month: '2024/02', cme: 'UP', pnl: -13.68, reason: '日経+0.54%上昇日。マクロ要因なし、銘柄固有' },
-                  { month: '2024/10', cme: 'UP', pnl: -15.89, reason: '石破ショック回復+697円。外需worst銘柄は戻り遅く逆行' },
-                  { month: '2025/10', cme: 'UP', pnl: -7.75, reason: '高市トレード+2175円急騰。外需worst銘柄は恩恵外' },
-                  { month: '2025/11', cme: 'UP', pnl: -2.26, reason: '11/5 AI急落余波。SQ-4反発だが半導体戻り鈍い' },
-                  { month: '2026/04', cme: 'DOWN', pnl: -11.43, reason: 'イラン地政学（ホルムズ海峡封鎖脅威、原油急騰）' },
+                  { month: '2026/04', cme: 'DOWN', pnl: -11.43, yen: -47050, reason: 'イラン地政学（ホルムズ海峡封鎖脅威、原油急騰）' },
+                  { month: '2025/11', cme: 'UP', pnl: -2.26, yen: 40950, reason: '11/5 AI急落余波。SQ-4反発だが半導体戻り鈍い' },
+                  { month: '2025/10', cme: 'UP', pnl: -7.75, yen: -30000, reason: '高市トレード+2175円急騰。外需worst銘柄は恩恵外' },
+                  { month: '2024/10', cme: 'UP', pnl: -15.89, yen: -50250, reason: '石破ショック回復+697円。外需worst銘柄は戻り遅く逆行' },
+                  { month: '2024/02', cme: 'UP', pnl: -13.68, yen: -46200, reason: '日経+0.54%上昇日。マクロ要因なし、銘柄固有' },
+                  { month: '2023/12', cme: 'DOWN', pnl: -3.88, yen: 10350, reason: '植田「チャレンジング」発言→円高141円+SQデルタヘッジ' },
+                  { month: '2023/07', cme: 'UP', pnl: -17.33, yen: -38340, reason: '急速な円高145→142。外需5日続落' },
+                  { month: '2022/12', cme: 'DOWN', pnl: -6.40, yen: -14680, reason: 'SQ週膠着。FOMC前+SQ需給（本格下落は12/20 YCC修正）' },
+                  { month: '2022/10', cme: '横', pnl: -24.78, yen: -66020, reason: '米雇用統計+3連休前売り（日経-0.71%小幅）' },
+                  { month: '2022/05', cme: 'UP', pnl: -9.78, yen: -65580, reason: 'FOMC 0.5%利上げ+QT決定→世界リスクオフ' },
                 ].map(r => (
                   <div key={r.month} className="flex items-baseline gap-2 px-2 py-1 rounded hover:bg-muted/30">
                     <span className="tabular-nums font-medium w-[58px] shrink-0">{r.month}</span>
-                    <span className={`w-[40px] shrink-0 text-center font-medium ${r.cme === 'DOWN' ? 'text-red-400' : r.cme === 'UP' ? 'text-green-400' : 'text-muted-foreground'}`}>{r.cme}</span>
-                    <span className="tabular-nums text-red-400 w-[60px] shrink-0 text-right">{r.pnl.toFixed(1)}%</span>
+                    <span className={`w-[44px] shrink-0 text-center font-medium ${r.cme === 'DOWN' ? 'text-red-400' : r.cme === 'UP' ? 'text-green-400' : 'text-muted-foreground'}`}>{r.cme}</span>
+                    <span className="tabular-nums text-red-400 w-[55px] shrink-0 text-right">{r.pnl.toFixed(1)}%</span>
+                    <span className={`tabular-nums w-[70px] shrink-0 text-right ${r.yen >= 0 ? 'text-green-400' : 'text-red-400'}`}>{r.yen >= 0 ? '+' : ''}{(r.yen / 10000).toFixed(1)}万</span>
                     <span className="text-muted-foreground">{r.reason}</span>
                   </div>
                 ))}
-                <p className="pt-2 text-muted-foreground/70 px-2">CME DOWN=構造ショック（金融政策・地政学）。CME UP=市場上昇中の銘柄固有損失。</p>
+                <p className="pt-2 text-xs text-muted-foreground/70 px-2">実額=100株×10銘柄。CME DOWN=構造ショック。CME UP=市場上昇中の銘柄固有損失。</p>
               </div>
             </details>
           </div>
