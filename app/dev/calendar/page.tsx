@@ -401,9 +401,49 @@ export default function CalendarPage() {
                 </tbody>
               </table>
             </div>
+
+            {/* Loss Month Macro Analysis */}
+            <details className="px-4 py-3 border-t border-border/20">
+              <summary className="text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors">負け月マクロ要因分析</summary>
+              <div className="mt-3 overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-xs text-muted-foreground border-b border-border/30">
+                      <th className="px-3 py-1.5 text-left">月</th>
+                      <th className="px-3 py-1.5 text-right">ret</th>
+                      <th className="px-3 py-1.5 text-center">CME</th>
+                      <th className="px-3 py-1.5 text-left">要因</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-xs">
+                    {[
+                      { month: '2022-05', ret: -9.78, cme: '上昇', reason: 'FOMC 0.5%利上げ+QT開始決定→世界的リスクオフ' },
+                      { month: '2022-10', ret: -24.78, cme: '横ばい', reason: '米金利急騰+円安152円突破、外需全面安' },
+                      { month: '2022-12', ret: -6.40, cme: '下落', reason: 'BOJ利上げ観測（12/20 YCC変更直前）' },
+                      { month: '2023-07', ret: -17.33, cme: '上昇', reason: '米利上げ継続観測+円高142円→外需に売り' },
+                      { month: '2023-12', ret: -3.88, cme: '下落', reason: 'BOJ政策転換観測' },
+                      { month: '2024-02', ret: -13.68, cme: '上昇', reason: '日経34年ぶり高値更新の過熱反落' },
+                      { month: '2024-10', ret: -15.89, cme: '上昇', reason: '石破ショック余波（政策不透明感）' },
+                      { month: '2025-10', ret: -7.75, cme: '上昇', reason: 'トランプ対中100%関税+ソフトウェア輸出規制' },
+                      { month: '2025-11', ret: -2.26, cme: '上昇', reason: 'AIバブル警戒→半導体関連急落' },
+                      { month: '2026-04', ret: -11.43, cme: '下落', reason: 'イラン地政学（ホルムズ海峡封鎖脅威、原油急騰）' },
+                    ].map(r => (
+                      <tr key={r.month} className="border-b border-border/10">
+                        <td className="px-3 py-1.5 tabular-nums">{r.month}</td>
+                        <td className="px-3 py-1.5 text-right tabular-nums text-red-400">{r.ret.toFixed(2)}%</td>
+                        <td className="px-3 py-1.5 text-center">{r.cme}</td>
+                        <td className="px-3 py-1.5 text-muted-foreground">{r.reason}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p className="mt-2 text-xs text-muted-foreground px-3">CME下落で負けた3回は全て構造的ショック（金融政策変更・地政学）。テクニカルな一時売りではミーンリバーション不発。</p>
+              </div>
+            </details>
           </div>
         </>
       )}
+
 
       {/* Year Summary + Trade Detail */}
       <div className="rounded-xl border border-border bg-card">
