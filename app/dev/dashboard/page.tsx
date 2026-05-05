@@ -469,16 +469,17 @@ export default function DashboardPage() {
                     <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">コード1</th>
                     <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">銘柄1</th>
                     <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">終値1</th>
+                    <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">株数1</th>
                     <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">L/S</th>
                     <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">コード2</th>
                     <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">銘柄2</th>
                     <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">終値2</th>
+                    <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">株数2</th>
                     <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">z-score</th>
-                    <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">株数</th>
                     <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">PF</th>
                   </tr></thead>
                   <tbody className="divide-y divide-border/30">
-                    {pairsData.entry.map(p => {
+                    {pairsData.entry.slice(0, 3).map(p => {
                       const isLong = p.direction === 'long_tk1';
                       return (
                         <tr key={`${p.tk1}-${p.tk2}`} className="hover:bg-muted/10 cursor-pointer"
@@ -489,14 +490,15 @@ export default function DashboardPage() {
                           <td className="px-2 py-2.5 tabular-nums"><TickerLink ticker={p.tk1} /></td>
                           <td className="px-2 py-2.5 text-foreground">{p.name1}</td>
                           <td className="px-2 py-2.5 text-right tabular-nums text-muted-foreground whitespace-nowrap">{fmt(p.c1)}</td>
+                          <td className="px-2 py-2.5 text-right tabular-nums text-muted-foreground">{p.shares1}</td>
                           <td className="text-center px-2 py-2.5">
                             <span className={`text-xs px-1.5 py-0.5 rounded ${isLong ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'}`}>{isLong ? 'S' : 'L'}</span>
                           </td>
                           <td className="px-2 py-2.5 tabular-nums"><TickerLink ticker={p.tk2} /></td>
                           <td className="px-2 py-2.5 text-foreground">{p.name2}</td>
                           <td className="px-2 py-2.5 text-right tabular-nums text-muted-foreground whitespace-nowrap">{fmt(p.c2)}</td>
+                          <td className="px-2 py-2.5 text-right tabular-nums text-muted-foreground">{p.shares2}</td>
                           <td className="px-2 py-2.5 text-right tabular-nums font-semibold">{fmtZ(p.z_latest)}</td>
-                          <td className="px-2 py-2.5 text-right tabular-nums text-muted-foreground">{p.shares1}:{p.shares2}</td>
                           <td className="px-2 py-2.5 text-right tabular-nums text-foreground">{p.full_pf.toFixed(2)}</td>
                         </tr>
                       );
