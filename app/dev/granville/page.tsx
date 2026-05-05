@@ -149,33 +149,33 @@ export default function GranvillePage() {
 
         {/* Market Conditions */}
         <div className="grid grid-cols-3 md:grid-cols-5 gap-3 mb-5">
-          <div className="rounded-xl border border-border/40 bg-card px-4 py-3">
-            <div className="text-xs text-muted-foreground">日経VI</div>
-            <div className={`text-xl font-bold tabular-nums ${(b4Entry?.vi ?? 0) >= 40 ? 'text-emerald-400' : (b4Entry?.vi ?? 0) >= 30 ? 'text-rose-400' : (b4Entry?.vi ?? 0) >= 25 ? 'text-amber-400' : 'text-muted-foreground'}`}>
-              {b4Entry?.vi != null ? b4Entry.vi.toFixed(1) : '-'}
-            </div>
+          <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
+            <p className="text-sm text-muted-foreground mb-1">日経VI</p>
+            <p className={`text-xl font-bold tabular-nums ${(b4Entry?.vi ?? 0) >= 40 ? 'text-emerald-400' : (b4Entry?.vi ?? 0) >= 30 ? 'text-rose-400' : (b4Entry?.vi ?? 0) >= 25 ? 'text-amber-400' : 'text-muted-foreground'}`}>
+              {b4Entry?.vi != null ? b4Entry.vi.toFixed(1) : '—'}
+            </p>
           </div>
-          <div className="rounded-xl border border-border/40 bg-card px-4 py-3">
-            <div className="text-xs text-muted-foreground">CME gap</div>
-            <div className={`text-xl font-bold tabular-nums ${(b4Entry?.cme_gap ?? 0) < 0 ? 'text-rose-400' : 'text-muted-foreground'}`}>
-              {b4Entry?.cme_gap != null ? `${b4Entry.cme_gap >= 0 ? '+' : ''}${b4Entry.cme_gap.toFixed(2)}%` : '-'}
-            </div>
+          <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
+            <p className="text-sm text-muted-foreground mb-1">CME gap</p>
+            <p className={`text-xl font-bold tabular-nums ${(b4Entry?.cme_gap ?? 0) < 0 ? 'text-rose-400' : 'text-muted-foreground'}`}>
+              {b4Entry?.cme_gap != null ? `${b4Entry.cme_gap >= 0 ? '+' : ''}${b4Entry.cme_gap.toFixed(2)}%` : '—'}
+            </p>
           </div>
-          <div className="rounded-xl border border-border/40 bg-card px-4 py-3">
-            <div className="text-xs text-muted-foreground">N225 前日比</div>
-            <div className={`text-xl font-bold tabular-nums ${(b4Entry?.n225_chg ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-              {b4Entry?.n225_chg != null ? `${b4Entry.n225_chg > 0 ? '+' : ''}${b4Entry.n225_chg.toFixed(2)}%` : '-'}
-            </div>
+          <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
+            <p className="text-sm text-muted-foreground mb-1">N225 前日比</p>
+            <p className={`text-xl font-bold tabular-nums ${(b4Entry?.n225_chg ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {b4Entry?.n225_chg != null ? `${b4Entry.n225_chg > 0 ? '+' : ''}${b4Entry.n225_chg.toFixed(2)}%` : '—'}
+            </p>
           </div>
-          <div className="rounded-xl border border-border/40 bg-card px-4 py-3">
-            <div className="text-xs text-muted-foreground">B4シグナル</div>
-            <div className="text-xl font-bold tabular-nums">{b4Entry?.total_b4_signals ?? 0}件</div>
+          <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
+            <p className="text-sm text-muted-foreground mb-1">B4シグナル</p>
+            <p className="text-xl font-bold tabular-nums">{b4Entry?.total_b4_signals ?? 0}件</p>
           </div>
-          <div className="rounded-xl border border-border/40 bg-card px-4 py-3">
-            <div className="text-xs text-muted-foreground">判定</div>
-            <div className={`text-lg font-bold ${isEntry ? 'text-emerald-400' : isExcluded ? 'text-rose-400' : 'text-muted-foreground'}`}>
+          <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
+            <p className="text-sm text-muted-foreground mb-1">判定</p>
+            <p className={`text-xl font-bold ${isEntry ? 'text-emerald-400' : isExcluded ? 'text-rose-400' : 'text-muted-foreground'}`}>
               {decision === 'strong_entry' ? 'STRONG' : decision === 'entry' ? 'ENTRY' : decision === 'consider' ? 'CONSIDER' : decision === 'excluded' ? 'EXCLUDED' : 'WAIT'}
-            </div>
+            </p>
           </div>
         </div>
 
@@ -423,9 +423,9 @@ export default function GranvillePage() {
                                   <td className="px-4 py-1.5 pl-12 text-xs md:text-sm tabular-nums font-medium">{t.ticker.replace('.T', '')}</td>
                                   <td className="px-4 py-1.5 text-xs md:text-sm text-muted-foreground">{t.stock_name}</td>
                                   <td className="px-4 py-1.5 text-xs md:text-sm text-right tabular-nums">{inStr}</td>
-                                  <td className="px-4 py-1.5 text-xs md:text-sm text-right tabular-nums">¥{fmt(t.entry_price)}</td>
+                                  <td className="px-4 py-1.5 text-xs md:text-sm text-right tabular-nums">{fmt(t.entry_price)}</td>
                                   <td className="px-4 py-1.5 text-xs md:text-sm text-right tabular-nums">{outStr} <span className={`${exitLabel === '高値' ? 'text-emerald-400' : 'text-amber-400'}`}>{exitLabel}</span></td>
-                                  <td className="px-4 py-1.5 text-xs md:text-sm text-right tabular-nums">¥{fmt(t.exit_price)}</td>
+                                  <td className="px-4 py-1.5 text-xs md:text-sm text-right tabular-nums">{fmt(t.exit_price)}</td>
                                   <td className="px-4 py-1.5 text-xs md:text-sm text-right tabular-nums font-medium">{fmtPnl(t.pnl_yen)}</td>
                                   <td className={`px-4 py-1.5 text-xs md:text-sm text-right tabular-nums ${t.ret_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{t.ret_pct >= 0 ? '+' : ''}{t.ret_pct.toFixed(2)}%</td>
                                   <td></td>
