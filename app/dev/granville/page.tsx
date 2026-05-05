@@ -375,7 +375,16 @@ export default function GranvillePage() {
                   <tbody>
                     {stats.year_summary.slice().reverse().flatMap(ys => {
                       const isYearOpen = expandedYears.has(ys.year);
-                      const yearMonths = stats.monthly.filter(m => m.month.startsWith(String(ys.year))).slice().reverse();
+                      const yearStr = String(ys.year);
+                      const yearMonths = stats.monthly.filter(m => m.month.startsWith(yearStr)).slice().reverse();
+                      // 保有中トレードがある月で、monthlyに含まれない月を追加
+                      const openOnlyMonths = new Set<string>();
+                      (stats.trades || []).filter(t => t.exit_type === 'open' && t.entry_date.startsWith(yearStr)).forEach(t => {
+                        const m = t.entry_date.slice(0, 7);
+                        if (!yearMonths.some(ym => ym.month === m)) openOnlyMonths.add(m);
+                      });
+                      openOnlyMonths.forEach(m => yearMonths.push({ month: m, count: 0, pnl: 0, win_rate: 0, pf: null }));
+                      yearMonths.sort((a, b) => b.month.localeCompare(a.month));
                       const rows: React.ReactNode[] = [
                         <tr key={`y-${ys.year}`} className="border-b border-border/20 hover:bg-muted/50 cursor-pointer h-9 md:h-14" onClick={() => toggleYear(ys.year)}>
                           <td className="px-4 py-2 text-sm md:text-base font-medium tabular-nums">{ys.year}</td>
