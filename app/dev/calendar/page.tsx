@@ -320,24 +320,24 @@ export default function CalendarPage() {
                     if (isExpanded) {
                       rows.push(
                         <tr key={`sq4h-${m.month}`} className="border-b border-border/20 bg-muted/10">
-                          <td className="px-4 py-1 pl-8 text-[10px] text-muted-foreground" colSpan={2}>銘柄</td>
-                          <td className="px-4 py-1 text-[10px] text-muted-foreground text-right">Gap</td>
-                          <td className="px-4 py-1 text-[10px] text-muted-foreground text-right">前日終値</td>
-                          <td className="px-4 py-1 text-[10px] text-muted-foreground text-right">当日終値</td>
-                          <td className="px-4 py-1 text-[10px] text-muted-foreground text-right">PnL(100株)</td>
-                          <td className="px-4 py-1 text-[10px] text-muted-foreground text-right">PnL(%)</td>
+                          <td className="px-4 py-1.5 pl-8 text-xs text-muted-foreground" colSpan={2}>銘柄</td>
+                          <td className="px-4 py-1.5 text-xs text-muted-foreground text-right">Gap</td>
+                          <td className="px-4 py-1.5 text-xs text-muted-foreground text-right">前日終値</td>
+                          <td className="px-4 py-1.5 text-xs text-muted-foreground text-right">当日終値</td>
+                          <td className="px-4 py-1.5 text-xs text-muted-foreground text-right">PnL(100株)</td>
+                          <td className="px-4 py-1.5 text-xs text-muted-foreground text-right">PnL(%)</td>
                         </tr>
                       );
                       m.picks.forEach((p, pi) => {
                         rows.push(
-                          <tr key={`sq4p-${m.month}-${pi}`} className="border-b border-border/10 hover:bg-muted/30 transition-colors h-8">
-                            <td className="px-4 py-1 pl-8 text-xs tabular-nums font-mono">{p.code}</td>
-                            <td className="px-4 py-1 text-xs text-muted-foreground truncate max-w-[120px]">{p.name}</td>
-                            <td className={`px-4 py-1 text-xs text-right tabular-nums ${pnlColor(p.gap_pct)}`}>{fmtPct2(p.gap_pct)}</td>
-                            <td className="px-4 py-1 text-xs text-right tabular-nums">{fmtInt(p.prev_close)}</td>
-                            <td className="px-4 py-1 text-xs text-right tabular-nums">{fmtInt(p.exit_price)}</td>
-                            <td className={`px-4 py-1 text-xs text-right tabular-nums font-medium ${pnlColor(p.pnl_100)}`}>{fmtPnl(p.pnl_100)}</td>
-                            <td className={`px-4 py-1 text-xs text-right tabular-nums font-medium ${pnlColor(p.ret_pct)}`}>{fmtPct2(p.ret_pct)}</td>
+                          <tr key={`sq4p-${m.month}-${pi}`} className="border-b border-border/10 hover:bg-muted/30 transition-colors h-9">
+                            <td className="px-4 py-1.5 pl-8 text-sm tabular-nums">{p.code}</td>
+                            <td className="px-4 py-1.5 text-sm text-muted-foreground truncate max-w-[140px]">{p.name}</td>
+                            <td className={`px-4 py-1.5 text-sm text-right tabular-nums ${pnlColor(p.gap_pct)}`}>{fmtPct2(p.gap_pct)}</td>
+                            <td className="px-4 py-1.5 text-sm text-right tabular-nums">{fmtInt(p.prev_close)}</td>
+                            <td className="px-4 py-1.5 text-sm text-right tabular-nums">{fmtInt(p.exit_price)}</td>
+                            <td className={`px-4 py-1.5 text-sm text-right tabular-nums font-medium ${pnlColor(p.pnl_100)}`}>{fmtPnl(p.pnl_100)}</td>
+                            <td className={`px-4 py-1.5 text-sm text-right tabular-nums font-medium ${pnlColor(p.ret_pct)}`}>{fmtPct2(p.ret_pct)}</td>
                           </tr>
                         );
                       });
