@@ -566,11 +566,12 @@ export default function DashboardPage() {
                     </td>
                     <td className="px-2 py-2.5 tabular-nums text-muted-foreground" colSpan={2}>
                       {calData?.upcoming && (() => {
-                        const next = calData.upcoming.find(e => e.flags.some(f => f.includes('買い')));
+                        const next = calData.upcoming.find(e => e.flags.some(f => /^\dQ/.test(f)));
                         if (!next) return '次回未定';
                         const d = new Date(next.date);
-                        const flag = next.flags.find(f => f.includes('買い')) || '';
-                        return <span>{d.getMonth()+1}/{d.getDate()} <span className="text-emerald-400">{flag}</span></span>;
+                        const qFlag = next.flags.find(f => /^\dQ/.test(f)) || '';
+                        const actionFlag = next.flags.find(f => f.includes('買い') || f.includes('決済')) || '';
+                        return <span>{d.getMonth()+1}/{d.getDate()} <span className="text-muted-foreground">{qFlag}</span>{actionFlag && <span className={`ml-1 ${actionFlag.includes('買い') ? 'text-emerald-400' : 'text-amber-400'}`}>{actionFlag}</span>}</span>;
                       })()}
                     </td>
                     <td className="px-2 py-2.5 text-right tabular-nums font-semibold">{calData?.etf1306?.stats?.pf?.toFixed(2) ?? '—'}</td>
