@@ -333,23 +333,23 @@ export default function GranvillePage() {
             </div>
             {/* Stats Cards */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3 px-4 py-3">
-              <div className="text-center">
+              <div className="text-right">
                 <div className="text-xs text-muted-foreground">Trades</div>
                 <div className="text-lg font-bold tabular-nums">{stats.total_trades}</div>
               </div>
-              <div className="text-center">
+              <div className="text-right">
                 <div className="text-xs text-muted-foreground">WR</div>
                 <div className="text-lg font-bold tabular-nums">{stats.win_rate?.toFixed(0)}%</div>
               </div>
-              <div className="text-center">
+              <div className="text-right">
                 <div className="text-xs text-muted-foreground">PF</div>
                 <div className="text-lg font-bold tabular-nums">{stats.pf?.toFixed(2)}</div>
               </div>
-              <div className="text-center">
+              <div className="text-right">
                 <div className="text-xs text-muted-foreground">Total PnL</div>
                 <div className={`text-lg font-bold tabular-nums ${(stats.total_pnl ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{stats.total_pnl != null ? `${stats.total_pnl >= 0 ? '+' : ''}${fmt(stats.total_pnl)}円` : '-'}</div>
               </div>
-              <div className="text-center">
+              <div className="text-right">
                 <div className="text-xs text-muted-foreground">MaxDD</div>
                 <div className="text-lg font-bold tabular-nums text-rose-400">{stats.max_dd ? `${fmt(stats.max_dd.amount)}円` : '-'}</div>
                 {stats.max_dd && <div className="text-xs text-muted-foreground tabular-nums">{stats.max_dd.pct.toFixed(1)}%</div>}
