@@ -71,11 +71,11 @@ interface Position {
   hold_days: number; max_hold: number; remaining_days: number; exit_type: string;
 }
 interface PositionsResponse { positions: Position[]; exits: Position[]; as_of: string | null; }
-interface MonthlyStats { month: string; count: number; pnl: number; win_rate: number; }
+interface MonthlyStats { month: string; count: number; pnl: number; win_rate: number; pf: number | null; }
 interface YearSummary { year: number; n: number; wins: number; wr: number; pnl: number; total_ret: number; pf: number | null; }
-interface MaxDD { amount: number; pct: number; }
+interface MaxDD { amount: number; }
 interface B4Trade { ticker: string; stock_name: string; entry_date: string; exit_date: string; entry_price: number; exit_price: number; ret_pct: number; pnl_yen: number; exit_type: string; }
-interface StatsResponse { by_rule: Record<string, unknown>; monthly: MonthlyStats[]; trades?: B4Trade[]; total_trades: number; total_pnl?: number; win_rate?: number; pf?: number; max_dd?: MaxDD; year_summary?: YearSummary[]; }
+interface StatsResponse { by_rule: Record<string, unknown>; monthly: MonthlyStats[]; trades?: B4Trade[]; total_trades: number; total_pnl?: number; win_rate?: number; pf?: number; avg_pct?: number; max_dd?: MaxDD; year_summary?: YearSummary[]; }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
@@ -332,27 +332,30 @@ export default function GranvillePage() {
               <h2 className="text-base font-semibold">B4 パフォーマンス</h2>
             </div>
             {/* Stats Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 px-4 py-3">
+            <div className="grid grid-cols-3 md:grid-cols-6 gap-3 px-4 py-3">
               <div className="text-center">
-                <div className="text-xs text-muted-foreground">Trades</div>
-                <div className="text-lg font-bold tabular-nums">{stats.total_trades}</div>
+                <p className="text-sm text-muted-foreground mb-1">Trades</p>
+                <p className="text-xl font-bold tabular-nums">{stats.total_trades}</p>
               </div>
               <div className="text-center">
-                <div className="text-xs text-muted-foreground">WR</div>
-                <div className="text-lg font-bold tabular-nums">{stats.win_rate?.toFixed(0)}%</div>
+                <p className="text-sm text-muted-foreground mb-1">WR</p>
+                <p className="text-xl font-bold tabular-nums">{stats.win_rate?.toFixed(0)}%</p>
               </div>
               <div className="text-center">
-                <div className="text-xs text-muted-foreground">PF</div>
-                <div className="text-lg font-bold tabular-nums">{stats.pf?.toFixed(2)}</div>
+                <p className="text-sm text-muted-foreground mb-1">PF</p>
+                <p className="text-xl font-bold tabular-nums">{stats.pf?.toFixed(2)}</p>
               </div>
               <div className="text-center">
-                <div className="text-xs text-muted-foreground">Total PnL</div>
-                <div className={`text-lg font-bold tabular-nums ${(stats.total_pnl ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{stats.total_pnl != null ? `${stats.total_pnl >= 0 ? '+' : ''}${fmt(stats.total_pnl)}円` : '-'}</div>
+                <p className="text-sm text-muted-foreground mb-1">PnL%</p>
+                <p className={`text-xl font-bold tabular-nums ${(stats.avg_pct ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{stats.avg_pct != null ? `${stats.avg_pct >= 0 ? '+' : ''}${stats.avg_pct.toFixed(2)}%` : '—'}</p>
               </div>
               <div className="text-center">
-                <div className="text-xs text-muted-foreground">MaxDD</div>
-                <div className="text-lg font-bold tabular-nums text-rose-400">{stats.max_dd ? `${fmt(stats.max_dd.amount)}円` : '-'}</div>
-                {stats.max_dd && <div className="text-xs text-muted-foreground tabular-nums">{stats.max_dd.pct.toFixed(1)}%</div>}
+                <p className="text-sm text-muted-foreground mb-1">Total PnL</p>
+                <p className={`text-xl font-bold tabular-nums ${(stats.total_pnl ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{stats.total_pnl != null ? `${stats.total_pnl >= 0 ? '+' : ''}${fmt(stats.total_pnl)}円` : '—'}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground mb-1">MaxDD</p>
+                <p className="text-xl font-bold tabular-nums text-rose-400">{stats.max_dd ? `${fmt(stats.max_dd.amount)}円` : '—'}</p>
               </div>
             </div>
 
@@ -394,7 +397,8 @@ export default function GranvillePage() {
                               <td className="px-4 py-2 text-sm text-right tabular-nums">{m.count}</td>
                               <td className={`px-4 py-2 text-sm text-right tabular-nums ${m.win_rate >= 55 ? 'text-emerald-400' : m.win_rate >= 45 ? 'text-amber-400' : 'text-rose-400'}`}>{m.win_rate.toFixed(1)}%</td>
                               <td className="px-4 py-2 text-sm text-right tabular-nums font-medium" colSpan={2}>{fmtPnl(m.pnl)}</td>
-                              <td className="px-4 py-2" colSpan={3}></td>
+                              <td className="px-4 py-2 text-sm text-right tabular-nums">{m.pf != null ? m.pf.toFixed(2) : '—'}</td>
+                              <td className="px-4 py-2" colSpan={2}></td>
                               <td className="px-4 py-2 text-muted-foreground">{isMonthOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}</td>
                             </tr>
                           );
@@ -413,21 +417,26 @@ export default function GranvillePage() {
                               </tr>
                             );
                             monthTrades.forEach(t => {
+                              const isOpen = t.exit_type === 'open';
                               const d1 = new Date(t.entry_date);
-                              const d2 = new Date(t.exit_date);
                               const inStr = `${d1.getMonth() + 1}/${d1.getDate()}`;
-                              const outStr = `${d2.getMonth() + 1}/${d2.getDate()}`;
-                              const exitLabel = t.exit_type === '20d_high' || t.exit_type === 'high_update' ? '高値' : 'MH';
+                              let outStr = '—';
+                              let exitLabel = '';
+                              if (!isOpen && t.exit_date) {
+                                const d2 = new Date(t.exit_date);
+                                outStr = `${d2.getMonth() + 1}/${d2.getDate()}`;
+                                exitLabel = t.exit_type === '20d_high' || t.exit_type === 'high_update' ? '高値' : 'MH';
+                              }
                               rows.push(
-                                <tr key={`t-${t.entry_date}-${t.ticker}`} className="border-b border-border/10 bg-muted/20 hover:bg-muted/40 h-9">
+                                <tr key={`t-${t.entry_date}-${t.ticker}`} className={`border-b border-border/10 hover:bg-muted/40 h-9 ${isOpen ? 'bg-amber-500/5' : 'bg-muted/20'}`}>
                                   <td className="px-4 py-1.5 pl-12 text-xs md:text-sm tabular-nums font-medium">{t.ticker.replace('.T', '')}</td>
-                                  <td className="px-4 py-1.5 text-xs md:text-sm text-muted-foreground">{t.stock_name}</td>
+                                  <td className="px-4 py-1.5 text-xs md:text-sm text-muted-foreground">{t.stock_name}{isOpen && <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/20 text-amber-400">保有中</span>}</td>
                                   <td className="px-4 py-1.5 text-xs md:text-sm text-right tabular-nums">{inStr}</td>
-                                  <td className="px-4 py-1.5 text-xs md:text-sm text-right tabular-nums">{fmt(t.entry_price)}</td>
-                                  <td className="px-4 py-1.5 text-xs md:text-sm text-right tabular-nums">{outStr} <span className={`${exitLabel === '高値' ? 'text-emerald-400' : 'text-amber-400'}`}>{exitLabel}</span></td>
-                                  <td className="px-4 py-1.5 text-xs md:text-sm text-right tabular-nums">{fmt(t.exit_price)}</td>
-                                  <td className="px-4 py-1.5 text-xs md:text-sm text-right tabular-nums font-medium">{fmtPnl(t.pnl_yen)}</td>
-                                  <td className={`px-4 py-1.5 text-xs md:text-sm text-right tabular-nums ${t.ret_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{t.ret_pct >= 0 ? '+' : ''}{t.ret_pct.toFixed(2)}%</td>
+                                  <td className="px-4 py-1.5 text-xs md:text-sm text-right tabular-nums">{isOpen ? '—' : fmt(t.entry_price)}</td>
+                                  <td className="px-4 py-1.5 text-xs md:text-sm text-right tabular-nums">{outStr}{exitLabel && <span className={`ml-1 ${exitLabel === '高値' ? 'text-emerald-400' : 'text-amber-400'}`}>{exitLabel}</span>}</td>
+                                  <td className="px-4 py-1.5 text-xs md:text-sm text-right tabular-nums">{isOpen ? '—' : fmt(t.exit_price)}</td>
+                                  <td className="px-4 py-1.5 text-xs md:text-sm text-right tabular-nums font-medium">{isOpen ? '—' : fmtPnl(t.pnl_yen)}</td>
+                                  <td className="px-4 py-1.5 text-xs md:text-sm text-right tabular-nums">{isOpen ? '—' : <span className={t.ret_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}>{t.ret_pct >= 0 ? '+' : ''}{t.ret_pct.toFixed(2)}%</span>}</td>
                                   <td></td>
                                 </tr>
                               );
