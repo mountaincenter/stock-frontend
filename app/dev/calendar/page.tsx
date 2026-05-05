@@ -11,11 +11,11 @@ interface Trade { entry_date: string; exit_date: string; month: number; year: nu
 interface YearSummary { year: number; n: number; wins: number; wr: number; total_ret: number; pnl_1000: number | null; pf: number | null; max_dd: number; }
 interface Stats { total: number; wins: number; losses: number; wr: number; avg: number; median: number; max: number; min: number; pf: number; total_ret: number; pnl_1000: number; }
 interface Sq4Stats { total: number; wins: number; losses: number; wr: number; avg_ret: number; pf: number | null; total_ret: number; total_pnl_100: number; }
-interface Sq4Pick { code: string; name: string; prev_close: number; entry_price: number; exit_price: number; gap_pct: number; ret_pct: number; pnl_100: number; entry_date?: string; exit_date?: string; }
+interface Sq4Pick { code: string; name: string; prev_close: number; ret_5d?: number; entry_price: number; exit_price: number; gap_pct?: number; ret_pct: number; pnl_100: number; entry_date?: string; exit_date?: string; }
 interface Sq4Monthly { month: string; entry_date: string; exit_date: string; n_picks: number; total_ret: number; total_pnl_100: number; cme_change: number | null; cme_ret: number | null; picks: Sq4Pick[]; }
 interface MaxDD { amount: number; pct: number; }
 interface CmeLatest { date: string; close: number; prev_close: number; change: number; change_pct: number; }
-interface Sq4Data { stats: Sq4Stats; stats_by_price: Record<string, Sq4Stats>; stats_cme_down: Sq4Stats; stats_cme_up: Sq4Stats; max_dd: MaxDD; max_dd_cme_down: MaxDD; next_sq4: { entry_date: string; exit_date: string | null } | null; candidates: { as_of: string; count: number; price_5000_plus: number; price_under_5000: number }; monthly: Sq4Monthly[]; }
+interface Sq4Data { stats: Sq4Stats; stats_cme_down: Sq4Stats; stats_cme_up: Sq4Stats; max_dd: MaxDD; max_dd_cme_down: MaxDD; next_sq4: { entry_date: string; exit_date: string | null } | null; candidates: { as_of: string; count: number; sector: string }; monthly: Sq4Monthly[]; }
 interface CalendarResponse {
   today: { flags: string[] };
   upcoming: UpcomingEvent[];
