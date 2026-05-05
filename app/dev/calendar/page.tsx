@@ -245,7 +245,30 @@ export default function CalendarPage() {
       </div>
 
       {/* Upcoming — SQ-4 + Q統合 */}
-      {(upcomingEtf.length > 0 || (sq4?.next_sq4)) && (
+      {(upcomingEtf.length > 0 || (sq4?.next_sq4)) && (() => {
+        const getFriday = (dateStr: string) => {
+          const d = new Date(dateStr);
+          const day = d.getDay();
+          const diff = day === 0 ? 2 : day === 6 ? 1 : day === 1 ? 3 : day;
+          d.setDate(d.getDate() - diff + 5);
+          if (d.getDay() !== 5) d.setDate(d.getDate() - (d.getDay() - 5 + 7) % 7);
+          return d;
+        };
+        const cmeCheckDate = sq4?.next_sq4 ? (() => {
+          const entry = new Date(sq4.next_sq4.entry_date);
+          const fri = new Date(entry);
+          fri.setDate(entry.getDate() - ((entry.getDay() + 6) % 7) - 2);
+          if (fri.getDay() !== 5) {
+            const diff = (fri.getDay() + 2) % 7;
+            fri.setDate(fri.getDate() - diff);
+          }
+          // Simply: Friday before entry
+          const d = new Date(sq4.next_sq4.entry_date);
+          while (d.getDay() !== 5) d.setDate(d.getDate() - 1);
+          return d;
+        })() : null;
+
+        return (
         <div className="rounded-xl border border-border bg-card">
           <div className="px-4 py-2 border-b border-border/30">
             <p className="text-lg font-semibold">Upcoming</p>
@@ -256,12 +279,23 @@ export default function CalendarPage() {
                 <tr className="text-xs text-muted-foreground border-b border-border/30">
                   <th className="px-4 py-1.5 text-left">日付</th>
                   <th className="px-4 py-1.5 text-left">イベント</th>
-                  <th className="px-4 py-1.5 text-right">過去平均(%)</th>
-                  <th className="px-4 py-1.5 text-right">前年同期(%)</th>
+                  <th className="px-4 py-1.5 text-left">アクション</th>
+                  <th className="px-4 py-1.5 text-right">PF</th>
                 </tr>
               </thead>
               <tbody>
-                {/* SQ-4 next */}
+                {/* SQ-4 CME確認 */}
+                {sq4?.next_sq4 && cmeCheckDate && (
+                  <tr className="border-b border-border/10 hover:bg-muted/50 transition-colors h-9 md:h-12">
+                    <td className="px-4 py-1.5 text-sm md:text-base tabular-nums">{`${cmeCheckDate.getMonth() + 1}/${cmeCheckDate.getDate()}(${WEEKDAYS[cmeCheckDate.getDay()]})`}</td>
+                    <td className="px-4 py-1.5">
+                      <span className="inline-flex px-2 py-0.5 rounded text-xs md:text-sm font-medium bg-blue-500/20 text-blue-400">SQ-4 判定</span>
+                    </td>
+                    <td className="px-4 py-1.5 text-sm md:text-base text-muted-foreground">CME確認</td>
+                    <td className="px-4 py-1.5 text-sm md:text-base text-right tabular-nums">{sq4.stats_cme_down?.pf?.toFixed(2) ?? '—'}</td>
+                  </tr>
+                )}
+                {/* SQ-4 entry */}
                 {sq4?.next_sq4 && (
                   <tr className="border-b border-border/10 hover:bg-muted/50 transition-colors h-9 md:h-12">
                     <td className="px-4 py-1.5 text-sm md:text-base tabular-nums">{fmtDateWd(sq4.next_sq4.entry_date)}</td>
@@ -269,12 +303,17 @@ export default function CalendarPage() {
                       <span className="inline-flex px-2 py-0.5 rounded text-xs md:text-sm font-medium bg-emerald-500/20 text-emerald-400">SQ-4 買い</span>
                       <span className="ml-2 text-xs text-muted-foreground">→ {sq4.next_sq4.exit_date ? fmtDateWd(sq4.next_sq4.exit_date) : '?'}</span>
                     </td>
-                    <td className={`px-4 py-1.5 text-sm md:text-base text-right tabular-nums ${pnlColor(sq4.stats.avg_ret)}`}>{fmtPct2(sq4.stats.avg_ret)}</td>
+                    <td className="px-4 py-1.5 text-sm md:text-base text-muted-foreground">寄成</td>
                     <td className="px-4 py-1.5 text-sm md:text-base text-right tabular-nums text-muted-foreground">—</td>
                   </tr>
                 )}
                 {/* Q events */}
-                {upcomingEtf.map((ev, i) => (
+                {upcomingEtf.map((ev, i) => {
+                  const hasBuy = ev.flags.some(f => f.includes('買い'));
+                  const hasSell = ev.flags.some(f => f.includes('決済'));
+                  const action = hasBuy && hasSell ? '引成(売+買)' : hasBuy ? '引成' : hasSell ? '引成' : '';
+                  const showPf = i === 0 && stats.pf;
+                  return (
                   <tr key={i} className="border-b border-border/10 hover:bg-muted/50 transition-colors h-9 md:h-12">
                     <td className="px-4 py-1.5 text-sm md:text-base tabular-nums">{fmtDateWd(ev.date)}</td>
                     <td className="px-4 py-1.5">
@@ -284,19 +323,17 @@ export default function CalendarPage() {
                         ))}
                       </div>
                     </td>
-                    <td className={`px-4 py-1.5 text-sm md:text-base text-right tabular-nums ${pnlColor(ev.q_avg_ret)}`}>
-                      {ev.q_avg_ret != null ? fmtPct(ev.q_avg_ret) : '—'}
-                    </td>
-                    <td className={`px-4 py-1.5 text-sm md:text-base text-right tabular-nums ${pnlColor(ev.prev_year_ret)}`}>
-                      {ev.prev_year_ret != null ? fmtPct(ev.prev_year_ret) : '—'}
-                    </td>
+                    <td className="px-4 py-1.5 text-sm md:text-base text-muted-foreground">{action}</td>
+                    <td className="px-4 py-1.5 text-sm md:text-base text-right tabular-nums">{showPf ? stats.pf.toFixed(2) : '—'}</td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* SQ-4 Section */}
       {sq4 && (
