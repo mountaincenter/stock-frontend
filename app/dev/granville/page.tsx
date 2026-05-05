@@ -333,23 +333,23 @@ export default function GranvillePage() {
             </div>
             {/* Stats Cards */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3 px-4 py-3">
-              <div className="text-right">
+              <div className="text-center">
                 <div className="text-xs text-muted-foreground">Trades</div>
                 <div className="text-lg font-bold tabular-nums">{stats.total_trades}</div>
               </div>
-              <div className="text-right">
+              <div className="text-center">
                 <div className="text-xs text-muted-foreground">WR</div>
                 <div className="text-lg font-bold tabular-nums">{stats.win_rate?.toFixed(0)}%</div>
               </div>
-              <div className="text-right">
+              <div className="text-center">
                 <div className="text-xs text-muted-foreground">PF</div>
                 <div className="text-lg font-bold tabular-nums">{stats.pf?.toFixed(2)}</div>
               </div>
-              <div className="text-right">
+              <div className="text-center">
                 <div className="text-xs text-muted-foreground">Total PnL</div>
                 <div className={`text-lg font-bold tabular-nums ${(stats.total_pnl ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{stats.total_pnl != null ? `${stats.total_pnl >= 0 ? '+' : ''}${fmt(stats.total_pnl)}円` : '-'}</div>
               </div>
-              <div className="text-right">
+              <div className="text-center">
                 <div className="text-xs text-muted-foreground">MaxDD</div>
                 <div className="text-lg font-bold tabular-nums text-rose-400">{stats.max_dd ? `${fmt(stats.max_dd.amount)}円` : '-'}</div>
                 {stats.max_dd && <div className="text-xs text-muted-foreground tabular-nums">{stats.max_dd.pct.toFixed(1)}%</div>}
@@ -359,13 +359,14 @@ export default function GranvillePage() {
             {/* Year → Month → Trade 3-level drill-down */}
             {stats.year_summary && stats.year_summary.length > 0 && (
               <div className="overflow-x-auto border-t border-border/20">
-                <table className="w-full min-w-[900px]">
+                <table className="w-full min-w-[1000px]">
                   <thead><tr className="text-xs text-muted-foreground border-b border-border/30">
                     <th className="px-4 py-2 text-left">年</th>
                     <th className="px-4 py-2 text-right">Trades</th>
                     <th className="px-4 py-2 text-right">WR</th>
-                    <th className="px-4 py-2 text-right">PnL</th>
+                    <th className="px-4 py-2 text-right" colSpan={2}>PnL</th>
                     <th className="px-4 py-2 text-right">PF</th>
+                    <th className="px-4 py-2 text-right" colSpan={2}></th>
                     <th className="px-4 py-2 w-8"></th>
                   </tr></thead>
                   <tbody>
@@ -377,8 +378,9 @@ export default function GranvillePage() {
                           <td className="px-4 py-2 text-sm md:text-base font-medium tabular-nums">{ys.year}</td>
                           <td className="px-4 py-2 text-sm md:text-base text-right tabular-nums">{ys.n}</td>
                           <td className="px-4 py-2 text-sm md:text-base text-right tabular-nums">{ys.wr.toFixed(1)}%</td>
-                          <td className="px-4 py-2 text-sm md:text-base text-right tabular-nums font-medium">{fmtPnl(ys.pnl)}</td>
+                          <td className="px-4 py-2 text-sm md:text-base text-right tabular-nums font-medium" colSpan={2}>{fmtPnl(ys.pnl)}</td>
                           <td className="px-4 py-2 text-sm md:text-base text-right tabular-nums">{ys.pf != null ? ys.pf.toFixed(2) : '-'}</td>
+                          <td className="px-4 py-2" colSpan={2}></td>
                           <td className="px-4 py-2 text-muted-foreground">{isYearOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}</td>
                         </tr>,
                       ];
@@ -391,8 +393,8 @@ export default function GranvillePage() {
                               <td className="px-4 py-2 pl-8 text-sm tabular-nums text-muted-foreground">{parseInt(m.month.slice(5))}月</td>
                               <td className="px-4 py-2 text-sm text-right tabular-nums">{m.count}</td>
                               <td className={`px-4 py-2 text-sm text-right tabular-nums ${m.win_rate >= 55 ? 'text-emerald-400' : m.win_rate >= 45 ? 'text-amber-400' : 'text-rose-400'}`}>{m.win_rate.toFixed(1)}%</td>
-                              <td className="px-4 py-2 text-sm text-right tabular-nums font-medium">{fmtPnl(m.pnl)}</td>
-                              <td className="px-4 py-2"></td>
+                              <td className="px-4 py-2 text-sm text-right tabular-nums font-medium" colSpan={2}>{fmtPnl(m.pnl)}</td>
+                              <td className="px-4 py-2" colSpan={3}></td>
                               <td className="px-4 py-2 text-muted-foreground">{isMonthOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}</td>
                             </tr>
                           );
@@ -401,10 +403,13 @@ export default function GranvillePage() {
                               <tr key={`mh-${m.month}`} className="border-b border-border/20 bg-muted/20">
                                 <td className="px-4 py-1 pl-12 text-[10px] md:text-[11px] text-muted-foreground">コード</td>
                                 <td className="px-4 py-1 text-[10px] md:text-[11px] text-muted-foreground">銘柄</td>
-                                <td className="px-4 py-1 text-[10px] md:text-[11px] text-muted-foreground text-right">IN</td>
-                                <td className="px-4 py-1 text-[10px] md:text-[11px] text-muted-foreground text-right">OUT</td>
+                                <td className="px-4 py-1 text-[10px] md:text-[11px] text-muted-foreground text-right">エントリー日</td>
+                                <td className="px-4 py-1 text-[10px] md:text-[11px] text-muted-foreground text-right">エントリー価格</td>
+                                <td className="px-4 py-1 text-[10px] md:text-[11px] text-muted-foreground text-right">イグジット日</td>
+                                <td className="px-4 py-1 text-[10px] md:text-[11px] text-muted-foreground text-right">イグジット価格</td>
                                 <td className="px-4 py-1 text-[10px] md:text-[11px] text-muted-foreground text-right">PnL</td>
                                 <td className="px-4 py-1 text-[10px] md:text-[11px] text-muted-foreground text-right">PnL%</td>
+                                <td></td>
                               </tr>
                             );
                             monthTrades.forEach(t => {
@@ -418,9 +423,12 @@ export default function GranvillePage() {
                                   <td className="px-4 py-1.5 pl-12 text-xs md:text-sm tabular-nums font-medium">{t.ticker.replace('.T', '')}</td>
                                   <td className="px-4 py-1.5 text-xs md:text-sm text-muted-foreground">{t.stock_name}</td>
                                   <td className="px-4 py-1.5 text-xs md:text-sm text-right tabular-nums">{inStr}</td>
+                                  <td className="px-4 py-1.5 text-xs md:text-sm text-right tabular-nums">¥{fmt(t.entry_price)}</td>
                                   <td className="px-4 py-1.5 text-xs md:text-sm text-right tabular-nums">{outStr} <span className={`${exitLabel === '高値' ? 'text-emerald-400' : 'text-amber-400'}`}>{exitLabel}</span></td>
+                                  <td className="px-4 py-1.5 text-xs md:text-sm text-right tabular-nums">¥{fmt(t.exit_price)}</td>
                                   <td className="px-4 py-1.5 text-xs md:text-sm text-right tabular-nums font-medium">{fmtPnl(t.pnl_yen)}</td>
                                   <td className={`px-4 py-1.5 text-xs md:text-sm text-right tabular-nums ${t.ret_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{t.ret_pct >= 0 ? '+' : ''}{t.ret_pct.toFixed(2)}%</td>
+                                  <td></td>
                                 </tr>
                               );
                             });
