@@ -71,7 +71,9 @@ interface Position {
 }
 interface PositionsResponse { positions: Position[]; exits: Position[]; as_of: string | null; }
 interface MonthlyStats { month: string; count: number; pnl: number; win_rate: number; }
-interface StatsResponse { by_rule: Record<string, unknown>; monthly: MonthlyStats[]; total_trades: number; total_pnl?: number; win_rate?: number; pf?: number; }
+interface YearSummary { year: number; n: number; wins: number; wr: number; pnl: number; total_ret: number; pf: number | null; }
+interface MaxDD { amount: number; pct: number; }
+interface StatsResponse { by_rule: Record<string, unknown>; monthly: MonthlyStats[]; total_trades: number; total_pnl?: number; win_rate?: number; pf?: number; max_dd?: MaxDD; year_summary?: YearSummary[]; }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
@@ -317,48 +319,97 @@ export default function GranvillePage() {
           </section>
         )}
 
-        {/* B4 Monthly Performance */}
-        {stats && stats.monthly.length > 0 && (
+        {/* B4 Performance Summary */}
+        {stats && stats.total_trades > 0 && (
           <section className="mb-5 rounded-xl border border-border/40 bg-card overflow-hidden">
-            <div className="px-4 py-3 border-b border-border/30 flex items-center justify-between">
-              <h2 className="text-base font-semibold">B4 月別パフォーマンス</h2>
-              <div className="flex gap-4 text-sm tabular-nums text-muted-foreground">
-                <span>{stats.total_trades}件</span>
-                <span>WR {stats.win_rate?.toFixed(0)}%</span>
-                <span>PF {stats.pf?.toFixed(2)}</span>
-                {stats.total_pnl != null && <span className={stats.total_pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}>{stats.total_pnl >= 0 ? '+' : ''}{fmt(stats.total_pnl)}円</span>}
+            <div className="px-4 py-3 border-b border-border/30">
+              <h2 className="text-base font-semibold">B4 パフォーマンス</h2>
+            </div>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 px-4 py-3">
+              <div className="text-center">
+                <div className="text-xs text-muted-foreground">Trades</div>
+                <div className="text-lg font-bold tabular-nums">{stats.total_trades}</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xs text-muted-foreground">WR</div>
+                <div className="text-lg font-bold tabular-nums">{stats.win_rate?.toFixed(0)}%</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xs text-muted-foreground">PF</div>
+                <div className="text-lg font-bold tabular-nums">{stats.pf?.toFixed(2)}</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xs text-muted-foreground">Total PnL</div>
+                <div className={`text-lg font-bold tabular-nums ${(stats.total_pnl ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{stats.total_pnl != null ? `${stats.total_pnl >= 0 ? '+' : ''}${fmt(stats.total_pnl)}円` : '-'}</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xs text-muted-foreground">MaxDD</div>
+                <div className="text-lg font-bold tabular-nums text-rose-400">{stats.max_dd ? `${fmt(stats.max_dd.amount)}円` : '-'}</div>
+                {stats.max_dd && <div className="text-xs text-muted-foreground tabular-nums">{stats.max_dd.pct.toFixed(1)}%</div>}
               </div>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead><tr className="text-xs text-muted-foreground border-b border-border/30">
-                  <th className="px-4 py-2 text-left">月</th>
-                  <th className="px-4 py-2 text-right">件数</th>
-                  <th className="px-4 py-2 text-right">PnL</th>
-                  <th className="px-4 py-2 text-right">勝率</th>
-                  <th className="px-4 py-2 text-right hidden md:table-cell">累計</th>
-                </tr></thead>
-                <tbody>
-                  {(() => {
-                    const withCum: { m: MonthlyStats; cum: number }[] = [];
-                    let cumPnl = 0;
-                    for (const m of stats.monthly) {
-                      cumPnl += m.pnl;
-                      withCum.push({ m, cum: cumPnl });
-                    }
-                    return withCum.reverse().map(({ m, cum }) => (
-                      <tr key={m.month} className="border-b border-border/20 hover:bg-muted/30">
-                        <td className="px-4 py-2 tabular-nums font-medium">{m.month}</td>
-                        <td className="px-4 py-2 text-right tabular-nums">{m.count}</td>
-                        <td className="px-4 py-2 text-right tabular-nums">{fmtPnl(m.pnl)}</td>
-                        <td className={`px-4 py-2 text-right tabular-nums ${m.win_rate >= 55 ? 'text-emerald-400' : m.win_rate >= 45 ? 'text-amber-400' : 'text-rose-400'}`}>{m.win_rate.toFixed(1)}%</td>
-                        <td className="px-4 py-2 text-right tabular-nums hidden md:table-cell">{fmtPnl(cum)}</td>
+
+            {/* Year Summary */}
+            {stats.year_summary && stats.year_summary.length > 0 && (
+              <div className="overflow-x-auto border-t border-border/20">
+                <table className="w-full text-sm">
+                  <thead><tr className="text-xs text-muted-foreground border-b border-border/30">
+                    <th className="px-4 py-2 text-left">年</th>
+                    <th className="px-4 py-2 text-right">Trades</th>
+                    <th className="px-4 py-2 text-right">WR</th>
+                    <th className="px-4 py-2 text-right">PnL</th>
+                    <th className="px-4 py-2 text-right">PF</th>
+                  </tr></thead>
+                  <tbody>
+                    {stats.year_summary.slice().reverse().map(ys => (
+                      <tr key={ys.year} className="border-b border-border/20 hover:bg-muted/30">
+                        <td className="px-4 py-2 tabular-nums font-medium">{ys.year}</td>
+                        <td className="px-4 py-2 text-right tabular-nums">{ys.n}</td>
+                        <td className="px-4 py-2 text-right tabular-nums">{ys.wr.toFixed(0)}%</td>
+                        <td className="px-4 py-2 text-right tabular-nums">{fmtPnl(ys.pnl)}</td>
+                        <td className="px-4 py-2 text-right tabular-nums">{ys.pf != null ? ys.pf.toFixed(2) : '-'}</td>
                       </tr>
-                    ));
-                  })()}
-                </tbody>
-              </table>
-            </div>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Monthly Detail (collapsible) */}
+            <details className="border-t border-border/20">
+              <summary className="px-4 py-2.5 text-sm text-muted-foreground cursor-pointer hover:text-foreground">月別詳細（{stats.monthly.length}ヶ月）</summary>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead><tr className="text-xs text-muted-foreground border-b border-border/30">
+                    <th className="px-4 py-2 text-left">月</th>
+                    <th className="px-4 py-2 text-right">件数</th>
+                    <th className="px-4 py-2 text-right">PnL</th>
+                    <th className="px-4 py-2 text-right">勝率</th>
+                    <th className="px-4 py-2 text-right hidden md:table-cell">累計</th>
+                  </tr></thead>
+                  <tbody>
+                    {(() => {
+                      const withCum: { m: MonthlyStats; cum: number }[] = [];
+                      let cumPnl = 0;
+                      for (const m of stats.monthly) {
+                        cumPnl += m.pnl;
+                        withCum.push({ m, cum: cumPnl });
+                      }
+                      return withCum.reverse().map(({ m, cum }) => (
+                        <tr key={m.month} className="border-b border-border/20 hover:bg-muted/30">
+                          <td className="px-4 py-2 tabular-nums font-medium">{m.month}</td>
+                          <td className="px-4 py-2 text-right tabular-nums">{m.count}</td>
+                          <td className="px-4 py-2 text-right tabular-nums">{fmtPnl(m.pnl)}</td>
+                          <td className={`px-4 py-2 text-right tabular-nums ${m.win_rate >= 55 ? 'text-emerald-400' : m.win_rate >= 45 ? 'text-amber-400' : 'text-rose-400'}`}>{m.win_rate.toFixed(1)}%</td>
+                          <td className="px-4 py-2 text-right tabular-nums hidden md:table-cell">{fmtPnl(cum)}</td>
+                        </tr>
+                      ));
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            </details>
           </section>
         )}
 
