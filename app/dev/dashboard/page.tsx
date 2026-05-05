@@ -389,7 +389,7 @@ export default function DashboardPage() {
         )}
 
         {/* ===== 3 Strategy Overview ===== */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-5">
+        <div className="space-y-4 mb-5">
           {/* ── B4 ── */}
           <div className={`rounded-xl border bg-card overflow-hidden ${(b4Entry?.selected?.length ?? 0) > 0 ? 'border-emerald-500/30' : 'border-border'}`}>
             <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
