@@ -257,7 +257,7 @@ export default function DashboardPage() {
           const regime = longRecs?.regime;
           const cmeGap = regime?.cme_gap ?? b4Entry?.cme_gap;
           return (
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+            <div className="grid grid-cols-5 gap-3 mb-6">
               <StatCard label={`N225 トレンド${b4Entry?.date ? ` ${b4Entry.date}` : ''}`} sub={regime?.n225_close != null && regime?.n225_sma20 != null ? `${fmt(regime.n225_close)} vs SMA20 ${fmt(regime.n225_sma20)}` : undefined}>
                 <span className={regime?.n225_above_sma20 ? 'text-price-up' : regime?.n225_above_sma20 === false ? 'text-price-down' : 'text-muted-foreground'}>
                   {regime?.n225_above_sma20 != null ? (regime.n225_above_sma20 ? 'Uptrend' : 'Downtrend') : '-'}
@@ -275,9 +275,6 @@ export default function DashboardPage() {
               </StatCard>
               <StatCard label="含み損益" sub={`${active.length}件保有 / Exit: ${exits.length}件`}>
                 <span className={totalPnl >= 0 ? 'text-price-up' : 'text-price-down'}>{totalPnl >= 0 ? '+' : ''}{fmt(totalPnl)}円</span>
-              </StatCard>
-              <StatCard label="本日シグナル" sub={`B4: ${b4Entry?.selected?.length ?? 0} / Pairs: ${pairsData?.entry_count ?? 0}${calData?.today?.flags?.length ? ` / Cal: ${calData.today.flags.length}` : ''}`}>
-                <span className="text-foreground">{(b4Entry?.selected?.length ?? 0) + (pairsData?.entry_count ?? 0) + (calData?.today?.flags?.length ?? 0)}</span>
               </StatCard>
               <StatCard label="次回イベント" sub={(() => {
                 const parts: string[] = [];
