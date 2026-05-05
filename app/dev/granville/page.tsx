@@ -359,7 +359,7 @@ export default function GranvillePage() {
             {/* Year → Month → Trade 3-level drill-down */}
             {stats.year_summary && stats.year_summary.length > 0 && (
               <div className="overflow-x-auto border-t border-border/20">
-                <table className="w-full text-sm">
+                <table className="w-full min-w-[900px]">
                   <thead><tr className="text-xs text-muted-foreground border-b border-border/30">
                     <th className="px-4 py-2 text-left">年</th>
                     <th className="px-4 py-2 text-right">Trades</th>
@@ -373,13 +373,13 @@ export default function GranvillePage() {
                       const isYearOpen = expandedYears.has(ys.year);
                       const yearMonths = stats.monthly.filter(m => m.month.startsWith(String(ys.year))).slice().reverse();
                       const rows: React.ReactNode[] = [
-                        <tr key={`y-${ys.year}`} className="border-b border-border/20 hover:bg-muted/50 cursor-pointer" onClick={() => toggleYear(ys.year)}>
-                          <td className="px-4 py-2.5 font-medium tabular-nums">{ys.year}</td>
-                          <td className="px-4 py-2.5 text-right tabular-nums">{ys.n}</td>
-                          <td className="px-4 py-2.5 text-right tabular-nums">{ys.wr.toFixed(0)}%</td>
-                          <td className="px-4 py-2.5 text-right tabular-nums">{fmtPnl(ys.pnl)}</td>
-                          <td className="px-4 py-2.5 text-right tabular-nums">{ys.pf != null ? ys.pf.toFixed(2) : '-'}</td>
-                          <td className="px-4 py-2.5 text-muted-foreground">{isYearOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}</td>
+                        <tr key={`y-${ys.year}`} className="border-b border-border/20 hover:bg-muted/50 cursor-pointer h-9 md:h-14" onClick={() => toggleYear(ys.year)}>
+                          <td className="px-4 py-2 text-sm md:text-base font-medium tabular-nums">{ys.year}</td>
+                          <td className="px-4 py-2 text-sm md:text-base text-right tabular-nums">{ys.n}</td>
+                          <td className="px-4 py-2 text-sm md:text-base text-right tabular-nums">{ys.wr.toFixed(1)}%</td>
+                          <td className="px-4 py-2 text-sm md:text-base text-right tabular-nums font-medium">{fmtPnl(ys.pnl)}</td>
+                          <td className="px-4 py-2 text-sm md:text-base text-right tabular-nums">{ys.pf != null ? ys.pf.toFixed(2) : '-'}</td>
+                          <td className="px-4 py-2 text-muted-foreground">{isYearOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}</td>
                         </tr>,
                       ];
                       if (isYearOpen) {
@@ -387,39 +387,40 @@ export default function GranvillePage() {
                           const isMonthOpen = expandedMonths.has(m.month);
                           const monthTrades = (stats.trades || []).filter(t => t.entry_date.startsWith(m.month)).sort((a, b) => b.entry_date.localeCompare(a.entry_date));
                           rows.push(
-                            <tr key={`m-${m.month}`} className="border-b border-border/20 bg-muted/10 hover:bg-muted/30 cursor-pointer" onClick={() => toggleMonth(m.month)}>
-                              <td className="px-4 py-2 pl-8 tabular-nums text-muted-foreground">{m.month.slice(5)}月</td>
-                              <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">{m.count}</td>
-                              <td className={`px-4 py-2 text-right tabular-nums ${m.win_rate >= 55 ? 'text-emerald-400' : m.win_rate >= 45 ? 'text-amber-400' : 'text-rose-400'}`}>{m.win_rate.toFixed(0)}%</td>
-                              <td className="px-4 py-2 text-right tabular-nums">{fmtPnl(m.pnl)}</td>
+                            <tr key={`m-${m.month}`} className="border-b border-border/20 bg-muted/10 hover:bg-muted/30 cursor-pointer h-9" onClick={() => toggleMonth(m.month)}>
+                              <td className="px-4 py-2 pl-8 text-sm tabular-nums text-muted-foreground">{parseInt(m.month.slice(5))}月</td>
+                              <td className="px-4 py-2 text-sm text-right tabular-nums">{m.count}</td>
+                              <td className={`px-4 py-2 text-sm text-right tabular-nums ${m.win_rate >= 55 ? 'text-emerald-400' : m.win_rate >= 45 ? 'text-amber-400' : 'text-rose-400'}`}>{m.win_rate.toFixed(1)}%</td>
+                              <td className="px-4 py-2 text-sm text-right tabular-nums font-medium">{fmtPnl(m.pnl)}</td>
                               <td className="px-4 py-2"></td>
-                              <td className="px-4 py-2 text-muted-foreground">{isMonthOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}</td>
+                              <td className="px-4 py-2 text-muted-foreground">{isMonthOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}</td>
                             </tr>
                           );
                           if (isMonthOpen && monthTrades.length > 0) {
                             rows.push(
                               <tr key={`mh-${m.month}`} className="border-b border-border/20 bg-muted/20">
-                                <td className="px-4 py-1 pl-12 text-[10px] text-muted-foreground">銘柄</td>
-                                <td className="px-4 py-1 text-[10px] text-muted-foreground text-right">IN日</td>
-                                <td className="px-4 py-1 text-[10px] text-muted-foreground text-right">OUT日</td>
-                                <td className="px-4 py-1 text-[10px] text-muted-foreground text-right">PnL</td>
-                                <td className="px-4 py-1 text-[10px] text-muted-foreground text-right">PnL%</td>
-                                <td></td>
+                                <td className="px-4 py-1 pl-12 text-[10px] md:text-[11px] text-muted-foreground">コード</td>
+                                <td className="px-4 py-1 text-[10px] md:text-[11px] text-muted-foreground">銘柄</td>
+                                <td className="px-4 py-1 text-[10px] md:text-[11px] text-muted-foreground text-right">IN</td>
+                                <td className="px-4 py-1 text-[10px] md:text-[11px] text-muted-foreground text-right">OUT</td>
+                                <td className="px-4 py-1 text-[10px] md:text-[11px] text-muted-foreground text-right">PnL</td>
+                                <td className="px-4 py-1 text-[10px] md:text-[11px] text-muted-foreground text-right">PnL%</td>
                               </tr>
                             );
                             monthTrades.forEach(t => {
+                              const d1 = new Date(t.entry_date);
+                              const d2 = new Date(t.exit_date);
+                              const inStr = `${d1.getMonth() + 1}/${d1.getDate()}`;
+                              const outStr = `${d2.getMonth() + 1}/${d2.getDate()}`;
                               const exitLabel = t.exit_type === '20d_high' || t.exit_type === 'high_update' ? '高値' : 'MH';
                               rows.push(
-                                <tr key={`t-${t.entry_date}-${t.ticker}`} className="border-b border-border/10 bg-muted/20 hover:bg-muted/40">
-                                  <td className="px-4 py-1.5 pl-12 text-xs tabular-nums">
-                                    <span className="font-medium">{t.ticker.replace('.T', '')}</span>
-                                    <span className="ml-1 text-muted-foreground">{t.stock_name}</span>
-                                  </td>
-                                  <td className="px-4 py-1.5 text-xs text-right tabular-nums text-muted-foreground">{t.entry_date.slice(5)}</td>
-                                  <td className="px-4 py-1.5 text-xs text-right tabular-nums text-muted-foreground">{t.exit_date.slice(5)} <span className={`${exitLabel === '高値' ? 'text-emerald-400' : 'text-amber-400'}`}>{exitLabel}</span></td>
-                                  <td className="px-4 py-1.5 text-xs text-right tabular-nums">{fmtPnl(t.pnl_yen)}</td>
-                                  <td className={`px-4 py-1.5 text-xs text-right tabular-nums ${t.ret_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{t.ret_pct >= 0 ? '+' : ''}{t.ret_pct.toFixed(2)}%</td>
-                                  <td></td>
+                                <tr key={`t-${t.entry_date}-${t.ticker}`} className="border-b border-border/10 bg-muted/20 hover:bg-muted/40 h-9">
+                                  <td className="px-4 py-1.5 pl-12 text-xs md:text-sm tabular-nums font-medium">{t.ticker.replace('.T', '')}</td>
+                                  <td className="px-4 py-1.5 text-xs md:text-sm text-muted-foreground">{t.stock_name}</td>
+                                  <td className="px-4 py-1.5 text-xs md:text-sm text-right tabular-nums">{inStr}</td>
+                                  <td className="px-4 py-1.5 text-xs md:text-sm text-right tabular-nums">{outStr} <span className={`${exitLabel === '高値' ? 'text-emerald-400' : 'text-amber-400'}`}>{exitLabel}</span></td>
+                                  <td className="px-4 py-1.5 text-xs md:text-sm text-right tabular-nums font-medium">{fmtPnl(t.pnl_yen)}</td>
+                                  <td className={`px-4 py-1.5 text-xs md:text-sm text-right tabular-nums ${t.ret_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{t.ret_pct >= 0 ? '+' : ''}{t.ret_pct.toFixed(2)}%</td>
                                 </tr>
                               );
                             });
