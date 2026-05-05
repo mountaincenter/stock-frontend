@@ -11,7 +11,7 @@ interface Trade { entry_date: string; exit_date: string; month: number; year: nu
 interface YearSummary { year: number; n: number; wins: number; wr: number; total_ret: number; pnl_1000: number | null; pf: number | null; max_dd: number; }
 interface Stats { total: number; wins: number; losses: number; wr: number; avg: number; median: number; max: number; min: number; pf: number; total_ret: number; pnl_1000: number; }
 interface Sq4Stats { total: number; wins: number; losses: number; wr: number; avg_ret: number; pf: number | null; total_ret: number; total_pnl_100: number; }
-interface Sq4Pick { code: string; name: string; prev_close: number; ret_5d?: number; entry_price: number; exit_price: number; gap_pct?: number; ret_pct: number; pnl_100: number; entry_date?: string; exit_date?: string; }
+interface Sq4Pick { code: string; name: string; prev_close: number; ret_5d?: number; entry_price: number; exit_price: number; ret_pct: number; pnl_100: number; entry_date?: string; exit_date?: string; }
 interface Sq4Monthly { month: string; entry_date: string; exit_date: string; n_picks: number; total_ret: number; total_pnl_100: number; cme_change: number | null; cme_ret: number | null; picks: Sq4Pick[]; }
 interface MaxDD { amount: number; pct: number; }
 interface CmeLatest { date: string; close: number; prev_close: number; change: number; change_pct: number; }
@@ -342,7 +342,7 @@ export default function CalendarPage() {
           {/* SQ-4 Monthly Results */}
           <div className="rounded-xl border border-border bg-card">
             <div className="px-4 py-2 border-b border-border/30">
-              <p className="text-lg font-semibold">SQ-4 Gap-down Top10 — 月次結果</p>
+              <p className="text-lg font-semibold">SQ-4 外需×5日ret worst10 — 月次結果</p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -375,7 +375,7 @@ export default function CalendarPage() {
                       rows.push(
                         <tr key={`sq4h-${m.month}`} className="border-b border-border/20 bg-muted/10">
                           <td className="px-4 py-1.5 pl-8 text-xs text-muted-foreground" colSpan={2}>銘柄</td>
-                          <td className="px-4 py-1.5 text-xs text-muted-foreground text-right">Gap</td>
+                          <td className="px-4 py-1.5 text-xs text-muted-foreground text-right">5日ret</td>
                           <td className="px-4 py-1.5 text-xs text-muted-foreground text-right">前日終値</td>
                           <td className="px-4 py-1.5 text-xs text-muted-foreground text-right">当日終値</td>
                           <td className="px-4 py-1.5 text-xs text-muted-foreground text-right">PnL(100株)</td>
@@ -387,7 +387,7 @@ export default function CalendarPage() {
                           <tr key={`sq4p-${m.month}-${pi}`} className="border-b border-border/10 hover:bg-muted/30 transition-colors h-9">
                             <td className="px-4 py-1.5 pl-8 text-sm tabular-nums">{p.code}</td>
                             <td className="px-4 py-1.5 text-sm text-muted-foreground truncate max-w-[140px]">{p.name}</td>
-                            <td className={`px-4 py-1.5 text-sm text-right tabular-nums ${pnlColor(p.gap_pct)}`}>{fmtPct2(p.gap_pct)}</td>
+                            <td className={`px-4 py-1.5 text-sm text-right tabular-nums ${pnlColor(p.ret_5d)}`}>{fmtPct2(p.ret_5d)}</td>
                             <td className="px-4 py-1.5 text-sm text-right tabular-nums">{fmtInt(p.prev_close)}</td>
                             <td className="px-4 py-1.5 text-sm text-right tabular-nums">{fmtInt(p.exit_price)}</td>
                             <td className={`px-4 py-1.5 text-sm text-right tabular-nums font-medium ${pnlColor(p.pnl_100)}`}>{fmtPnl(p.pnl_100)}</td>
