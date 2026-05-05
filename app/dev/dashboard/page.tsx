@@ -75,6 +75,7 @@ interface PairsResponse {
 interface CalendarResponse {
   today: { flags: string[] };
   upcoming: { date: string; flags: string[] }[];
+  cme_latest: { date: string; close: number; change: number; change_pct: number } | null;
   sq4: {
     next_sq4: { entry_date: string; exit_date: string | null } | null;
     stats_cme_down: { total: number; wr: number; pf: number | null; total_pnl_100: number };
@@ -263,7 +264,7 @@ export default function DashboardPage() {
                   {regime?.n225_above_sma20 != null ? (regime.n225_above_sma20 ? 'Uptrend' : 'Downtrend') : '-'}
                 </span>
               </StatCard>
-              <StatCard label="CME gap" sub={regime?.cme_close != null ? `CME ${fmt(regime.cme_close)}${b4Entry?.n225_chg != null ? ` / 前日比 ${b4Entry.n225_chg >= 0 ? '+' : ''}${b4Entry.n225_chg.toFixed(2)}%` : ''}` : cmeGap != null && Math.abs(cmeGap) <= 0.5 ? 'flat (±0.5%)' : undefined}>
+              <StatCard label={`CME gap${calData?.cme_latest?.date ? ` ${(() => { const d = new Date(calData.cme_latest.date); return `${d.getMonth()+1}/${d.getDate()}`; })()}` : ''}`} sub={regime?.cme_close != null ? `CME ${fmt(regime.cme_close)}${b4Entry?.n225_chg != null ? ` / 前日比 ${b4Entry.n225_chg >= 0 ? '+' : ''}${b4Entry.n225_chg.toFixed(2)}%` : ''}` : cmeGap != null && Math.abs(cmeGap) <= 0.5 ? 'flat (±0.5%)' : undefined}>
                 <span className={cmeGap != null ? (cmeGap >= 0 ? 'text-price-up' : 'text-price-down') : 'text-muted-foreground'}>
                   {cmeGap != null ? `${cmeGap >= 0 ? '+' : ''}${cmeGap.toFixed(2)}%` : '-'}
                 </span>
