@@ -11,7 +11,7 @@ interface Trade { entry_date: string; exit_date: string; month: number; year: nu
 interface YearSummary { year: number; n: number; wins: number; wr: number; total_ret: number; pnl_1000: number | null; pf: number | null; max_dd: number; }
 interface Stats { total: number; wins: number; losses: number; wr: number; avg: number; median: number; max: number; min: number; pf: number; total_ret: number; pnl_1000: number; }
 interface Sq4Stats { total: number; wins: number; losses: number; wr: number; avg_ret: number; pf: number | null; total_ret: number; total_pnl_100: number; }
-interface Sq4Pick { code: string; prev_close: number; entry_price: number; exit_price: number; gap_pct: number; ret_pct: number; pnl_100: number; entry_date?: string; exit_date?: string; }
+interface Sq4Pick { code: string; name: string; prev_close: number; entry_price: number; exit_price: number; gap_pct: number; ret_pct: number; pnl_100: number; entry_date?: string; exit_date?: string; }
 interface Sq4Monthly { month: string; entry_date: string; exit_date: string; n_picks: number; total_ret: number; total_pnl_100: number; picks: Sq4Pick[]; }
 interface Sq4Data { stats: Sq4Stats; stats_by_price: Record<string, Sq4Stats>; next_sq4: { entry_date: string; exit_date: string | null } | null; candidates: { as_of: string; count: number; price_5000_plus: number; price_under_5000: number }; monthly: Sq4Monthly[]; }
 interface CalendarResponse {
@@ -32,11 +32,24 @@ const fmtPct = (v: number | null | undefined) => {
   const sign = v > 0 ? '+' : '';
   return `${sign}${v.toFixed(3)}%`;
 };
+const fmtPct2 = (v: number | null | undefined) => {
+  if (v == null) return '—';
+  const sign = v > 0 ? '+' : '';
+  return `${sign}${v.toFixed(2)}%`;
+};
 const fmtPrice = (v: number | null | undefined) => v != null ? v.toFixed(1) : '—';
+const fmtInt = (v: number | null | undefined) => {
+  if (v == null) return '—';
+  return Number.isInteger(v) ? v.toLocaleString('ja-JP') : v.toFixed(1);
+};
 const fmtPnl = (v: number | null | undefined) => {
   if (v == null) return '—';
   const sign = v > 0 ? '+' : '';
   return `${sign}${v.toLocaleString('ja-JP')}`;
+};
+const fmtDateWd = (dateStr: string) => {
+  const d = new Date(dateStr);
+  return `${d.getMonth() + 1}/${d.getDate()}(${WEEKDAYS[d.getDay()]})`;
 };
 const pnlColor = (v: number | null | undefined) => {
   if (v == null || v === 0) return '';
@@ -283,12 +296,11 @@ export default function CalendarPage() {
               <table className="w-full">
                 <thead>
                   <tr className="text-xs text-muted-foreground border-b border-border/30">
-                    <th className="px-4 py-2 text-left">月</th>
-                    <th className="px-4 py-2 text-left">Entry → Exit</th>
+                    <th className="px-4 py-2 text-left" colSpan={2}>月</th>
+                    <th className="px-4 py-2 text-left" colSpan={2}>Entry → Exit</th>
                     <th className="px-4 py-2 text-right">N</th>
-                    <th className="px-4 py-2 text-right">Total Ret</th>
                     <th className="px-4 py-2 text-right">PnL(100株)</th>
-                    <th className="px-4 py-2 w-8"></th>
+                    <th className="px-4 py-2 text-right">PnL(%)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -298,36 +310,34 @@ export default function CalendarPage() {
                       <tr key={`sq4-${m.month}`}
                           className="border-b border-border/20 hover:bg-muted/50 transition-colors cursor-pointer h-9 md:h-12"
                           onClick={() => toggleSq4Month(m.month)}>
-                        <td className="px-4 py-1.5 text-sm md:text-base font-medium">{m.month}</td>
-                        <td className="px-4 py-1.5 text-sm md:text-base tabular-nums text-muted-foreground">{m.entry_date.slice(5)} → {m.exit_date.slice(5)}</td>
+                        <td className="px-4 py-1.5 text-sm md:text-base font-medium" colSpan={2}>{m.month}</td>
+                        <td className="px-4 py-1.5 text-sm md:text-base tabular-nums text-muted-foreground" colSpan={2}>{fmtDateWd(m.entry_date)} → {fmtDateWd(m.exit_date)}</td>
                         <td className="px-4 py-1.5 text-sm md:text-base text-right tabular-nums">{m.n_picks}</td>
-                        <td className={`px-4 py-1.5 text-sm md:text-base text-right tabular-nums font-medium ${pnlColor(m.total_ret)}`}>{m.total_ret > 0 ? '+' : ''}{m.total_ret.toFixed(2)}%</td>
-                        <td className={`px-4 py-1.5 text-sm md:text-base text-right tabular-nums ${pnlColor(m.total_pnl_100)}`}>{fmtPnl(m.total_pnl_100)}</td>
-                        <td className="px-4 py-1.5 text-muted-foreground">
-                          {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-                        </td>
+                        <td className={`px-4 py-1.5 text-sm md:text-base text-right tabular-nums font-medium ${pnlColor(m.total_pnl_100)}`}>{fmtPnl(m.total_pnl_100)}</td>
+                        <td className={`px-4 py-1.5 text-sm md:text-base text-right tabular-nums font-medium ${pnlColor(m.total_ret)}`}>{fmtPct2(m.total_ret)}</td>
                       </tr>,
                     ];
                     if (isExpanded) {
                       rows.push(
                         <tr key={`sq4h-${m.month}`} className="border-b border-border/20 bg-muted/10">
-                          <td className="px-4 py-1 pl-8 text-[10px] text-muted-foreground">Code</td>
-                          <td className="px-4 py-1 text-[10px] text-muted-foreground">Gap</td>
-                          <td className="px-4 py-1 text-[10px] text-muted-foreground text-right">Entry</td>
-                          <td className="px-4 py-1 text-[10px] text-muted-foreground text-right">Exit</td>
-                          <td className="px-4 py-1 text-[10px] text-muted-foreground text-right">Ret</td>
-                          <td></td>
+                          <td className="px-4 py-1 pl-8 text-[10px] text-muted-foreground" colSpan={2}>銘柄</td>
+                          <td className="px-4 py-1 text-[10px] text-muted-foreground text-right">Gap</td>
+                          <td className="px-4 py-1 text-[10px] text-muted-foreground text-right">前日終値</td>
+                          <td className="px-4 py-1 text-[10px] text-muted-foreground text-right">当日終値</td>
+                          <td className="px-4 py-1 text-[10px] text-muted-foreground text-right">PnL(100株)</td>
+                          <td className="px-4 py-1 text-[10px] text-muted-foreground text-right">PnL(%)</td>
                         </tr>
                       );
                       m.picks.forEach((p, pi) => {
                         rows.push(
                           <tr key={`sq4p-${m.month}-${pi}`} className="border-b border-border/10 hover:bg-muted/30 transition-colors h-8">
                             <td className="px-4 py-1 pl-8 text-xs tabular-nums font-mono">{p.code}</td>
-                            <td className="px-4 py-1 text-xs tabular-nums text-muted-foreground">{p.gap_pct.toFixed(2)}%</td>
-                            <td className="px-4 py-1 text-xs text-right tabular-nums">{p.entry_price.toFixed(1)}</td>
-                            <td className="px-4 py-1 text-xs text-right tabular-nums">{p.exit_price.toFixed(1)}</td>
-                            <td className={`px-4 py-1 text-xs text-right tabular-nums font-medium ${pnlColor(p.ret_pct)}`}>{p.ret_pct > 0 ? '+' : ''}{p.ret_pct.toFixed(2)}%</td>
-                            <td></td>
+                            <td className="px-4 py-1 text-xs text-muted-foreground truncate max-w-[120px]">{p.name}</td>
+                            <td className={`px-4 py-1 text-xs text-right tabular-nums ${pnlColor(p.gap_pct)}`}>{fmtPct2(p.gap_pct)}</td>
+                            <td className="px-4 py-1 text-xs text-right tabular-nums">{fmtInt(p.prev_close)}</td>
+                            <td className="px-4 py-1 text-xs text-right tabular-nums">{fmtInt(p.exit_price)}</td>
+                            <td className={`px-4 py-1 text-xs text-right tabular-nums font-medium ${pnlColor(p.pnl_100)}`}>{fmtPnl(p.pnl_100)}</td>
+                            <td className={`px-4 py-1 text-xs text-right tabular-nums font-medium ${pnlColor(p.ret_pct)}`}>{fmtPct2(p.ret_pct)}</td>
                           </tr>
                         );
                       });
