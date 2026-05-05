@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { DevNavLinks } from '../../../components/dev';
 
 // === localStorage チェック状態管理 ===
@@ -73,7 +74,8 @@ interface PositionsResponse { positions: Position[]; exits: Position[]; as_of: s
 interface MonthlyStats { month: string; count: number; pnl: number; win_rate: number; }
 interface YearSummary { year: number; n: number; wins: number; wr: number; pnl: number; total_ret: number; pf: number | null; }
 interface MaxDD { amount: number; pct: number; }
-interface StatsResponse { by_rule: Record<string, unknown>; monthly: MonthlyStats[]; total_trades: number; total_pnl?: number; win_rate?: number; pf?: number; max_dd?: MaxDD; year_summary?: YearSummary[]; }
+interface B4Trade { ticker: string; stock_name: string; entry_date: string; exit_date: string; entry_price: number; exit_price: number; ret_pct: number; pnl_yen: number; exit_type: string; }
+interface StatsResponse { by_rule: Record<string, unknown>; monthly: MonthlyStats[]; trades?: B4Trade[]; total_trades: number; total_pnl?: number; win_rate?: number; pf?: number; max_dd?: MaxDD; year_summary?: YearSummary[]; }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
@@ -88,6 +90,10 @@ export default function GranvillePage() {
   const [posData, setPosData] = useState<PositionsResponse | null>(null);
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [expandedYears, setExpandedYears] = useState<Set<number>>(new Set());
+  const toggleYear = (y: number) => setExpandedYears(prev => { const next = new Set(prev); next.has(y) ? next.delete(y) : next.add(y); return next; });
+  const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
+  const toggleMonth = (m: string) => setExpandedMonths(prev => { const next = new Set(prev); next.has(m) ? next.delete(m) : next.add(m); return next; });
 
   useEffect(() => {
     setLoading(true);
@@ -350,7 +356,7 @@ export default function GranvillePage() {
               </div>
             </div>
 
-            {/* Year Summary */}
+            {/* Year → Month → Trade 3-level drill-down */}
             {stats.year_summary && stats.year_summary.length > 0 && (
               <div className="overflow-x-auto border-t border-border/20">
                 <table className="w-full text-sm">
@@ -358,58 +364,74 @@ export default function GranvillePage() {
                     <th className="px-4 py-2 text-left">年</th>
                     <th className="px-4 py-2 text-right">Trades</th>
                     <th className="px-4 py-2 text-right">WR</th>
-                    <th className="px-4 py-2 text-right">PnL</th>
+                    <th className="px-4 py-2 text-right">PnL(万)</th>
                     <th className="px-4 py-2 text-right">PF</th>
+                    <th className="px-4 py-2 w-8"></th>
                   </tr></thead>
                   <tbody>
-                    {stats.year_summary.slice().reverse().map(ys => (
-                      <tr key={ys.year} className="border-b border-border/20 hover:bg-muted/30">
-                        <td className="px-4 py-2 tabular-nums font-medium">{ys.year}</td>
-                        <td className="px-4 py-2 text-right tabular-nums">{ys.n}</td>
-                        <td className="px-4 py-2 text-right tabular-nums">{ys.wr.toFixed(0)}%</td>
-                        <td className="px-4 py-2 text-right tabular-nums">{fmtPnl(ys.pnl)}</td>
-                        <td className="px-4 py-2 text-right tabular-nums">{ys.pf != null ? ys.pf.toFixed(2) : '-'}</td>
-                      </tr>
-                    ))}
+                    {stats.year_summary.slice().reverse().flatMap(ys => {
+                      const isYearOpen = expandedYears.has(ys.year);
+                      const yearMonths = stats.monthly.filter(m => m.month.startsWith(String(ys.year))).slice().reverse();
+                      const rows: React.ReactNode[] = [
+                        <tr key={`y-${ys.year}`} className="border-b border-border/20 hover:bg-muted/50 cursor-pointer" onClick={() => toggleYear(ys.year)}>
+                          <td className="px-4 py-2.5 font-medium tabular-nums">{ys.year}</td>
+                          <td className="px-4 py-2.5 text-right tabular-nums">{ys.n}</td>
+                          <td className="px-4 py-2.5 text-right tabular-nums">{ys.wr.toFixed(0)}%</td>
+                          <td className="px-4 py-2.5 text-right tabular-nums">{fmtPnl(Math.round(ys.pnl / 10000))}</td>
+                          <td className="px-4 py-2.5 text-right tabular-nums">{ys.pf != null ? ys.pf.toFixed(2) : '-'}</td>
+                          <td className="px-4 py-2.5 text-muted-foreground">{isYearOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}</td>
+                        </tr>,
+                      ];
+                      if (isYearOpen) {
+                        yearMonths.forEach(m => {
+                          const isMonthOpen = expandedMonths.has(m.month);
+                          const monthTrades = (stats.trades || []).filter(t => t.entry_date.startsWith(m.month)).sort((a, b) => b.entry_date.localeCompare(a.entry_date));
+                          rows.push(
+                            <tr key={`m-${m.month}`} className="border-b border-border/20 bg-muted/10 hover:bg-muted/30 cursor-pointer" onClick={() => toggleMonth(m.month)}>
+                              <td className="px-4 py-2 pl-8 tabular-nums text-muted-foreground">{m.month.slice(5)}月</td>
+                              <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">{m.count}</td>
+                              <td className={`px-4 py-2 text-right tabular-nums ${m.win_rate >= 55 ? 'text-emerald-400' : m.win_rate >= 45 ? 'text-amber-400' : 'text-rose-400'}`}>{m.win_rate.toFixed(0)}%</td>
+                              <td className="px-4 py-2 text-right tabular-nums">{fmtPnl(Math.round(m.pnl / 10000))}</td>
+                              <td className="px-4 py-2"></td>
+                              <td className="px-4 py-2 text-muted-foreground">{isMonthOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}</td>
+                            </tr>
+                          );
+                          if (isMonthOpen && monthTrades.length > 0) {
+                            rows.push(
+                              <tr key={`mh-${m.month}`} className="border-b border-border/20 bg-muted/20">
+                                <td className="px-4 py-1 pl-12 text-[10px] text-muted-foreground">銘柄</td>
+                                <td className="px-4 py-1 text-[10px] text-muted-foreground text-right">IN日</td>
+                                <td className="px-4 py-1 text-[10px] text-muted-foreground text-right">OUT日</td>
+                                <td className="px-4 py-1 text-[10px] text-muted-foreground text-right">PnL</td>
+                                <td className="px-4 py-1 text-[10px] text-muted-foreground text-right">PnL%</td>
+                                <td></td>
+                              </tr>
+                            );
+                            monthTrades.forEach(t => {
+                              const exitLabel = t.exit_type === '20d_high' || t.exit_type === 'high_update' ? '高値' : 'MH';
+                              rows.push(
+                                <tr key={`t-${t.entry_date}-${t.ticker}`} className="border-b border-border/10 bg-muted/20 hover:bg-muted/40">
+                                  <td className="px-4 py-1.5 pl-12 text-xs tabular-nums">
+                                    <span className="font-medium">{t.ticker.replace('.T', '')}</span>
+                                    <span className="ml-1 text-muted-foreground">{t.stock_name}</span>
+                                  </td>
+                                  <td className="px-4 py-1.5 text-xs text-right tabular-nums text-muted-foreground">{t.entry_date.slice(5)}</td>
+                                  <td className="px-4 py-1.5 text-xs text-right tabular-nums text-muted-foreground">{t.exit_date.slice(5)} <span className={`${exitLabel === '高値' ? 'text-emerald-400' : 'text-amber-400'}`}>{exitLabel}</span></td>
+                                  <td className="px-4 py-1.5 text-xs text-right tabular-nums">{fmtPnl(t.pnl_yen)}</td>
+                                  <td className={`px-4 py-1.5 text-xs text-right tabular-nums ${t.ret_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{t.ret_pct >= 0 ? '+' : ''}{t.ret_pct.toFixed(2)}%</td>
+                                  <td></td>
+                                </tr>
+                              );
+                            });
+                          }
+                        });
+                      }
+                      return rows;
+                    })}
                   </tbody>
                 </table>
               </div>
             )}
-
-            {/* Monthly Detail (collapsible) */}
-            <details className="border-t border-border/20">
-              <summary className="px-4 py-2.5 text-sm text-muted-foreground cursor-pointer hover:text-foreground">月別詳細（{stats.monthly.length}ヶ月）</summary>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead><tr className="text-xs text-muted-foreground border-b border-border/30">
-                    <th className="px-4 py-2 text-left">月</th>
-                    <th className="px-4 py-2 text-right">件数</th>
-                    <th className="px-4 py-2 text-right">PnL</th>
-                    <th className="px-4 py-2 text-right">勝率</th>
-                    <th className="px-4 py-2 text-right hidden md:table-cell">累計</th>
-                  </tr></thead>
-                  <tbody>
-                    {(() => {
-                      const withCum: { m: MonthlyStats; cum: number }[] = [];
-                      let cumPnl = 0;
-                      for (const m of stats.monthly) {
-                        cumPnl += m.pnl;
-                        withCum.push({ m, cum: cumPnl });
-                      }
-                      return withCum.reverse().map(({ m, cum }) => (
-                        <tr key={m.month} className="border-b border-border/20 hover:bg-muted/30">
-                          <td className="px-4 py-2 tabular-nums font-medium">{m.month}</td>
-                          <td className="px-4 py-2 text-right tabular-nums">{m.count}</td>
-                          <td className="px-4 py-2 text-right tabular-nums">{fmtPnl(m.pnl)}</td>
-                          <td className={`px-4 py-2 text-right tabular-nums ${m.win_rate >= 55 ? 'text-emerald-400' : m.win_rate >= 45 ? 'text-amber-400' : 'text-rose-400'}`}>{m.win_rate.toFixed(1)}%</td>
-                          <td className="px-4 py-2 text-right tabular-nums hidden md:table-cell">{fmtPnl(cum)}</td>
-                        </tr>
-                      ));
-                    })()}
-                  </tbody>
-                </table>
-              </div>
-            </details>
           </section>
         )}
 
