@@ -257,18 +257,18 @@ export default function DashboardPage() {
           const regime = longRecs?.regime;
           const cmeGap = regime?.cme_gap ?? b4Entry?.cme_gap;
           return (
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
-              <StatCard label={`N225 トレンド${b4Entry?.date ? ` ${b4Entry.date}` : ''}`} sub={regime?.n225_close != null && regime?.n225_sma20 != null ? `N225: ${fmt(regime.n225_close)} / SMA20: ${fmt(regime.n225_sma20)}${regime?.n225_ret20 != null ? ` / ret20: ${regime.n225_ret20 >= 0 ? '+' : ''}${regime.n225_ret20.toFixed(1)}%` : ''}` : undefined}>
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+              <StatCard label={`N225 トレンド${b4Entry?.date ? ` ${b4Entry.date}` : ''}`} sub={regime?.n225_close != null && regime?.n225_sma20 != null ? `${fmt(regime.n225_close)} vs SMA20 ${fmt(regime.n225_sma20)}` : undefined}>
                 <span className={regime?.n225_above_sma20 ? 'text-price-up' : regime?.n225_above_sma20 === false ? 'text-price-down' : 'text-muted-foreground'}>
                   {regime?.n225_above_sma20 != null ? (regime.n225_above_sma20 ? 'Uptrend' : 'Downtrend') : '-'}
                 </span>
               </StatCard>
-              <StatCard label="CME gap" sub={regime?.cme_close != null && regime?.n225_close != null ? `CME: ${fmt(regime.cme_close)} / N225: ${fmt(regime.n225_close)}${b4Entry?.n225_chg != null ? ` / 前日比: ${b4Entry.n225_chg >= 0 ? '+' : ''}${b4Entry.n225_chg.toFixed(2)}%` : ''}` : cmeGap != null && Math.abs(cmeGap) <= 0.5 ? 'flat (±0.5%)' : undefined}>
+              <StatCard label="CME gap" sub={regime?.cme_close != null ? `CME ${fmt(regime.cme_close)}${b4Entry?.n225_chg != null ? ` / 前日比 ${b4Entry.n225_chg >= 0 ? '+' : ''}${b4Entry.n225_chg.toFixed(2)}%` : ''}` : cmeGap != null && Math.abs(cmeGap) <= 0.5 ? 'flat (±0.5%)' : undefined}>
                 <span className={cmeGap != null ? (cmeGap >= 0 ? 'text-price-up' : 'text-price-down') : 'text-muted-foreground'}>
                   {cmeGap != null ? `${cmeGap >= 0 ? '+' : ''}${cmeGap.toFixed(2)}%` : '-'}
                 </span>
               </StatCard>
-              <StatCard label="日経VI" sub={vi !== null && vi >= 30 ? 'H1発動圏' : vi !== null && vi >= 25 ? 'B4発動圏' : vi !== null && vi >= 20 ? '逆張り有効' : undefined}>
+              <StatCard label="日経VI" sub={vi !== null && vi >= 30 ? 'B4発動圏 (高VI)' : vi !== null && vi >= 25 ? 'B4発動圏' : vi !== null && vi >= 20 ? 'B4監視' : vi !== null ? '静穏' : undefined}>
                 <span className={vi !== null && vi >= 30 ? 'text-price-down' : vi !== null && vi >= 25 ? 'text-amber-400' : vi !== null && vi >= 20 ? 'text-price-up' : 'text-muted-foreground'}>
                   {vi ?? '-'}
                 </span>
@@ -276,8 +276,28 @@ export default function DashboardPage() {
               <StatCard label="含み損益" sub={`${active.length}件保有 / Exit: ${exits.length}件`}>
                 <span className={totalPnl >= 0 ? 'text-price-up' : 'text-price-down'}>{totalPnl >= 0 ? '+' : ''}{fmt(totalPnl)}円</span>
               </StatCard>
-              <StatCard label="本日シグナル" sub={`B4: ${b4Entry?.selected?.length ?? 0} / P: ${pairsData?.entry_count ?? 0}`}>
-                <span className="text-foreground">{(b4Entry?.selected?.length ?? 0) + (pairsData?.entry_count ?? 0)}</span>
+              <StatCard label="本日シグナル" sub={`B4: ${b4Entry?.selected?.length ?? 0} / Pairs: ${pairsData?.entry_count ?? 0}${calData?.today?.flags?.length ? ` / Cal: ${calData.today.flags.length}` : ''}`}>
+                <span className="text-foreground">{(b4Entry?.selected?.length ?? 0) + (pairsData?.entry_count ?? 0) + (calData?.today?.flags?.length ?? 0)}</span>
+              </StatCard>
+              <StatCard label="次回イベント" sub={(() => {
+                const parts: string[] = [];
+                if (calData?.sq4?.next_sq4) { const d = new Date(calData.sq4.next_sq4.entry_date); parts.push(`SQ-4 ${d.getMonth()+1}/${d.getDate()}`); }
+                const qEv = calData?.upcoming?.find(e => e.flags.some(f => /^\dQ/.test(f)));
+                if (qEv) { const d = new Date(qEv.date); const qf = qEv.flags.find(f => /^\dQ/.test(f)) || ''; parts.push(`1306 ${d.getMonth()+1}/${d.getDate()} ${qf}`); }
+                return parts.join(' / ') || undefined;
+              })()}>
+                {(() => {
+                  if (calData?.today?.flags && calData.today.flags.length > 0) {
+                    return <span className="text-amber-400 text-lg">今日あり</span>;
+                  }
+                  if (calData?.sq4?.next_sq4) {
+                    const d = new Date(calData.sq4.next_sq4.entry_date);
+                    const diff = Math.ceil((d.getTime() - Date.now()) / 86400000);
+                    if (diff <= 3) return <span className="text-amber-400">{diff}日後</span>;
+                    return <span className="text-muted-foreground">{diff}日後</span>;
+                  }
+                  return <span className="text-muted-foreground">—</span>;
+                })()}
               </StatCard>
             </div>
           );
