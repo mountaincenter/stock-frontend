@@ -164,20 +164,45 @@ export default function CalendarPage() {
 
       <h1 className="text-xl font-bold">Calendar Trades</h1>
 
-      {/* Summary Cards */}
+      {/* SQ-4 Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {/* Today */}
         <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
-          <p className="text-sm text-muted-foreground mb-1">Today</p>
-          {today.flags.length > 0 ? (
-            <div className="space-y-1">
-              {today.flags.map((f, i) => (
-                <span key={i} className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${flagStyle(f)}`}>{f}</span>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xl sm:text-2xl font-bold text-muted-foreground/40 tabular-nums">No Event</p>
-          )}
+          <p className="text-sm text-muted-foreground mb-1">SQ-4 Next</p>
+          {sq4?.next_sq4 ? (
+            <>
+              <p className="text-xl font-bold tabular-nums">{fmtDateWd(sq4.next_sq4.entry_date)}</p>
+              <p className="text-xs text-muted-foreground">→ {sq4.next_sq4.exit_date ? fmtDateWd(sq4.next_sq4.exit_date) : '?'} 決済</p>
+            </>
+          ) : <p className="text-xl font-bold text-muted-foreground/40">—</p>}
+        </div>
+        <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
+          <p className="text-sm text-muted-foreground mb-1">全体 PnL(100株)</p>
+          <p className={`text-xl font-bold tabular-nums ${pnlColor(sq4?.stats.total_pnl_100)}`}>{fmtPnl(sq4?.stats.total_pnl_100)}</p>
+          <p className="text-sm text-muted-foreground tabular-nums">PF {sq4?.stats.pf?.toFixed(2) ?? '—'} / N={sq4?.stats.total ?? 0}</p>
+        </div>
+        <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
+          <p className="text-sm text-muted-foreground mb-1">CME下落時 PnL(100株)</p>
+          <p className={`text-xl font-bold tabular-nums ${pnlColor(sq4?.stats_cme_down?.total_pnl_100)}`}>{fmtPnl(sq4?.stats_cme_down?.total_pnl_100)}</p>
+          <p className="text-sm text-muted-foreground tabular-nums">PF {sq4?.stats_cme_down?.pf?.toFixed(2) ?? '—'} / N={sq4?.stats_cme_down?.total ?? 0}</p>
+        </div>
+        <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
+          <p className="text-sm text-muted-foreground mb-1">CME上昇時 PnL(100株)</p>
+          <p className={`text-xl font-bold tabular-nums ${pnlColor(sq4?.stats_cme_up?.total_pnl_100)}`}>{fmtPnl(sq4?.stats_cme_up?.total_pnl_100)}</p>
+          <p className="text-sm text-muted-foreground tabular-nums">PF {sq4?.stats_cme_up?.pf?.toFixed(2) ?? '—'} / N={sq4?.stats_cme_up?.total ?? 0}</p>
+        </div>
+      </div>
+
+      {/* 1306 Summary Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* Q Next */}
+        <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
+          <p className="text-sm text-muted-foreground mb-1">{upcomingEtf.length > 0 ? upcomingEtf[0].flags[0]?.replace(/ .*/, '') : 'Q'} Next</p>
+          {upcomingEtf.length > 0 ? (
+            <>
+              <p className="text-xl font-bold tabular-nums">{fmtDateWd(upcomingEtf[0].date)}</p>
+              <p className="text-xs text-muted-foreground">{upcomingEtf[0].flags.join(' / ')}</p>
+            </>
+          ) : <p className="text-xl font-bold text-muted-foreground/40">—</p>}
         </div>
 
         {/* 1306 Price */}
@@ -185,33 +210,33 @@ export default function CalendarPage() {
           <p className="text-sm text-muted-foreground mb-1">1306.T ({etf_latest.date?.slice(5) ?? ''})</p>
           {etf_latest.close ? (
             <>
-              <p className="text-xl sm:text-2xl font-bold tabular-nums">{etf_latest.close.toFixed(1)}</p>
+              <p className="text-xl font-bold tabular-nums">{etf_latest.close.toFixed(1)}</p>
               {etf_latest.change != null && (
                 <p className={`text-sm tabular-nums ${pnlColor(etf_latest.change)}`}>
                   {fmtPnl(etf_latest.change)} ({etf_latest.change_pct != null ? `${etf_latest.change_pct > 0 ? '+' : ''}${etf_latest.change_pct.toFixed(2)}%` : ''})
                 </p>
               )}
             </>
-          ) : <p className="text-xl sm:text-2xl font-bold text-muted-foreground tabular-nums">—</p>}
+          ) : <p className="text-xl font-bold text-muted-foreground tabular-nums">—</p>}
         </div>
 
         {/* PF / WR */}
         <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
           <p className="text-sm text-muted-foreground mb-1">PF / WR</p>
-          <p className="text-xl sm:text-2xl font-bold tabular-nums">{stats.pf?.toFixed(2) ?? '—'}</p>
+          <p className="text-xl font-bold tabular-nums">{stats.pf?.toFixed(2) ?? '—'}</p>
           <p className="text-sm text-muted-foreground tabular-nums">{stats.wr}% ({stats.wins}W {stats.losses}L / {stats.total})</p>
         </div>
 
         {/* Cumulative PnL */}
         <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
           <p className="text-sm text-muted-foreground mb-1">累計 PnL(1000株)</p>
-          <p className={`text-xl sm:text-2xl font-bold tabular-nums ${pnlColor(stats.pnl_1000)}`}>{fmtPnl(stats.pnl_1000)}円</p>
+          <p className={`text-xl font-bold tabular-nums ${pnlColor(stats.pnl_1000)}`}>{fmtPnl(stats.pnl_1000)}円</p>
           <p className={`text-sm tabular-nums ${pnlColor(stats.total_ret)}`}>{fmtPct(stats.total_ret)}</p>
         </div>
       </div>
 
-      {/* Upcoming Events (ETFのみ、SQは別実装) */}
-      {upcomingEtf.length > 0 && (
+      {/* Upcoming — SQ-4 + Q統合 */}
+      {(upcomingEtf.length > 0 || (sq4?.next_sq4)) && (
         <div className="rounded-xl border border-border bg-card">
           <div className="px-4 py-2 border-b border-border/30">
             <p className="text-lg font-semibold">Upcoming</p>
@@ -220,19 +245,29 @@ export default function CalendarPage() {
             <table className="w-full">
               <thead>
                 <tr className="text-xs text-muted-foreground border-b border-border/30">
-                  <th className="px-4 py-1.5 text-left w-20">日付</th>
-                  <th className="px-4 py-1.5 text-left w-10">曜日</th>
+                  <th className="px-4 py-1.5 text-left">日付</th>
                   <th className="px-4 py-1.5 text-left">イベント</th>
-                  <th className="px-4 py-1.5 text-right">Q平均(%)</th>
-                  <th className="px-4 py-1.5 text-right">前年同Q(%)</th>
-                  <th className="px-4 py-1.5 text-right">前年同Q(1000株)</th>
+                  <th className="px-4 py-1.5 text-right">過去平均(%)</th>
+                  <th className="px-4 py-1.5 text-right">前年同期(%)</th>
                 </tr>
               </thead>
               <tbody>
+                {/* SQ-4 next */}
+                {sq4?.next_sq4 && (
+                  <tr className="border-b border-border/10 hover:bg-muted/50 transition-colors h-9 md:h-12">
+                    <td className="px-4 py-1.5 text-sm md:text-base tabular-nums">{fmtDateWd(sq4.next_sq4.entry_date)}</td>
+                    <td className="px-4 py-1.5">
+                      <span className="inline-flex px-2 py-0.5 rounded text-xs md:text-sm font-medium bg-emerald-500/20 text-emerald-400">SQ-4 買い</span>
+                      <span className="ml-2 text-xs text-muted-foreground">→ {sq4.next_sq4.exit_date ? fmtDateWd(sq4.next_sq4.exit_date) : '?'}</span>
+                    </td>
+                    <td className={`px-4 py-1.5 text-sm md:text-base text-right tabular-nums ${pnlColor(sq4.stats.avg_ret)}`}>{fmtPct2(sq4.stats.avg_ret)}</td>
+                    <td className="px-4 py-1.5 text-sm md:text-base text-right tabular-nums text-muted-foreground">—</td>
+                  </tr>
+                )}
+                {/* Q events */}
                 {upcomingEtf.map((ev, i) => (
                   <tr key={i} className="border-b border-border/10 hover:bg-muted/50 transition-colors h-9 md:h-12">
-                    <td className="px-4 py-1.5 text-sm md:text-base tabular-nums">{ev.date.slice(5)}</td>
-                    <td className="px-4 py-1.5 text-sm md:text-base text-muted-foreground">{getWeekday(ev.date)}</td>
+                    <td className="px-4 py-1.5 text-sm md:text-base tabular-nums">{fmtDateWd(ev.date)}</td>
                     <td className="px-4 py-1.5">
                       <div className="flex items-center gap-1.5">
                         {ev.flags.map((f, fi) => (
@@ -246,9 +281,6 @@ export default function CalendarPage() {
                     <td className={`px-4 py-1.5 text-sm md:text-base text-right tabular-nums ${pnlColor(ev.prev_year_ret)}`}>
                       {ev.prev_year_ret != null ? fmtPct(ev.prev_year_ret) : '—'}
                     </td>
-                    <td className={`px-4 py-1.5 text-sm md:text-base text-right tabular-nums ${pnlColor(ev.prev_year_pnl)}`}>
-                      {ev.prev_year_pnl != null ? fmtPnl(ev.prev_year_pnl) : '—'}
-                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -260,32 +292,6 @@ export default function CalendarPage() {
       {/* SQ-4 Section */}
       {sq4 && (
         <>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
-              <p className="text-sm text-muted-foreground mb-1">SQ-4 Next</p>
-              {sq4.next_sq4 ? (
-                <>
-                  <p className="text-xl font-bold tabular-nums">{fmtDateWd(sq4.next_sq4.entry_date)}</p>
-                  <p className="text-xs text-muted-foreground">→ {sq4.next_sq4.exit_date ? fmtDateWd(sq4.next_sq4.exit_date) : '?'} 決済</p>
-                </>
-              ) : <p className="text-xl font-bold text-muted-foreground/40">—</p>}
-            </div>
-            <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
-              <p className="text-sm text-muted-foreground mb-1">全体 PnL(100株)</p>
-              <p className={`text-xl font-bold tabular-nums ${pnlColor(sq4.stats.total_pnl_100)}`}>{fmtPnl(sq4.stats.total_pnl_100)}</p>
-              <p className="text-sm text-muted-foreground tabular-nums">PF {sq4.stats.pf?.toFixed(2) ?? '—'} / N={sq4.stats.total}</p>
-            </div>
-            <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
-              <p className="text-sm text-muted-foreground mb-1">CME下落時 PnL(100株)</p>
-              <p className={`text-xl font-bold tabular-nums ${pnlColor(sq4.stats_cme_down?.total_pnl_100)}`}>{fmtPnl(sq4.stats_cme_down?.total_pnl_100)}</p>
-              <p className="text-sm text-muted-foreground tabular-nums">PF {sq4.stats_cme_down?.pf?.toFixed(2) ?? '—'} / N={sq4.stats_cme_down?.total ?? 0}</p>
-            </div>
-            <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
-              <p className="text-sm text-muted-foreground mb-1">CME上昇時 PnL(100株)</p>
-              <p className={`text-xl font-bold tabular-nums ${pnlColor(sq4.stats_cme_up?.total_pnl_100)}`}>{fmtPnl(sq4.stats_cme_up?.total_pnl_100)}</p>
-              <p className="text-sm text-muted-foreground tabular-nums">PF {sq4.stats_cme_up?.pf?.toFixed(2) ?? '—'} / N={sq4.stats_cme_up?.total ?? 0}</p>
-            </div>
-          </div>
 
           {/* SQ-4 Monthly Results */}
           <div className="rounded-xl border border-border bg-card">
