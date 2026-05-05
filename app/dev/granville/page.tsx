@@ -364,7 +364,7 @@ export default function GranvillePage() {
                     <th className="px-4 py-2 text-left">年</th>
                     <th className="px-4 py-2 text-right">Trades</th>
                     <th className="px-4 py-2 text-right">WR</th>
-                    <th className="px-4 py-2 text-right">PnL(万)</th>
+                    <th className="px-4 py-2 text-right">PnL</th>
                     <th className="px-4 py-2 text-right">PF</th>
                     <th className="px-4 py-2 w-8"></th>
                   </tr></thead>
@@ -377,7 +377,7 @@ export default function GranvillePage() {
                           <td className="px-4 py-2.5 font-medium tabular-nums">{ys.year}</td>
                           <td className="px-4 py-2.5 text-right tabular-nums">{ys.n}</td>
                           <td className="px-4 py-2.5 text-right tabular-nums">{ys.wr.toFixed(0)}%</td>
-                          <td className="px-4 py-2.5 text-right tabular-nums">{fmtPnl(Math.round(ys.pnl / 10000))}</td>
+                          <td className="px-4 py-2.5 text-right tabular-nums">{fmtPnl(ys.pnl)}</td>
                           <td className="px-4 py-2.5 text-right tabular-nums">{ys.pf != null ? ys.pf.toFixed(2) : '-'}</td>
                           <td className="px-4 py-2.5 text-muted-foreground">{isYearOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}</td>
                         </tr>,
@@ -391,7 +391,7 @@ export default function GranvillePage() {
                               <td className="px-4 py-2 pl-8 tabular-nums text-muted-foreground">{m.month.slice(5)}月</td>
                               <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">{m.count}</td>
                               <td className={`px-4 py-2 text-right tabular-nums ${m.win_rate >= 55 ? 'text-emerald-400' : m.win_rate >= 45 ? 'text-amber-400' : 'text-rose-400'}`}>{m.win_rate.toFixed(0)}%</td>
-                              <td className="px-4 py-2 text-right tabular-nums">{fmtPnl(Math.round(m.pnl / 10000))}</td>
+                              <td className="px-4 py-2 text-right tabular-nums">{fmtPnl(m.pnl)}</td>
                               <td className="px-4 py-2"></td>
                               <td className="px-4 py-2 text-muted-foreground">{isMonthOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}</td>
                             </tr>
