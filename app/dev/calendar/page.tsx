@@ -251,7 +251,7 @@ export default function CalendarPage() {
         type UpcomingRow = { date: string; label: React.ReactNode; action: string; pf: string };
         const allRows: UpcomingRow[] = [];
 
-        // SQ-4 CME判定
+        // SQ-4 CME判定 + entry + exit
         if (sq4?.next_sq4) {
           const d = new Date(sq4.next_sq4.entry_date);
           while (d.getDay() !== 5) d.setDate(d.getDate() - 1);
@@ -262,20 +262,38 @@ export default function CalendarPage() {
             action: 'CME確認',
             pf: sq4.stats_cme_down?.pf?.toFixed(2) ?? '—',
           });
-          // SQ-4 entry
           allRows.push({
             date: sq4.next_sq4.entry_date,
-            label: (<><span className="inline-flex px-2 py-0.5 rounded text-xs md:text-sm font-medium bg-emerald-500/20 text-emerald-400">SQ-4 買い</span><span className="ml-2 text-xs text-muted-foreground">→ {sq4.next_sq4.exit_date ? fmtDateWd(sq4.next_sq4.exit_date) : '?'}</span></>),
+            label: <span className="inline-flex px-2 py-0.5 rounded text-xs md:text-sm font-medium bg-emerald-500/20 text-emerald-400">SQ-4 買い</span>,
             action: '寄成',
             pf: '—',
           });
+          if (sq4.next_sq4.exit_date) {
+            allRows.push({
+              date: sq4.next_sq4.exit_date,
+              label: <span className="inline-flex px-2 py-0.5 rounded text-xs md:text-sm font-medium bg-amber-500/20 text-amber-400">SQ-4 売り</span>,
+              action: '寄成',
+              pf: '—',
+            });
+          }
         }
 
-        // SQ+1 short
+        // SQ+1 CME判定 + short
         upcoming.filter(ev => ev.flags.some(f => f.includes('SQ+1'))).forEach(ev => {
+          // SQ+1の前日(SQ金曜)にCME判定を追加
+          const sqFri = new Date(ev.date);
+          sqFri.setDate(sqFri.getDate() - ((sqFri.getDay() + 6) % 7)); // 直前の金曜
+          while (sqFri.getDay() !== 5) sqFri.setDate(sqFri.getDate() - 1);
+          const sqFriStr = `${sqFri.getFullYear()}-${String(sqFri.getMonth()+1).padStart(2,'0')}-${String(sqFri.getDate()).padStart(2,'0')}`;
+          allRows.push({
+            date: sqFriStr,
+            label: (<><span className="inline-flex px-2 py-0.5 rounded text-xs md:text-sm font-medium bg-blue-500/20 text-blue-400">SQ+1 判定</span><span className="ml-2 text-xs text-muted-foreground">CME↓→Top5 / CME↑→Top10</span></>),
+            action: 'CME確認(土曜朝)',
+            pf: '2.59 / 1.51',
+          });
           allRows.push({
             date: ev.date,
-            label: (<><span className="inline-flex px-2 py-0.5 rounded text-xs md:text-sm font-medium bg-red-500/20 text-red-400">SQ+1 売り</span><span className="ml-2 text-xs text-muted-foreground">前日上昇Top10 寄成SHORT→引成</span></>),
+            label: (<><span className="inline-flex px-2 py-0.5 rounded text-xs md:text-sm font-medium bg-red-500/20 text-red-400">SQ+1 売り</span><span className="ml-2 text-xs text-muted-foreground">前日上昇Top N 寄成SHORT→引成</span></>),
             action: '寄成',
             pf: '1.51',
           });
