@@ -73,6 +73,8 @@ export default function CalendarPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [expandedYears, setExpandedYears] = useState<Set<number>>(new Set());
   const [expandedSq4Months, setExpandedSq4Months] = useState<Set<string>>(new Set());
+  const [sq4SectionOpen, setSq4SectionOpen] = useState(false);
+  const [etfSectionOpen, setEtfSectionOpen] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -352,10 +354,12 @@ export default function CalendarPage() {
 
           {/* SQ-4 Monthly Results */}
           <div className="rounded-xl border border-border bg-card">
-            <div className="px-4 py-2 border-b border-border/30">
+            <div className="px-4 py-2 border-b border-border/30 cursor-pointer flex items-center justify-between hover:bg-muted/30 transition-colors"
+                 onClick={() => setSq4SectionOpen(v => !v)}>
               <p className="text-lg font-semibold">SQ-4 外需×5日ret worst10 — 月次結果</p>
+              {sq4SectionOpen ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
             </div>
-            <div className="overflow-x-auto">
+            {sq4SectionOpen && <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="text-xs text-muted-foreground border-b border-border/30">
@@ -411,10 +415,9 @@ export default function CalendarPage() {
                   })}
                 </tbody>
               </table>
-            </div>
-
+            </div>}
             {/* Loss Month Macro Analysis */}
-            <details className="px-4 py-3 border-t border-border/20">
+            {sq4SectionOpen && <details className="px-4 py-3 border-t border-border/20">
               <summary className="text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors">負け月分析（10回 / 49回）</summary>
               <div className="mt-3 space-y-2 text-sm">
                 {[
@@ -439,7 +442,7 @@ export default function CalendarPage() {
                 ))}
                 <p className="pt-2 text-xs text-muted-foreground/70 px-2">実額=100株×10銘柄。CME DOWN=構造ショック。CME UP=市場上昇中の銘柄固有損失。</p>
               </div>
-            </details>
+            </details>}
           </div>
         </>
       )}
@@ -447,10 +450,12 @@ export default function CalendarPage() {
 
       {/* Year Summary + Trade Detail */}
       <div className="rounded-xl border border-border bg-card">
-        <div className="px-4 py-2 border-b border-border/30">
+        <div className="px-4 py-2 border-b border-border/30 cursor-pointer flex items-center justify-between hover:bg-muted/30 transition-colors"
+             onClick={() => setEtfSectionOpen(v => !v)}>
           <p className="text-lg font-semibold">1306 ETF 四半期末 — 年間サマリー</p>
+          {etfSectionOpen ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
         </div>
-        <div className="overflow-x-auto">
+        {etfSectionOpen && <div className="overflow-x-auto">
           <table className="w-full min-w-[900px]">
             <thead>
               <tr className="text-xs text-muted-foreground border-b border-border/30">
@@ -514,7 +519,7 @@ export default function CalendarPage() {
               })}
             </tbody>
           </table>
-        </div>
+        </div>}
       </div>
     </div>
   );
