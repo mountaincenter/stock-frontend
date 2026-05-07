@@ -245,29 +245,57 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* Upcoming — SQ-4 + Q統合 */}
+      {/* Upcoming — 全イベント日付順 */}
       {(upcomingEtf.length > 0 || (sq4?.next_sq4)) && (() => {
-        const getFriday = (dateStr: string) => {
-          const d = new Date(dateStr);
-          const day = d.getDay();
-          const diff = day === 0 ? 2 : day === 6 ? 1 : day === 1 ? 3 : day;
-          d.setDate(d.getDate() - diff + 5);
-          if (d.getDay() !== 5) d.setDate(d.getDate() - (d.getDay() - 5 + 7) % 7);
-          return d;
-        };
-        const cmeCheckDate = sq4?.next_sq4 ? (() => {
-          const entry = new Date(sq4.next_sq4.entry_date);
-          const fri = new Date(entry);
-          fri.setDate(entry.getDate() - ((entry.getDay() + 6) % 7) - 2);
-          if (fri.getDay() !== 5) {
-            const diff = (fri.getDay() + 2) % 7;
-            fri.setDate(fri.getDate() - diff);
-          }
-          // Simply: Friday before entry
+        // 全イベントを統一配列に集約して日付ソート
+        type UpcomingRow = { date: string; label: React.ReactNode; action: string; pf: string };
+        const allRows: UpcomingRow[] = [];
+
+        // SQ-4 CME判定
+        if (sq4?.next_sq4) {
           const d = new Date(sq4.next_sq4.entry_date);
           while (d.getDay() !== 5) d.setDate(d.getDate() - 1);
-          return d;
-        })() : null;
+          const cmeDate = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+          allRows.push({
+            date: cmeDate,
+            label: <span className="inline-flex px-2 py-0.5 rounded text-xs md:text-sm font-medium bg-blue-500/20 text-blue-400">SQ-4 判定</span>,
+            action: 'CME確認',
+            pf: sq4.stats_cme_down?.pf?.toFixed(2) ?? '—',
+          });
+          // SQ-4 entry
+          allRows.push({
+            date: sq4.next_sq4.entry_date,
+            label: (<><span className="inline-flex px-2 py-0.5 rounded text-xs md:text-sm font-medium bg-emerald-500/20 text-emerald-400">SQ-4 買い</span><span className="ml-2 text-xs text-muted-foreground">→ {sq4.next_sq4.exit_date ? fmtDateWd(sq4.next_sq4.exit_date) : '?'}</span></>),
+            action: '寄成',
+            pf: '—',
+          });
+        }
+
+        // SQ+1 short
+        upcoming.filter(ev => ev.flags.some(f => f.includes('SQ+1'))).forEach(ev => {
+          allRows.push({
+            date: ev.date,
+            label: (<><span className="inline-flex px-2 py-0.5 rounded text-xs md:text-sm font-medium bg-red-500/20 text-red-400">SQ+1 売り</span><span className="ml-2 text-xs text-muted-foreground">前日上昇Top10 寄成SHORT→引成</span></>),
+            action: '寄成',
+            pf: '1.51',
+          });
+        });
+
+        // Q events
+        upcomingEtf.forEach((ev, i) => {
+          const hasBuy = ev.flags.some(f => f.includes('買い'));
+          const hasSell = ev.flags.some(f => f.includes('決済'));
+          const action = hasBuy && hasSell ? '引成(売+買)' : hasBuy ? '引成' : hasSell ? '引成' : '';
+          const showPf = i === 0 && stats.pf;
+          allRows.push({
+            date: ev.date,
+            label: (<div className="flex items-center gap-1.5">{ev.flags.map((f, fi) => (<span key={fi} className={`inline-flex px-2 py-0.5 rounded text-xs md:text-sm font-medium ${flagStyle(f)}`}>{f}</span>))}</div>),
+            action,
+            pf: showPf ? stats.pf.toFixed(2) : '—',
+          });
+        });
+
+        allRows.sort((a, b) => a.date.localeCompare(b.date));
 
         return (
         <div className="rounded-xl border border-border bg-card">
@@ -285,62 +313,14 @@ export default function CalendarPage() {
                 </tr>
               </thead>
               <tbody>
-                {/* SQ-4 CME確認 */}
-                {sq4?.next_sq4 && cmeCheckDate && (
-                  <tr className="border-b border-border/10 hover:bg-muted/50 transition-colors h-9 md:h-12">
-                    <td className="px-4 py-1.5 text-sm md:text-base tabular-nums">{`${cmeCheckDate.getMonth() + 1}/${cmeCheckDate.getDate()}(${WEEKDAYS[cmeCheckDate.getDay()]})`}</td>
-                    <td className="px-4 py-1.5">
-                      <span className="inline-flex px-2 py-0.5 rounded text-xs md:text-sm font-medium bg-blue-500/20 text-blue-400">SQ-4 判定</span>
-                    </td>
-                    <td className="px-4 py-1.5 text-sm md:text-base text-muted-foreground">CME確認</td>
-                    <td className="px-4 py-1.5 text-sm md:text-base text-right tabular-nums">{sq4.stats_cme_down?.pf?.toFixed(2) ?? '—'}</td>
-                  </tr>
-                )}
-                {/* SQ-4 entry */}
-                {sq4?.next_sq4 && (
-                  <tr className="border-b border-border/10 hover:bg-muted/50 transition-colors h-9 md:h-12">
-                    <td className="px-4 py-1.5 text-sm md:text-base tabular-nums">{fmtDateWd(sq4.next_sq4.entry_date)}</td>
-                    <td className="px-4 py-1.5">
-                      <span className="inline-flex px-2 py-0.5 rounded text-xs md:text-sm font-medium bg-emerald-500/20 text-emerald-400">SQ-4 買い</span>
-                      <span className="ml-2 text-xs text-muted-foreground">→ {sq4.next_sq4.exit_date ? fmtDateWd(sq4.next_sq4.exit_date) : '?'}</span>
-                    </td>
-                    <td className="px-4 py-1.5 text-sm md:text-base text-muted-foreground">寄成</td>
-                    <td className="px-4 py-1.5 text-sm md:text-base text-right tabular-nums text-muted-foreground">—</td>
-                  </tr>
-                )}
-                {/* SQ+1 short */}
-                {upcoming.filter(ev => ev.flags.some(f => f.includes('SQ+1'))).map((ev, i) => (
-                  <tr key={`sq1-${i}`} className="border-b border-border/10 hover:bg-muted/50 transition-colors h-9 md:h-12">
-                    <td className="px-4 py-1.5 text-sm md:text-base tabular-nums">{fmtDateWd(ev.date)}</td>
-                    <td className="px-4 py-1.5">
-                      <span className="inline-flex px-2 py-0.5 rounded text-xs md:text-sm font-medium bg-red-500/20 text-red-400">SQ+1 売り</span>
-                      <span className="ml-2 text-xs text-muted-foreground">前日上昇Top10 寄成SHORT→引成</span>
-                    </td>
-                    <td className="px-4 py-1.5 text-sm md:text-base text-muted-foreground">寄成</td>
-                    <td className="px-4 py-1.5 text-sm md:text-base text-right tabular-nums">1.51</td>
+                {allRows.map((row, i) => (
+                  <tr key={i} className="border-b border-border/10 hover:bg-muted/50 transition-colors h-9 md:h-12">
+                    <td className="px-4 py-1.5 text-sm md:text-base tabular-nums">{fmtDateWd(row.date)}</td>
+                    <td className="px-4 py-1.5">{row.label}</td>
+                    <td className="px-4 py-1.5 text-sm md:text-base text-muted-foreground">{row.action}</td>
+                    <td className="px-4 py-1.5 text-sm md:text-base text-right tabular-nums">{row.pf}</td>
                   </tr>
                 ))}
-                {/* Q events */}
-                {upcomingEtf.map((ev, i) => {
-                  const hasBuy = ev.flags.some(f => f.includes('買い'));
-                  const hasSell = ev.flags.some(f => f.includes('決済'));
-                  const action = hasBuy && hasSell ? '引成(売+買)' : hasBuy ? '引成' : hasSell ? '引成' : '';
-                  const showPf = i === 0 && stats.pf;
-                  return (
-                  <tr key={i} className="border-b border-border/10 hover:bg-muted/50 transition-colors h-9 md:h-12">
-                    <td className="px-4 py-1.5 text-sm md:text-base tabular-nums">{fmtDateWd(ev.date)}</td>
-                    <td className="px-4 py-1.5">
-                      <div className="flex items-center gap-1.5">
-                        {ev.flags.map((f, fi) => (
-                          <span key={fi} className={`inline-flex px-2 py-0.5 rounded text-xs md:text-sm font-medium ${flagStyle(f)}`}>{f}</span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-4 py-1.5 text-sm md:text-base text-muted-foreground">{action}</td>
-                    <td className="px-4 py-1.5 text-sm md:text-base text-right tabular-nums">{showPf ? stats.pf.toFixed(2) : '—'}</td>
-                  </tr>
-                  );
-                })}
               </tbody>
             </table>
           </div>
