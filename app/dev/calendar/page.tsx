@@ -61,6 +61,7 @@ const pnlColor = (v: number | null | undefined) => {
 
 const flagStyle = (flag: string) =>
   flag.includes('買い') ? 'bg-emerald-500/20 text-emerald-400' :
+  flag.includes('売り') ? 'bg-red-500/20 text-red-400' :
   flag.includes('決済') ? 'bg-amber-500/20 text-amber-400' :
   'bg-white/5 text-muted-foreground';
 
@@ -307,6 +308,18 @@ export default function CalendarPage() {
                     <td className="px-4 py-1.5 text-sm md:text-base text-right tabular-nums text-muted-foreground">—</td>
                   </tr>
                 )}
+                {/* SQ+1 short */}
+                {upcoming.filter(ev => ev.flags.some(f => f.includes('SQ+1'))).map((ev, i) => (
+                  <tr key={`sq1-${i}`} className="border-b border-border/10 hover:bg-muted/50 transition-colors h-9 md:h-12">
+                    <td className="px-4 py-1.5 text-sm md:text-base tabular-nums">{fmtDateWd(ev.date)}</td>
+                    <td className="px-4 py-1.5">
+                      <span className="inline-flex px-2 py-0.5 rounded text-xs md:text-sm font-medium bg-red-500/20 text-red-400">SQ+1 売り</span>
+                      <span className="ml-2 text-xs text-muted-foreground">前日上昇Top10 寄成SHORT→引成</span>
+                    </td>
+                    <td className="px-4 py-1.5 text-sm md:text-base text-muted-foreground">寄成</td>
+                    <td className="px-4 py-1.5 text-sm md:text-base text-right tabular-nums">1.51</td>
+                  </tr>
+                ))}
                 {/* Q events */}
                 {upcomingEtf.map((ev, i) => {
                   const hasBuy = ev.flags.some(f => f.includes('買い'));
