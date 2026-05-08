@@ -377,19 +377,51 @@ export default function CalendarPage() {
 
         // SQ-4
         if (sq4?.next_sq4) {
-          candidates.push({
-            date: sq4.next_sq4.entry_date, code: '—', name: '外需×5日ret worst10',
-            strategy: 'SQ-4', direction: 'LONG', pf: sq4.stats_cme_down?.pf ?? null, execution: '寄成→翌寄成',
-          });
+          const sq4Picks = (sq4.candidates as Record<string, unknown>)?.picks as Array<{ code: string; name: string; prev_close: number; ret_5d: number }> | undefined;
+          if (sq4Picks?.length) {
+            for (const p of sq4Picks) {
+              candidates.push({
+                date: sq4.next_sq4.entry_date, code: p.code, name: p.name,
+                strategy: `SQ-4 (5日ret ${p.ret_5d > 0 ? '+' : ''}${p.ret_5d}%)`,
+                direction: 'LONG', pf: sq4.stats_cme_down?.pf ?? null, execution: '寄成→翌寄成',
+              });
+            }
+          } else {
+            candidates.push({
+              date: sq4.next_sq4.entry_date, code: '—', name: '外需×5日ret worst10',
+              strategy: 'SQ-4', direction: 'LONG', pf: sq4.stats_cme_down?.pf ?? null, execution: '寄成→翌寄成',
+            });
+          }
         }
 
         // SQ+1
-        upcoming.filter(ev => ev.flags.some(f => f.includes('SQ+1'))).forEach(ev => {
-          candidates.push({
-            date: ev.date, code: '—', name: '前日上昇Top N',
-            strategy: 'SQ+1', direction: 'SHORT', pf: sq_plus1?.stats?.pf ?? null, execution: '寄成→引成',
+        const sp1Next = sq_plus1?.next_sq_plus1 as Record<string, unknown> | undefined;
+        const sp1Picks = sp1Next?.picks as Array<{ code: string; name: string; prev_close: number; prev_day_ret: number }> | undefined;
+        if (sp1Next?.entry_date) {
+          if (sp1Picks?.length) {
+            for (const p of sp1Picks) {
+              candidates.push({
+                date: sp1Next.entry_date as string, code: p.code.replace(/0$/, ''), name: p.name,
+                strategy: `SQ+1 (前日+${p.prev_day_ret}%)`,
+                direction: 'SHORT', pf: sq_plus1?.stats?.pf ?? null, execution: '寄成→引成',
+              });
+            }
+          } else {
+            upcoming.filter(ev => ev.flags.some(f => f.includes('SQ+1'))).forEach(ev => {
+              candidates.push({
+                date: ev.date, code: '—', name: '前日上昇Top N',
+                strategy: 'SQ+1', direction: 'SHORT', pf: sq_plus1?.stats?.pf ?? null, execution: '寄成→引成',
+              });
+            });
+          }
+        } else {
+          upcoming.filter(ev => ev.flags.some(f => f.includes('SQ+1'))).forEach(ev => {
+            candidates.push({
+              date: ev.date, code: '—', name: '前日上昇Top N',
+              strategy: 'SQ+1', direction: 'SHORT', pf: sq_plus1?.stats?.pf ?? null, execution: '寄成→引成',
+            });
           });
-        });
+        }
 
         // 1306
         upcomingEtf.filter(ev => ev.flags.some(f => f.includes('買い'))).forEach(ev => {
