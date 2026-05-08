@@ -145,33 +145,7 @@ export default function CalendarPage() {
     });
   };
 
-  if (loading) return (
-    <div className="max-w-7xl mx-auto px-4 py-4">
-      <DevNavLinks />
-      <div className="flex items-center justify-center py-20 text-muted-foreground">
-        <RefreshCw className="w-5 h-5 animate-spin mr-2" />
-        <span className="text-sm">読み込み中...</span>
-      </div>
-    </div>
-  );
-  if (!data) return (
-    <div className="max-w-7xl mx-auto px-4 py-4">
-      <DevNavLinks />
-      <div className="mt-8 p-6 rounded-xl border border-destructive/50 bg-destructive/10 text-destructive text-sm">
-        Failed to load calendar data
-      </div>
-    </div>
-  );
-
-  const { today, upcoming, etf_latest, cme_latest, etf1306, sq4, sq_plus1, weekday_edge } = data;
-  const { stats, max_dd: etfMaxDd, year_summary, trades } = etf1306;
-
-  // 曜日エッジ: 全picks展開 + ビュー別集約
-  const allWePicks = useMemo(() => {
-    if (!weekday_edge?.weekly) return [];
-    return weekday_edge.weekly.flatMap(w => w.picks);
-  }, [weekday_edge]);
-
+  // 曜日エッジ: 全picks展開 + ビュー別集約（hooks はearly returnの前に置く）
   const weAggregate = (picks: WeekdayEdgePick[]) => {
     if (picks.length === 0) return { n: 0, wins: 0, losses: 0, wr: 0, pf: null as number | null, total_pnl: 0, total_ret: 0 };
     const rets = picks.map(p => p.ret_pct);
@@ -188,6 +162,11 @@ export default function CalendarPage() {
       total_ret: Math.round(rets.reduce((a, b) => a + b, 0) * 100) / 100,
     };
   };
+
+  const allWePicks = useMemo(() => {
+    if (!data?.weekday_edge?.weekly) return [];
+    return data.weekday_edge.weekly.flatMap(w => w.picks);
+  }, [data]);
 
   const weGrouped = useMemo(() => {
     if (allWePicks.length === 0) return { daily: [], monthly: [], weekday: [] };
@@ -210,6 +189,27 @@ export default function CalendarPage() {
     });
     return { daily, monthly, weekday };
   }, [allWePicks]);
+
+  if (loading) return (
+    <div className="max-w-7xl mx-auto px-4 py-4">
+      <DevNavLinks />
+      <div className="flex items-center justify-center py-20 text-muted-foreground">
+        <RefreshCw className="w-5 h-5 animate-spin mr-2" />
+        <span className="text-sm">読み込み中...</span>
+      </div>
+    </div>
+  );
+  if (!data) return (
+    <div className="max-w-7xl mx-auto px-4 py-4">
+      <DevNavLinks />
+      <div className="mt-8 p-6 rounded-xl border border-destructive/50 bg-destructive/10 text-destructive text-sm">
+        Failed to load calendar data
+      </div>
+    </div>
+  );
+
+  const { today, upcoming, etf_latest, cme_latest, etf1306, sq4, sq_plus1, weekday_edge } = data;
+  const { stats, max_dd: etfMaxDd, year_summary, trades } = etf1306;
 
   // Upcoming の Q イベントに過去パフォーマンスを紐付け
   const tradesByQMonth: Record<number, Trade[]> = {};
