@@ -173,16 +173,21 @@ export default function CalendarPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-4 space-y-4">
-      {/* Nav + Refresh */}
-      <div className="flex items-center justify-between">
-        <DevNavLinks />
-        <button onClick={handleRefresh} disabled={refreshing}
-          className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors disabled:opacity-50">
-          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-        </button>
-      </div>
-
-      <h1 className="text-xl font-bold">Calendar Trades</h1>
+      {/* Header */}
+      <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4 pb-3 border-b border-border/30">
+        <div>
+          <h1 className="text-xl font-bold text-foreground">Calendar Trades</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">SQ-4 + SQ+1 + 1306ETF四半期末</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button onClick={handleRefresh} disabled={refreshing}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-border/40 rounded-lg hover:bg-muted/20 transition-colors disabled:opacity-50">
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            <span>更新</span>
+          </button>
+          <DevNavLinks />
+        </div>
+      </header>
 
       {/* SQ-4 Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
