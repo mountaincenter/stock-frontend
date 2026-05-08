@@ -13,9 +13,12 @@ interface Stats { total: number; wins: number; losses: number; wr: number; avg: 
 interface Sq4Stats { total: number; wins: number; losses: number; wr: number; avg_ret: number; pf: number | null; total_ret: number; total_pnl_100: number; }
 interface Sq4Pick { code: string; name: string; prev_close: number; ret_5d?: number; entry_price: number; exit_price: number; ret_pct: number; pnl_100: number; entry_date?: string; exit_date?: string; }
 interface Sq4Monthly { month: string; entry_date: string; exit_date: string; n_picks: number; total_ret: number; total_pnl_100: number; cme_change: number | null; cme_ret: number | null; picks: Sq4Pick[]; }
+interface SqPlus1Pick { code: string; name: string; prev_close: number; prev_day_ret: number; entry_price: number; exit_price: number; ret_pct: number; pnl_100: number; }
+interface SqPlus1Monthly { month: string; sq_date: string; entry_date: string; exit_date: string; n_picks: number; total_ret: number; total_pnl_100: number; cme_change: number | null; cme_ret: number | null; cme_direction: string; picks: SqPlus1Pick[]; }
 interface MaxDD { amount: number; pct: number; }
 interface CmeLatest { date: string; close: number; prev_close: number; change: number; change_pct: number; }
 interface Sq4Data { stats: Sq4Stats; stats_cme_down: Sq4Stats; stats_cme_up: Sq4Stats; max_dd: MaxDD; max_dd_cme_down: MaxDD; next_sq4: { entry_date: string; exit_date: string | null } | null; candidates: { as_of: string; count: number; sector: string }; monthly: Sq4Monthly[]; }
+interface SqPlus1Data { stats: Sq4Stats; stats_cme_down: Sq4Stats; stats_cme_up: Sq4Stats; max_dd: MaxDD; max_dd_cme_down: MaxDD; next_sq_plus1: { sq_date: string; entry_date: string } | null; monthly: SqPlus1Monthly[]; }
 interface CalendarResponse {
   today: { flags: string[] };
   upcoming: UpcomingEvent[];
@@ -23,6 +26,7 @@ interface CalendarResponse {
   cme_latest: CmeLatest;
   etf1306: { stats: Stats; max_dd: MaxDD; year_summary: YearSummary[]; trades: Trade[]; };
   sq4: Sq4Data;
+  sq_plus1: SqPlus1Data;
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
@@ -74,6 +78,8 @@ export default function CalendarPage() {
   const [expandedYears, setExpandedYears] = useState<Set<number>>(new Set());
   const [expandedSq4Months, setExpandedSq4Months] = useState<Set<string>>(new Set());
   const [sq4SectionOpen, setSq4SectionOpen] = useState(false);
+  const [sqPlus1SectionOpen, setSqPlus1SectionOpen] = useState(false);
+  const [expandedSqPlus1Months, setExpandedSqPlus1Months] = useState<Set<string>>(new Set());
   const [etfSectionOpen, setEtfSectionOpen] = useState(false);
 
   const fetchData = async () => {
@@ -111,6 +117,14 @@ export default function CalendarPage() {
     });
   };
 
+  const toggleSqPlus1Month = (month: string) => {
+    setExpandedSqPlus1Months(prev => {
+      const next = new Set(prev);
+      if (next.has(month)) next.delete(month); else next.add(month);
+      return next;
+    });
+  };
+
   if (loading) return (
     <div className="max-w-7xl mx-auto px-4 py-4">
       <DevNavLinks />
@@ -129,7 +143,7 @@ export default function CalendarPage() {
     </div>
   );
 
-  const { today, upcoming, etf_latest, cme_latest, etf1306, sq4 } = data;
+  const { today, upcoming, etf_latest, cme_latest, etf1306, sq4, sq_plus1 } = data;
   const { stats, max_dd: etfMaxDd, year_summary, trades } = etf1306;
 
   // Upcoming の Q イベントに過去パフォーマンスを紐付け
@@ -447,6 +461,84 @@ export default function CalendarPage() {
         </>
       )}
 
+      {/* SQ+1 Section */}
+      {sq_plus1 && (
+        <div className="rounded-xl border border-border bg-card">
+          <div className="px-4 py-2 border-b border-border/30 cursor-pointer flex items-center justify-between hover:bg-muted/30 transition-colors"
+               onClick={() => setSqPlus1SectionOpen(v => !v)}>
+            <p className="text-lg font-semibold">SQ+1 前日上昇Top N SHORT — 月次結果</p>
+            {sqPlus1SectionOpen ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+          </div>
+          {sqPlus1SectionOpen && <>
+            <div className="px-4 py-2 flex flex-wrap gap-4 text-sm border-b border-border/20">
+              <span>全体 PF <span className="font-medium tabular-nums">{sq_plus1.stats?.pf?.toFixed(2) ?? '—'}</span> / N={sq_plus1.stats?.total ?? 0}</span>
+              <span>CME↓ PF <span className="font-medium tabular-nums text-red-400">{sq_plus1.stats_cme_down?.pf?.toFixed(2) ?? '—'}</span> (N={sq_plus1.stats_cme_down?.total ?? 0})</span>
+              <span>CME↑ PF <span className="font-medium tabular-nums text-green-400">{sq_plus1.stats_cme_up?.pf?.toFixed(2) ?? '—'}</span> (N={sq_plus1.stats_cme_up?.total ?? 0})</span>
+              <span>MaxDD <span className="font-medium tabular-nums text-price-down">{fmtPnl(sq_plus1.max_dd?.amount)}</span></span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="text-xs text-muted-foreground border-b border-border/30">
+                    <th className="px-4 py-2 text-left">月</th>
+                    <th className="px-4 py-2 text-left" colSpan={2}>SQ日 → Entry</th>
+                    <th className="px-4 py-2 text-right">CME(土曜朝)</th>
+                    <th className="px-4 py-2 text-right">N</th>
+                    <th className="px-4 py-2 text-right">PnL(100株)</th>
+                    <th className="px-4 py-2 text-right">PnL(%)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sq_plus1.monthly.slice().reverse().flatMap(m => {
+                    const isExpanded = expandedSqPlus1Months.has(m.month);
+                    const rows = [
+                      <tr key={`sp1-${m.month}`}
+                          className="border-b border-border/20 hover:bg-muted/50 transition-colors cursor-pointer h-9 md:h-12"
+                          onClick={() => toggleSqPlus1Month(m.month)}>
+                        <td className="px-4 py-1.5 text-sm md:text-base font-medium">{m.month}</td>
+                        <td className="px-4 py-1.5 text-sm md:text-base tabular-nums text-muted-foreground" colSpan={2}>{fmtDateWd(m.sq_date)} → {fmtDateWd(m.entry_date)}</td>
+                        <td className={`px-4 py-1.5 text-sm md:text-base text-right tabular-nums ${pnlColor(m.cme_change)}`}>
+                          {m.cme_change != null ? `${m.cme_change > 0 ? '+' : ''}${m.cme_change.toLocaleString()}(${fmtPct2(m.cme_ret)})` : '—'}
+                          <span className={`ml-1 text-xs ${m.cme_direction === 'DOWN' ? 'text-red-400' : 'text-green-400'}`}>{m.cme_direction === 'DOWN' ? '↓5' : '↑10'}</span>
+                        </td>
+                        <td className="px-4 py-1.5 text-sm md:text-base text-right tabular-nums">{m.n_picks}</td>
+                        <td className={`px-4 py-1.5 text-sm md:text-base text-right tabular-nums font-medium ${pnlColor(m.total_pnl_100)}`}>{fmtPnl(m.total_pnl_100)}</td>
+                        <td className={`px-4 py-1.5 text-sm md:text-base text-right tabular-nums font-medium ${pnlColor(m.total_ret)}`}>{fmtPct2(m.total_ret)}</td>
+                      </tr>,
+                    ];
+                    if (isExpanded) {
+                      rows.push(
+                        <tr key={`sp1h-${m.month}`} className="border-b border-border/20 bg-muted/10">
+                          <td className="px-4 py-1.5 pl-8 text-xs text-muted-foreground" colSpan={2}>銘柄</td>
+                          <td className="px-4 py-1.5 text-xs text-muted-foreground text-right">前日上昇率</td>
+                          <td className="px-4 py-1.5 text-xs text-muted-foreground text-right">寄値(売)</td>
+                          <td className="px-4 py-1.5 text-xs text-muted-foreground text-right">引値(買戻)</td>
+                          <td className="px-4 py-1.5 text-xs text-muted-foreground text-right">PnL(100株)</td>
+                          <td className="px-4 py-1.5 text-xs text-muted-foreground text-right">PnL(%)</td>
+                        </tr>
+                      );
+                      m.picks.forEach((p, pi) => {
+                        rows.push(
+                          <tr key={`sp1p-${m.month}-${pi}`} className="border-b border-border/10 hover:bg-muted/30 transition-colors h-9">
+                            <td className="px-4 py-1.5 pl-8 text-sm tabular-nums">{p.code}</td>
+                            <td className="px-4 py-1.5 text-sm text-muted-foreground truncate max-w-[140px]">{p.name}</td>
+                            <td className={`px-4 py-1.5 text-sm text-right tabular-nums ${pnlColor(p.prev_day_ret)}`}>{fmtPct2(p.prev_day_ret)}</td>
+                            <td className="px-4 py-1.5 text-sm text-right tabular-nums">{fmtInt(p.entry_price)}</td>
+                            <td className="px-4 py-1.5 text-sm text-right tabular-nums">{fmtInt(p.exit_price)}</td>
+                            <td className={`px-4 py-1.5 text-sm text-right tabular-nums font-medium ${pnlColor(p.pnl_100)}`}>{fmtPnl(p.pnl_100)}</td>
+                            <td className={`px-4 py-1.5 text-sm text-right tabular-nums font-medium ${pnlColor(p.ret_pct)}`}>{fmtPct2(p.ret_pct)}</td>
+                          </tr>
+                        );
+                      });
+                    }
+                    return rows;
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>}
+        </div>
+      )}
 
       {/* Year Summary + Trade Detail */}
       <div className="rounded-xl border border-border bg-card">
