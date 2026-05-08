@@ -285,6 +285,32 @@ export default function CalendarPage() {
         </div>
       </div>
 
+      {/* Weekday Edge Summary Cards */}
+      {weekday_edge && weekday_edge.stats_filtered?.total > 0 && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
+            <p className="text-sm text-muted-foreground mb-1">USフィルタ有 PnL(100株)</p>
+            <p className={`text-xl font-bold tabular-nums ${pnlColor(weekday_edge.stats_filtered?.total_pnl_100)}`}>{fmtPnl(weekday_edge.stats_filtered?.total_pnl_100)}</p>
+            <p className="text-sm text-muted-foreground tabular-nums">PF {weekday_edge.stats_filtered?.pf?.toFixed(2) ?? '—'} / N={weekday_edge.stats_filtered?.total ?? 0}</p>
+          </div>
+          <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
+            <p className="text-sm text-muted-foreground mb-1">勝率</p>
+            <p className="text-xl font-bold tabular-nums">{weekday_edge.stats_filtered?.wr?.toFixed(1) ?? '—'}%</p>
+            <p className="text-sm text-muted-foreground tabular-nums">W{weekday_edge.stats_filtered?.wins ?? 0} / L{weekday_edge.stats_filtered?.losses ?? 0}</p>
+          </div>
+          <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
+            <p className="text-sm text-muted-foreground mb-1">MaxDD</p>
+            <p className="text-xl font-bold tabular-nums text-price-down">{fmtPnl(weekday_edge.max_dd_filtered?.amount)}</p>
+            <p className="text-sm text-muted-foreground tabular-nums">{weekday_edge.max_dd_filtered?.pct != null ? `${weekday_edge.max_dd_filtered.pct.toFixed(2)}%` : '—'}</p>
+          </div>
+          <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
+            <p className="text-sm text-muted-foreground mb-1">銘柄構成</p>
+            <p className="text-xl font-bold tabular-nums">{weekday_edge.stock_stats?.length ?? 0}</p>
+            <p className="text-sm text-muted-foreground tabular-nums">L{weekday_edge.stock_stats?.filter(s => s.direction === 'LONG').length ?? 0} / S{weekday_edge.stock_stats?.filter(s => s.direction === 'SHORT').length ?? 0}</p>
+          </div>
+        </div>
+      )}
+
       {/* Upcoming — 全イベント日付順 */}
       {(upcomingEtf.length > 0 || sq4?.next_sq4 || (weekday_edge?.next_entries?.length ?? 0) > 0) && (() => {
         // 全イベントを統一配列に集約して日付ソート
@@ -580,34 +606,8 @@ export default function CalendarPage() {
         </div>
       )}
 
-      {/* Weekday Edge Section */}
+      {/* Weekday Edge Weekly Results */}
       {weekday_edge && weekday_edge.stats_filtered?.total > 0 && (
-        <>
-          {/* Weekday Edge Summary Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
-              <p className="text-sm text-muted-foreground mb-1">USフィルタ有 PnL(100株)</p>
-              <p className={`text-xl font-bold tabular-nums ${pnlColor(weekday_edge.stats_filtered?.total_pnl_100)}`}>{fmtPnl(weekday_edge.stats_filtered?.total_pnl_100)}</p>
-              <p className="text-sm text-muted-foreground tabular-nums">PF {weekday_edge.stats_filtered?.pf?.toFixed(2) ?? '—'} / N={weekday_edge.stats_filtered?.total ?? 0}</p>
-            </div>
-            <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
-              <p className="text-sm text-muted-foreground mb-1">勝率</p>
-              <p className="text-xl font-bold tabular-nums">{weekday_edge.stats_filtered?.wr?.toFixed(1) ?? '—'}%</p>
-              <p className="text-sm text-muted-foreground tabular-nums">W{weekday_edge.stats_filtered?.wins ?? 0} / L{weekday_edge.stats_filtered?.losses ?? 0}</p>
-            </div>
-            <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
-              <p className="text-sm text-muted-foreground mb-1">MaxDD</p>
-              <p className="text-xl font-bold tabular-nums text-price-down">{fmtPnl(weekday_edge.max_dd_filtered?.amount)}</p>
-              <p className="text-sm text-muted-foreground tabular-nums">{weekday_edge.max_dd_filtered?.pct != null ? `${weekday_edge.max_dd_filtered.pct.toFixed(2)}%` : '—'}</p>
-            </div>
-            <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
-              <p className="text-sm text-muted-foreground mb-1">銘柄構成</p>
-              <p className="text-xl font-bold tabular-nums">{weekday_edge.stock_stats?.length ?? 0}</p>
-              <p className="text-sm text-muted-foreground tabular-nums">L{weekday_edge.stock_stats?.filter(s => s.direction === 'LONG').length ?? 0} / S{weekday_edge.stock_stats?.filter(s => s.direction === 'SHORT').length ?? 0}</p>
-            </div>
-          </div>
-
-          {/* Weekday Edge Weekly Results */}
           <div className="rounded-xl border border-border bg-card">
             <div className="px-4 py-2 border-b border-border/30 cursor-pointer flex items-center justify-between hover:bg-muted/30 transition-colors"
                  onClick={() => setWeekdayEdgeSectionOpen(v => !v)}>
@@ -711,7 +711,6 @@ export default function CalendarPage() {
               </div>
             </>}
           </div>
-        </>
       )}
 
       {/* Year Summary + Trade Detail */}
