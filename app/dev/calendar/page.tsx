@@ -402,56 +402,44 @@ export default function CalendarPage() {
 
         if (candidates.length === 0) return null;
 
-        // 日付でグループ
-        const byDate: Record<string, CandidateRow[]> = {};
-        for (const c of candidates) (byDate[c.date] ??= []).push(c);
-        const dates = Object.keys(byDate).sort();
+        // 翌営業日 = 最も近い日付のみ
+        const nextDate = candidates.map(c => c.date).sort()[0];
+        const rows = candidates.filter(c => c.date === nextDate);
 
         return (
           <div className="rounded-xl border border-border bg-card">
             <div className="px-4 py-2 border-b border-border/30">
-              <p className="text-lg font-semibold">エントリー候補</p>
-              <p className="text-xs text-muted-foreground">曜日エッジUSフィルタ: LONG≤+1% / SHORT≥-1% / アドバンテスト&lt;-1% — 寄前にS&amp;P500前夜を確認</p>
+              <p className="text-lg font-semibold">翌営業日エントリー候補 — {fmtDateWd(nextDate)}</p>
+              <p className="text-xs text-muted-foreground">{rows.length}件 / 曜日エッジUSフィルタ: LONG≤+1% / SHORT≥-1% / アドバンテスト&lt;-1%</p>
             </div>
-            {dates.map(date => {
-              const rows = byDate[date];
-              return (
-                <div key={date} className="border-b border-border/20 last:border-b-0">
-                  <div className="px-4 py-2 bg-muted/10 flex items-center gap-2">
-                    <span className="text-sm font-semibold tabular-nums">{fmtDateWd(date)}</span>
-                    <span className="text-xs text-muted-foreground">{rows.length}件</span>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="text-xs text-muted-foreground border-b border-border/30">
-                          <th className="px-4 py-1.5 text-left">銘柄</th>
-                          <th className="px-4 py-1.5 text-left">銘柄名</th>
-                          <th className="px-4 py-1.5 text-left">選定理由</th>
-                          <th className="px-4 py-1.5 text-center">方向</th>
-                          <th className="px-4 py-1.5 text-right">期待PF</th>
-                          <th className="px-4 py-1.5 text-left">執行</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {rows.map((r, i) => (
-                          <tr key={i} className="border-b border-border/10 hover:bg-muted/20 h-8">
-                            <td className="px-4 py-1 tabular-nums">{r.code}</td>
-                            <td className="px-4 py-1">{r.name}</td>
-                            <td className="px-4 py-1 text-muted-foreground">{r.strategy}</td>
-                            <td className="px-4 py-1 text-center">
-                              <span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${r.direction === 'LONG' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>{r.direction}</span>
-                            </td>
-                            <td className={`px-4 py-1 text-right tabular-nums ${r.pf != null && r.pf >= 1.5 ? 'text-teal-400' : r.pf != null && r.pf < 1 ? 'text-rose-400' : ''}`}>{r.pf?.toFixed(2) ?? '—'}</td>
-                            <td className="px-4 py-1 text-muted-foreground">{r.execution}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              );
-            })}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-xs text-muted-foreground border-b border-border/30">
+                    <th className="px-4 py-1.5 text-left">銘柄</th>
+                    <th className="px-4 py-1.5 text-left">銘柄名</th>
+                    <th className="px-4 py-1.5 text-left">選定理由</th>
+                    <th className="px-4 py-1.5 text-center">方向</th>
+                    <th className="px-4 py-1.5 text-right">期待PF</th>
+                    <th className="px-4 py-1.5 text-left">執行</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r, i) => (
+                    <tr key={i} className="border-b border-border/10 hover:bg-muted/20 h-8">
+                      <td className="px-4 py-1 tabular-nums">{r.code}</td>
+                      <td className="px-4 py-1">{r.name}</td>
+                      <td className="px-4 py-1 text-muted-foreground">{r.strategy}</td>
+                      <td className="px-4 py-1 text-center">
+                        <span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${r.direction === 'LONG' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>{r.direction}</span>
+                      </td>
+                      <td className={`px-4 py-1 text-right tabular-nums ${r.pf != null && r.pf >= 1.5 ? 'text-teal-400' : r.pf != null && r.pf < 1 ? 'text-rose-400' : ''}`}>{r.pf?.toFixed(2) ?? '—'}</td>
+                      <td className="px-4 py-1 text-muted-foreground">{r.execution}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         );
       })()}
