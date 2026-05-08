@@ -17,6 +17,7 @@ interface SqPlus1Pick { code: string; name: string; prev_close: number; prev_day
 interface SqPlus1Monthly { month: string; sq_date: string; entry_date: string; exit_date: string; n_picks: number; total_ret: number; total_pnl_100: number; cme_change: number | null; cme_ret: number | null; cme_direction: string; picks: SqPlus1Pick[]; }
 interface MaxDD { amount: number; pct: number; }
 interface CmeLatest { date: string; close: number; prev_close: number; change: number; change_pct: number; }
+interface Sp500Latest { date: string; close: number; prev_close: number; change: number; change_pct: number; }
 interface Sq4Data { stats: Sq4Stats; stats_cme_down: Sq4Stats; stats_cme_up: Sq4Stats; max_dd: MaxDD; max_dd_cme_down: MaxDD; next_sq4: { entry_date: string; exit_date: string | null } | null; candidates: { as_of: string; count: number; sector: string }; monthly: Sq4Monthly[]; }
 interface SqPlus1Data { stats: Sq4Stats; stats_cme_down: Sq4Stats; stats_cme_up: Sq4Stats; max_dd: MaxDD; max_dd_cme_down: MaxDD; next_sq_plus1: { sq_date: string; entry_date: string } | null; monthly: SqPlus1Monthly[]; }
 interface WeekdayEdgeStockStats { code: string; name: string; direction: string; group: string; dow: number; dow_label: string; stats_filtered: Sq4Stats; stats_all: Sq4Stats; n_filtered: number; n_all: number; }
@@ -30,6 +31,7 @@ interface CalendarResponse {
   upcoming: UpcomingEvent[];
   etf_latest: EtfLatest;
   cme_latest: CmeLatest;
+  sp500_latest: Sp500Latest;
   etf1306: { stats: Stats; max_dd: MaxDD; year_summary: YearSummary[]; trades: Trade[]; };
   sq4: Sq4Data;
   sq_plus1: SqPlus1Data;
@@ -208,7 +210,7 @@ export default function CalendarPage() {
     </div>
   );
 
-  const { today, upcoming, etf_latest, cme_latest, etf1306, sq4, sq_plus1, weekday_edge } = data;
+  const { today, upcoming, etf_latest, cme_latest, sp500_latest, etf1306, sq4, sq_plus1, weekday_edge } = data;
   const { stats, max_dd: etfMaxDd, year_summary, trades } = etf1306;
 
   // Upcoming の Q イベントに過去パフォーマンスを紐付け
@@ -332,30 +334,50 @@ export default function CalendarPage() {
       </div>
 
       {/* Weekday Edge Summary Cards */}
-      {weekday_edge && weekday_edge.stats_filtered?.total > 0 && (
+      {weekday_edge && weekday_edge.stats_filtered?.total > 0 && (() => {
+        const nextEntries = weekday_edge.next_entries ?? [];
+        const nextDate = nextEntries.length > 0 ? nextEntries[0].date : null;
+        const nextDayEntries = nextDate ? nextEntries.filter(e => e.date === nextDate) : [];
+        const nLong = nextDayEntries.filter(e => e.direction === 'LONG').length;
+        const nShort = nextDayEntries.filter(e => e.direction === 'SHORT').length;
+        const nextDow = nextDate ? getWeekday(nextDate) : '';
+        return (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* Card 1: 曜日 + LONG/SHORT */}
+          <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
+            <p className="text-sm text-muted-foreground mb-1">曜日エッジ Next</p>
+            {nextDate ? (
+              <>
+                <p className="text-xl font-bold tabular-nums">{fmtDateWd(nextDate)}</p>
+                <p className="text-xs text-muted-foreground">{nLong > 0 ? `L${nLong}` : ''}{nLong > 0 && nShort > 0 ? ' / ' : ''}{nShort > 0 ? `S${nShort}` : ''} 銘柄</p>
+              </>
+            ) : <p className="text-xl font-bold text-muted-foreground/40">—</p>}
+          </div>
+          {/* Card 2: S&P500 */}
+          <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
+            <p className="text-sm text-muted-foreground mb-1">S&P500 ({sp500_latest?.date?.slice(5) ?? ''})</p>
+            {sp500_latest?.close ? (
+              <>
+                <p className={`text-xl font-bold tabular-nums ${pnlColor(sp500_latest.change_pct)}`}>{sp500_latest.change_pct > 0 ? '+' : ''}{sp500_latest.change_pct.toFixed(2)}%</p>
+                <p className={`text-sm tabular-nums ${pnlColor(sp500_latest.change)}`}>{fmtPnl(Math.round(sp500_latest.change))} ({sp500_latest.close.toLocaleString('en-US', { maximumFractionDigits: 0 })})</p>
+              </>
+            ) : <p className="text-xl font-bold text-muted-foreground tabular-nums">—</p>}
+          </div>
+          {/* Card 3: PnL */}
           <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
             <p className="text-sm text-muted-foreground mb-1">USフィルタ有 PnL(100株)</p>
             <p className={`text-xl font-bold tabular-nums ${pnlColor(weekday_edge.stats_filtered?.total_pnl_100)}`}>{fmtPnl(weekday_edge.stats_filtered?.total_pnl_100)}</p>
             <p className="text-sm text-muted-foreground tabular-nums">PF {weekday_edge.stats_filtered?.pf?.toFixed(2) ?? '—'} / N={weekday_edge.stats_filtered?.total ?? 0}</p>
           </div>
-          <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
-            <p className="text-sm text-muted-foreground mb-1">勝率</p>
-            <p className="text-xl font-bold tabular-nums">{weekday_edge.stats_filtered?.wr?.toFixed(1) ?? '—'}%</p>
-            <p className="text-sm text-muted-foreground tabular-nums">W{weekday_edge.stats_filtered?.wins ?? 0} / L{weekday_edge.stats_filtered?.losses ?? 0}</p>
-          </div>
+          {/* Card 4: MaxDD */}
           <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
             <p className="text-sm text-muted-foreground mb-1">MaxDD</p>
             <p className="text-xl font-bold tabular-nums text-price-down">{fmtPnl(weekday_edge.max_dd_filtered?.amount)}</p>
             <p className="text-sm text-muted-foreground tabular-nums">{weekday_edge.max_dd_filtered?.pct != null ? `${weekday_edge.max_dd_filtered.pct.toFixed(2)}%` : '—'}</p>
           </div>
-          <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
-            <p className="text-sm text-muted-foreground mb-1">銘柄構成</p>
-            <p className="text-xl font-bold tabular-nums">{weekday_edge.stock_stats?.length ?? 0}</p>
-            <p className="text-sm text-muted-foreground tabular-nums">L{weekday_edge.stock_stats?.filter(s => s.direction === 'LONG').length ?? 0} / S{weekday_edge.stock_stats?.filter(s => s.direction === 'SHORT').length ?? 0}</p>
-          </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* エントリー候補 */}
       {(() => {
