@@ -336,20 +336,22 @@ export default function CalendarPage() {
       {/* Weekday Edge Summary Cards */}
       {weekday_edge && weekday_edge.stats_filtered?.total > 0 && (() => {
         const nextEntries = weekday_edge.next_entries ?? [];
-        const nextDate = nextEntries.length > 0 ? nextEntries[0].date : null;
-        const nextDayEntries = nextDate ? nextEntries.filter(e => e.date === nextDate) : [];
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const futureEntries = nextEntries.filter(e => e.date > todayStr);
+        const nextDate = futureEntries.length > 0 ? futureEntries[0].date : null;
+        const nextDayEntries = nextDate ? futureEntries.filter(e => e.date === nextDate) : [];
         const nLong = nextDayEntries.filter(e => e.direction === 'LONG').length;
         const nShort = nextDayEntries.filter(e => e.direction === 'SHORT').length;
         const nextDow = nextDate ? getWeekday(nextDate) : '';
         return (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* Card 1: 曜日 + LONG/SHORT */}
+          {/* Card 1: 曜日 / LONG or SHORT */}
           <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
             <p className="text-sm text-muted-foreground mb-1">曜日エッジ Next</p>
             {nextDate ? (
               <>
-                <p className="text-xl font-bold tabular-nums">{fmtDateWd(nextDate)}</p>
-                <p className="text-xs text-muted-foreground">{nLong > 0 ? `L${nLong}` : ''}{nLong > 0 && nShort > 0 ? ' / ' : ''}{nShort > 0 ? `S${nShort}` : ''} 銘柄</p>
+                <p className="text-xl font-bold tabular-nums">{nextDow}曜 / {nLong > 0 && nShort > 0 ? 'L+S' : nLong > 0 ? 'LONG' : 'SHORT'}</p>
+                <p className="text-xs text-muted-foreground">L{nLong} / S{nShort} ({nextDayEntries.length}銘柄)</p>
               </>
             ) : <p className="text-xl font-bold text-muted-foreground/40">—</p>}
           </div>
