@@ -357,47 +357,101 @@ export default function CalendarPage() {
         </div>
       )}
 
-      {/* 次のエントリー候補 */}
-      {weekday_edge && (weekday_edge.next_entries?.length ?? 0) > 0 && (() => {
-        const entries = weekday_edge.next_entries;
-        const byDateDir: Record<string, WeekdayEdgeNextEntry[]> = {};
-        for (const e of entries) {
-          const k = `${e.date}-${e.direction}`;
-          (byDateDir[k] ??= []).push(e);
+      {/* エントリー候補 */}
+      {(() => {
+        type CandidateRow = { date: string; code: string; name: string; strategy: string; direction: string; pf: number | null; execution: string };
+        const candidates: CandidateRow[] = [];
+
+        // 曜日エッジ
+        const wePfMap: Record<string, number | null> = {};
+        for (const s of weekday_edge?.stock_stats ?? []) {
+          wePfMap[s.code] = s.stats_filtered?.pf ?? null;
         }
-        const groups = Object.values(byDateDir).sort((a, b) => {
-          const dc = a[0].date.localeCompare(b[0].date);
-          if (dc !== 0) return dc;
-          return a[0].direction === 'LONG' ? -1 : 1;
+        for (const e of weekday_edge?.next_entries ?? []) {
+          candidates.push({
+            date: e.date, code: e.code.replace(/0$/, ''), name: e.name,
+            strategy: `曜日${e.direction}(${e.dow_label})`,
+            direction: e.direction, pf: wePfMap[e.code] ?? null, execution: '寄成→引成',
+          });
+        }
+
+        // SQ-4
+        if (sq4?.next_sq4) {
+          candidates.push({
+            date: sq4.next_sq4.entry_date, code: '—', name: '外需×5日ret worst10',
+            strategy: 'SQ-4', direction: 'LONG', pf: sq4.stats_cme_down?.pf ?? null, execution: '寄成→翌寄成',
+          });
+        }
+
+        // SQ+1
+        upcoming.filter(ev => ev.flags.some(f => f.includes('SQ+1'))).forEach(ev => {
+          candidates.push({
+            date: ev.date, code: '—', name: '前日上昇Top N',
+            strategy: 'SQ+1', direction: 'SHORT', pf: sq_plus1?.stats?.pf ?? null, execution: '寄成→引成',
+          });
         });
+
+        // 1306
+        upcomingEtf.filter(ev => ev.flags.some(f => f.includes('買い'))).forEach(ev => {
+          const qLabel = ev.flags[0]?.match(/^\dQ/)?.[0] ?? 'Q';
+          candidates.push({
+            date: ev.date, code: '1306', name: 'TOPIX連動型上場投信',
+            strategy: `${qLabel} 四半期末`, direction: 'LONG', pf: stats.pf, execution: '引成',
+          });
+        });
+
+        if (candidates.length === 0) return null;
+
+        // 日付でグループ
+        const byDate: Record<string, CandidateRow[]> = {};
+        for (const c of candidates) (byDate[c.date] ??= []).push(c);
+        const dates = Object.keys(byDate).sort();
+
         return (
           <div className="rounded-xl border border-border bg-card">
             <div className="px-4 py-2 border-b border-border/30">
-              <p className="text-lg font-semibold">次のエントリー候補</p>
-              <p className="text-xs text-muted-foreground">USフィルタ: LONG≤+1% / SHORT≥-1% / アドバンテスト&lt;-1% — 寄前にS&amp;P500前夜を確認</p>
+              <p className="text-lg font-semibold">エントリー候補</p>
+              <p className="text-xs text-muted-foreground">曜日エッジUSフィルタ: LONG≤+1% / SHORT≥-1% / アドバンテスト&lt;-1% — 寄前にS&amp;P500前夜を確認</p>
             </div>
-            <div className="divide-y divide-border/20">
-              {groups.map(g => {
-                const isLong = g[0].direction === 'LONG';
-                return (
-                  <div key={`${g[0].date}-${g[0].direction}`} className="px-4 py-2">
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <span className="text-sm font-medium tabular-nums">{fmtDateWd(g[0].date)}</span>
-                      <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${isLong ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>{g[0].direction}</span>
-                      <span className="text-xs text-muted-foreground">{g.length}銘柄 / 寄成→引成</span>
-                    </div>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 pl-2">
-                      {g.map(e => (
-                        <span key={e.code} className="text-sm tabular-nums">
-                          <span className="text-muted-foreground">{e.code.replace(/0$/, '')}</span>
-                          <span className="ml-1">{e.name}</span>
-                        </span>
-                      ))}
-                    </div>
+            {dates.map(date => {
+              const rows = byDate[date];
+              return (
+                <div key={date} className="border-b border-border/20 last:border-b-0">
+                  <div className="px-4 py-2 bg-muted/10 flex items-center gap-2">
+                    <span className="text-sm font-semibold tabular-nums">{fmtDateWd(date)}</span>
+                    <span className="text-xs text-muted-foreground">{rows.length}件</span>
                   </div>
-                );
-              })}
-            </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-xs text-muted-foreground border-b border-border/30">
+                          <th className="px-4 py-1.5 text-left">銘柄</th>
+                          <th className="px-4 py-1.5 text-left">銘柄名</th>
+                          <th className="px-4 py-1.5 text-left">選定理由</th>
+                          <th className="px-4 py-1.5 text-center">方向</th>
+                          <th className="px-4 py-1.5 text-right">期待PF</th>
+                          <th className="px-4 py-1.5 text-left">執行</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rows.map((r, i) => (
+                          <tr key={i} className="border-b border-border/10 hover:bg-muted/20 h-8">
+                            <td className="px-4 py-1 tabular-nums">{r.code}</td>
+                            <td className="px-4 py-1">{r.name}</td>
+                            <td className="px-4 py-1 text-muted-foreground">{r.strategy}</td>
+                            <td className="px-4 py-1 text-center">
+                              <span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${r.direction === 'LONG' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>{r.direction}</span>
+                            </td>
+                            <td className={`px-4 py-1 text-right tabular-nums ${r.pf != null && r.pf >= 1.5 ? 'text-teal-400' : r.pf != null && r.pf < 1 ? 'text-rose-400' : ''}`}>{r.pf?.toFixed(2) ?? '—'}</td>
+                            <td className="px-4 py-1 text-muted-foreground">{r.execution}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         );
       })()}
