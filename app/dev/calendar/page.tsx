@@ -19,6 +19,12 @@ interface MaxDD { amount: number; pct: number; }
 interface CmeLatest { date: string; close: number; prev_close: number; change: number; change_pct: number; }
 interface Sq4Data { stats: Sq4Stats; stats_cme_down: Sq4Stats; stats_cme_up: Sq4Stats; max_dd: MaxDD; max_dd_cme_down: MaxDD; next_sq4: { entry_date: string; exit_date: string | null } | null; candidates: { as_of: string; count: number; sector: string }; monthly: Sq4Monthly[]; }
 interface SqPlus1Data { stats: Sq4Stats; stats_cme_down: Sq4Stats; stats_cme_up: Sq4Stats; max_dd: MaxDD; max_dd_cme_down: MaxDD; next_sq_plus1: { sq_date: string; entry_date: string } | null; monthly: SqPlus1Monthly[]; }
+interface WeekdayEdgeStockStats { code: string; name: string; direction: string; group: string; dow: number; dow_label: string; stats_filtered: Sq4Stats; stats_all: Sq4Stats; n_filtered: number; n_all: number; }
+interface WeekdayEdgePick { date: string; code: string; name: string; direction: string; group: string; dow_label: string; adj_open: number; adj_close: number; ret_pct: number; pnl_100: number; us_prev_ret: number | null; }
+interface WeekdayEdgeWeekly { week: string; start_date: string; end_date: string; n_trades: number; total_ret: number; total_pnl_100: number; picks: WeekdayEdgePick[]; }
+interface WeekdayEdgeYearly { year: number; total: number; wins: number; wr: number; pf: number | null; total_ret: number; total_pnl_100: number; max_dd: MaxDD; }
+interface WeekdayEdgeNextEntry { date: string; code: string; name: string; direction: string; dow_label: string; }
+interface WeekdayEdgeData { params: Record<string, string | number>; stats_filtered: Sq4Stats; stats_all: Sq4Stats; max_dd_filtered: MaxDD; yearly: WeekdayEdgeYearly[]; stock_stats: WeekdayEdgeStockStats[]; next_entries: WeekdayEdgeNextEntry[]; weekly: WeekdayEdgeWeekly[]; }
 interface CalendarResponse {
   today: { flags: string[] };
   upcoming: UpcomingEvent[];
@@ -27,6 +33,7 @@ interface CalendarResponse {
   etf1306: { stats: Stats; max_dd: MaxDD; year_summary: YearSummary[]; trades: Trade[]; };
   sq4: Sq4Data;
   sq_plus1: SqPlus1Data;
+  weekday_edge: WeekdayEdgeData;
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
@@ -67,6 +74,8 @@ const flagStyle = (flag: string) =>
   flag.includes('買い') ? 'bg-emerald-500/20 text-emerald-400' :
   flag.includes('売り') ? 'bg-red-500/20 text-red-400' :
   flag.includes('決済') ? 'bg-amber-500/20 text-amber-400' :
+  flag === '曜日LONG' ? 'bg-emerald-500/10 text-emerald-400/80' :
+  flag === '曜日SHORT' ? 'bg-red-500/10 text-red-400/80' :
   'bg-white/5 text-muted-foreground';
 
 const isQFlag = (flag: string) => /^\dQ/.test(flag);
@@ -81,6 +90,8 @@ export default function CalendarPage() {
   const [sqPlus1SectionOpen, setSqPlus1SectionOpen] = useState(false);
   const [expandedSqPlus1Months, setExpandedSqPlus1Months] = useState<Set<string>>(new Set());
   const [etfSectionOpen, setEtfSectionOpen] = useState(false);
+  const [weekdayEdgeSectionOpen, setWeekdayEdgeSectionOpen] = useState(false);
+  const [expandedWeekdayWeeks, setExpandedWeekdayWeeks] = useState<Set<string>>(new Set());
 
   const fetchData = async () => {
     try {
@@ -125,6 +136,14 @@ export default function CalendarPage() {
     });
   };
 
+  const toggleWeekdayWeek = (week: string) => {
+    setExpandedWeekdayWeeks(prev => {
+      const next = new Set(prev);
+      if (next.has(week)) next.delete(week); else next.add(week);
+      return next;
+    });
+  };
+
   if (loading) return (
     <div className="max-w-7xl mx-auto px-4 py-4">
       <DevNavLinks />
@@ -143,7 +162,7 @@ export default function CalendarPage() {
     </div>
   );
 
-  const { today, upcoming, etf_latest, cme_latest, etf1306, sq4, sq_plus1 } = data;
+  const { today, upcoming, etf_latest, cme_latest, etf1306, sq4, sq_plus1, weekday_edge } = data;
   const { stats, max_dd: etfMaxDd, year_summary, trades } = etf1306;
 
   // Upcoming の Q イベントに過去パフォーマンスを紐付け
@@ -177,7 +196,7 @@ export default function CalendarPage() {
       <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4 pb-3 border-b border-border/30">
         <div>
           <h1 className="text-xl font-bold text-foreground">Calendar Trades</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">SQ-4 + SQ+1 + 1306ETF四半期末</p>
+          <p className="text-sm text-muted-foreground mt-0.5">SQ-4 + SQ+1 + 1306ETF四半期末 + 曜日エッジ</p>
         </div>
         <div className="flex items-center gap-3">
           <button onClick={handleRefresh} disabled={refreshing}
@@ -267,7 +286,7 @@ export default function CalendarPage() {
       </div>
 
       {/* Upcoming — 全イベント日付順 */}
-      {(upcomingEtf.length > 0 || (sq4?.next_sq4)) && (() => {
+      {(upcomingEtf.length > 0 || sq4?.next_sq4 || (weekday_edge?.next_entries?.length ?? 0) > 0) && (() => {
         // 全イベントを統一配列に集約して日付ソート
         type UpcomingRow = { date: string; label: React.ReactNode; action: string; pf: string };
         const allRows: UpcomingRow[] = [];
@@ -331,6 +350,22 @@ export default function CalendarPage() {
             label: (<div className="flex items-center gap-1.5">{ev.flags.map((f, fi) => (<span key={fi} className={`inline-flex px-2 py-0.5 rounded text-xs md:text-sm font-medium ${flagStyle(f)}`}>{f}</span>))}</div>),
             action,
             pf: showPf ? stats.pf.toFixed(2) : '—',
+          });
+        });
+
+        // Weekday Edge entries (deduplicate by date+direction)
+        const weSeenDates = new Set<string>();
+        (weekday_edge?.next_entries ?? []).forEach(entry => {
+          const key = `${entry.date}-${entry.direction}`;
+          if (weSeenDates.has(key)) return;
+          weSeenDates.add(key);
+          const isLong = entry.direction === 'LONG';
+          const nStocks = (weekday_edge?.next_entries ?? []).filter(e => e.date === entry.date && e.direction === entry.direction).length;
+          allRows.push({
+            date: entry.date,
+            label: (<><span className={`inline-flex px-2 py-0.5 rounded text-xs md:text-sm font-medium ${isLong ? 'bg-emerald-500/10 text-emerald-400/80' : 'bg-red-500/10 text-red-400/80'}`}>曜日{isLong ? 'LONG' : 'SHORT'}</span><span className="ml-2 text-xs text-muted-foreground">{entry.dow_label} {nStocks}銘柄</span></>),
+            action: '寄成→引成',
+            pf: weekday_edge?.stats_filtered?.pf?.toFixed(2) ?? '—',
           });
         });
 
@@ -543,6 +578,140 @@ export default function CalendarPage() {
             </div>
           </>}
         </div>
+      )}
+
+      {/* Weekday Edge Section */}
+      {weekday_edge && weekday_edge.stats_filtered?.total > 0 && (
+        <>
+          {/* Weekday Edge Summary Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
+              <p className="text-sm text-muted-foreground mb-1">USフィルタ有 PnL(100株)</p>
+              <p className={`text-xl font-bold tabular-nums ${pnlColor(weekday_edge.stats_filtered?.total_pnl_100)}`}>{fmtPnl(weekday_edge.stats_filtered?.total_pnl_100)}</p>
+              <p className="text-sm text-muted-foreground tabular-nums">PF {weekday_edge.stats_filtered?.pf?.toFixed(2) ?? '—'} / N={weekday_edge.stats_filtered?.total ?? 0}</p>
+            </div>
+            <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
+              <p className="text-sm text-muted-foreground mb-1">勝率</p>
+              <p className="text-xl font-bold tabular-nums">{weekday_edge.stats_filtered?.wr?.toFixed(1) ?? '—'}%</p>
+              <p className="text-sm text-muted-foreground tabular-nums">W{weekday_edge.stats_filtered?.wins ?? 0} / L{weekday_edge.stats_filtered?.losses ?? 0}</p>
+            </div>
+            <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
+              <p className="text-sm text-muted-foreground mb-1">MaxDD</p>
+              <p className="text-xl font-bold tabular-nums text-price-down">{fmtPnl(weekday_edge.max_dd_filtered?.amount)}</p>
+              <p className="text-sm text-muted-foreground tabular-nums">{weekday_edge.max_dd_filtered?.pct != null ? `${weekday_edge.max_dd_filtered.pct.toFixed(2)}%` : '—'}</p>
+            </div>
+            <div className="rounded-xl border border-border bg-card px-4 py-3 text-center">
+              <p className="text-sm text-muted-foreground mb-1">銘柄構成</p>
+              <p className="text-xl font-bold tabular-nums">{weekday_edge.stock_stats?.length ?? 0}</p>
+              <p className="text-sm text-muted-foreground tabular-nums">L{weekday_edge.stock_stats?.filter(s => s.direction === 'LONG').length ?? 0} / S{weekday_edge.stock_stats?.filter(s => s.direction === 'SHORT').length ?? 0}</p>
+            </div>
+          </div>
+
+          {/* Weekday Edge Weekly Results */}
+          <div className="rounded-xl border border-border bg-card">
+            <div className="px-4 py-2 border-b border-border/30 cursor-pointer flex items-center justify-between hover:bg-muted/30 transition-colors"
+                 onClick={() => setWeekdayEdgeSectionOpen(v => !v)}>
+              <p className="text-lg font-semibold">曜日×USエッジ — 週次結果</p>
+              {weekdayEdgeSectionOpen ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+            </div>
+            {weekdayEdgeSectionOpen && <>
+              {/* Year summary bar */}
+              <div className="px-4 py-2 flex flex-wrap gap-4 text-sm border-b border-border/20">
+                {(weekday_edge.yearly ?? []).slice().reverse().map(y => (
+                  <span key={y.year} className="tabular-nums">
+                    {y.year} <span className={`font-medium ${pnlColor(y.total_pnl_100)}`}>{fmtPnl(y.total_pnl_100)}</span>
+                    <span className="text-muted-foreground ml-1">PF {y.pf?.toFixed(2) ?? '—'}</span>
+                  </span>
+                ))}
+              </div>
+              {/* Stock breakdown */}
+              <details className="px-4 py-2 border-b border-border/20">
+                <summary className="text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors">銘柄別パフォーマンス</summary>
+                <div className="mt-2 overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="text-xs text-muted-foreground border-b border-border/30">
+                        <th className="px-3 py-1.5 text-left">銘柄</th>
+                        <th className="px-3 py-1.5 text-center">曜日</th>
+                        <th className="px-3 py-1.5 text-center">方向</th>
+                        <th className="px-3 py-1.5 text-right">N</th>
+                        <th className="px-3 py-1.5 text-right">WR</th>
+                        <th className="px-3 py-1.5 text-right">PF</th>
+                        <th className="px-3 py-1.5 text-right">PnL(100株)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(weekday_edge.stock_stats ?? []).map(s => (
+                        <tr key={`${s.code}-${s.dow}`} className="border-b border-border/10 hover:bg-muted/30 transition-colors h-8">
+                          <td className="px-3 py-1 text-sm">{s.name} <span className="text-xs text-muted-foreground">{s.code}</span></td>
+                          <td className="px-3 py-1 text-sm text-center">{s.dow_label}</td>
+                          <td className="px-3 py-1 text-sm text-center"><span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${s.direction === 'LONG' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>{s.direction}</span></td>
+                          <td className="px-3 py-1 text-sm text-right tabular-nums">{s.n_filtered}</td>
+                          <td className="px-3 py-1 text-sm text-right tabular-nums">{s.stats_filtered?.wr?.toFixed(1) ?? '—'}%</td>
+                          <td className="px-3 py-1 text-sm text-right tabular-nums">{s.stats_filtered?.pf?.toFixed(2) ?? '—'}</td>
+                          <td className={`px-3 py-1 text-sm text-right tabular-nums font-medium ${pnlColor(s.stats_filtered?.total_pnl_100)}`}>{fmtPnl(s.stats_filtered?.total_pnl_100)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </details>
+              {/* Weekly trades */}
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-xs text-muted-foreground border-b border-border/30">
+                      <th className="px-4 py-2 text-left">週</th>
+                      <th className="px-4 py-2 text-left">期間</th>
+                      <th className="px-4 py-2 text-right">N</th>
+                      <th className="px-4 py-2 text-right">PnL(100株)</th>
+                      <th className="px-4 py-2 text-right">PnL(%)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(weekday_edge.weekly ?? []).slice().reverse().flatMap(w => {
+                      const isExpanded = expandedWeekdayWeeks.has(w.week);
+                      const rows = [
+                        <tr key={`we-${w.week}`}
+                            className="border-b border-border/20 hover:bg-muted/50 transition-colors cursor-pointer h-9 md:h-12"
+                            onClick={() => toggleWeekdayWeek(w.week)}>
+                          <td className="px-4 py-1.5 text-sm md:text-base font-medium">{w.week}</td>
+                          <td className="px-4 py-1.5 text-sm md:text-base tabular-nums text-muted-foreground">{fmtDateWd(w.start_date)} → {fmtDateWd(w.end_date)}</td>
+                          <td className="px-4 py-1.5 text-sm md:text-base text-right tabular-nums">{w.n_trades}</td>
+                          <td className={`px-4 py-1.5 text-sm md:text-base text-right tabular-nums font-medium ${pnlColor(w.total_pnl_100)}`}>{fmtPnl(w.total_pnl_100)}</td>
+                          <td className={`px-4 py-1.5 text-sm md:text-base text-right tabular-nums font-medium ${pnlColor(w.total_ret)}`}>{fmtPct2(w.total_ret)}</td>
+                        </tr>,
+                      ];
+                      if (isExpanded) {
+                        rows.push(
+                          <tr key={`weh-${w.week}`} className="border-b border-border/20 bg-muted/10">
+                            <td className="px-4 py-1.5 pl-8 text-xs text-muted-foreground">日付</td>
+                            <td className="px-4 py-1.5 text-xs text-muted-foreground">銘柄</td>
+                            <td className="px-4 py-1.5 text-xs text-muted-foreground text-center">方向</td>
+                            <td className="px-4 py-1.5 text-xs text-muted-foreground text-right">PnL(100株)</td>
+                            <td className="px-4 py-1.5 text-xs text-muted-foreground text-right">PnL(%)</td>
+                          </tr>
+                        );
+                        w.picks.forEach((p, pi) => {
+                          rows.push(
+                            <tr key={`wep-${w.week}-${pi}`} className="border-b border-border/10 hover:bg-muted/30 transition-colors h-9">
+                              <td className="px-4 py-1.5 pl-8 text-sm tabular-nums">{fmtDateWd(p.date)}</td>
+                              <td className="px-4 py-1.5 text-sm text-muted-foreground">{p.name} <span className="text-xs">{p.code}</span></td>
+                              <td className="px-4 py-1.5 text-sm text-center"><span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${p.direction === 'LONG' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>{p.direction}</span></td>
+                              <td className={`px-4 py-1.5 text-sm text-right tabular-nums font-medium ${pnlColor(p.pnl_100)}`}>{fmtPnl(p.pnl_100)}</td>
+                              <td className={`px-4 py-1.5 text-sm text-right tabular-nums font-medium ${pnlColor(p.ret_pct)}`}>{fmtPct2(p.ret_pct)}</td>
+                            </tr>
+                          );
+                        });
+                      }
+                      return rows;
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>}
+          </div>
+        </>
       )}
 
       {/* Year Summary + Trade Detail */}
