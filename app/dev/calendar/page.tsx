@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { DevNavLinks } from '../../../components/dev';
 import { RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
 
@@ -91,6 +91,7 @@ export default function CalendarPage() {
   const [expandedSqPlus1Months, setExpandedSqPlus1Months] = useState<Set<string>>(new Set());
   const [etfSectionOpen, setEtfSectionOpen] = useState(false);
   const [weekdayEdgeSectionOpen, setWeekdayEdgeSectionOpen] = useState(false);
+  const [weekdayEdgeView, setWeekdayEdgeView] = useState<string>('weekly');
   const [expandedWeekdayWeeks, setExpandedWeekdayWeeks] = useState<Set<string>>(new Set());
 
   const fetchData = async () => {
@@ -164,6 +165,51 @@ export default function CalendarPage() {
 
   const { today, upcoming, etf_latest, cme_latest, etf1306, sq4, sq_plus1, weekday_edge } = data;
   const { stats, max_dd: etfMaxDd, year_summary, trades } = etf1306;
+
+  // 曜日エッジ: 全picks展開 + ビュー別集約
+  const allWePicks = useMemo(() => {
+    if (!weekday_edge?.weekly) return [];
+    return weekday_edge.weekly.flatMap(w => w.picks);
+  }, [weekday_edge]);
+
+  const weAggregate = (picks: WeekdayEdgePick[]) => {
+    if (picks.length === 0) return { n: 0, wins: 0, losses: 0, wr: 0, pf: null as number | null, total_pnl: 0, total_ret: 0 };
+    const rets = picks.map(p => p.ret_pct);
+    const wins = rets.filter(r => r > 0).length;
+    const gain = rets.filter(r => r > 0).reduce((a, b) => a + b, 0);
+    const loss = -rets.filter(r => r <= 0).reduce((a, b) => a + b, 0);
+    return {
+      n: picks.length,
+      wins,
+      losses: picks.length - wins,
+      wr: Math.round(wins / picks.length * 1000) / 10,
+      pf: loss > 0 ? Math.round(gain / loss * 100) / 100 : null,
+      total_pnl: Math.round(picks.reduce((a, p) => a + p.pnl_100, 0)),
+      total_ret: Math.round(rets.reduce((a, b) => a + b, 0) * 100) / 100,
+    };
+  };
+
+  const weGrouped = useMemo(() => {
+    if (allWePicks.length === 0) return { daily: [], monthly: [], weekday: [] };
+    const byDate: Record<string, WeekdayEdgePick[]> = {};
+    const byMonth: Record<string, WeekdayEdgePick[]> = {};
+    const byDow: Record<string, WeekdayEdgePick[]> = {};
+    for (const p of allWePicks) {
+      (byDate[p.date] ??= []).push(p);
+      (byMonth[p.date.slice(0, 7)] ??= []).push(p);
+      (byDow[p.dow_label] ??= []).push(p);
+    }
+    const daily = Object.entries(byDate).sort(([a], [b]) => b.localeCompare(a)).map(([key, picks]) => ({ key, picks, ...weAggregate(picks) }));
+    const monthly = Object.entries(byMonth).sort(([a], [b]) => b.localeCompare(a)).map(([key, picks]) => ({ key, picks, ...weAggregate(picks) }));
+    const dowOrder = ['月', '火', '水', '木', '金'];
+    const weekday = dowOrder.filter(d => byDow[d]).map(d => {
+      const picks = byDow[d];
+      const longPicks = picks.filter(p => p.direction === 'LONG');
+      const shortPicks = picks.filter(p => p.direction === 'SHORT');
+      return { key: d, picks, ...weAggregate(picks), long: weAggregate(longPicks), short: weAggregate(shortPicks) };
+    });
+    return { daily, monthly, weekday };
+  }, [allWePicks]);
 
   // Upcoming の Q イベントに過去パフォーマンスを紐付け
   const tradesByQMonth: Record<number, Trade[]> = {};
@@ -606,12 +652,12 @@ export default function CalendarPage() {
         </div>
       )}
 
-      {/* Weekday Edge Weekly Results */}
+      {/* Weekday Edge Results */}
       {weekday_edge && weekday_edge.stats_filtered?.total > 0 && (
           <div className="rounded-xl border border-border bg-card">
             <div className="px-4 py-2 border-b border-border/30 cursor-pointer flex items-center justify-between hover:bg-muted/30 transition-colors"
                  onClick={() => setWeekdayEdgeSectionOpen(v => !v)}>
-              <p className="text-lg font-semibold">曜日×USエッジ — 週次結果</p>
+              <p className="text-lg font-semibold">曜日×USエッジ — パフォーマンス</p>
               {weekdayEdgeSectionOpen ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
             </div>
             {weekdayEdgeSectionOpen && <>
@@ -622,6 +668,21 @@ export default function CalendarPage() {
                     {y.year} <span className={`font-medium ${pnlColor(y.total_pnl_100)}`}>{fmtPnl(y.total_pnl_100)}</span>
                     <span className="text-muted-foreground ml-1">PF {y.pf?.toFixed(2) ?? '—'}</span>
                   </span>
+                ))}
+              </div>
+              {/* Tab buttons */}
+              <div className="flex gap-1 px-4 py-2 border-b border-border/20">
+                {[
+                  { key: 'daily', label: '日別' },
+                  { key: 'weekly', label: '週別' },
+                  { key: 'monthly', label: '月別' },
+                  { key: 'weekday', label: '曜日別' },
+                ].map(({ key, label }) => (
+                  <button key={key}
+                    onClick={() => { setWeekdayEdgeView(key); setExpandedWeekdayWeeks(new Set()); }}
+                    className={`px-3 py-1 text-sm rounded-md transition-colors ${weekdayEdgeView === key ? 'bg-primary/20 text-primary font-medium' : 'text-muted-foreground hover:bg-muted/30'}`}>
+                    {label}
+                  </button>
                 ))}
               </div>
               {/* Stock breakdown */}
@@ -656,59 +717,210 @@ export default function CalendarPage() {
                   </table>
                 </div>
               </details>
-              {/* Weekly trades */}
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="text-xs text-muted-foreground border-b border-border/30">
-                      <th className="px-4 py-2 text-left">週</th>
-                      <th className="px-4 py-2 text-left">期間</th>
-                      <th className="px-4 py-2 text-right">N</th>
-                      <th className="px-4 py-2 text-right">PnL(100株)</th>
-                      <th className="px-4 py-2 text-right">PnL(%)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(weekday_edge.weekly ?? []).slice().reverse().flatMap(w => {
-                      const isExpanded = expandedWeekdayWeeks.has(w.week);
-                      const rows = [
-                        <tr key={`we-${w.week}`}
-                            className="border-b border-border/20 hover:bg-muted/50 transition-colors cursor-pointer h-9 md:h-12"
-                            onClick={() => toggleWeekdayWeek(w.week)}>
-                          <td className="px-4 py-1.5 text-sm md:text-base font-medium">{w.week}</td>
-                          <td className="px-4 py-1.5 text-sm md:text-base tabular-nums text-muted-foreground">{fmtDateWd(w.start_date)} → {fmtDateWd(w.end_date)}</td>
-                          <td className="px-4 py-1.5 text-sm md:text-base text-right tabular-nums">{w.n_trades}</td>
-                          <td className={`px-4 py-1.5 text-sm md:text-base text-right tabular-nums font-medium ${pnlColor(w.total_pnl_100)}`}>{fmtPnl(w.total_pnl_100)}</td>
-                          <td className={`px-4 py-1.5 text-sm md:text-base text-right tabular-nums font-medium ${pnlColor(w.total_ret)}`}>{fmtPct2(w.total_ret)}</td>
-                        </tr>,
-                      ];
-                      if (isExpanded) {
-                        rows.push(
-                          <tr key={`weh-${w.week}`} className="border-b border-border/20 bg-muted/10">
-                            <td className="px-4 py-1.5 pl-8 text-xs text-muted-foreground">日付</td>
-                            <td className="px-4 py-1.5 text-xs text-muted-foreground">銘柄</td>
-                            <td className="px-4 py-1.5 text-xs text-muted-foreground text-center">方向</td>
-                            <td className="px-4 py-1.5 text-xs text-muted-foreground text-right">PnL(100株)</td>
-                            <td className="px-4 py-1.5 text-xs text-muted-foreground text-right">PnL(%)</td>
+
+              {/* === 日別 === */}
+              {weekdayEdgeView === 'daily' && (
+                <div className="overflow-x-auto">
+                  {weGrouped.daily.map(g => {
+                    const isOpen = expandedWeekdayWeeks.has(g.key);
+                    return (
+                      <div key={g.key} className="border-b border-border/20">
+                        <button onClick={() => toggleWeekdayWeek(g.key)}
+                          className="w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-muted/30 transition-colors">
+                          <span className="text-muted-foreground/60">{isOpen ? '▼' : '▶'}</span>
+                          <span className="font-medium min-w-[90px] text-left tabular-nums">{fmtDateWd(g.key)}</span>
+                          <span className="text-muted-foreground">N={g.n}</span>
+                          <span className={g.wr >= 55 ? 'text-emerald-400' : g.wr < 45 ? 'text-rose-400' : 'text-muted-foreground'}>勝率{g.wr}%</span>
+                          <span className={g.pf != null && g.pf >= 1.5 ? 'text-teal-400' : g.pf != null && g.pf < 1 ? 'text-rose-400' : 'text-muted-foreground'}>PF {g.pf?.toFixed(2) ?? '—'}</span>
+                          <span className={`tabular-nums ${pnlColor(g.total_pnl)}`}>{fmtPnl(g.total_pnl)}</span>
+                        </button>
+                        {isOpen && (
+                          <div className="px-4 pb-2">
+                            <table className="w-full text-sm">
+                              <thead><tr className="border-b border-border/40">
+                                <th className="px-2 py-1 text-left text-muted-foreground">銘柄</th>
+                                <th className="px-2 py-1 text-center text-muted-foreground">方向</th>
+                                <th className="px-2 py-1 text-right text-muted-foreground">始値</th>
+                                <th className="px-2 py-1 text-right text-muted-foreground">終値</th>
+                                <th className="px-2 py-1 text-right text-muted-foreground">PnL(100株)</th>
+                                <th className="px-2 py-1 text-right text-muted-foreground">PnL(%)</th>
+                                <th className="px-2 py-1 text-right text-muted-foreground">US前夜</th>
+                              </tr></thead>
+                              <tbody>
+                                {g.picks.map((p, pi) => (
+                                  <tr key={pi} className="border-b border-border/10 hover:bg-muted/20">
+                                    <td className="px-2 py-1">{p.name} <span className="text-xs text-muted-foreground">{p.code}</span></td>
+                                    <td className="px-2 py-1 text-center"><span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${p.direction === 'LONG' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>{p.direction}</span></td>
+                                    <td className="px-2 py-1 text-right tabular-nums">{fmtPrice(p.adj_open)}</td>
+                                    <td className="px-2 py-1 text-right tabular-nums">{fmtPrice(p.adj_close)}</td>
+                                    <td className={`px-2 py-1 text-right tabular-nums font-medium ${pnlColor(p.pnl_100)}`}>{fmtPnl(p.pnl_100)}</td>
+                                    <td className={`px-2 py-1 text-right tabular-nums ${pnlColor(p.ret_pct)}`}>{fmtPct2(p.ret_pct)}</td>
+                                    <td className={`px-2 py-1 text-right tabular-nums ${pnlColor(p.us_prev_ret)}`}>{p.us_prev_ret != null ? `${p.us_prev_ret > 0 ? '+' : ''}${p.us_prev_ret.toFixed(2)}%` : '—'}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* === 週別 === */}
+              {weekdayEdgeView === 'weekly' && (
+                <div className="overflow-x-auto">
+                  {(weekday_edge.weekly ?? []).slice().reverse().map(w => {
+                    const isOpen = expandedWeekdayWeeks.has(w.week);
+                    const agg = weAggregate(w.picks);
+                    return (
+                      <div key={w.week} className="border-b border-border/20">
+                        <button onClick={() => toggleWeekdayWeek(w.week)}
+                          className="w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-muted/30 transition-colors">
+                          <span className="text-muted-foreground/60">{isOpen ? '▼' : '▶'}</span>
+                          <span className="font-medium min-w-[80px] text-left tabular-nums">{w.week}</span>
+                          <span className="text-muted-foreground tabular-nums">{fmtDateWd(w.start_date)}→{fmtDateWd(w.end_date)}</span>
+                          <span className="text-muted-foreground">N={w.n_trades}</span>
+                          <span className={agg.wr >= 55 ? 'text-emerald-400' : agg.wr < 45 ? 'text-rose-400' : 'text-muted-foreground'}>勝率{agg.wr}%</span>
+                          <span className={agg.pf != null && agg.pf >= 1.5 ? 'text-teal-400' : agg.pf != null && agg.pf < 1 ? 'text-rose-400' : 'text-muted-foreground'}>PF {agg.pf?.toFixed(2) ?? '—'}</span>
+                          <span className={`tabular-nums ${pnlColor(w.total_pnl_100)}`}>{fmtPnl(w.total_pnl_100)}</span>
+                        </button>
+                        {isOpen && (
+                          <div className="px-4 pb-2">
+                            <table className="w-full text-sm">
+                              <thead><tr className="border-b border-border/40">
+                                <th className="px-2 py-1 text-left text-muted-foreground">日付</th>
+                                <th className="px-2 py-1 text-left text-muted-foreground">銘柄</th>
+                                <th className="px-2 py-1 text-center text-muted-foreground">方向</th>
+                                <th className="px-2 py-1 text-right text-muted-foreground">PnL(100株)</th>
+                                <th className="px-2 py-1 text-right text-muted-foreground">PnL(%)</th>
+                              </tr></thead>
+                              <tbody>
+                                {w.picks.map((p, pi) => (
+                                  <tr key={pi} className="border-b border-border/10 hover:bg-muted/20">
+                                    <td className="px-2 py-1 tabular-nums">{fmtDateWd(p.date)}</td>
+                                    <td className="px-2 py-1 text-muted-foreground">{p.name} <span className="text-xs">{p.code}</span></td>
+                                    <td className="px-2 py-1 text-center"><span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${p.direction === 'LONG' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>{p.direction}</span></td>
+                                    <td className={`px-2 py-1 text-right tabular-nums font-medium ${pnlColor(p.pnl_100)}`}>{fmtPnl(p.pnl_100)}</td>
+                                    <td className={`px-2 py-1 text-right tabular-nums ${pnlColor(p.ret_pct)}`}>{fmtPct2(p.ret_pct)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* === 月別 === */}
+              {weekdayEdgeView === 'monthly' && (
+                <div className="overflow-x-auto">
+                  {weGrouped.monthly.map(g => {
+                    const isOpen = expandedWeekdayWeeks.has(g.key);
+                    return (
+                      <div key={g.key} className="border-b border-border/20">
+                        <button onClick={() => toggleWeekdayWeek(g.key)}
+                          className="w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-muted/30 transition-colors">
+                          <span className="text-muted-foreground/60">{isOpen ? '▼' : '▶'}</span>
+                          <span className="font-medium min-w-[70px] text-left">{g.key}</span>
+                          <span className="text-muted-foreground">N={g.n}</span>
+                          <span className={g.wr >= 55 ? 'text-emerald-400' : g.wr < 45 ? 'text-rose-400' : 'text-muted-foreground'}>勝率{g.wr}%</span>
+                          <span className={g.pf != null && g.pf >= 1.5 ? 'text-teal-400' : g.pf != null && g.pf < 1 ? 'text-rose-400' : 'text-muted-foreground'}>PF {g.pf?.toFixed(2) ?? '—'}</span>
+                          <span className={`tabular-nums ${pnlColor(g.total_pnl)}`}>{fmtPnl(g.total_pnl)}</span>
+                        </button>
+                        {isOpen && (
+                          <div className="px-4 pb-2">
+                            <table className="w-full text-sm">
+                              <thead><tr className="border-b border-border/40">
+                                <th className="px-2 py-1 text-left text-muted-foreground">日付</th>
+                                <th className="px-2 py-1 text-left text-muted-foreground">銘柄</th>
+                                <th className="px-2 py-1 text-center text-muted-foreground">方向</th>
+                                <th className="px-2 py-1 text-right text-muted-foreground">PnL(100株)</th>
+                                <th className="px-2 py-1 text-right text-muted-foreground">PnL(%)</th>
+                                <th className="px-2 py-1 text-right text-muted-foreground">US前夜</th>
+                              </tr></thead>
+                              <tbody>
+                                {g.picks.map((p, pi) => (
+                                  <tr key={pi} className="border-b border-border/10 hover:bg-muted/20">
+                                    <td className="px-2 py-1 tabular-nums">{fmtDateWd(p.date)}</td>
+                                    <td className="px-2 py-1 text-muted-foreground">{p.name} <span className="text-xs">{p.code}</span></td>
+                                    <td className="px-2 py-1 text-center"><span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${p.direction === 'LONG' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>{p.direction}</span></td>
+                                    <td className={`px-2 py-1 text-right tabular-nums font-medium ${pnlColor(p.pnl_100)}`}>{fmtPnl(p.pnl_100)}</td>
+                                    <td className={`px-2 py-1 text-right tabular-nums ${pnlColor(p.ret_pct)}`}>{fmtPct2(p.ret_pct)}</td>
+                                    <td className={`px-2 py-1 text-right tabular-nums ${pnlColor(p.us_prev_ret)}`}>{p.us_prev_ret != null ? `${p.us_prev_ret > 0 ? '+' : ''}${p.us_prev_ret.toFixed(2)}%` : '—'}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* === 曜日別 === */}
+              {weekdayEdgeView === 'weekday' && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border/30 text-muted-foreground">
+                        <th className="px-4 py-2 text-left">曜日</th>
+                        <th className="px-4 py-2 text-center">方向</th>
+                        <th className="px-4 py-2 text-right">N</th>
+                        <th className="px-4 py-2 text-right">勝率</th>
+                        <th className="px-4 py-2 text-right">PF</th>
+                        <th className="px-4 py-2 text-right">PnL(100株)</th>
+                        <th className="px-4 py-2 text-right">PnL(%)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {weGrouped.weekday.flatMap(g => {
+                        const rows: React.ReactNode[] = [];
+                        if (g.long.n > 0) rows.push(
+                          <tr key={`${g.key}-L`} className="border-b border-border/10 hover:bg-muted/20">
+                            <td className="px-4 py-1.5 font-medium">{g.key}</td>
+                            <td className="px-4 py-1.5 text-center"><span className="inline-flex px-1.5 py-0.5 rounded text-xs font-medium bg-emerald-500/20 text-emerald-400">LONG</span></td>
+                            <td className="px-4 py-1.5 text-right tabular-nums">{g.long.n}</td>
+                            <td className={`px-4 py-1.5 text-right tabular-nums ${g.long.wr >= 55 ? 'text-emerald-400' : g.long.wr < 45 ? 'text-rose-400' : ''}`}>{g.long.wr}%</td>
+                            <td className={`px-4 py-1.5 text-right tabular-nums ${g.long.pf != null && g.long.pf >= 1.5 ? 'text-teal-400' : g.long.pf != null && g.long.pf < 1 ? 'text-rose-400' : ''}`}>{g.long.pf?.toFixed(2) ?? '—'}</td>
+                            <td className={`px-4 py-1.5 text-right tabular-nums font-medium ${pnlColor(g.long.total_pnl)}`}>{fmtPnl(g.long.total_pnl)}</td>
+                            <td className={`px-4 py-1.5 text-right tabular-nums ${pnlColor(g.long.total_ret)}`}>{fmtPct2(g.long.total_ret)}</td>
                           </tr>
                         );
-                        w.picks.forEach((p, pi) => {
-                          rows.push(
-                            <tr key={`wep-${w.week}-${pi}`} className="border-b border-border/10 hover:bg-muted/30 transition-colors h-9">
-                              <td className="px-4 py-1.5 pl-8 text-sm tabular-nums">{fmtDateWd(p.date)}</td>
-                              <td className="px-4 py-1.5 text-sm text-muted-foreground">{p.name} <span className="text-xs">{p.code}</span></td>
-                              <td className="px-4 py-1.5 text-sm text-center"><span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${p.direction === 'LONG' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>{p.direction}</span></td>
-                              <td className={`px-4 py-1.5 text-sm text-right tabular-nums font-medium ${pnlColor(p.pnl_100)}`}>{fmtPnl(p.pnl_100)}</td>
-                              <td className={`px-4 py-1.5 text-sm text-right tabular-nums font-medium ${pnlColor(p.ret_pct)}`}>{fmtPct2(p.ret_pct)}</td>
-                            </tr>
-                          );
-                        });
-                      }
-                      return rows;
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                        if (g.short.n > 0) rows.push(
+                          <tr key={`${g.key}-S`} className="border-b border-border/10 hover:bg-muted/20">
+                            <td className="px-4 py-1.5 font-medium">{rows.length === 0 ? g.key : ''}</td>
+                            <td className="px-4 py-1.5 text-center"><span className="inline-flex px-1.5 py-0.5 rounded text-xs font-medium bg-red-500/20 text-red-400">SHORT</span></td>
+                            <td className="px-4 py-1.5 text-right tabular-nums">{g.short.n}</td>
+                            <td className={`px-4 py-1.5 text-right tabular-nums ${g.short.wr >= 55 ? 'text-emerald-400' : g.short.wr < 45 ? 'text-rose-400' : ''}`}>{g.short.wr}%</td>
+                            <td className={`px-4 py-1.5 text-right tabular-nums ${g.short.pf != null && g.short.pf >= 1.5 ? 'text-teal-400' : g.short.pf != null && g.short.pf < 1 ? 'text-rose-400' : ''}`}>{g.short.pf?.toFixed(2) ?? '—'}</td>
+                            <td className={`px-4 py-1.5 text-right tabular-nums font-medium ${pnlColor(g.short.total_pnl)}`}>{fmtPnl(g.short.total_pnl)}</td>
+                            <td className={`px-4 py-1.5 text-right tabular-nums ${pnlColor(g.short.total_ret)}`}>{fmtPct2(g.short.total_ret)}</td>
+                          </tr>
+                        );
+                        rows.push(
+                          <tr key={`${g.key}-total`} className="border-b border-border/20 bg-muted/10">
+                            <td className="px-4 py-1.5 font-medium text-muted-foreground">{rows.length <= 1 ? g.key : ''} 合計</td>
+                            <td className="px-4 py-1.5"></td>
+                            <td className="px-4 py-1.5 text-right tabular-nums font-medium">{g.n}</td>
+                            <td className={`px-4 py-1.5 text-right tabular-nums font-medium ${g.wr >= 55 ? 'text-emerald-400' : g.wr < 45 ? 'text-rose-400' : ''}`}>{g.wr}%</td>
+                            <td className={`px-4 py-1.5 text-right tabular-nums font-medium ${g.pf != null && g.pf >= 1.5 ? 'text-teal-400' : g.pf != null && g.pf < 1 ? 'text-rose-400' : ''}`}>{g.pf?.toFixed(2) ?? '—'}</td>
+                            <td className={`px-4 py-1.5 text-right tabular-nums font-medium ${pnlColor(g.total_pnl)}`}>{fmtPnl(g.total_pnl)}</td>
+                            <td className={`px-4 py-1.5 text-right tabular-nums font-medium ${pnlColor(g.total_ret)}`}>{fmtPct2(g.total_ret)}</td>
+                          </tr>
+                        );
+                        return rows;
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </>}
           </div>
       )}
