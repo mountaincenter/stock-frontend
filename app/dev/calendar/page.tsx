@@ -357,6 +357,51 @@ export default function CalendarPage() {
         </div>
       )}
 
+      {/* 次のエントリー候補 */}
+      {weekday_edge && (weekday_edge.next_entries?.length ?? 0) > 0 && (() => {
+        const entries = weekday_edge.next_entries;
+        const byDateDir: Record<string, WeekdayEdgeNextEntry[]> = {};
+        for (const e of entries) {
+          const k = `${e.date}-${e.direction}`;
+          (byDateDir[k] ??= []).push(e);
+        }
+        const groups = Object.values(byDateDir).sort((a, b) => {
+          const dc = a[0].date.localeCompare(b[0].date);
+          if (dc !== 0) return dc;
+          return a[0].direction === 'LONG' ? -1 : 1;
+        });
+        return (
+          <div className="rounded-xl border border-border bg-card">
+            <div className="px-4 py-2 border-b border-border/30">
+              <p className="text-lg font-semibold">次のエントリー候補</p>
+              <p className="text-xs text-muted-foreground">USフィルタ: LONG≤+1% / SHORT≥-1% / アドバンテスト&lt;-1% — 寄前にS&amp;P500前夜を確認</p>
+            </div>
+            <div className="divide-y divide-border/20">
+              {groups.map(g => {
+                const isLong = g[0].direction === 'LONG';
+                return (
+                  <div key={`${g[0].date}-${g[0].direction}`} className="px-4 py-2">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="text-sm font-medium tabular-nums">{fmtDateWd(g[0].date)}</span>
+                      <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${isLong ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>{g[0].direction}</span>
+                      <span className="text-xs text-muted-foreground">{g.length}銘柄 / 寄成→引成</span>
+                    </div>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 pl-2">
+                      {g.map(e => (
+                        <span key={e.code} className="text-sm tabular-nums">
+                          <span className="text-muted-foreground">{e.code.replace(/0$/, '')}</span>
+                          <span className="ml-1">{e.name}</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Upcoming — 全イベント日付順 */}
       {(upcomingEtf.length > 0 || sq4?.next_sq4 || (weekday_edge?.next_entries?.length ?? 0) > 0) && (() => {
         // 全イベントを統一配列に集約して日付ソート
