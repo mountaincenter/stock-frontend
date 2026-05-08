@@ -458,9 +458,12 @@ export default function CalendarPage() {
 
         if (candidates.length === 0) return null;
 
-        // 翌営業日 = 最も近い日付のみ
-        const nextDate = candidates.map(c => c.date).sort()[0];
-        const rows = candidates.filter(c => c.date === nextDate);
+        // 翌営業日 = today より後の最も近い日付
+        const todayIso = new Date().toISOString().slice(0, 10);
+        const futureCandidates = candidates.filter(c => c.date > todayIso);
+        if (futureCandidates.length === 0) return null;
+        const nextDate = futureCandidates.map(c => c.date).sort()[0];
+        const rows = futureCandidates.filter(c => c.date === nextDate);
 
         return (
           <div className="rounded-xl border border-border bg-card">
