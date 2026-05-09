@@ -504,36 +504,37 @@ export default function CalendarPage() {
         return (
           <div className="rounded-xl border border-border bg-card">
             <div className="px-4 py-2 border-b border-border/30 flex items-center justify-between">
-              <div>
-                <p className="text-lg font-semibold">翌営業日エントリー候補 — {fmtDateWd(nextDate)}</p>
-                <div className="flex flex-wrap items-center gap-2 mt-1">
-                  <span className="text-xs text-muted-foreground">{rows.length}件</span>
-                  {sp500_latest?.change_pct != null && (
-                    <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${sp500_latest.change_pct > 0 ? 'bg-emerald-500/20 text-emerald-400' : sp500_latest.change_pct < 0 ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-muted-foreground'}`}>
-                      S&P500 {sp500_latest.change_pct > 0 ? '+' : ''}{sp500_latest.change_pct.toFixed(2)}%
-                    </span>
-                  )}
-                  {cme_latest?.change != null && (
-                    <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${cme_latest.change > 0 ? 'bg-emerald-500/20 text-emerald-400' : cme_latest.change < 0 ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-muted-foreground'}`}>
-                      CME {cme_latest.change > 0 ? '+' : ''}{cme_latest.change.toLocaleString()} ({cme_latest.change > 0 ? '↑' : cme_latest.change < 0 ? '↓' : '→'})
-                    </span>
-                  )}
-                  {sp500_latest?.change_pct != null && (() => {
-                    const pct = sp500_latest.change_pct;
-                    const longOk = pct <= 1;
-                    const shortOk = pct >= -1;
-                    return (
-                      <>
-                        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${longOk ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/10 text-red-400 border border-red-500/30'}`}>
-                          LONG {longOk ? '通過' : '除外'}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-lg font-semibold">翌営業日エントリー候補 — {fmtDateWd(nextDate)}</span>
+                <span className="text-sm text-muted-foreground">{rows.length}件</span>
+                {(() => {
+                  const weRows = rows.filter(r => r.strategy.startsWith('曜日'));
+                  const directions = [...new Set(weRows.map(r => r.direction))];
+                  const spPct = sp500_latest?.change_pct;
+                  const cmeChg = cme_latest?.change;
+                  return (
+                    <>
+                      {spPct != null && (
+                        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${spPct > 0 ? 'bg-emerald-500/20 text-emerald-400' : spPct < 0 ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-muted-foreground'}`}>
+                          S&P500 {spPct > 0 ? '+' : ''}{spPct.toFixed(2)}%
                         </span>
-                        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${shortOk ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/10 text-red-400 border border-red-500/30'}`}>
-                          SHORT {shortOk ? '通過' : '除外'}
+                      )}
+                      {spPct != null && directions.map(dir => {
+                        const ok = dir === 'LONG' ? spPct <= 1 : spPct >= -1;
+                        return (
+                          <span key={dir} className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${ok ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/10 text-red-400 border border-red-500/30'}`}>
+                            {dir} {ok ? '通過' : '除外'}
+                          </span>
+                        );
+                      })}
+                      {cmeChg != null && (
+                        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${cmeChg > 0 ? 'bg-emerald-500/20 text-emerald-400' : cmeChg < 0 ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-muted-foreground'}`}>
+                          CME {cmeChg > 0 ? '+' : ''}{cmeChg.toLocaleString()} ({cmeChg > 0 ? '↑' : cmeChg < 0 ? '↓' : '→'})
                         </span>
-                      </>
-                    );
-                  })()}
-                </div>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
               <button
                 type="button"
