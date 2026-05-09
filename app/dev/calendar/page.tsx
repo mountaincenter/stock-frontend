@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DevNavLinks } from '../../../components/dev';
 import { RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
 
@@ -24,7 +24,7 @@ interface WeekdayEdgeStockStats { code: string; name: string; direction: string;
 interface WeekdayEdgePick { date: string; code: string; name: string; direction: string; group: string; dow_label: string; adj_open: number; adj_close: number; ret_pct: number; pnl_100: number; us_prev_ret: number | null; }
 interface WeekdayEdgeWeekly { week: string; start_date: string; end_date: string; n_trades: number; total_ret: number; total_pnl_100: number; picks: WeekdayEdgePick[]; }
 interface WeekdayEdgeYearly { year: number; total: number; wins: number; wr: number; pf: number | null; total_ret: number; total_pnl_100: number; max_dd: MaxDD; }
-interface WeekdayEdgeNextEntry { date: string; code: string; name: string; direction: string; dow_label: string; }
+interface WeekdayEdgeNextEntry { date: string; code: string; name: string; direction: string; dow_label: string; prev_close: number | null; prev_day_ret: number | null; }
 interface WeekdayEdgeData { params: Record<string, string | number>; stats_filtered: Sq4Stats; stats_all: Sq4Stats; max_dd_filtered: MaxDD; yearly: WeekdayEdgeYearly[]; stock_stats: WeekdayEdgeStockStats[]; next_entries: WeekdayEdgeNextEntry[]; weekly: WeekdayEdgeWeekly[]; }
 interface CalendarResponse {
   today: { flags: string[] };
@@ -96,6 +96,11 @@ export default function CalendarPage() {
   const [weekdayEdgeSectionOpen, setWeekdayEdgeSectionOpen] = useState(false);
   const [weekdayEdgeView, setWeekdayEdgeView] = useState<string>('weekly');
   const [expandedWeekdayWeeks, setExpandedWeekdayWeeks] = useState<Set<string>>(new Set());
+
+  // リアルタイム寄付価格
+  const [realtimeData, setRealtimeData] = useState<Record<string, { price: number | null; open: number | null }>>({});
+  const [realtimeLoading, setRealtimeLoading] = useState(false);
+  const [realtimeTimestamp, setRealtimeTimestamp] = useState<string | null>(null);
 
   const fetchData = async () => {
     try {
@@ -384,7 +389,7 @@ export default function CalendarPage() {
 
       {/* エントリー候補 */}
       {(() => {
-        type CandidateRow = { date: string; code: string; name: string; strategy: string; direction: string; pf: number | null; execution: string };
+        type CandidateRow = { date: string; code: string; code5: string; name: string; strategy: string; direction: string; pf: number | null; execution: string; prev_close: number | null; prev_day_ret: number | null };
         const candidates: CandidateRow[] = [];
 
         // 曜日エッジ
@@ -394,9 +399,10 @@ export default function CalendarPage() {
         }
         for (const e of weekday_edge?.next_entries ?? []) {
           candidates.push({
-            date: e.date, code: e.code.replace(/0$/, ''), name: e.name,
+            date: e.date, code: e.code.replace(/0$/, ''), code5: e.code, name: e.name,
             strategy: `曜日${e.direction}(${e.dow_label})`,
             direction: e.direction, pf: wePfMap[e.code] ?? null, execution: '寄成→引成',
+            prev_close: e.prev_close ?? null, prev_day_ret: e.prev_day_ret ?? null,
           });
         }
 
@@ -406,15 +412,17 @@ export default function CalendarPage() {
           if (sq4Picks?.length) {
             for (const p of sq4Picks) {
               candidates.push({
-                date: sq4.next_sq4.entry_date, code: p.code, name: p.name,
+                date: sq4.next_sq4.entry_date, code: p.code, code5: p.code + '0', name: p.name,
                 strategy: `SQ-4 (5日ret ${p.ret_5d > 0 ? '+' : ''}${p.ret_5d}%)`,
                 direction: 'LONG', pf: sq4.stats_cme_down?.pf ?? null, execution: '寄成→翌寄成',
+                prev_close: p.prev_close, prev_day_ret: null,
               });
             }
           } else {
             candidates.push({
-              date: sq4.next_sq4.entry_date, code: '—', name: '外需×5日ret worst10',
+              date: sq4.next_sq4.entry_date, code: '—', code5: '', name: '外需×5日ret worst10',
               strategy: 'SQ-4', direction: 'LONG', pf: sq4.stats_cme_down?.pf ?? null, execution: '寄成→翌寄成',
+              prev_close: null, prev_day_ret: null,
             });
           }
         }
@@ -426,24 +434,27 @@ export default function CalendarPage() {
           if (sp1Picks?.length) {
             for (const p of sp1Picks) {
               candidates.push({
-                date: sp1Next.entry_date as string, code: p.code.replace(/0$/, ''), name: p.name,
+                date: sp1Next.entry_date as string, code: p.code.replace(/0$/, ''), code5: p.code, name: p.name,
                 strategy: `SQ+1 (前日+${p.prev_day_ret}%)`,
                 direction: 'SHORT', pf: sq_plus1?.stats?.pf ?? null, execution: '寄成→引成',
+                prev_close: p.prev_close, prev_day_ret: p.prev_day_ret,
               });
             }
           } else {
             upcoming.filter(ev => ev.flags.some(f => f.includes('SQ+1'))).forEach(ev => {
               candidates.push({
-                date: ev.date, code: '—', name: '前日上昇Top N',
+                date: ev.date, code: '—', code5: '', name: '前日上昇Top N',
                 strategy: 'SQ+1', direction: 'SHORT', pf: sq_plus1?.stats?.pf ?? null, execution: '寄成→引成',
+                prev_close: null, prev_day_ret: null,
               });
             });
           }
         } else {
           upcoming.filter(ev => ev.flags.some(f => f.includes('SQ+1'))).forEach(ev => {
             candidates.push({
-              date: ev.date, code: '—', name: '前日上昇Top N',
+              date: ev.date, code: '—', code5: '', name: '前日上昇Top N',
               strategy: 'SQ+1', direction: 'SHORT', pf: sq_plus1?.stats?.pf ?? null, execution: '寄成→引成',
+              prev_close: null, prev_day_ret: null,
             });
           });
         }
@@ -452,8 +463,9 @@ export default function CalendarPage() {
         upcomingEtf.filter(ev => ev.flags.some(f => f.includes('買い'))).forEach(ev => {
           const qLabel = ev.flags[0]?.match(/^\dQ/)?.[0] ?? 'Q';
           candidates.push({
-            date: ev.date, code: '1306', name: 'TOPIX連動型上場投信',
+            date: ev.date, code: '1306', code5: '13060', name: 'TOPIX連動型上場投信',
             strategy: `${qLabel} 四半期末`, direction: 'LONG', pf: stats.pf, execution: '引成',
+            prev_close: etf_latest.close ?? null, prev_day_ret: etf_latest.change_pct ?? null,
           });
         });
 
@@ -466,37 +478,88 @@ export default function CalendarPage() {
         const nextDate = futureCandidates.map(c => c.date).sort()[0];
         const rows = futureCandidates.filter(c => c.date === nextDate);
 
+        const fetchCandidateRealtime = async () => {
+          const codes = rows.filter(r => r.code !== '—').map(r => r.code5.replace(/0$/, '') + '.T');
+          const unique = [...new Set(codes)];
+          if (unique.length === 0) return;
+          setRealtimeLoading(true);
+          try {
+            const res = await fetch(`/api/realtime?tickers=${encodeURIComponent(unique.join(','))}&force=true`);
+            if (!res.ok) throw new Error('取得失敗');
+            const json = await res.json();
+            const map: Record<string, { price: number | null; open: number | null }> = {};
+            for (const q of json.data) {
+              const code4 = q.ticker.replace('.T', '');
+              map[code4] = { price: q.price ?? null, open: q.open ?? null };
+            }
+            setRealtimeData(map);
+            setRealtimeTimestamp(json.timestamp ? new Date(json.timestamp).toLocaleTimeString('ja-JP') : null);
+          } catch (err) {
+            console.error('寄付データ取得エラー:', err);
+          } finally {
+            setRealtimeLoading(false);
+          }
+        };
+
         return (
           <div className="rounded-xl border border-border bg-card">
-            <div className="px-4 py-2 border-b border-border/30">
-              <p className="text-lg font-semibold">翌営業日エントリー候補 — {fmtDateWd(nextDate)}</p>
-              <p className="text-xs text-muted-foreground">{rows.length}件 / 曜日エッジUSフィルタ: LONG≤+1% / SHORT≥-1% / アドバンテスト&lt;-1%</p>
+            <div className="px-4 py-2 border-b border-border/30 flex items-center justify-between">
+              <div>
+                <p className="text-lg font-semibold">翌営業日エントリー候補 — {fmtDateWd(nextDate)}</p>
+                <p className="text-xs text-muted-foreground">{rows.length}件 / 曜日エッジUSフィルタ: LONG≤+1% / SHORT≥-1% / アドバンテスト&lt;-1%</p>
+              </div>
+              <button
+                type="button"
+                disabled={realtimeLoading}
+                onClick={fetchCandidateRealtime}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-500/20 text-sky-400 text-xs font-medium hover:bg-sky-500/30 transition-colors whitespace-nowrap disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${realtimeLoading ? 'animate-spin' : ''}`} />
+                寄付
+                {realtimeTimestamp && <span className="text-sky-400/60 ml-1">{realtimeTimestamp}</span>}
+              </button>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-xs text-muted-foreground border-b border-border/30">
-                    <th className="px-4 py-1.5 text-left">銘柄</th>
-                    <th className="px-4 py-1.5 text-left">銘柄名</th>
-                    <th className="px-4 py-1.5 text-left">選定理由</th>
-                    <th className="px-4 py-1.5 text-center">方向</th>
-                    <th className="px-4 py-1.5 text-right">期待PF</th>
-                    <th className="px-4 py-1.5 text-left">執行</th>
+                    <th className="px-3 py-1.5 text-left">銘柄</th>
+                    <th className="px-3 py-1.5 text-left">銘柄名</th>
+                    <th className="px-3 py-1.5 text-left">選定理由</th>
+                    <th className="px-3 py-1.5 text-center">方向</th>
+                    <th className="px-3 py-1.5 text-right">前日終値</th>
+                    <th className="px-3 py-1.5 text-right">前日比</th>
+                    <th className="px-3 py-1.5 text-right">寄付差</th>
+                    <th className="px-3 py-1.5 text-right">期待PF</th>
+                    <th className="px-3 py-1.5 text-left">執行</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((r, i) => (
+                  {rows.map((r, i) => {
+                    const code4 = r.code5.replace(/0$/, '');
+                    const rt = realtimeData[code4];
+                    const gap = rt?.open != null && r.prev_close != null ? rt.open - r.prev_close : null;
+                    const gapPct = gap != null && r.prev_close ? (gap / r.prev_close) * 100 : null;
+                    return (
                     <tr key={i} className="border-b border-border/10 hover:bg-muted/20 h-8">
-                      <td className="px-4 py-1 tabular-nums">{r.code}</td>
-                      <td className="px-4 py-1">{r.name}</td>
-                      <td className="px-4 py-1 text-muted-foreground">{r.strategy}</td>
-                      <td className="px-4 py-1 text-center">
+                      <td className="px-3 py-1 tabular-nums">{r.code}</td>
+                      <td className="px-3 py-1">{r.name}</td>
+                      <td className="px-3 py-1 text-muted-foreground">{r.strategy}</td>
+                      <td className="px-3 py-1 text-center">
                         <span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${r.direction === 'LONG' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>{r.direction}</span>
                       </td>
-                      <td className={`px-4 py-1 text-right tabular-nums ${r.pf != null && r.pf >= 1.5 ? 'text-teal-400' : r.pf != null && r.pf < 1 ? 'text-rose-400' : ''}`}>{r.pf?.toFixed(2) ?? '—'}</td>
-                      <td className="px-4 py-1 text-muted-foreground">{r.execution}</td>
+                      <td className="px-3 py-1 text-right tabular-nums text-muted-foreground">{r.prev_close != null ? r.prev_close.toLocaleString('ja-JP', { maximumFractionDigits: 1 }) : '—'}</td>
+                      <td className={`px-3 py-1 text-right tabular-nums ${r.prev_day_ret != null ? (r.prev_day_ret > 0 ? 'text-emerald-400' : r.prev_day_ret < 0 ? 'text-rose-400' : 'text-muted-foreground') : 'text-muted-foreground'}`}>
+                        {r.prev_day_ret != null ? `${r.prev_day_ret > 0 ? '+' : ''}${r.prev_day_ret.toFixed(2)}%` : '—'}
+                      </td>
+                      <td className={`px-3 py-1 text-right tabular-nums ${gap != null ? (gap > 0 ? 'text-emerald-400' : gap < 0 ? 'text-rose-400' : 'text-muted-foreground') : 'text-muted-foreground'}`}>
+                        {gap != null ? `${gap > 0 ? '+' : ''}${gap.toFixed(0)} (${gapPct! > 0 ? '+' : ''}${gapPct!.toFixed(2)}%)` : '—'}
+                      </td>
+                      <td className={`px-3 py-1 text-right tabular-nums ${r.pf != null && r.pf >= 1.5 ? 'text-teal-400' : r.pf != null && r.pf < 1 ? 'text-rose-400' : ''}`}>{r.pf?.toFixed(2) ?? '—'}</td>
+                      <td className="px-3 py-1 text-muted-foreground">{r.execution}</td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
