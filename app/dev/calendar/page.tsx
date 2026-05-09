@@ -539,7 +539,8 @@ export default function CalendarPage() {
                     const code4 = r.code5.replace(/0$/, '');
                     const rt = realtimeData[code4];
                     const gap = rt?.open != null && r.prev_close != null ? rt.open - r.prev_close : null;
-                    const gapPct = gap != null && r.prev_close ? (gap / r.prev_close) * 100 : null;
+
+
                     return (
                     <tr key={i} className="border-b border-border/10 hover:bg-muted/20 h-8">
                       <td className="px-3 py-1 tabular-nums">{r.code}</td>
@@ -553,7 +554,7 @@ export default function CalendarPage() {
                         {r.prev_day_ret != null ? `${r.prev_day_ret > 0 ? '+' : ''}${r.prev_day_ret.toFixed(2)}%` : '—'}
                       </td>
                       <td className={`px-3 py-1 text-right tabular-nums ${gap != null ? (gap > 0 ? 'text-emerald-400' : gap < 0 ? 'text-rose-400' : 'text-muted-foreground') : 'text-muted-foreground'}`}>
-                        {gap != null ? `${gap > 0 ? '+' : ''}${gap.toFixed(0)} (${gapPct! > 0 ? '+' : ''}${gapPct!.toFixed(2)}%)` : '—'}
+                        {gap != null ? `${gap > 0 ? '+' : ''}${gap.toFixed(0)}` : '—'}
                       </td>
                       <td className={`px-3 py-1 text-right tabular-nums ${r.pf != null && r.pf >= 1.5 ? 'text-teal-400' : r.pf != null && r.pf < 1 ? 'text-rose-400' : ''}`}>{r.pf?.toFixed(2) ?? '—'}</td>
                       <td className="px-3 py-1 text-muted-foreground">{r.execution}</td>
