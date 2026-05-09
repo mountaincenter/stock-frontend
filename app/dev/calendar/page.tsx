@@ -32,6 +32,7 @@ interface CalendarResponse {
   etf_latest: EtfLatest;
   cme_latest: CmeLatest;
   sp500_latest: Sp500Latest;
+  next_trading_date: string | null;
   etf1306: { stats: Stats; max_dd: MaxDD; year_summary: YearSummary[]; trades: Trade[]; };
   sq4: Sq4Data;
   sq_plus1: SqPlus1Data;
@@ -210,7 +211,7 @@ export default function CalendarPage() {
     </div>
   );
 
-  const { today, upcoming, etf_latest, cme_latest, sp500_latest, etf1306, sq4, sq_plus1, weekday_edge } = data;
+  const { today, upcoming, etf_latest, cme_latest, sp500_latest, next_trading_date, etf1306, sq4, sq_plus1, weekday_edge } = data;
   const { stats, max_dd: etfMaxDd, year_summary, trades } = etf1306;
 
   // Upcoming の Q イベントに過去パフォーマンスを紐付け
@@ -336,8 +337,8 @@ export default function CalendarPage() {
       {/* Weekday Edge Summary Cards */}
       {weekday_edge && weekday_edge.stats_filtered?.total > 0 && (() => {
         const nextEntries = weekday_edge.next_entries ?? [];
-        const todayStr = new Date().toISOString().slice(0, 10);
-        const futureEntries = nextEntries.filter(e => e.date > todayStr);
+        const ntd = next_trading_date ?? '';
+        const futureEntries = ntd ? nextEntries.filter(e => e.date >= ntd) : nextEntries;
         const nextDate = futureEntries.length > 0 ? futureEntries[0].date : null;
         const nextDayEntries = nextDate ? futureEntries.filter(e => e.date === nextDate) : [];
         const nLong = nextDayEntries.filter(e => e.direction === 'LONG').length;
@@ -458,9 +459,9 @@ export default function CalendarPage() {
 
         if (candidates.length === 0) return null;
 
-        // 翌営業日 = today より後の最も近い日付
-        const todayIso = new Date().toISOString().slice(0, 10);
-        const futureCandidates = candidates.filter(c => c.date > todayIso);
+        // 翌営業日 = calendar.parquetベースの営業日
+        const ntdEntry = next_trading_date ?? '';
+        const futureCandidates = ntdEntry ? candidates.filter(c => c.date >= ntdEntry) : candidates;
         if (futureCandidates.length === 0) return null;
         const nextDate = futureCandidates.map(c => c.date).sort()[0];
         const rows = futureCandidates.filter(c => c.date === nextDate);
