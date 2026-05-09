@@ -506,7 +506,34 @@ export default function CalendarPage() {
             <div className="px-4 py-2 border-b border-border/30 flex items-center justify-between">
               <div>
                 <p className="text-lg font-semibold">翌営業日エントリー候補 — {fmtDateWd(nextDate)}</p>
-                <p className="text-xs text-muted-foreground">{rows.length}件 / 曜日エッジUSフィルタ: LONG≤+1% / SHORT≥-1% / アドバンテスト&lt;-1%</p>
+                <div className="flex flex-wrap items-center gap-2 mt-1">
+                  <span className="text-xs text-muted-foreground">{rows.length}件</span>
+                  {sp500_latest?.change_pct != null && (
+                    <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${sp500_latest.change_pct > 0 ? 'bg-emerald-500/20 text-emerald-400' : sp500_latest.change_pct < 0 ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-muted-foreground'}`}>
+                      S&P500 {sp500_latest.change_pct > 0 ? '+' : ''}{sp500_latest.change_pct.toFixed(2)}%
+                    </span>
+                  )}
+                  {cme_latest?.change != null && (
+                    <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${cme_latest.change > 0 ? 'bg-emerald-500/20 text-emerald-400' : cme_latest.change < 0 ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-muted-foreground'}`}>
+                      CME {cme_latest.change > 0 ? '+' : ''}{cme_latest.change.toLocaleString()} ({cme_latest.change > 0 ? '↑' : cme_latest.change < 0 ? '↓' : '→'})
+                    </span>
+                  )}
+                  {sp500_latest?.change_pct != null && (() => {
+                    const pct = sp500_latest.change_pct;
+                    const longOk = pct <= 1;
+                    const shortOk = pct >= -1;
+                    return (
+                      <>
+                        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${longOk ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/10 text-red-400 border border-red-500/30'}`}>
+                          LONG {longOk ? '通過' : '除外'}
+                        </span>
+                        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${shortOk ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/10 text-red-400 border border-red-500/30'}`}>
+                          SHORT {shortOk ? '通過' : '除外'}
+                        </span>
+                      </>
+                    );
+                  })()}
+                </div>
               </div>
               <button
                 type="button"
