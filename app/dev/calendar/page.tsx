@@ -520,9 +520,9 @@ export default function CalendarPage() {
               </button>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-base">
                 <thead>
-                  <tr className="text-xs text-muted-foreground border-b border-border/30">
+                  <tr className="text-sm text-muted-foreground border-b border-border/30">
                     <th className="px-3 py-1.5 text-left">銘柄</th>
                     <th className="px-3 py-1.5 text-left">銘柄名</th>
                     <th className="px-3 py-1.5 text-left">選定理由</th>
