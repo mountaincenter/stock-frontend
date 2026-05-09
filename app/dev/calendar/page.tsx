@@ -389,7 +389,15 @@ export default function CalendarPage() {
 
       {/* エントリー候補 */}
       {(() => {
-        type CandidateRow = { date: string; code: string; code5: string; name: string; strategy: string; direction: string; pf: number | null; execution: string; prev_close: number | null; prev_day_ret: number | null };
+        type CandidateRow = { date: string; code: string; code5: string; name: string; strategy: string; direction: string; pf: number | null; execution: string; prev_close: number | null; prev_day_ret: number | null; excluded: boolean; exclude_reason: string | null };
+        const sqPlus1SegPf = (ret: number): number | null => {
+          if (ret > 10) return 1.84;
+          if (ret > 7) return 2.85;
+          if (ret > 5) return 2.09;
+          if (ret > 3) return 1.71;
+          if (ret > 2) return 0.44;
+          return null;
+        };
         const candidates: CandidateRow[] = [];
 
         // 曜日エッジ
@@ -403,6 +411,7 @@ export default function CalendarPage() {
             strategy: `曜日${e.direction}(${e.dow_label})`,
             direction: e.direction, pf: wePfMap[e.code] ?? null, execution: '寄成→引成',
             prev_close: e.prev_close ?? null, prev_day_ret: e.prev_day_ret ?? null,
+            excluded: false, exclude_reason: null,
           });
         }
 
@@ -416,6 +425,7 @@ export default function CalendarPage() {
                 strategy: `SQ-4 (5日ret ${p.ret_5d > 0 ? '+' : ''}${p.ret_5d}%)`,
                 direction: 'LONG', pf: sq4.stats_cme_down?.pf ?? null, execution: '寄成→翌寄成',
                 prev_close: p.prev_close, prev_day_ret: null,
+                excluded: false, exclude_reason: null,
               });
             }
           } else {
@@ -423,6 +433,7 @@ export default function CalendarPage() {
               date: sq4.next_sq4.entry_date, code: '—', code5: '', name: '外需×5日ret worst10',
               strategy: 'SQ-4', direction: 'LONG', pf: sq4.stats_cme_down?.pf ?? null, execution: '寄成→翌寄成',
               prev_close: null, prev_day_ret: null,
+              excluded: false, exclude_reason: null,
             });
           }
         }
@@ -430,14 +441,17 @@ export default function CalendarPage() {
         // SQ+1
         const sp1Next = sq_plus1?.next_sq_plus1 as Record<string, unknown> | undefined;
         const sp1Picks = sp1Next?.picks as Array<{ code: string; name: string; prev_close: number; prev_day_ret: number }> | undefined;
+        const sp1CmeDir = (sp1Next?.cme_direction as string) ?? '';
         if (sp1Next?.entry_date) {
           if (sp1Picks?.length) {
             for (const p of sp1Picks) {
+              const isCmeUpHigh = sp1CmeDir === 'UP' && p.prev_close >= 5000;
               candidates.push({
                 date: sp1Next.entry_date as string, code: p.code.replace(/0$/, ''), code5: p.code, name: p.name,
                 strategy: `SQ+1 (前日+${p.prev_day_ret}%)`,
-                direction: 'SHORT', pf: sq_plus1?.stats?.pf ?? null, execution: '寄成→引成',
+                direction: 'SHORT', pf: sqPlus1SegPf(p.prev_day_ret), execution: '寄成→引成',
                 prev_close: p.prev_close, prev_day_ret: p.prev_day_ret,
+                excluded: isCmeUpHigh, exclude_reason: isCmeUpHigh ? 'CME↑×5000+' : null,
               });
             }
           } else {
@@ -446,6 +460,7 @@ export default function CalendarPage() {
                 date: ev.date, code: '—', code5: '', name: '前日上昇Top N',
                 strategy: 'SQ+1', direction: 'SHORT', pf: sq_plus1?.stats?.pf ?? null, execution: '寄成→引成',
                 prev_close: null, prev_day_ret: null,
+                excluded: false, exclude_reason: null,
               });
             });
           }
@@ -455,6 +470,7 @@ export default function CalendarPage() {
               date: ev.date, code: '—', code5: '', name: '前日上昇Top N',
               strategy: 'SQ+1', direction: 'SHORT', pf: sq_plus1?.stats?.pf ?? null, execution: '寄成→引成',
               prev_close: null, prev_day_ret: null,
+              excluded: false, exclude_reason: null,
             });
           });
         }
@@ -466,6 +482,7 @@ export default function CalendarPage() {
             date: ev.date, code: '1306', code5: '13060', name: 'TOPIX連動型上場投信',
             strategy: `${qLabel} 四半期末`, direction: 'LONG', pf: stats.pf, execution: '引成',
             prev_close: etf_latest.close ?? null, prev_day_ret: etf_latest.change_pct ?? null,
+            excluded: false, exclude_reason: null,
           });
         });
 
@@ -476,7 +493,11 @@ export default function CalendarPage() {
         const futureCandidates = ntdEntry ? candidates.filter(c => c.date >= ntdEntry) : candidates;
         if (futureCandidates.length === 0) return null;
         const nextDate = futureCandidates.map(c => c.date).sort()[0];
-        const rows = futureCandidates.filter(c => c.date === nextDate);
+        const rows = futureCandidates.filter(c => c.date === nextDate)
+          .sort((a, b) => {
+            if (a.excluded !== b.excluded) return a.excluded ? 1 : -1;
+            return 0;
+          });
 
         const fetchCandidateRealtime = async () => {
           const codes = rows.filter(r => r.code !== '—').map(r => r.code5.replace(/0$/, '') + '.T');
@@ -569,12 +590,15 @@ export default function CalendarPage() {
 
 
                     return (
-                    <tr key={i} className="border-b border-border/10 hover:bg-muted/20 h-8">
+                    <tr key={i} className={`border-b border-border/10 h-8 ${r.excluded ? 'opacity-40 line-through' : 'hover:bg-muted/20'}`}>
                       <td className="px-3 py-1 tabular-nums">{r.code}</td>
                       <td className="px-3 py-1">{r.name}</td>
-                      <td className="px-3 py-1 text-muted-foreground">{r.strategy}</td>
+                      <td className="px-3 py-1 text-muted-foreground">
+                        {r.strategy}
+                        {r.excluded && <span className="ml-1.5 no-underline inline-flex px-1.5 py-0.5 rounded text-xs font-medium bg-red-500/20 text-red-400">{r.exclude_reason}</span>}
+                      </td>
                       <td className="px-3 py-1 text-center">
-                        <span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${r.direction === 'LONG' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>{r.direction}</span>
+                        <span className={`no-underline inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${r.direction === 'LONG' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>{r.direction}</span>
                       </td>
                       <td className="px-3 py-1 text-right tabular-nums text-muted-foreground">{r.prev_close != null ? r.prev_close.toLocaleString('ja-JP', { maximumFractionDigits: 1 }) : '—'}</td>
                       <td className={`px-3 py-1 text-right tabular-nums ${r.prev_day_ret != null ? (r.prev_day_ret > 0 ? 'text-emerald-400' : r.prev_day_ret < 0 ? 'text-rose-400' : 'text-muted-foreground') : 'text-muted-foreground'}`}>
