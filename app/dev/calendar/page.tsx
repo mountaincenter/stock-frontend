@@ -509,26 +509,25 @@ export default function CalendarPage() {
                 <span className="text-sm text-muted-foreground">{rows.length}件</span>
                 {(() => {
                   const weRows = rows.filter(r => r.strategy.startsWith('曜日'));
+                  const dow = nextDate ? getWeekday(nextDate) : '';
                   const directions = [...new Set(weRows.map(r => r.direction))];
                   const spPct = sp500_latest?.change_pct;
                   const cmeChg = cme_latest?.change;
+                  const filterLabel = spPct != null && directions.length > 0
+                    ? directions.map(dir => {
+                        const ok = dir === 'LONG' ? spPct <= 1 : spPct >= -1;
+                        return `${dow}${dir} ${ok ? '通過' : '除外'}`;
+                      }).join(' / ')
+                    : null;
                   return (
                     <>
                       {spPct != null && (
-                        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${spPct > 0 ? 'bg-emerald-500/20 text-emerald-400' : spPct < 0 ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-muted-foreground'}`}>
-                          S&P500 {spPct > 0 ? '+' : ''}{spPct.toFixed(2)}%
+                        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium border ${filterLabel?.includes('除外') ? 'bg-red-500/10 text-red-400 border-red-500/30' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'}`}>
+                          S&P500 {spPct > 0 ? '+' : ''}{spPct.toFixed(2)}%{filterLabel ? ` / ${filterLabel}` : ''}
                         </span>
                       )}
-                      {spPct != null && directions.map(dir => {
-                        const ok = dir === 'LONG' ? spPct <= 1 : spPct >= -1;
-                        return (
-                          <span key={dir} className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${ok ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/10 text-red-400 border border-red-500/30'}`}>
-                            {dir} {ok ? '通過' : '除外'}
-                          </span>
-                        );
-                      })}
                       {cmeChg != null && (
-                        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${cmeChg > 0 ? 'bg-emerald-500/20 text-emerald-400' : cmeChg < 0 ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-muted-foreground'}`}>
+                        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium border ${cmeChg > 0 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : cmeChg < 0 ? 'bg-red-500/10 text-red-400 border-red-500/30' : 'bg-white/10 text-muted-foreground border-border/40'}`}>
                           CME {cmeChg > 0 ? '+' : ''}{cmeChg.toLocaleString()} ({cmeChg > 0 ? '↑' : cmeChg < 0 ? '↓' : '→'})
                         </span>
                       )}
