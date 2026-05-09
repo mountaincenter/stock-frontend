@@ -496,7 +496,7 @@ export default function CalendarPage() {
         const rows = futureCandidates.filter(c => c.date === nextDate)
           .sort((a, b) => {
             if (a.excluded !== b.excluded) return a.excluded ? 1 : -1;
-            return 0;
+            return (b.pf ?? 0) - (a.pf ?? 0);
           });
 
         const fetchCandidateRealtime = async () => {
