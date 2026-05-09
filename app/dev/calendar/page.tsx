@@ -199,7 +199,7 @@ export default function CalendarPage() {
   }, [allWePicks]);
 
   if (loading) return (
-    <div className="max-w-7xl mx-auto px-4 py-4">
+    <div className="max-w-[1600px] mx-auto px-4 py-4">
       <DevNavLinks />
       <div className="flex items-center justify-center py-20 text-muted-foreground">
         <RefreshCw className="w-5 h-5 animate-spin mr-2" />
@@ -208,7 +208,7 @@ export default function CalendarPage() {
     </div>
   );
   if (!data) return (
-    <div className="max-w-7xl mx-auto px-4 py-4">
+    <div className="max-w-[1600px] mx-auto px-4 py-4">
       <DevNavLinks />
       <div className="mt-8 p-6 rounded-xl border border-destructive/50 bg-destructive/10 text-destructive text-sm">
         Failed to load calendar data
@@ -245,7 +245,7 @@ export default function CalendarPage() {
     });
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-4 space-y-4">
+    <div className="max-w-[1600px] mx-auto px-4 py-4 space-y-4">
       {/* Header */}
       <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4 pb-3 border-b border-border/30">
         <div>
