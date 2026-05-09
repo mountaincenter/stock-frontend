@@ -449,7 +449,7 @@ export default function CalendarPage() {
               candidates.push({
                 date: sp1Next.entry_date as string, code: p.code.replace(/0$/, ''), code5: p.code, name: p.name,
                 strategy: `SQ+1 (前日+${p.prev_day_ret}%)`,
-                direction: 'SHORT', pf: sqPlus1SegPf(p.prev_day_ret), execution: '寄成→引成',
+                direction: 'SHORT', pf: isCmeUpHigh ? 0.63 : sqPlus1SegPf(p.prev_day_ret), execution: '寄成→引成',
                 prev_close: p.prev_close, prev_day_ret: p.prev_day_ret,
                 excluded: isCmeUpHigh, exclude_reason: isCmeUpHigh ? 'CME↑×5000+' : null,
               });
