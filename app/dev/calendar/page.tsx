@@ -572,7 +572,7 @@ export default function CalendarPage() {
                 <thead>
                   <tr className="text-xs text-muted-foreground border-b border-border/30">
                     <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-left">銘柄</th>
-                    <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-left hidden md:table-cell">銘柄名</th>
+                    <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-left">銘柄名</th>
                     <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-left">選定理由</th>
                     <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-center">方向</th>
                     <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-right hidden md:table-cell">前日終値</th>
@@ -592,7 +592,7 @@ export default function CalendarPage() {
                     return (
                     <tr key={i} className={`border-b border-border/10 h-8 ${r.excluded ? 'opacity-40 line-through' : 'hover:bg-muted/20'}`}>
                       <td className="px-1.5 md:px-3 py-1 tabular-nums">{r.code}</td>
-                      <td className="px-1.5 md:px-3 py-1 hidden md:table-cell">{r.name}</td>
+                      <td className="px-1.5 md:px-3 py-1">{r.name}</td>
                       <td className="px-1.5 md:px-3 py-1 text-muted-foreground">
                         {r.strategy}
                         {r.excluded && <span className="ml-1.5 no-underline inline-flex px-1.5 py-0.5 rounded text-xs font-medium bg-red-500/20 text-red-400">{r.exclude_reason}</span>}
