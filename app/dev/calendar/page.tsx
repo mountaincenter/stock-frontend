@@ -568,18 +568,18 @@ export default function CalendarPage() {
               </button>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-xs md:text-base">
+              <table className="min-w-[640px] md:w-full text-xs md:text-base">
                 <thead>
                   <tr className="text-xs text-muted-foreground border-b border-border/30">
-                    <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-left">銘柄</th>
-                    <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-left">銘柄名</th>
-                    <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-left">選定理由</th>
-                    <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-center">方向</th>
-                    <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-right">前日終値</th>
-                    <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-right">前日比</th>
-                    <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-right">寄付差</th>
-                    <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-right">期待PF</th>
-                    <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-left">執行</th>
+                    <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-left whitespace-nowrap">銘柄</th>
+                    <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-left whitespace-nowrap">銘柄名</th>
+                    <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-left whitespace-nowrap">選定理由</th>
+                    <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-center whitespace-nowrap">方向</th>
+                    <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-right whitespace-nowrap">前日終値</th>
+                    <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-right whitespace-nowrap">前日比</th>
+                    <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-right whitespace-nowrap">寄付差</th>
+                    <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-right whitespace-nowrap">期待PF</th>
+                    <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-left whitespace-nowrap">執行</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -591,24 +591,24 @@ export default function CalendarPage() {
 
                     return (
                     <tr key={i} className={`border-b border-border/10 h-8 ${r.excluded ? 'opacity-40 line-through' : 'hover:bg-muted/20'}`}>
-                      <td className="px-1.5 md:px-3 py-1 tabular-nums">{r.code}</td>
-                      <td className="px-1.5 md:px-3 py-1">{r.name}</td>
-                      <td className="px-1.5 md:px-3 py-1 text-muted-foreground">
+                      <td className="px-1.5 md:px-3 py-1 tabular-nums whitespace-nowrap">{r.code}</td>
+                      <td className="px-1.5 md:px-3 py-1 whitespace-nowrap">{r.name}</td>
+                      <td className="px-1.5 md:px-3 py-1 text-muted-foreground whitespace-nowrap">
                         {r.strategy}
                         {r.excluded && <span className="ml-1.5 no-underline inline-flex px-1.5 py-0.5 rounded text-xs font-medium bg-red-500/20 text-red-400">{r.exclude_reason}</span>}
                       </td>
-                      <td className="px-1.5 md:px-3 py-1 text-center">
+                      <td className="px-1.5 md:px-3 py-1 text-center whitespace-nowrap">
                         <span className={`no-underline inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${r.direction === 'LONG' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>{r.direction}</span>
                       </td>
-                      <td className="px-1.5 md:px-3 py-1 text-right tabular-nums text-muted-foreground">{r.prev_close != null ? r.prev_close.toLocaleString('ja-JP', { maximumFractionDigits: 1 }) : '—'}</td>
-                      <td className={`px-1.5 md:px-3 py-1 text-right tabular-nums ${r.prev_day_ret != null ? (r.prev_day_ret > 0 ? 'text-emerald-400' : r.prev_day_ret < 0 ? 'text-rose-400' : 'text-muted-foreground') : 'text-muted-foreground'}`}>
+                      <td className="px-1.5 md:px-3 py-1 text-right tabular-nums text-muted-foreground whitespace-nowrap">{r.prev_close != null ? r.prev_close.toLocaleString('ja-JP', { maximumFractionDigits: 1 }) : '—'}</td>
+                      <td className={`px-1.5 md:px-3 py-1 text-right tabular-nums whitespace-nowrap ${r.prev_day_ret != null ? (r.prev_day_ret > 0 ? 'text-emerald-400' : r.prev_day_ret < 0 ? 'text-rose-400' : 'text-muted-foreground') : 'text-muted-foreground'}`}>
                         {r.prev_day_ret != null ? `${r.prev_day_ret > 0 ? '+' : ''}${r.prev_day_ret.toFixed(2)}%` : '—'}
                       </td>
-                      <td className={`px-1.5 md:px-3 py-1 text-right tabular-nums ${gap != null ? (gap > 0 ? 'text-emerald-400' : gap < 0 ? 'text-rose-400' : 'text-muted-foreground') : 'text-muted-foreground'}`}>
+                      <td className={`px-1.5 md:px-3 py-1 text-right tabular-nums whitespace-nowrap ${gap != null ? (gap > 0 ? 'text-emerald-400' : gap < 0 ? 'text-rose-400' : 'text-muted-foreground') : 'text-muted-foreground'}`}>
                         {gap != null ? `${gap > 0 ? '+' : ''}${gap.toFixed(0)}` : '—'}
                       </td>
-                      <td className={`px-1.5 md:px-3 py-1 text-right tabular-nums ${r.pf != null && r.pf >= 1.5 ? 'text-teal-400' : r.pf != null && r.pf < 1 ? 'text-rose-400' : ''}`}>{r.pf?.toFixed(2) ?? '—'}</td>
-                      <td className="px-1.5 md:px-3 py-1 text-muted-foreground">{r.execution}</td>
+                      <td className={`px-1.5 md:px-3 py-1 text-right tabular-nums whitespace-nowrap ${r.pf != null && r.pf >= 1.5 ? 'text-teal-400' : r.pf != null && r.pf < 1 ? 'text-rose-400' : ''}`}>{r.pf?.toFixed(2) ?? '—'}</td>
+                      <td className="px-1.5 md:px-3 py-1 text-muted-foreground whitespace-nowrap">{r.execution}</td>
                     </tr>
                     );
                   })}
