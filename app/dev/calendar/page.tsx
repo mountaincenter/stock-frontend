@@ -575,9 +575,9 @@ export default function CalendarPage() {
                     <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-left">銘柄名</th>
                     <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-left">選定理由</th>
                     <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-center">方向</th>
-                    <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-right hidden md:table-cell">前日終値</th>
-                    <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-right hidden md:table-cell">前日比</th>
-                    <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-right hidden md:table-cell">寄付差</th>
+                    <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-right">前日終値</th>
+                    <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-right">前日比</th>
+                    <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-right">寄付差</th>
                     <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-right">期待PF</th>
                     <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-left">執行</th>
                   </tr>
@@ -600,11 +600,11 @@ export default function CalendarPage() {
                       <td className="px-1.5 md:px-3 py-1 text-center">
                         <span className={`no-underline inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${r.direction === 'LONG' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>{r.direction}</span>
                       </td>
-                      <td className="px-1.5 md:px-3 py-1 text-right tabular-nums text-muted-foreground hidden md:table-cell">{r.prev_close != null ? r.prev_close.toLocaleString('ja-JP', { maximumFractionDigits: 1 }) : '—'}</td>
-                      <td className={`px-1.5 md:px-3 py-1 text-right tabular-nums hidden md:table-cell ${r.prev_day_ret != null ? (r.prev_day_ret > 0 ? 'text-emerald-400' : r.prev_day_ret < 0 ? 'text-rose-400' : 'text-muted-foreground') : 'text-muted-foreground'}`}>
+                      <td className="px-1.5 md:px-3 py-1 text-right tabular-nums text-muted-foreground">{r.prev_close != null ? r.prev_close.toLocaleString('ja-JP', { maximumFractionDigits: 1 }) : '—'}</td>
+                      <td className={`px-1.5 md:px-3 py-1 text-right tabular-nums ${r.prev_day_ret != null ? (r.prev_day_ret > 0 ? 'text-emerald-400' : r.prev_day_ret < 0 ? 'text-rose-400' : 'text-muted-foreground') : 'text-muted-foreground'}`}>
                         {r.prev_day_ret != null ? `${r.prev_day_ret > 0 ? '+' : ''}${r.prev_day_ret.toFixed(2)}%` : '—'}
                       </td>
-                      <td className={`px-1.5 md:px-3 py-1 text-right tabular-nums hidden md:table-cell ${gap != null ? (gap > 0 ? 'text-emerald-400' : gap < 0 ? 'text-rose-400' : 'text-muted-foreground') : 'text-muted-foreground'}`}>
+                      <td className={`px-1.5 md:px-3 py-1 text-right tabular-nums ${gap != null ? (gap > 0 ? 'text-emerald-400' : gap < 0 ? 'text-rose-400' : 'text-muted-foreground') : 'text-muted-foreground'}`}>
                         {gap != null ? `${gap > 0 ? '+' : ''}${gap.toFixed(0)}` : '—'}
                       </td>
                       <td className={`px-1.5 md:px-3 py-1 text-right tabular-nums ${r.pf != null && r.pf >= 1.5 ? 'text-teal-400' : r.pf != null && r.pf < 1 ? 'text-rose-400' : ''}`}>{r.pf?.toFixed(2) ?? '—'}</td>
