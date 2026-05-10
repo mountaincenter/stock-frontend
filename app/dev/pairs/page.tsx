@@ -7,6 +7,7 @@ import { RefreshCw } from 'lucide-react';
 // === Types (v2) ===
 interface PairSignal {
   tk1: string; tk2: string;
+  sector1?: string; sector2?: string;
   name1: string; name2: string;
   c1: number; c2: number;
   z_latest: number; z_abs: number;
@@ -17,7 +18,7 @@ interface PairSignal {
   notional1: number; notional2: number;
   imbalance_pct: number;
   full_pf: number; full_n: number;
-  revert_1d: number; half_life?: number;
+  revert_1d: number;
   is_entry: boolean; direction: string;
   signal_date: string;
 }
@@ -136,7 +137,27 @@ export default function PairsPage() {
 
   const allPairs = signals?.pairs || [];
   const entryPairs = signals?.entry || [];
-  const top3 = entryPairs.slice(0, 3);
+  // Top3 dedup: エントリー推奨(is_entry)を|z|順に業種重複除外で充填→枠残ればwatch(|z|>=1.5)で繰上げ
+  // セクター悪化リスク分散 (backtest: MaxDD -22%改善)
+  const top3: PairSignal[] = [];
+  const usedSectors = new Set<string>();
+  const pickUnique = (pool: PairSignal[]) => {
+    for (const pair of pool) {
+      if (top3.length >= 3) return;
+      const sec = pair.sector1 || '';
+      if (sec && usedSectors.has(sec)) continue;
+      if (top3.some(t => t.tk1 === pair.tk1 && t.tk2 === pair.tk2)) continue;
+      top3.push(pair);
+      if (sec) usedSectors.add(sec);
+    }
+  };
+  // PF>=1.5 を watch 繰上げの必須条件に追加 (memory: PF<1.0 見送り、PF>=1.5 優先)
+  const entrySorted = [...entryPairs].sort((a, b) => b.z_abs - a.z_abs);
+  const watchSorted = allPairs
+    .filter(p => !p.is_entry && p.z_abs >= 1.5 && p.full_pf >= 1.5)
+    .sort((a, b) => b.z_abs - a.z_abs);
+  pickUnique(entrySorted);
+  pickUnique(watchSorted);
   const pairSort = useSortable<PairSignal>(allPairs, 'z_abs');
 
   if (loading) {
@@ -228,7 +249,7 @@ export default function PairsPage() {
                           <div>z: <span className="text-foreground font-semibold">{p.z_latest >= 0 ? '+' : ''}{p.z_latest.toFixed(2)}</span></div>
                           <div>参照: <span className="text-foreground">{p.lookback}日</span></div>
                           <div>PF: <span className={`${p.full_pf >= 2.5 ? 'text-price-up font-semibold' : 'text-foreground'}`}>{p.full_pf.toFixed(2)}</span> ({p.full_n}回)</div>
-                          <div>1d回帰: <span className="text-foreground">{(p.revert_1d ?? p.half_life ?? 0).toFixed(0)}%</span></div>
+                          <div>1d回帰: <span className="text-foreground">{p.revert_1d.toFixed(0)}%</span></div>
                         </div>
                       </div>
                       <div className="text-right md:min-w-[280px]">
@@ -322,7 +343,7 @@ export default function PairsPage() {
                 <th className="text-right px-2 py-2.5 text-sm font-medium hidden md:table-cell">Long閾値</th>
                 <SortHeader<PairSignal> label="PF" field="full_pf" {...pairSort} className="text-right px-2 py-2.5 text-sm font-medium" />
                 <th className="text-right px-2 py-2.5 text-sm font-medium hidden md:table-cell">株数</th>
-                <SortHeader<PairSignal> label="1dR" field="revert_1d" {...pairSort} className="text-right px-2 py-2.5 text-sm font-medium hidden lg:table-cell" />
+                <SortHeader<PairSignal> label="HL" field="revert_1d" {...pairSort} className="text-right px-2 py-2.5 text-sm font-medium hidden lg:table-cell" />
               </tr></thead>
               <tbody>
                 {pairSort.sorted.map((p, i) => {
@@ -367,7 +388,7 @@ export default function PairsPage() {
                         {p.shares1}/{p.shares2}
                       </td>
                       <td className="px-2 py-2.5 text-right tabular-nums text-sm text-foreground/50 hidden lg:table-cell">
-                        {(p.revert_1d ?? p.half_life ?? 0).toFixed(0)}%
+                        {p.revert_1d.toFixed(0)}
                       </td>
                     </tr>
                   );
