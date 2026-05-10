@@ -84,6 +84,34 @@ interface PairsResponse {
   entry_count: number;
 }
 
+// Calendar
+interface CalendarCandidate {
+  date: string; code: string; name: string; strategy: string;
+  direction: string; pf: number | null; execution: string;
+  prev_close: number | null; prev_day_ret: number | null;
+  excluded: boolean; exclude_reason: string | null;
+}
+interface CalendarResponse {
+  today: { flags: string[] };
+  upcoming: Array<{ date: string; flags: string[] }>;
+  next_trading_date: string | null;
+  etf_latest: { close: number; change_pct: number | null };
+  sq4: {
+    stats_cme_down: { pf: number | null } | null;
+    next_sq4: { entry_date: string } | null;
+    candidates: { picks?: Array<{ code: string; name: string; prev_close: number; ret_5d: number }> };
+  };
+  sq_plus1: {
+    stats: { pf: number | null };
+    next_sq_plus1: { entry_date: string; picks?: Array<{ code: string; name: string; prev_close: number; prev_day_ret: number }>; cme_direction?: string } | null;
+  };
+  etf1306: { stats: { pf: number } };
+  weekday_edge: {
+    stock_stats: Array<{ code: string; stats_filtered: { pf: number | null } }>;
+    next_entries: Array<{ date: string; code: string; name: string; direction: string; dow_label: string; prev_close: number | null; prev_day_ret: number | null }>;
+  };
+}
+
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 // === Helpers ===
@@ -132,10 +160,10 @@ const SortHeader = <T,>({ label, field, sortKey, sortDir, toggle, className }: {
 
 // === Layout Components ===
 const StatCard = ({ label, children, sub }: { label: string; children: React.ReactNode; sub?: React.ReactNode }) => (
-  <div className="rounded-xl border border-border bg-card px-4 py-3">
-    <div className="text-muted-foreground text-sm mb-1">{label}</div>
-    <div className="text-xl sm:text-2xl font-bold text-right tabular-nums">{children}</div>
-    {sub && <div className="text-xs text-right mt-1 text-muted-foreground tabular-nums">{sub}</div>}
+  <div className="rounded-xl border border-border bg-card px-3 md:px-4 py-2.5 md:py-3">
+    <div className="text-muted-foreground text-xs md:text-sm mb-1">{label}</div>
+    <div className="text-lg sm:text-xl md:text-2xl font-bold text-right tabular-nums">{children}</div>
+    {sub && <div className="text-[10px] md:text-xs text-right mt-1 text-muted-foreground tabular-nums">{sub}</div>}
   </div>
 );
 
@@ -177,8 +205,68 @@ export default function DashboardPage() {
   const [longRecs, setLongRecs] = useState<LongRecommendationsResponse | null>(null);
   const [signals, setSignals] = useState<SignalsResponse | null>(null);
   const [pairsData, setPairsData] = useState<PairsResponse | null>(null);
+  const [calendarData, setCalendarData] = useState<CalendarResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const buildCalendarCandidates = (cal: CalendarResponse): CalendarCandidate[] => {
+    const rows: CalendarCandidate[] = [];
+    const { weekday_edge, sq4, sq_plus1, upcoming, etf_latest, etf1306, next_trading_date } = cal;
+    const sqPlus1SegPf = (ret: number): number | null => {
+      if (ret > 10) return 1.84; if (ret > 7) return 2.85; if (ret > 5) return 2.09;
+      if (ret > 3) return 1.71; if (ret > 2) return 0.44; return null;
+    };
+    const wePfMap: Record<string, number | null> = {};
+    for (const s of weekday_edge?.stock_stats ?? []) wePfMap[s.code] = s.stats_filtered?.pf ?? null;
+    for (const e of weekday_edge?.next_entries ?? []) {
+      rows.push({ date: e.date, code: e.code.replace(/0$/, ''), name: e.name,
+        strategy: `曜日${e.direction}(${e.dow_label})`, direction: e.direction,
+        pf: wePfMap[e.code] ?? null, execution: '寄成→引成',
+        prev_close: e.prev_close ?? null, prev_day_ret: e.prev_day_ret ?? null,
+        excluded: false, exclude_reason: null });
+    }
+    if (sq4?.next_sq4) {
+      const picks = sq4.candidates?.picks;
+      if (picks?.length) {
+        for (const p of picks) {
+          rows.push({ date: sq4.next_sq4.entry_date, code: p.code, name: p.name,
+            strategy: `SQ-4 (5日ret ${p.ret_5d > 0 ? '+' : ''}${p.ret_5d}%)`,
+            direction: 'LONG', pf: sq4.stats_cme_down?.pf ?? null, execution: '寄成→翌寄成',
+            prev_close: p.prev_close, prev_day_ret: null, excluded: false, exclude_reason: null });
+        }
+      }
+    }
+    const sp1Next = sq_plus1?.next_sq_plus1;
+    if (sp1Next?.entry_date) {
+      const sp1Picks = sp1Next.picks;
+      const cmeDir = sp1Next.cme_direction ?? '';
+      if (sp1Picks?.length) {
+        for (const p of sp1Picks) {
+          const isCmeUpHigh = cmeDir === 'UP' && p.prev_close >= 5000;
+          rows.push({ date: sp1Next.entry_date, code: p.code.replace(/0$/, ''), name: p.name,
+            strategy: `SQ+1 (前日+${p.prev_day_ret}%)`, direction: 'SHORT',
+            pf: isCmeUpHigh ? 0.63 : sqPlus1SegPf(p.prev_day_ret), execution: '寄成→引成',
+            prev_close: p.prev_close, prev_day_ret: p.prev_day_ret,
+            excluded: isCmeUpHigh, exclude_reason: isCmeUpHigh ? 'CME↑×5000+' : null });
+        }
+      }
+    }
+    const upcomingEtf = upcoming.filter(ev => ev.flags.some(f => f.includes('買い')));
+    for (const ev of upcomingEtf) {
+      const qLabel = ev.flags[0]?.match(/^\dQ/)?.[0] ?? 'Q';
+      rows.push({ date: ev.date, code: '1306', name: 'TOPIX連動型上場投信',
+        strategy: `${qLabel} 四半期末`, direction: 'LONG', pf: etf1306?.stats?.pf ?? null, execution: '引成',
+        prev_close: etf_latest?.close ?? null, prev_day_ret: etf_latest?.change_pct ?? null,
+        excluded: false, exclude_reason: null });
+    }
+    if (rows.length === 0) return [];
+    const ntd = next_trading_date ?? '';
+    const future = ntd ? rows.filter(c => c.date >= ntd) : rows;
+    if (future.length === 0) return [];
+    const nextDate = future.map(c => c.date).sort()[0];
+    return future.filter(c => c.date === nextDate)
+      .sort((a, b) => { if (a.excluded !== b.excluded) return a.excluded ? 1 : -1; return (b.pf ?? 0) - (a.pf ?? 0); });
+  };
 
   const fetchData = () => {
     setLoading(true);
@@ -188,9 +276,11 @@ export default function DashboardPage() {
       fetch(`${API_BASE}/api/dev/granville/long-recommendations`).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(`${API_BASE}/api/dev/reversal/signals`).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(`${API_BASE}/api/dev/pairs/signals`).then(r => r.ok ? r.json() : null).catch(() => null),
-    ]).then(([pos, b4, lr, sig, pairs]) => {
+      fetch(`${API_BASE}/api/dev/calendar`).then(r => r.ok ? r.json() : null).catch(() => null),
+    ]).then(([pos, b4, lr, sig, pairs, cal]) => {
       setPosData(pos); setB4Entry(b4); setLongRecs(lr); setSignals(sig);
       setPairsData(pairs ?? null);
+      setCalendarData(cal ?? null);
       setLoading(false);
     });
   };
@@ -204,6 +294,7 @@ export default function DashboardPage() {
         fetch(`${API_BASE}/api/dev/granville/refresh`, { method: 'POST' }),
         fetch(`${API_BASE}/api/dev/reversal/refresh`, { method: 'POST' }),
         fetch(`${API_BASE}/api/dev/pairs/refresh`, { method: 'POST' }),
+        fetch(`${API_BASE}/api/dev/calendar/refresh`, { method: 'POST' }).catch(() => null),
       ]);
       fetchData();
     } finally { setRefreshing(false); }
@@ -242,7 +333,7 @@ export default function DashboardPage() {
     <main className="relative min-h-screen">
       <div className="fixed inset-0 -z-10 bg-background" />
 
-      <div className="max-w-[1600px] mx-auto px-4 py-4 leading-[1.8] tracking-[0.02em]">
+      <div className="max-w-[1600px] mx-auto px-2 md:px-4 py-4 leading-[1.8] tracking-[0.02em]">
         {/* Header */}
         <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4 pb-3 border-b border-border/30">
           <div>
@@ -301,7 +392,7 @@ export default function DashboardPage() {
             </h2>
           } border="border-amber-500/40">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm md:text-base">
+              <table className="min-w-[640px] md:w-full text-sm md:text-base">
                 <thead><tr className="text-foreground border-b border-border/40 bg-muted/30">
                   <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">売買</th>
                   <SortHeader<Position> label="コード" field="ticker" {...exitSort} className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap" />
@@ -356,7 +447,7 @@ export default function DashboardPage() {
           <Panel title={`保有ポジション — ${active.length}件 (${posData?.as_of || '-'})`}
             footer={<span>合計含み損益: <span className="font-bold tabular-nums ml-1">{fmtPnl(totalPnl)}</span></span>}>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm md:text-base">
+              <table className="min-w-[640px] md:w-full text-sm md:text-base">
                 <thead><tr className="text-foreground border-b border-border/40 bg-muted/30">
                   <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">売買</th>
                   <SortHeader<Position> label="コード" field="ticker" {...activeSort} className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap" />
@@ -495,7 +586,7 @@ export default function DashboardPage() {
 
                 return (
                   <div className="overflow-x-auto border-t border-border/20">
-                    <table className="w-full text-sm md:text-base">
+                    <table className="min-w-[640px] md:w-full text-sm md:text-base">
                             <thead>
                         <tr className="text-foreground border-b border-border/40 bg-muted/30">
                           <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">ルール</th>
@@ -548,7 +639,7 @@ export default function DashboardPage() {
         } border={signals && signals.bearish.length > 0 ? 'border-violet-500/40' : undefined}>
           {signals && signals.bearish.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm md:text-base">
+              <table className="min-w-[640px] md:w-full text-sm md:text-base">
                 <thead><tr className="text-foreground border-b border-border/40 bg-muted/30">
                   <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">戦略</th>
                   <SortHeader<Signal> label="コード" field="ticker" {...bearishSort} className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap" />
@@ -588,6 +679,63 @@ export default function DashboardPage() {
           )}
         </Panel>
 
+        {/* ===== Calendar Entry Candidates ===== */}
+        {(() => {
+          const calCandidates = calendarData ? buildCalendarCandidates(calendarData) : [];
+          const entryDate = calCandidates.length > 0 ? calCandidates[0].date : null;
+          return (
+            <Panel title={
+              <div className="flex items-center gap-2">
+                <h2 className="text-base md:text-lg font-semibold"><a href="/dev/calendar" className="hover:text-primary transition-colors">Calendar エントリー候補</a></h2>
+                <span className="text-xs text-muted-foreground">曜日 / SQ-4 / SQ+1 / 1306</span>
+                {calCandidates.length > 0 && (
+                  <span className="ml-auto text-xs tabular-nums text-teal-400">{calCandidates.filter(c => !c.excluded).length}件{entryDate ? ` (${entryDate})` : ''}</span>
+                )}
+              </div>
+            } border={calCandidates.filter(c => !c.excluded).length > 0 ? 'border-teal-500/40' : undefined}>
+              {calCandidates.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="min-w-[640px] md:w-full text-sm md:text-base">
+                    <thead><tr className="text-foreground border-b border-border/40 bg-muted/30">
+                      <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">銘柄</th>
+                      <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">銘柄名</th>
+                      <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">選定理由</th>
+                      <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">方向</th>
+                      <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">前日終値</th>
+                      <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">前日比</th>
+                      <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">期待PF</th>
+                      <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">執行</th>
+                    </tr></thead>
+                    <tbody className="divide-y divide-border/30">
+                      {calCandidates.map((r, i) => (
+                        <tr key={`cal-${r.code}-${i}`} className={`${r.excluded ? 'opacity-40 line-through' : 'hover:bg-muted/10'}`}>
+                          <td className="px-2 py-2.5 tabular-nums whitespace-nowrap">{r.code !== '—' ? <TickerLink ticker={`${r.code}.T`} /> : '—'}</td>
+                          <td className="px-2 py-2.5 text-foreground whitespace-nowrap">{r.name}</td>
+                          <td className="px-2 py-2.5 text-muted-foreground whitespace-nowrap">
+                            {r.strategy}
+                            {r.excluded && r.exclude_reason && <span className="ml-1.5 no-underline inline-flex px-1.5 py-0.5 rounded text-xs font-medium bg-red-500/20 text-red-400">{r.exclude_reason}</span>}
+                          </td>
+                          <td className="px-2 py-2.5 text-center whitespace-nowrap">
+                            <span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${r.direction === 'LONG' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>{r.direction}</span>
+                          </td>
+                          <td className="px-2 py-2.5 text-right tabular-nums text-muted-foreground whitespace-nowrap">{r.prev_close != null ? r.prev_close.toLocaleString('ja-JP', { maximumFractionDigits: 1 }) : '—'}</td>
+                          <td className={`px-2 py-2.5 text-right tabular-nums whitespace-nowrap ${r.prev_day_ret != null ? (r.prev_day_ret > 0 ? 'text-emerald-400' : r.prev_day_ret < 0 ? 'text-rose-400' : 'text-muted-foreground') : 'text-muted-foreground'}`}>
+                            {r.prev_day_ret != null ? `${r.prev_day_ret > 0 ? '+' : ''}${r.prev_day_ret.toFixed(2)}%` : '—'}
+                          </td>
+                          <td className={`px-2 py-2.5 text-right tabular-nums whitespace-nowrap ${r.pf != null && r.pf >= 1.5 ? 'text-teal-400' : r.pf != null && r.pf < 1 ? 'text-rose-400' : ''}`}>{r.pf?.toFixed(2) ?? '—'}</td>
+                          <td className="px-2 py-2.5 text-muted-foreground whitespace-nowrap">{r.execution}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <EmptyState message={calendarData ? '直近のCalendar候補なし' : 'Calendar データ取得失敗'} />
+              )}
+            </Panel>
+          );
+        })()}
+
         {/* ===== Pairs Entry Candidates ===== */}
         <Panel title={
           <div className="flex items-center gap-2">
@@ -601,7 +749,7 @@ export default function DashboardPage() {
           footer={pairsData ? <span>{pairsData.total}ペア中 {pairsData.entry_count}件エントリー ({pairsData.signal_date})</span> : undefined}>
           {pairsData && pairsData.entry.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm md:text-base">
+              <table className="min-w-[640px] md:w-full text-sm md:text-base">
                 <thead><tr className="text-foreground border-b border-border/40 bg-muted/30">
                   <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">L/S</th>
                   <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">コード1</th>
