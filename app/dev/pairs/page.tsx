@@ -237,16 +237,28 @@ export default function PairsPage() {
                         <div className="flex items-start gap-2 mb-2">
                           <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-rose-500/20 text-price-down text-xs font-bold shrink-0 mt-0.5">{rank + 1}</span>
                           <div className="min-w-0">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="text-sm md:text-base font-semibold text-foreground">{p.name1}</span>
-                              <span className="text-xs md:text-sm text-foreground/50">{p.tk1}</span>
-                              <span className="text-xs md:text-sm tabular-nums text-foreground/60">¥{fmt(p.c1)}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
-                              <span className="text-sm md:text-base font-semibold text-foreground">{p.name2}</span>
-                              <span className="text-xs md:text-sm text-foreground/50">{p.tk2}</span>
-                              <span className="text-xs md:text-sm tabular-nums text-foreground/60">¥{fmt(p.c2)}</span>
+                            <div className="hidden md:flex items-center gap-2">
+                              <span className="text-base font-semibold text-foreground">{p.name1}</span>
+                              <span className="text-sm text-foreground/50">{p.tk1}</span>
+                              <span className="text-sm tabular-nums text-foreground/60">¥{fmt(p.c1)}</span>
+                              <span className="text-foreground/30">/</span>
+                              <span className="text-base font-semibold text-foreground">{p.name2}</span>
+                              <span className="text-sm text-foreground/50">{p.tk2}</span>
+                              <span className="text-sm tabular-nums text-foreground/60">¥{fmt(p.c2)}</span>
                               <DirectionBadge direction={p.direction} z={p.z_latest} />
+                            </div>
+                            <div className="md:hidden">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-sm font-semibold text-foreground">{p.name1}</span>
+                                <span className="text-xs text-foreground/50">{p.tk1}</span>
+                                <span className="text-xs tabular-nums text-foreground/60">¥{fmt(p.c1)}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                                <span className="text-sm font-semibold text-foreground">{p.name2}</span>
+                                <span className="text-xs text-foreground/50">{p.tk2}</span>
+                                <span className="text-xs tabular-nums text-foreground/60">¥{fmt(p.c2)}</span>
+                                <DirectionBadge direction={p.direction} z={p.z_latest} />
+                              </div>
                             </div>
                           </div>
                         </div>
