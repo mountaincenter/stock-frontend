@@ -79,10 +79,10 @@ const SortHeader = <T,>({ label, field, sortKey, sortDir, toggle, className }: {
 
 // === Layout Components ===
 const StatCard = ({ label, children, sub }: { label: string; children: React.ReactNode; sub?: React.ReactNode }) => (
-  <div className="rounded-xl border border-border bg-card px-4 py-3">
-    <div className="text-muted-foreground text-sm mb-1">{label}</div>
-    <div className="text-xl sm:text-2xl font-bold text-right tabular-nums">{children}</div>
-    {sub && <div className="text-xs text-right mt-1 text-muted-foreground tabular-nums">{sub}</div>}
+  <div className="rounded-xl border border-border bg-card px-3 md:px-4 py-2.5 md:py-3">
+    <div className="text-muted-foreground text-xs md:text-sm mb-0.5 md:mb-1">{label}</div>
+    <div className="text-lg sm:text-xl md:text-2xl font-bold text-right tabular-nums">{children}</div>
+    {sub && <div className="text-[10px] md:text-xs text-right mt-0.5 md:mt-1 text-muted-foreground tabular-nums">{sub}</div>}
   </div>
 );
 
@@ -166,8 +166,8 @@ export default function PairsPage() {
         <div className="fixed inset-0 -z-10 bg-background" />
         <div className="max-w-[1400px] mx-auto px-0 md:px-4 py-4">
           <div className="h-6 w-48 bg-muted/50 rounded mb-4 animate-pulse" />
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-            {[...Array(4)].map((_, i) => <div key={i} className="rounded-xl border border-border/40 bg-card/50 p-5 h-24 animate-pulse" />)}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 mb-4 md:mb-6 px-2 md:px-0">
+            {[...Array(4)].map((_, i) => <div key={i} className="rounded-xl border border-border/40 bg-card/50 p-5 h-20 md:h-24 animate-pulse" />)}
           </div>
         </div>
       </main>
@@ -180,11 +180,11 @@ export default function PairsPage() {
 
       <div className="max-w-[1400px] mx-auto px-0 md:px-4 py-4">
         {/* Header */}
-        <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4 pb-3 border-b border-border/30">
+        <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-3 mb-4 pb-3 border-b border-border/30 px-2 md:px-0">
           <div>
-            <h1 className="text-xl font-bold text-foreground">Pairs v2 — ペアトレード</h1>
-            <p className="text-foreground/50 text-sm mt-0.5">
-              共和分ベース161ペア | z=2.0エントリー | イントラデイ | 200万円 | |z|優先
+            <h1 className="text-lg md:text-xl font-bold text-foreground">Pairs v2 — ペアトレード</h1>
+            <p className="text-foreground/50 text-xs md:text-sm mt-0.5">
+              161ペア | z=2.0エントリー | 寄引 | 200万円
               {signals?.signal_date ? ` (${signals.signal_date})` : ''}
             </p>
           </div>
@@ -199,7 +199,7 @@ export default function PairsPage() {
         </header>
 
         {/* Status Bar */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 mb-4 md:mb-6 px-2 md:px-0">
           <StatCard label="監視ペア数" sub="共和分+ADF検定済">
             <span className="text-foreground">{signals?.total ?? 0}</span>
           </StatCard>
@@ -231,34 +231,39 @@ export default function PairsPage() {
                 const threshPrice = isShort ? p.tk1_upper : p.tk1_lower;
                 const threshLabel = isShort ? '以上で寄ったら' : '以下で寄ったら';
                 return (
-                  <div key={`${p.tk1}-${p.tk2}`} className="px-4 md:px-5 py-4 cursor-pointer hover:bg-muted/10 transition-colors" onClick={() => window.open(`/pairs/${p.tk1.replace('.', '')}-${p.tk2.replace('.', '')}`, 'pair-chart')}>
-                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-rose-500/20 text-price-down text-xs font-bold">{rank + 1}</span>
-                          <span className="text-base font-semibold text-foreground">{p.name1}</span>
-                          <span className="text-sm text-foreground/50">{p.tk1}</span>
-                          <span className="text-sm tabular-nums text-foreground/60">¥{fmt(p.c1)}</span>
-                          <span className="text-foreground/30">/</span>
-                          <span className="text-base font-semibold text-foreground">{p.name2}</span>
-                          <span className="text-sm text-foreground/50">{p.tk2}</span>
-                          <span className="text-sm tabular-nums text-foreground/60">¥{fmt(p.c2)}</span>
-                          <DirectionBadge direction={p.direction} z={p.z_latest} />
+                  <div key={`${p.tk1}-${p.tk2}`} className="px-3 md:px-5 py-3 md:py-4 cursor-pointer hover:bg-muted/10 transition-colors" onClick={() => window.open(`/pairs/${p.tk1.replace('.', '')}-${p.tk2.replace('.', '')}`, 'pair-chart')}>
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2 md:gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start gap-2 mb-2">
+                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-rose-500/20 text-price-down text-xs font-bold shrink-0 mt-0.5">{rank + 1}</span>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-sm md:text-base font-semibold text-foreground">{p.name1}</span>
+                              <span className="text-xs md:text-sm text-foreground/50">{p.tk1}</span>
+                              <span className="text-xs md:text-sm tabular-nums text-foreground/60">¥{fmt(p.c1)}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                              <span className="text-sm md:text-base font-semibold text-foreground">{p.name2}</span>
+                              <span className="text-xs md:text-sm text-foreground/50">{p.tk2}</span>
+                              <span className="text-xs md:text-sm tabular-nums text-foreground/60">¥{fmt(p.c2)}</span>
+                              <DirectionBadge direction={p.direction} z={p.z_latest} />
+                            </div>
+                          </div>
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 text-sm text-foreground/60 ml-8">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-3 md:gap-x-4 gap-y-0.5 md:gap-y-1 text-xs md:text-sm text-foreground/60 ml-8">
                           <div>z: <span className="text-foreground font-semibold">{p.z_latest >= 0 ? '+' : ''}{p.z_latest.toFixed(2)}</span></div>
                           <div>参照: <span className="text-foreground">{p.lookback}日</span></div>
                           <div>PF: <span className={`${p.full_pf >= 2.5 ? 'text-price-up font-semibold' : 'text-foreground'}`}>{p.full_pf.toFixed(2)}</span> ({p.full_n}回)</div>
                           <div>1d回帰: <span className="text-foreground">{p.revert_1d.toFixed(0)}%</span></div>
                         </div>
                       </div>
-                      <div className="text-right md:min-w-[280px]">
-                        <div className="text-sm mb-1">
+                      <div className="text-left md:text-right ml-8 md:ml-0 md:min-w-[280px] border-t border-border/20 pt-2 md:border-0 md:pt-0">
+                        <div className="text-xs md:text-sm mb-1">
                           <span className="text-foreground/60">{p.name1}が</span>
                           <span className="font-bold text-price-down mx-1">¥{fmt(Math.round(threshPrice))}</span>
                           <span className="text-foreground/60">{threshLabel}</span>
                         </div>
-                        <div className="text-sm space-y-0.5 text-foreground/50">
+                        <div className="text-xs md:text-sm space-y-0.5 text-foreground/50">
                           <div>
                             <span className={isShort ? 'text-price-down' : 'text-price-up'}>{p.name1} {isShort ? 'Short' : 'Long'}</span>
                             <span className="mx-1">×</span>
@@ -304,16 +309,18 @@ export default function PairsPage() {
               {entryPairs.slice(3).map((p) => {
                 const isShort = p.direction === 'short_tk1';
                 return (
-                  <div key={`${p.tk1}-${p.tk2}`} className="px-4 md:px-5 py-2.5 flex items-center justify-between cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => window.open(`/pairs/${p.tk1.replace('.', '')}-${p.tk2.replace('.', '')}`, 'pair-chart')}>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-foreground">{p.name1} / {p.name2}</span>
-                      <DirectionBadge direction={p.direction} z={p.z_latest} />
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-foreground/60">
-                      <span>z: {fmtZ(p.z_latest)}</span>
-                      <span>LB={p.lookback}</span>
-                      <span>PF={p.full_pf.toFixed(2)}</span>
-                      <span>{p.shares1}/{p.shares2}株</span>
+                  <div key={`${p.tk1}-${p.tk2}`} className="px-3 md:px-5 py-2 md:py-2.5 cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => window.open(`/pairs/${p.tk1.replace('.', '')}-${p.tk2.replace('.', '')}`, 'pair-chart')}>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-xs md:text-sm font-medium text-foreground truncate">{p.name1} / {p.name2}</span>
+                        <DirectionBadge direction={p.direction} z={p.z_latest} />
+                      </div>
+                      <div className="flex items-center gap-2 md:gap-4 text-xs md:text-sm text-foreground/60 shrink-0">
+                        <span>z: {fmtZ(p.z_latest)}</span>
+                        <span className="hidden sm:inline">LB={p.lookback}</span>
+                        <span>PF={p.full_pf.toFixed(2)}</span>
+                        <span className="hidden sm:inline">{p.shares1}/{p.shares2}株</span>
+                      </div>
                     </div>
                   </div>
                 );
@@ -332,16 +339,16 @@ export default function PairsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="text-foreground/50 border-b border-border/30 bg-muted/30">
-                <th className="text-center px-2 py-2.5 text-sm font-medium">#</th>
-                <SortHeader<PairSignal> label="ペア" field="name1" {...pairSort} className="text-left px-2 py-2.5 text-sm font-medium" />
-                <SortHeader<PairSignal> label="終値1" field="c1" {...pairSort} className="text-right px-2 py-2.5 text-sm font-medium" />
-                <SortHeader<PairSignal> label="終値2" field="c2" {...pairSort} className="text-right px-2 py-2.5 text-sm font-medium" />
-                <SortHeader<PairSignal> label="|z|" field="z_abs" {...pairSort} className="text-right px-2 py-2.5 text-sm font-medium" />
-                <th className="text-center px-2 py-2.5 text-sm font-medium">方向</th>
+                <th className="text-center px-1.5 md:px-2 py-1.5 md:py-2.5 text-xs md:text-sm font-medium">#</th>
+                <SortHeader<PairSignal> label="ペア" field="name1" {...pairSort} className="text-left px-1.5 md:px-2 py-1.5 md:py-2.5 text-xs md:text-sm font-medium" />
+                <SortHeader<PairSignal> label="終値1" field="c1" {...pairSort} className="text-right px-1.5 md:px-2 py-1.5 md:py-2.5 text-xs md:text-sm font-medium hidden sm:table-cell" />
+                <SortHeader<PairSignal> label="終値2" field="c2" {...pairSort} className="text-right px-1.5 md:px-2 py-1.5 md:py-2.5 text-xs md:text-sm font-medium hidden sm:table-cell" />
+                <SortHeader<PairSignal> label="|z|" field="z_abs" {...pairSort} className="text-right px-1.5 md:px-2 py-1.5 md:py-2.5 text-xs md:text-sm font-medium" />
+                <th className="text-center px-1.5 md:px-2 py-1.5 md:py-2.5 text-xs md:text-sm font-medium">方向</th>
                 <SortHeader<PairSignal> label="LB" field="lookback" {...pairSort} className="text-right px-2 py-2.5 text-sm font-medium hidden md:table-cell" />
                 <th className="text-right px-2 py-2.5 text-sm font-medium hidden md:table-cell">Short閾値</th>
                 <th className="text-right px-2 py-2.5 text-sm font-medium hidden md:table-cell">Long閾値</th>
-                <SortHeader<PairSignal> label="PF" field="full_pf" {...pairSort} className="text-right px-2 py-2.5 text-sm font-medium" />
+                <SortHeader<PairSignal> label="PF" field="full_pf" {...pairSort} className="text-right px-1.5 md:px-2 py-1.5 md:py-2.5 text-xs md:text-sm font-medium" />
                 <th className="text-right px-2 py-2.5 text-sm font-medium hidden md:table-cell">株数</th>
                 <SortHeader<PairSignal> label="HL" field="revert_1d" {...pairSort} className="text-right px-2 py-2.5 text-sm font-medium hidden lg:table-cell" />
               </tr></thead>
@@ -353,21 +360,21 @@ export default function PairsPage() {
                     <tr key={`${p.tk1}-${p.tk2}`}
                       className={`border-b border-border/20 hover:bg-muted/50 cursor-pointer ${isEntry ? 'bg-rose-500/5' : isWatch ? 'bg-amber-500/5' : ''}`}
                       onClick={() => window.open(`/pairs/${p.tk1.replace('.', '')}-${p.tk2.replace('.', '')}`, 'pair-chart')}>
-                      <td className="text-center px-2 py-2.5 text-foreground/30 text-sm">{i + 1}</td>
-                      <td className="px-2 py-2.5">
-                        <div className="font-medium text-foreground text-sm">
-                          {p.name1.length > 8 ? p.name1.slice(0, 8) + '…' : p.name1}
+                      <td className="text-center px-1.5 md:px-2 py-1 md:py-2.5 text-foreground/30 text-xs md:text-sm">{i + 1}</td>
+                      <td className="px-1.5 md:px-2 py-1 md:py-2.5">
+                        <div className="font-medium text-foreground text-xs md:text-sm">
+                          {p.name1.length > 6 ? p.name1.slice(0, 6) + '…' : p.name1}
                         </div>
-                        <div className="text-foreground/50 text-sm">
-                          {p.name2.length > 8 ? p.name2.slice(0, 8) + '…' : p.name2}
+                        <div className="text-foreground/50 text-xs md:text-sm">
+                          {p.name2.length > 6 ? p.name2.slice(0, 6) + '…' : p.name2}
                         </div>
                       </td>
-                      <td className="px-2 py-2.5 text-right tabular-nums text-sm">¥{fmt(p.c1)}</td>
-                      <td className="px-2 py-2.5 text-right tabular-nums text-sm">¥{fmt(p.c2)}</td>
-                      <td className="px-2 py-2.5 text-right tabular-nums text-sm font-semibold">
+                      <td className="px-1.5 md:px-2 py-1 md:py-2.5 text-right tabular-nums text-xs md:text-sm hidden sm:table-cell">¥{fmt(p.c1)}</td>
+                      <td className="px-1.5 md:px-2 py-1 md:py-2.5 text-right tabular-nums text-xs md:text-sm hidden sm:table-cell">¥{fmt(p.c2)}</td>
+                      <td className="px-1.5 md:px-2 py-1 md:py-2.5 text-right tabular-nums text-xs md:text-sm font-semibold">
                         {fmtZ(p.z_latest)}
                       </td>
-                      <td className="px-2 py-2.5 text-center">
+                      <td className="px-1.5 md:px-2 py-1 md:py-2.5 text-center">
                         <DirectionBadge direction={p.direction} z={p.z_latest} />
                       </td>
                       <td className="px-2 py-2.5 text-right tabular-nums text-sm text-foreground/50 hidden md:table-cell">
@@ -379,7 +386,7 @@ export default function PairsPage() {
                       <td className="px-2 py-2.5 text-right tabular-nums text-price-up text-sm hidden md:table-cell">
                         ¥{fmt(Math.round(p.tk1_lower))}
                       </td>
-                      <td className="px-2 py-2.5 text-right tabular-nums font-semibold text-sm">
+                      <td className="px-1.5 md:px-2 py-1 md:py-2.5 text-right tabular-nums font-semibold text-xs md:text-sm">
                         <span className={p.full_pf >= 2.5 ? 'text-price-up' : p.full_pf >= 2.0 ? 'text-foreground' : 'text-foreground/50'}>
                           {p.full_pf.toFixed(2)}
                         </span>
@@ -400,7 +407,7 @@ export default function PairsPage() {
 
         {/* Action Guide */}
         <Panel title="翌朝 9:00 アクション手順">
-          <div className="px-4 md:px-5 py-4 text-sm text-foreground/60 space-y-2">
+          <div className="px-3 md:px-5 py-3 md:py-4 text-xs md:text-sm text-foreground/60 space-y-2">
             <div className="flex gap-3"><span className="text-foreground font-semibold">1.</span><span>TOP推奨ペアを優先（|z|上位2-3ペアが最適）</span></div>
             <div className="flex gap-3"><span className="text-foreground font-semibold">2.</span>
               <div>
