@@ -39,13 +39,26 @@ interface Regime {
 }
 interface LongRecommendation {
   ticker: string; stock_name: string; sector: string; rule: string;
-  long_grade: string; hvb_grade?: string; hold_days: number; expected_pf: number;
+  long_grade: string; hold_days: number; expected_pf: number;
   close: number; entry_price_est: number; sma20: number;
   dev_from_sma20: number; atr10_pct: number;
 }
 interface LongRecommendationsResponse {
   long_recommendations: LongRecommendation[]; count: number;
   date: string | null; regime: Regime;
+}
+
+// Reversal signals (bearish + b4)
+interface Signal {
+  ticker: string; stock_name: string; sector: string; strategy: string;
+  close: number; open: number; body_pct: number;
+  sma20: number; dev_from_sma20: number;
+  entry_price_est: number; prev_close: number; vi: number;
+}
+interface SignalsResponse {
+  bearish: Signal[]; b4: Signal[];
+  bearish_count: number; b4_count: number;
+  bearish_date: string | null; b4_date: string | null;
 }
 
 // Pairs
@@ -59,7 +72,7 @@ interface PairSignal {
   notional1: number; notional2: number;
   imbalance_pct: number;
   full_pf: number; full_n: number;
-  revert_1d: number;
+  revert_1d: number; half_life?: number;
   is_entry: boolean; direction: string;
   signal_date: string;
 }
@@ -71,18 +84,31 @@ interface PairsResponse {
   entry_count: number;
 }
 
-// Calendar (dashboard用の最小型)
+// Calendar
+interface CalendarCandidate {
+  date: string; code: string; name: string; strategy: string;
+  direction: string; pf: number | null; execution: string;
+  prev_close: number | null; prev_day_ret: number | null;
+  excluded: boolean; exclude_reason: string | null;
+}
 interface CalendarResponse {
   today: { flags: string[] };
-  upcoming: { date: string; flags: string[] }[];
-  cme_latest: { date: string; close: number; change: number; change_pct: number } | null;
+  upcoming: Array<{ date: string; flags: string[] }>;
+  next_trading_date: string | null;
+  etf_latest: { close: number; change_pct: number | null };
   sq4: {
-    next_sq4: { entry_date: string; exit_date: string | null } | null;
-    stats_cme_down: { total: number; wr: number; pf: number | null; total_pnl_100: number };
-    candidates: { as_of: string; count: number };
+    stats_cme_down: { pf: number | null } | null;
+    next_sq4: { entry_date: string } | null;
+    candidates: { picks?: Array<{ code: string; name: string; prev_close: number; ret_5d: number }> };
   };
-  etf1306: {
-    stats: { total: number; wr: number; pf: number; total_ret: number; pnl_1000: number };
+  sq_plus1: {
+    stats: { pf: number | null };
+    next_sq_plus1: { entry_date: string; picks?: Array<{ code: string; name: string; prev_close: number; prev_day_ret: number }>; cme_direction?: string } | null;
+  };
+  etf1306: { stats: { pf: number } };
+  weekday_edge: {
+    stock_stats: Array<{ code: string; stats_filtered: { pf: number | null } }>;
+    next_entries: Array<{ date: string; code: string; name: string; direction: string; dow_label: string; prev_close: number | null; prev_day_ret: number | null }>;
   };
 }
 
@@ -134,10 +160,10 @@ const SortHeader = <T,>({ label, field, sortKey, sortDir, toggle, className }: {
 
 // === Layout Components ===
 const StatCard = ({ label, children, sub }: { label: string; children: React.ReactNode; sub?: React.ReactNode }) => (
-  <div className="rounded-xl border border-border bg-card px-4 py-3">
-    <div className="text-muted-foreground text-sm mb-1">{label}</div>
-    <div className="text-xl sm:text-2xl font-bold text-right tabular-nums">{children}</div>
-    {sub && <div className="text-xs text-right mt-1 text-muted-foreground tabular-nums">{sub}</div>}
+  <div className="rounded-xl border border-border bg-card px-3 md:px-4 py-2.5 md:py-3">
+    <div className="text-muted-foreground text-xs md:text-sm mb-1">{label}</div>
+    <div className="text-lg sm:text-xl md:text-2xl font-bold text-right tabular-nums">{children}</div>
+    {sub && <div className="text-[10px] md:text-xs text-right mt-1 text-muted-foreground tabular-nums">{sub}</div>}
   </div>
 );
 
@@ -164,15 +190,83 @@ const TickerLink = ({ ticker }: { ticker: string }) => (
   </button>
 );
 
+const RuleBadge = ({ rule }: { rule: string }) => {
+  const cls = rule === 'B4' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30'
+    : rule === 'B1' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+    : rule === 'B3' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+    : 'bg-purple-500/20 text-purple-400 border-purple-500/30';
+  return <span className={`inline-block min-w-[40px] text-center px-2 py-1 text-xs rounded border ${cls}`}>{rule}</span>;
+};
+
 // === Main ===
 export default function DashboardPage() {
   const [posData, setPosData] = useState<PositionsResponse | null>(null);
   const [b4Entry, setB4Entry] = useState<B4EntryResponse | null>(null);
   const [longRecs, setLongRecs] = useState<LongRecommendationsResponse | null>(null);
+  const [signals, setSignals] = useState<SignalsResponse | null>(null);
   const [pairsData, setPairsData] = useState<PairsResponse | null>(null);
-  const [calData, setCalData] = useState<CalendarResponse | null>(null);
+  const [calendarData, setCalendarData] = useState<CalendarResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const buildCalendarCandidates = (cal: CalendarResponse): CalendarCandidate[] => {
+    const rows: CalendarCandidate[] = [];
+    const { weekday_edge, sq4, sq_plus1, upcoming, etf_latest, etf1306, next_trading_date } = cal;
+    const sqPlus1SegPf = (ret: number): number | null => {
+      if (ret > 10) return 1.84; if (ret > 7) return 2.85; if (ret > 5) return 2.09;
+      if (ret > 3) return 1.71; if (ret > 2) return 0.44; return null;
+    };
+    const wePfMap: Record<string, number | null> = {};
+    for (const s of weekday_edge?.stock_stats ?? []) wePfMap[s.code] = s.stats_filtered?.pf ?? null;
+    for (const e of weekday_edge?.next_entries ?? []) {
+      rows.push({ date: e.date, code: e.code.replace(/0$/, ''), name: e.name,
+        strategy: `曜日${e.direction}(${e.dow_label})`, direction: e.direction,
+        pf: wePfMap[e.code] ?? null, execution: '寄成→引成',
+        prev_close: e.prev_close ?? null, prev_day_ret: e.prev_day_ret ?? null,
+        excluded: false, exclude_reason: null });
+    }
+    if (sq4?.next_sq4) {
+      const picks = sq4.candidates?.picks;
+      if (picks?.length) {
+        for (const p of picks) {
+          rows.push({ date: sq4.next_sq4.entry_date, code: p.code, name: p.name,
+            strategy: `SQ-4 (5日ret ${p.ret_5d > 0 ? '+' : ''}${p.ret_5d}%)`,
+            direction: 'LONG', pf: sq4.stats_cme_down?.pf ?? null, execution: '寄成→翌寄成',
+            prev_close: p.prev_close, prev_day_ret: null, excluded: false, exclude_reason: null });
+        }
+      }
+    }
+    const sp1Next = sq_plus1?.next_sq_plus1;
+    if (sp1Next?.entry_date) {
+      const sp1Picks = sp1Next.picks;
+      const cmeDir = sp1Next.cme_direction ?? '';
+      if (sp1Picks?.length) {
+        for (const p of sp1Picks) {
+          const isCmeUpHigh = cmeDir === 'UP' && p.prev_close >= 5000;
+          rows.push({ date: sp1Next.entry_date, code: p.code.replace(/0$/, ''), name: p.name,
+            strategy: `SQ+1 (前日+${p.prev_day_ret}%)`, direction: 'SHORT',
+            pf: isCmeUpHigh ? 0.63 : sqPlus1SegPf(p.prev_day_ret), execution: '寄成→引成',
+            prev_close: p.prev_close, prev_day_ret: p.prev_day_ret,
+            excluded: isCmeUpHigh, exclude_reason: isCmeUpHigh ? 'CME↑×5000+' : null });
+        }
+      }
+    }
+    const upcomingEtf = upcoming.filter(ev => ev.flags.some(f => f.includes('買い')));
+    for (const ev of upcomingEtf) {
+      const qLabel = ev.flags[0]?.match(/^\dQ/)?.[0] ?? 'Q';
+      rows.push({ date: ev.date, code: '1306', name: 'TOPIX連動型上場投信',
+        strategy: `${qLabel} 四半期末`, direction: 'LONG', pf: etf1306?.stats?.pf ?? null, execution: '引成',
+        prev_close: etf_latest?.close ?? null, prev_day_ret: etf_latest?.change_pct ?? null,
+        excluded: false, exclude_reason: null });
+    }
+    if (rows.length === 0) return [];
+    const ntd = next_trading_date ?? '';
+    const future = ntd ? rows.filter(c => c.date >= ntd) : rows;
+    if (future.length === 0) return [];
+    const nextDate = future.map(c => c.date).sort()[0];
+    return future.filter(c => c.date === nextDate)
+      .sort((a, b) => { if (a.excluded !== b.excluded) return a.excluded ? 1 : -1; return (b.pf ?? 0) - (a.pf ?? 0); });
+  };
 
   const fetchData = () => {
     setLoading(true);
@@ -180,10 +274,13 @@ export default function DashboardPage() {
       fetch(`${API_BASE}/api/dev/granville/positions`).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(`${API_BASE}/api/dev/granville/b4_entry`).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(`${API_BASE}/api/dev/granville/long-recommendations`).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(`${API_BASE}/api/dev/reversal/signals`).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(`${API_BASE}/api/dev/pairs/signals`).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(`${API_BASE}/api/dev/calendar`).then(r => r.ok ? r.json() : null).catch(() => null),
-    ]).then(([pos, b4, lr, pairs, cal]) => {
-      setPosData(pos); setB4Entry(b4); setLongRecs(lr); setPairsData(pairs); setCalData(cal);
+    ]).then(([pos, b4, lr, sig, pairs, cal]) => {
+      setPosData(pos); setB4Entry(b4); setLongRecs(lr); setSignals(sig);
+      setPairsData(pairs ?? null);
+      setCalendarData(cal ?? null);
       setLoading(false);
     });
   };
@@ -195,8 +292,9 @@ export default function DashboardPage() {
     try {
       await Promise.all([
         fetch(`${API_BASE}/api/dev/granville/refresh`, { method: 'POST' }),
+        fetch(`${API_BASE}/api/dev/reversal/refresh`, { method: 'POST' }),
         fetch(`${API_BASE}/api/dev/pairs/refresh`, { method: 'POST' }),
-        fetch(`${API_BASE}/api/dev/calendar/refresh`, { method: 'POST' }),
+        fetch(`${API_BASE}/api/dev/calendar/refresh`, { method: 'POST' }).catch(() => null),
       ]);
       fetchData();
     } finally { setRefreshing(false); }
@@ -213,6 +311,8 @@ export default function DashboardPage() {
   // Sortable hooks
   const exitSort = useSortable<Position>(exits, 'unrealized_pct');
   const activeSort = useSortable<Position>(active, 'unrealized_pct');
+  const bearishSort = useSortable<Signal>(signals?.bearish || [], 'body_pct');
+  const pairSort = useSortable<PairSignal>(pairsData?.entry || [], 'z_abs');
 
   if (loading) {
     return (
@@ -233,13 +333,13 @@ export default function DashboardPage() {
     <main className="relative min-h-screen">
       <div className="fixed inset-0 -z-10 bg-background" />
 
-      <div className="max-w-[1600px] mx-auto px-4 py-4 leading-[1.8] tracking-[0.02em]">
+      <div className="max-w-[1600px] mx-auto px-2 md:px-4 py-4 leading-[1.8] tracking-[0.02em]">
         {/* Header */}
         <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4 pb-3 border-b border-border/30">
           <div>
             <h1 className="text-xl font-bold text-foreground">Trading Dashboard</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              B4 + Pairs + Calendar
+              Granville + Bearish Reversal + Pairs
               {b4Entry?.date ? ` (${b4Entry.date})` : ''}
             </p>
           </div>
@@ -258,18 +358,18 @@ export default function DashboardPage() {
           const regime = longRecs?.regime;
           const cmeGap = regime?.cme_gap ?? b4Entry?.cme_gap;
           return (
-            <div className="grid grid-cols-5 gap-3 mb-6">
-              <StatCard label={`N225 トレンド${b4Entry?.date ? ` ${b4Entry.date}` : ''}`} sub={regime?.n225_close != null && regime?.n225_sma20 != null ? `${fmt(regime.n225_close)} vs SMA20 ${fmt(regime.n225_sma20)}` : undefined}>
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+              <StatCard label={`N225 トレンド${b4Entry?.date ? ` ${b4Entry.date}` : ''}`} sub={regime?.n225_close != null && regime?.n225_sma20 != null ? `N225: ${fmt(regime.n225_close)} / SMA20: ${fmt(regime.n225_sma20)}${regime?.n225_ret20 != null ? ` / ret20: ${regime.n225_ret20 >= 0 ? '+' : ''}${regime.n225_ret20.toFixed(1)}%` : ''}` : undefined}>
                 <span className={regime?.n225_above_sma20 ? 'text-price-up' : regime?.n225_above_sma20 === false ? 'text-price-down' : 'text-muted-foreground'}>
                   {regime?.n225_above_sma20 != null ? (regime.n225_above_sma20 ? 'Uptrend' : 'Downtrend') : '-'}
                 </span>
               </StatCard>
-              <StatCard label={`CME gap${calData?.cme_latest?.date ? ` ${(() => { const d = new Date(calData.cme_latest.date); return `${d.getMonth()+1}/${d.getDate()}`; })()}` : ''}`} sub={regime?.cme_close != null ? `CME ${fmt(regime.cme_close)}${b4Entry?.n225_chg != null ? ` / 前日比 ${b4Entry.n225_chg >= 0 ? '+' : ''}${b4Entry.n225_chg.toFixed(2)}%` : ''}` : cmeGap != null && Math.abs(cmeGap) <= 0.5 ? 'flat (±0.5%)' : undefined}>
+              <StatCard label="CME gap" sub={regime?.cme_close != null && regime?.n225_close != null ? `CME: ${fmt(regime.cme_close)} / N225: ${fmt(regime.n225_close)}${b4Entry?.n225_chg != null ? ` / 前日比: ${b4Entry.n225_chg >= 0 ? '+' : ''}${b4Entry.n225_chg.toFixed(2)}%` : ''}` : cmeGap != null && Math.abs(cmeGap) <= 0.5 ? 'flat (±0.5%)' : undefined}>
                 <span className={cmeGap != null ? (cmeGap >= 0 ? 'text-price-up' : 'text-price-down') : 'text-muted-foreground'}>
                   {cmeGap != null ? `${cmeGap >= 0 ? '+' : ''}${cmeGap.toFixed(2)}%` : '-'}
                 </span>
               </StatCard>
-              <StatCard label="日経VI" sub={vi !== null && vi >= 30 ? 'B4発動圏 (高VI)' : vi !== null && vi >= 25 ? 'B4発動圏' : vi !== null && vi >= 20 ? 'B4監視' : vi !== null ? '静穏' : undefined}>
+              <StatCard label="日経VI" sub={vi !== null && vi >= 30 ? 'H1発動圏' : vi !== null && vi >= 25 ? 'B4発動圏' : vi !== null && vi >= 20 ? '逆張り有効' : undefined}>
                 <span className={vi !== null && vi >= 30 ? 'text-price-down' : vi !== null && vi >= 25 ? 'text-amber-400' : vi !== null && vi >= 20 ? 'text-price-up' : 'text-muted-foreground'}>
                   {vi ?? '-'}
                 </span>
@@ -277,25 +377,8 @@ export default function DashboardPage() {
               <StatCard label="含み損益" sub={`${active.length}件保有 / Exit: ${exits.length}件`}>
                 <span className={totalPnl >= 0 ? 'text-price-up' : 'text-price-down'}>{totalPnl >= 0 ? '+' : ''}{fmt(totalPnl)}円</span>
               </StatCard>
-              <StatCard label="次回イベント" sub={(() => {
-                const parts: string[] = [];
-                if (calData?.sq4?.next_sq4) { const d = new Date(calData.sq4.next_sq4.entry_date); parts.push(`SQ-4 ${d.getMonth()+1}/${d.getDate()}`); }
-                const qEv = calData?.upcoming?.find(e => e.flags.some(f => /^\dQ/.test(f)));
-                if (qEv) { const d = new Date(qEv.date); const qf = qEv.flags.find(f => /^\dQ/.test(f)) || ''; parts.push(`1306 ${d.getMonth()+1}/${d.getDate()} ${qf}`); }
-                return parts.join(' / ') || undefined;
-              })()}>
-                {(() => {
-                  if (calData?.today?.flags && calData.today.flags.length > 0) {
-                    return <span className="text-amber-400 text-lg">今日あり</span>;
-                  }
-                  if (calData?.sq4?.next_sq4) {
-                    const d = new Date(calData.sq4.next_sq4.entry_date);
-                    const diff = Math.ceil((d.getTime() - Date.now()) / 86400000);
-                    if (diff <= 3) return <span className="text-amber-400">{diff}日後</span>;
-                    return <span className="text-muted-foreground">{diff}日後</span>;
-                  }
-                  return <span className="text-muted-foreground">—</span>;
-                })()}
+              <StatCard label="本日シグナル" sub={`G: ${(longRecs?.count ?? 0) + (b4Entry?.selected?.length ?? 0)} / 陰線: ${signals?.bearish_count ?? 0} / P: ${pairsData?.entry_count ?? 0}`}>
+                <span className="text-foreground">{(longRecs?.count ?? 0) + (b4Entry?.selected?.length ?? 0) + (signals?.bearish_count ?? 0) + (pairsData?.entry_count ?? 0)}</span>
               </StatCard>
             </div>
           );
@@ -309,7 +392,7 @@ export default function DashboardPage() {
             </h2>
           } border="border-amber-500/40">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm md:text-base">
+              <table className="min-w-[640px] md:w-full text-sm md:text-base">
                 <thead><tr className="text-foreground border-b border-border/40 bg-muted/30">
                   <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">売買</th>
                   <SortHeader<Position> label="コード" field="ticker" {...exitSort} className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap" />
@@ -364,7 +447,7 @@ export default function DashboardPage() {
           <Panel title={`保有ポジション — ${active.length}件 (${posData?.as_of || '-'})`}
             footer={<span>合計含み損益: <span className="font-bold tabular-nums ml-1">{fmtPnl(totalPnl)}</span></span>}>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm md:text-base">
+              <table className="min-w-[640px] md:w-full text-sm md:text-base">
                 <thead><tr className="text-foreground border-b border-border/40 bg-muted/30">
                   <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">売買</th>
                   <SortHeader<Position> label="コード" field="ticker" {...activeSort} className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap" />
@@ -406,230 +489,319 @@ export default function DashboardPage() {
           </Panel>
         )}
 
-        {/* ===== 3 Strategy Overview ===== */}
-        <div className="space-y-4 mb-5">
-          {/* ── B4 ── */}
-          <Panel title={
-            <div className="flex items-center justify-between">
-              <h2 className="text-base md:text-lg font-semibold">
-                <a href="/dev/granville" className="hover:text-primary transition-colors">Granville B4</a>
-                {b4Entry?.date && <span className="ml-2 text-sm font-normal text-muted-foreground">({b4Entry.date})</span>}
-              </h2>
-              <div className="flex items-center gap-2">
-                {vi != null && <span className={`text-xs px-2 py-1 rounded border tabular-nums ${vi >= 25 ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-muted/30 text-muted-foreground border-border/40'}`}>VI {vi}</span>}
-                {b4Entry?.decision && (
-                  <span className={`text-xs px-2 py-1 rounded border ${
-                    b4Entry.decision === 'strong_entry' || b4Entry.decision === 'entry' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                    : b4Entry.decision === 'consider' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
-                    : 'bg-muted/30 text-muted-foreground border-border/40'
-                  }`}>{b4Entry.decision === 'strong_entry' ? 'ENTRY' : b4Entry.decision === 'entry' ? 'ENTRY' : b4Entry.decision === 'consider' ? 'CONSIDER' : b4Entry.decision === 'excluded' ? '除外' : 'WAIT'}</span>
-                )}
-              </div>
-            </div>
-          } border={(b4Entry?.selected?.length ?? 0) > 0 ? 'border-emerald-500/30' : undefined}
-            footer={b4Entry?.total_b4_signals != null && b4Entry.total_b4_signals > 0 ? (
-              <span>シグナル {b4Entry.total_b4_signals}件 → 選定 {b4Entry.selected?.length ?? 0}件
-                {b4Entry.excluded_rules?.length > 0 && <span className="ml-2 text-rose-400">除外: {b4Entry.excluded_rules.join(', ')}</span>}
-              </span>
-            ) : undefined}>
-            {b4Entry?.selected && b4Entry.selected.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm md:text-base">
-                  <thead><tr className="text-foreground border-b border-border/40 bg-muted/30">
-                    <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">コード</th>
-                    <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">銘柄</th>
-                    <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">セクター</th>
-                    <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">終値</th>
-                    <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">SMA20乖離</th>
-                    <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">推定IN</th>
-                  </tr></thead>
-                  <tbody className="divide-y divide-border/30">
-                    {b4Entry.selected.map(c => (
-                      <tr key={c.ticker} className="hover:bg-muted/5">
-                        <td className="px-2 py-2.5 tabular-nums"><TickerLink ticker={c.ticker} /></td>
-                        <td className="px-2 py-2.5 text-foreground">{c.stock_name}</td>
-                        <td className="px-2 py-2.5 text-muted-foreground text-xs max-w-[140px] truncate">{c.sector}</td>
-                        <td className="px-2 py-2.5 text-right tabular-nums text-muted-foreground whitespace-nowrap">{fmt(Math.round(c.close))}</td>
-                        <td className="px-2 py-2.5 text-right tabular-nums text-price-down font-semibold">{c.dev_from_sma20.toFixed(1)}%</td>
-                        <td className="px-2 py-2.5 text-right tabular-nums whitespace-nowrap">{fmt(Math.round(c.entry_price_est))}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <EmptyState message={
-                b4Entry?.decision === 'excluded' ? '除外ルール該当' :
-                b4Entry?.decision === 'wait' ? `VI=${vi} < 25: 待機` :
-                'シグナルなし'
-              } />
-            )}
-          </Panel>
+        {/* ===== B1-B4 エントリー判定 (Granville統合) ===== */}
+        {(() => {
+          const regime = longRecs?.regime;
+          const lrCount = longRecs?.count ?? 0;
+          const gradeLabel = (g: string) => g === 'H1' ? 'VI≥30 反発' : g === 'H2' ? '上昇+CME静' : g === 'H3' ? '急落後B1' : g;
+          const gradeCls = (g: string) => g === 'H1' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30'
+            : g === 'H2' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+            : g === 'B4' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+            : 'bg-amber-500/20 text-amber-400 border-amber-500/30';
+          const b4Decision = b4Entry?.decision;
+          const hasB4 = b4Decision === 'strong_entry' || b4Decision === 'entry' || b4Decision === 'consider';
+          const totalEntries = lrCount + (b4Entry?.selected?.length ?? 0);
+          const borderColor = totalEntries > 0 ? 'border-emerald-500/30' : hasB4 ? 'border-amber-500/30' : undefined;
 
-          {/* ── Pairs ── */}
-          <Panel title={
-            <div className="flex items-center gap-2">
-              <h2 className="text-base md:text-lg font-semibold">
-                <a href="/dev/pairs" className="hover:text-primary transition-colors">ペア エントリー候補</a>
-              </h2>
-              <span className="text-xs text-muted-foreground">|z| &ge; 2.0 / 共和分ベース</span>
-              {pairsData && pairsData.entry.length > 0 && (
-                <span className="ml-auto text-xs tabular-nums text-blue-400">{pairsData.entry.length}件</span>
-              )}
-            </div>
-          } border={pairsData && pairsData.entry.length > 0 ? 'border-blue-500/40' : undefined}
-            footer={pairsData ? <span>{pairsData.total}ペア中 {pairsData.entry_count}件エントリー ({pairsData.signal_date})</span> : undefined}>
-            {pairsData && pairsData.entry.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm md:text-base">
-                  <thead><tr className="text-foreground border-b border-border/40 bg-muted/30">
-                    <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">L/S</th>
-                    <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">コード1</th>
-                    <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">銘柄1</th>
-                    <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">終値1</th>
-                    <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">株数1</th>
-                    <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">L/S</th>
-                    <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">コード2</th>
-                    <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">銘柄2</th>
-                    <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">終値2</th>
-                    <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">株数2</th>
-                    <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">z-score</th>
-                    <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">PF</th>
-                  </tr></thead>
-                  <tbody className="divide-y divide-border/30">
-                    {pairsData.entry.slice(0, 3).map(p => {
-                      const isLong = p.direction === 'long_tk1';
-                      return (
-                        <tr key={`${p.tk1}-${p.tk2}`} className="hover:bg-muted/10 cursor-pointer"
-                          onClick={() => window.open(`/pairs/${p.tk1.replace('.', '')}-${p.tk2.replace('.', '')}`, '_blank')}>
-                          <td className="text-center px-2 py-2.5">
-                            <span className={`text-xs px-1.5 py-0.5 rounded ${isLong ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>{isLong ? 'L' : 'S'}</span>
-                          </td>
-                          <td className="px-2 py-2.5 tabular-nums"><TickerLink ticker={p.tk1} /></td>
-                          <td className="px-2 py-2.5 text-foreground">{p.name1}</td>
-                          <td className="px-2 py-2.5 text-right tabular-nums text-muted-foreground whitespace-nowrap">{fmt(p.c1)}</td>
-                          <td className="px-2 py-2.5 text-right tabular-nums text-muted-foreground">{p.shares1}</td>
-                          <td className="text-center px-2 py-2.5">
-                            <span className={`text-xs px-1.5 py-0.5 rounded ${isLong ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'}`}>{isLong ? 'S' : 'L'}</span>
-                          </td>
-                          <td className="px-2 py-2.5 tabular-nums"><TickerLink ticker={p.tk2} /></td>
-                          <td className="px-2 py-2.5 text-foreground">{p.name2}</td>
-                          <td className="px-2 py-2.5 text-right tabular-nums text-muted-foreground whitespace-nowrap">{fmt(p.c2)}</td>
-                          <td className="px-2 py-2.5 text-right tabular-nums text-muted-foreground">{p.shares2}</td>
-                          <td className="px-2 py-2.5 text-right tabular-nums font-semibold">{fmtZ(p.z_latest)}</td>
-                          <td className="px-2 py-2.5 text-right tabular-nums text-foreground">{p.full_pf.toFixed(2)}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+          return (
+            <Panel title={
+              <div className="flex items-center justify-between">
+                <h2 className="text-base md:text-lg font-semibold">
+                  <a href="/dev/granville" className="hover:text-primary transition-colors">B1-B4 エントリー判定</a>
+                  {b4Entry?.date && <span className="ml-2 text-sm font-normal text-muted-foreground">({b4Entry.date})</span>}
+                </h2>
+                {totalEntries > 0
+                  ? <span className="px-3 py-1 rounded-full text-sm font-bold border text-price-up bg-emerald-500/10 border-emerald-500/30">{totalEntries}件</span>
+                  : <span className="px-3 py-1 rounded-full text-sm border text-muted-foreground bg-muted/10 border-border/40">候補なし</span>
+                }
               </div>
-            ) : (
-              <EmptyState message="本日のペアエントリーなし" />
-            )}
-          </Panel>
+            } border={borderColor}>
+              {/* フィルター判定バッジ */}
+              <div className="px-4 pb-2 flex flex-wrap gap-1.5">
+                {regime?.vi != null && regime.vi >= 30 && <span className="px-1.5 py-0.5 text-xs rounded border bg-rose-500/20 text-rose-400 border-rose-500/30">H1可</span>}
+                {regime?.n225_above_sma20 && regime?.cme_gap != null && Math.abs(regime.cme_gap) <= 0.5 && <span className="px-1.5 py-0.5 text-xs rounded border bg-emerald-500/20 text-emerald-400 border-emerald-500/30">H2可</span>}
+                {regime?.n225_ret20 != null && regime.n225_ret20 < -5 && <span className="px-1.5 py-0.5 text-xs rounded border bg-amber-500/20 text-amber-400 border-amber-500/30">H3可</span>}
+                {b4Entry && b4Entry.total_b4_signals > 0 && <span className="px-1.5 py-0.5 text-xs rounded border bg-blue-500/20 text-blue-400 border-blue-500/30">B4 {b4Entry.total_b4_signals}件</span>}
+                {b4Entry?.excluded_rules && b4Entry.excluded_rules.length > 0 && <span className="px-1.5 py-0.5 text-xs rounded border bg-rose-500/10 text-rose-400 border-rose-500/30">除外: {b4Entry.excluded_rules.join(', ')}</span>}
+              </div>
 
-          {/* ── Calendar ── */}
-          <Panel title={
-            <div className="flex items-center justify-between">
-              <h2 className="text-base md:text-lg font-semibold">
-                <a href="/dev/calendar" className="hover:text-primary transition-colors">Calendar Trades</a>
-              </h2>
-              {calData?.today?.flags && calData.today.flags.length > 0 && (
-                <div className="flex items-center gap-1.5">
-                  {calData.today.flags.map(f => (
-                    <span key={f} className={`px-2 py-1 rounded text-xs font-medium ${
-                      f.includes('買い') ? 'bg-emerald-500/20 text-emerald-400' :
-                      f.includes('決済') ? 'bg-amber-500/20 text-amber-400' :
-                      'bg-white/5 text-muted-foreground'
-                    }`}>{f}</span>
-                  ))}
+              {/* シグナル・フィルター説明（折りたたみ） */}
+              <details className="px-4 pb-3">
+                <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground/70 select-none">シグナル・フィルター定義</summary>
+                <div className="mt-2 space-y-3 text-xs leading-relaxed">
+                  <div>
+                    <div className="font-medium text-foreground/80 mb-1">Granville買いシグナル</div>
+                    <table className="w-full border-collapse">
+                      <tbody className="text-muted-foreground">
+                        <tr className="border-b border-border/20"><td className="py-1 pr-3 font-medium text-foreground/70 w-10">B1</td><td className="py-1">MA上抜けブレイク — 前日SMA20下→当日上抜け、SMA上昇中</td></tr>
+                        <tr className="border-b border-border/20"><td className="py-1 pr-3 font-medium text-foreground/70">B2</td><td className="py-1">上昇中の押し目 — SMA上昇中、乖離-5~0%、陽線、SMA下</td></tr>
+                        <tr className="border-b border-border/20"><td className="py-1 pr-3 font-medium text-foreground/70">B3</td><td className="py-1">MA接近で反発 — SMA上昇中+上、乖離0~3%で縮小中、陽線</td></tr>
+                        <tr><td className="py-1 pr-3 font-medium text-foreground/70">B4</td><td className="py-1">暴落リバウンド — SMA20乖離 &lt; -15%、陽線、急騰フィルター付き</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div>
+                    <div className="font-medium text-foreground/80 mb-1">ロングフィルター（B1-B3に適用）</div>
+                    <table className="w-full border-collapse">
+                      <tbody className="text-muted-foreground">
+                        <tr className="border-b border-border/20"><td className="py-1 pr-3 w-10"><span className="px-1 py-0.5 rounded border bg-rose-500/20 text-rose-400 border-rose-500/30">H1</span></td><td className="py-1">VI&ge;30 + B1 &rarr; 9日保有 — 恐怖局面でのMA上抜け反発</td><td className="py-1 text-right tabular-nums">PF 2.13</td></tr>
+                        <tr className="border-b border-border/20"><td className="py-1 pr-3"><span className="px-1 py-0.5 rounded border bg-emerald-500/20 text-emerald-400 border-emerald-500/30">H2</span></td><td className="py-1">N225&gt;SMA20 + CME flat(&plusmn;0.5%) + B3 &rarr; 9日保有 — 静かな上昇トレンドの押し目</td><td className="py-1 text-right tabular-nums">PF 2.67</td></tr>
+                        <tr><td className="py-1 pr-3"><span className="px-1 py-0.5 rounded border bg-amber-500/20 text-amber-400 border-amber-500/30">H3</span></td><td className="py-1">N225 ret20&lt;-5% + B1 &rarr; 4日保有 — 急落後のブレイク反発</td><td className="py-1 text-right tabular-nums">PF 2.38</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div>
+                    <div className="font-medium text-foreground/80 mb-1">B4エントリー条件</div>
+                    <p className="text-muted-foreground">VI&ge;25で発動。乖離深い順に資金枠内で選定。出口: 直近高値更新&rarr;翌寄付 or MH15。PF 2.79（全期間）</p>
+                    <p className="text-muted-foreground mt-0.5">除外: VI30-40&times;CME膠着 / VI30-40&times;GU / N225&lt;-3%</p>
+                  </div>
                 </div>
-              )}
-            </div>
-          }>
+              </details>
+
+              {/* 統合テーブル（グレード優先） */}
+              {(() => {
+                const gradeOrder: Record<string, number> = { B4: 0, H2: 1, H3: 2, H1: 3 };
+                type UnifiedRow = { ticker: string; stock_name: string; sector: string; rule: string; grade: string; close: number; dev_from_sma20: number; hold_days: number; max_cost?: number; };
+                const rows: UnifiedRow[] = [];
+                if (longRecs) {
+                  for (const r of longRecs.long_recommendations) {
+                    rows.push({ ticker: r.ticker, stock_name: r.stock_name, sector: r.sector, rule: r.rule, grade: r.long_grade, close: r.close, dev_from_sma20: r.dev_from_sma20, hold_days: r.hold_days });
+                  }
+                }
+                if (b4Entry?.selected) {
+                  for (const c of b4Entry.selected) {
+                    rows.push({ ticker: c.ticker, stock_name: c.stock_name, sector: c.sector, rule: 'B4', grade: 'B4', close: c.close, dev_from_sma20: c.dev_from_sma20, hold_days: 15, max_cost: c.max_cost });
+                  }
+                }
+                rows.sort((a, b) => (gradeOrder[a.grade] ?? 99) - (gradeOrder[b.grade] ?? 99));
+
+                if (rows.length === 0) return (
+                  <div className="px-4 py-4 text-center text-muted-foreground text-sm border-t border-border/20">
+                    {b4Decision === 'excluded' ? 'B4除外ルール該当' :
+                     b4Decision === 'wait' ? `B4待機 (VI=${b4Entry?.vi} < 25)` :
+                     lrCount === 0 && (!b4Entry || b4Entry.total_b4_signals === 0) ? 'B1-B3フィルター不成立 / B4シグナルなし' :
+                     'エントリー候補なし'}
+                  </div>
+                );
+
+                return (
+                  <div className="overflow-x-auto border-t border-border/20">
+                    <table className="min-w-[640px] md:w-full text-sm md:text-base">
+                            <thead>
+                        <tr className="text-foreground border-b border-border/40 bg-muted/30">
+                          <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">ルール</th>
+                          <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">コード</th>
+                          <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">銘柄</th>
+                          <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">セクター</th>
+                          <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">グレード</th>
+                          <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">終値</th>
+                          <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">SMA20乖離</th>
+                          <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">保有</th>
+                          {rows.some(r => r.max_cost) && <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">取引上限</th>}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/30">
+                        {rows.map((r, i) => (
+                          <tr key={`${r.ticker}-${r.rule}`} className="hover:bg-muted/5">
+                            <td className="px-2 py-2.5 text-center"><RuleBadge rule={r.rule} /></td>
+                            <td className="px-2 py-2.5 tabular-nums"><TickerLink ticker={r.ticker} /></td>
+                            <td className="px-2 py-2.5 text-foreground">{r.stock_name}</td>
+                            <td className="px-2 py-2.5 text-muted-foreground text-xs max-w-[120px] truncate">{r.sector}</td>
+                            <td className="px-2 py-2.5 text-center">
+                              <span className={`inline-block min-w-[40px] text-center px-2 py-1 text-xs rounded border ${gradeCls(r.grade)}`}>
+                                {r.grade === 'B4' ? 'B4' : `${r.grade} ${gradeLabel(r.grade)}`}
+                              </span>
+                            </td>
+                            <td className="px-2 py-2.5 text-right tabular-nums">&yen;{r.close.toLocaleString()}</td>
+                            <td className="px-2 py-2.5 text-right tabular-nums">{fmtPct(r.dev_from_sma20, 1)}</td>
+                            <td className="px-2 py-2.5 text-center">{r.hold_days}d</td>
+                            {rows.some(x => x.max_cost) && <td className="px-2 py-2.5 text-right tabular-nums">{r.max_cost ? fmt(r.max_cost) : '-'}</td>}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
+            </Panel>
+          );
+        })()}
+
+        {/* ===== Bearish Entry Candidates ===== */}
+        <Panel title={
+          <div className="flex items-center gap-2">
+            <h2 className="text-base md:text-lg font-semibold"><a href="/dev/reversal" className="hover:text-primary transition-colors">大陰線 エントリー候補</a></h2>
+            <span className="text-xs text-muted-foreground">実体 &le; -5% / VI &ge; 20 / &le; &yen;15,000</span>
+            {signals && signals.bearish.length > 0 && (
+              <span className="ml-auto text-xs tabular-nums text-violet-400">{signals.bearish.length}件</span>
+            )}
+          </div>
+        } border={signals && signals.bearish.length > 0 ? 'border-violet-500/40' : undefined}>
+          {signals && signals.bearish.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm md:text-base">
+              <table className="min-w-[640px] md:w-full text-sm md:text-base">
                 <thead><tr className="text-foreground border-b border-border/40 bg-muted/30">
-                  <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">戦略</th>
-                  <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">エントリー</th>
-                  <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">決済</th>
-                  <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">PF</th>
-                  <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">WR</th>
-                  <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">累計PnL</th>
+                  <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">戦略</th>
+                  <SortHeader<Signal> label="コード" field="ticker" {...bearishSort} className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap" />
+                  <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">銘柄</th>
+                  <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">セクター</th>
+                  <SortHeader<Signal> label="終値" field="close" {...bearishSort} className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap" />
+                  <SortHeader<Signal> label="実体%" field="body_pct" {...bearishSort} className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap" />
+                  <SortHeader<Signal> label="SMA20乖離" field="dev_from_sma20" {...bearishSort} className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap" />
+                  <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">SMA20</th>
+                  <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">推定IN</th>
                 </tr></thead>
                 <tbody className="divide-y divide-border/30">
-                  {/* SQ-4 */}
-                  <tr className="hover:bg-muted/5">
-                    <td className="px-2 py-2.5">
-                      <span className="inline-block px-2 py-1 text-xs rounded border bg-blue-500/20 text-blue-400 border-blue-500/30">SQ-4</span>
-                    </td>
-                    <td className="px-2 py-2.5 tabular-nums">
-                      {calData?.sq4?.next_sq4 ? (() => { const d = new Date(calData.sq4.next_sq4.entry_date); return `${d.getMonth()+1}/${d.getDate()}`; })() : '—'}
-                    </td>
-                    <td className="px-2 py-2.5 tabular-nums">
-                      {calData?.sq4?.next_sq4?.exit_date ? (() => { const d = new Date(calData.sq4.next_sq4.exit_date); return `${d.getMonth()+1}/${d.getDate()}`; })() : '—'}
-                    </td>
-                    <td className="px-2 py-2.5 text-right tabular-nums font-semibold">{calData?.sq4?.stats_cme_down?.pf?.toFixed(2) ?? '—'}</td>
-                    <td className="px-2 py-2.5 text-right tabular-nums">{calData?.sq4?.stats_cme_down?.wr?.toFixed(0) ?? '—'}%</td>
-                    <td className="px-2 py-2.5 text-right tabular-nums">
-                      <span className={`${(calData?.sq4?.stats_cme_down?.total_pnl_100 ?? 0) >= 0 ? 'text-price-up' : 'text-price-down'}`}>
-                        {calData?.sq4?.stats_cme_down?.total_pnl_100 != null ? `${calData.sq4.stats_cme_down.total_pnl_100 >= 0 ? '+' : ''}${fmt(calData.sq4.stats_cme_down.total_pnl_100)}` : '—'}
-                      </span>
-                      <span className="text-xs text-muted-foreground ml-1">(100株)</span>
-                    </td>
-                  </tr>
-                  {/* 1306 */}
-                  <tr className="hover:bg-muted/5">
-                    <td className="px-2 py-2.5">
-                      <span className="inline-block px-2 py-1 text-xs rounded border bg-emerald-500/20 text-emerald-400 border-emerald-500/30">1306</span>
-                    </td>
-                    <td className="px-2 py-2.5 tabular-nums text-muted-foreground" colSpan={2}>
-                      {calData?.upcoming && (() => {
-                        const next = calData.upcoming.find(e => e.flags.some(f => /^\dQ/.test(f)));
-                        if (!next) return '次回未定';
-                        const d = new Date(next.date);
-                        const qFlag = next.flags.find(f => /^\dQ/.test(f)) || '';
-                        const actionFlag = next.flags.find(f => f.includes('買い') || f.includes('決済')) || '';
-                        return <span>{d.getMonth()+1}/{d.getDate()} <span className="text-muted-foreground">{qFlag}</span>{actionFlag && <span className={`ml-1 ${actionFlag.includes('買い') ? 'text-emerald-400' : 'text-amber-400'}`}>{actionFlag}</span>}</span>;
-                      })()}
-                    </td>
-                    <td className="px-2 py-2.5 text-right tabular-nums font-semibold">{calData?.etf1306?.stats?.pf?.toFixed(2) ?? '—'}</td>
-                    <td className="px-2 py-2.5 text-right tabular-nums">{calData?.etf1306?.stats?.wr?.toFixed(0) ?? '—'}%</td>
-                    <td className="px-2 py-2.5 text-right tabular-nums">
-                      <span className={`${(calData?.etf1306?.stats?.pnl_1000 ?? 0) >= 0 ? 'text-price-up' : 'text-price-down'}`}>
-                        {calData?.etf1306?.stats?.pnl_1000 != null ? `${calData.etf1306.stats.pnl_1000 >= 0 ? '+' : ''}${fmt(calData.etf1306.stats.pnl_1000)}` : '—'}
-                      </span>
-                      <span className="text-xs text-muted-foreground ml-1">(1000株)</span>
-                    </td>
-                  </tr>
+                  {bearishSort.sorted.map((s, i) => (
+                    <tr key={s.ticker} className="hover:bg-muted/10">
+                      <td className="px-2 py-2.5 text-center">
+                        <span className="inline-block min-w-[40px] text-center px-2 py-1 text-xs rounded border bg-violet-500/20 text-violet-400 border-violet-500/30">陰線</span>
+                      </td>
+                      <td className="px-2 py-2.5 tabular-nums"><TickerLink ticker={s.ticker} /></td>
+                      <td className="px-2 py-2.5 text-foreground">{s.stock_name}</td>
+                      <td className="px-2 py-2.5 text-muted-foreground text-xs max-w-[120px] truncate">{s.sector}</td>
+                      <td className="text-right px-2 py-2.5 tabular-nums text-muted-foreground whitespace-nowrap">{fmt(s.close)}</td>
+                      <td className="text-right px-2 py-2.5 tabular-nums text-price-down font-semibold">{s.body_pct.toFixed(1)}%</td>
+                      <td className="text-right px-2 py-2.5 tabular-nums text-price-down">{s.dev_from_sma20.toFixed(1)}%</td>
+                      <td className="text-right px-2 py-2.5 tabular-nums text-muted-foreground whitespace-nowrap">{fmt(Math.round(s.sma20))}</td>
+                      <td className="text-right px-2 py-2.5 tabular-nums text-muted-foreground whitespace-nowrap">{fmt(s.entry_price_est)}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
-            {/* Upcoming */}
-            {calData?.upcoming && calData.upcoming.filter(e => e.flags.some(f => /^\dQ|買い|決済|SQ/.test(f))).length > 0 && (
-              <div className="px-4 md:px-5 py-3 border-t border-border/40">
-                <div className="text-xs font-medium text-muted-foreground mb-2">Upcoming</div>
-                <div className="space-y-1.5">
-                  {calData.upcoming.filter(e => e.flags.some(f => /^\dQ|買い|決済|SQ/.test(f))).slice(0, 5).map(ev => (
-                    <div key={ev.date} className="flex items-center gap-3 text-sm">
-                      <span className="tabular-nums text-muted-foreground w-14">{(() => { const d = new Date(ev.date); return `${d.getMonth()+1}/${d.getDate()}`; })()}</span>
-                      <div className="flex gap-1.5">
-                        {ev.flags.map(f => (
-                          <span key={f} className={`px-1.5 py-0.5 rounded text-xs leading-none ${
-                            f.includes('買い') ? 'bg-emerald-500/20 text-emerald-400' :
-                            f.includes('決済') ? 'bg-amber-500/20 text-amber-400' :
-                            'bg-white/5 text-muted-foreground'
-                          }`}>{f}</span>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+          ) : (
+            <EmptyState message={
+              vi !== null && vi < 20
+                ? `VI=${vi} < 20: 平穏相場では大陰線シグナルは発生しません`
+                : '本日の大陰線シグナルなし'
+            } />
+          )}
+        </Panel>
+
+        {/* ===== Calendar Entry Candidates ===== */}
+        {(() => {
+          const calCandidates = calendarData ? buildCalendarCandidates(calendarData) : [];
+          const entryDate = calCandidates.length > 0 ? calCandidates[0].date : null;
+          return (
+            <Panel title={
+              <div className="flex items-center gap-2">
+                <h2 className="text-base md:text-lg font-semibold"><a href="/dev/calendar" className="hover:text-primary transition-colors">Calendar エントリー候補</a></h2>
+                <span className="text-xs text-muted-foreground">曜日 / SQ-4 / SQ+1 / 1306</span>
+                {calCandidates.length > 0 && (
+                  <span className="ml-auto text-xs tabular-nums text-teal-400">{calCandidates.filter(c => !c.excluded).length}件{entryDate ? ` (${entryDate})` : ''}</span>
+                )}
               </div>
+            } border={calCandidates.filter(c => !c.excluded).length > 0 ? 'border-teal-500/40' : undefined}>
+              {calCandidates.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="min-w-[640px] md:w-full text-sm md:text-base">
+                    <thead><tr className="text-foreground border-b border-border/40 bg-muted/30">
+                      <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">銘柄</th>
+                      <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">銘柄名</th>
+                      <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">選定理由</th>
+                      <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">方向</th>
+                      <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">前日終値</th>
+                      <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">前日比</th>
+                      <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">期待PF</th>
+                      <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">執行</th>
+                    </tr></thead>
+                    <tbody className="divide-y divide-border/30">
+                      {calCandidates.map((r, i) => (
+                        <tr key={`cal-${r.code}-${i}`} className={`${r.excluded ? 'opacity-40 line-through' : 'hover:bg-muted/10'}`}>
+                          <td className="px-2 py-2.5 tabular-nums whitespace-nowrap">{r.code !== '—' ? <TickerLink ticker={`${r.code}.T`} /> : '—'}</td>
+                          <td className="px-2 py-2.5 text-foreground whitespace-nowrap">{r.name}</td>
+                          <td className="px-2 py-2.5 text-muted-foreground whitespace-nowrap">
+                            {r.strategy}
+                            {r.excluded && r.exclude_reason && <span className="ml-1.5 no-underline inline-flex px-1.5 py-0.5 rounded text-xs font-medium bg-red-500/20 text-red-400">{r.exclude_reason}</span>}
+                          </td>
+                          <td className="px-2 py-2.5 text-center whitespace-nowrap">
+                            <span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${r.direction === 'LONG' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>{r.direction}</span>
+                          </td>
+                          <td className="px-2 py-2.5 text-right tabular-nums text-muted-foreground whitespace-nowrap">{r.prev_close != null ? r.prev_close.toLocaleString('ja-JP', { maximumFractionDigits: 1 }) : '—'}</td>
+                          <td className={`px-2 py-2.5 text-right tabular-nums whitespace-nowrap ${r.prev_day_ret != null ? (r.prev_day_ret > 0 ? 'text-emerald-400' : r.prev_day_ret < 0 ? 'text-rose-400' : 'text-muted-foreground') : 'text-muted-foreground'}`}>
+                            {r.prev_day_ret != null ? `${r.prev_day_ret > 0 ? '+' : ''}${r.prev_day_ret.toFixed(2)}%` : '—'}
+                          </td>
+                          <td className={`px-2 py-2.5 text-right tabular-nums whitespace-nowrap ${r.pf != null && r.pf >= 1.5 ? 'text-teal-400' : r.pf != null && r.pf < 1 ? 'text-rose-400' : ''}`}>{r.pf?.toFixed(2) ?? '—'}</td>
+                          <td className="px-2 py-2.5 text-muted-foreground whitespace-nowrap">{r.execution}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <EmptyState message={calendarData ? '直近のCalendar候補なし' : 'Calendar データ取得失敗'} />
+              )}
+            </Panel>
+          );
+        })()}
+
+        {/* ===== Pairs Entry Candidates ===== */}
+        <Panel title={
+          <div className="flex items-center gap-2">
+            <h2 className="text-base md:text-lg font-semibold"><a href="/dev/pairs" className="hover:text-primary transition-colors">ペア エントリー候補</a></h2>
+            <span className="text-xs text-muted-foreground">|z| &ge; 2.0 / 共和分ベース161ペア</span>
+            {pairsData && pairsData.entry.length > 0 && (
+              <span className="ml-auto text-xs tabular-nums text-blue-400">{pairsData.entry.length}件</span>
             )}
-          </Panel>
-        </div>
+          </div>
+        } border={pairsData && pairsData.entry.length > 0 ? 'border-blue-500/40' : undefined}
+          footer={pairsData ? <span>{pairsData.total}ペア中 {pairsData.entry_count}件エントリー ({pairsData.signal_date})</span> : undefined}>
+          {pairsData && pairsData.entry.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-[640px] md:w-full text-sm md:text-base">
+                <thead><tr className="text-foreground border-b border-border/40 bg-muted/30">
+                  <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">L/S</th>
+                  <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">コード1</th>
+                  <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">銘柄1</th>
+                  <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">終値1</th>
+                  <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">L/S</th>
+                  <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">コード2</th>
+                  <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">銘柄2</th>
+                  <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">終値2</th>
+                  <SortHeader<PairSignal> label="z-score" field="z_abs" {...pairSort} className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap" />
+                  <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">株数</th>
+                  <SortHeader<PairSignal> label="PF" field="full_pf" {...pairSort} className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap" />
+                  <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap hidden md:table-cell">LB</th>
+                  <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap hidden md:table-cell">1d回帰</th>
+                </tr></thead>
+                <tbody className="divide-y divide-border/30">
+                  {pairSort.sorted.map((p, i) => {
+                    const isLong = p.direction === 'long_tk1';
+                    const pairHref = `/pairs/${p.tk1.replace('.', '')}-${p.tk2.replace('.', '')}`;
+                    return (
+                      <tr key={`${p.tk1}-${p.tk2}`} className="hover:bg-muted/10 cursor-pointer" onClick={() => window.open(pairHref, '_blank')}>
+                        <td className="text-center px-2 py-2.5">
+                          <span className={`text-xs px-1.5 py-0.5 rounded ${isLong ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+                            {isLong ? 'L' : 'S'}
+                          </span>
+                        </td>
+                        <td className="px-2 py-2.5 tabular-nums"><TickerLink ticker={p.tk1} /></td>
+                        <td className="px-2 py-2.5 text-foreground">{p.name1}</td>
+                        <td className="px-2 py-2.5 text-right tabular-nums text-muted-foreground whitespace-nowrap">&yen;{fmt(p.c1)}</td>
+                        <td className="text-center px-2 py-2.5">
+                          <span className={`text-xs px-1.5 py-0.5 rounded ${isLong ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                            {isLong ? 'S' : 'L'}
+                          </span>
+                        </td>
+                        <td className="px-2 py-2.5 tabular-nums"><TickerLink ticker={p.tk2} /></td>
+                        <td className="px-2 py-2.5 text-foreground">{p.name2}</td>
+                        <td className="px-2 py-2.5 text-right tabular-nums text-muted-foreground whitespace-nowrap">&yen;{fmt(p.c2)}</td>
+                        <td className="text-right px-2 py-2.5 tabular-nums font-semibold">{fmtZ(p.z_latest)}</td>
+                        <td className="text-right px-2 py-2.5 tabular-nums text-muted-foreground">{p.shares1}:{p.shares2}</td>
+                        <td className="text-right px-2 py-2.5 tabular-nums text-foreground">{p.full_pf.toFixed(2)}</td>
+                        <td className="text-right px-2 py-2.5 tabular-nums text-muted-foreground hidden md:table-cell">{p.lookback}</td>
+                        <td className="text-right px-2 py-2.5 tabular-nums text-muted-foreground hidden md:table-cell">{(p.revert_1d ?? p.half_life ?? 0).toFixed(0)}%</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <EmptyState message="本日のペアエントリーなし" />
+          )}
+        </Panel>
 
       </div>
     </main>
