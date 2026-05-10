@@ -2,7 +2,24 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DevNavLinks } from '../../../components/dev';
-import { RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
+import { RefreshCw, ChevronDown, ChevronRight, Shield } from 'lucide-react';
+
+// === Allocation Types ===
+interface AllocSignal {
+  ticker: string; stock_name: string; strategy: string; direction: string;
+  rec_level: string; rec_qty: number; final_scale: number;
+  vi_scale: number; dd_scale: number; dir_scale: number; overlay_scale: number; sizing_scale: number;
+  block_reason: string;
+}
+interface AllocSummary {
+  target_date: string | null; total_signals: number; active_signals: number; blocked_signals: number;
+  level_counts: Record<string, number>;
+  vi_close: number | null; vi_regime: string | null;
+  dd_daily_pct: number | null; dd_20d_pct: number | null;
+  cme_change_pct: number | null;
+  strategies_by_direction: Record<string, string[]>;
+}
+interface AllocResponse { signals: AllocSignal[]; summary: AllocSummary; }
 
 // === Types ===
 interface UpcomingEvent { date: string; flags: string[]; }
@@ -97,10 +114,21 @@ export default function CalendarPage() {
   const [weekdayEdgeView, setWeekdayEdgeView] = useState<string>('weekly');
   const [expandedWeekdayWeeks, setExpandedWeekdayWeeks] = useState<Set<string>>(new Set());
 
+  // Allocation
+  const [alloc, setAlloc] = useState<AllocResponse | null>(null);
+  const [allocOpen, setAllocOpen] = useState(true);
+
   // リアルタイム寄付価格
   const [realtimeData, setRealtimeData] = useState<Record<string, { price: number | null; open: number | null }>>({});
   const [realtimeLoading, setRealtimeLoading] = useState(false);
   const [realtimeTimestamp, setRealtimeTimestamp] = useState<string | null>(null);
+
+  const fetchAlloc = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/dev/allocation`);
+      if (res.ok) setAlloc(await res.json());
+    } catch { /* ignore */ }
+  };
 
   const fetchData = async () => {
     try {
@@ -119,7 +147,7 @@ export default function CalendarPage() {
     setRefreshing(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); fetchAlloc(); }, []);
 
   const toggleYear = (year: number) => {
     setExpandedYears(prev => {
@@ -261,6 +289,105 @@ export default function CalendarPage() {
           <DevNavLinks />
         </div>
       </header>
+
+      {/* Risk Control (Allocation) */}
+      {alloc && alloc.summary && alloc.summary.total_signals > 0 && (() => {
+        const s = alloc.summary;
+        const viColor = s.vi_regime === 'HIGH' ? 'text-price-down' : s.vi_regime === 'MID' ? 'text-amber-400' : 'text-price-up';
+        const ddColor = (s.dd_20d_pct ?? 0) <= -0.08 ? 'text-price-down' : (s.dd_20d_pct ?? 0) <= -0.04 ? 'text-amber-400' : 'text-price-up';
+        const cmeColor = Math.abs(s.cme_change_pct ?? 0) >= 2 ? 'text-amber-400' : 'text-muted-foreground';
+        const levelIcon: Record<string, string> = { FULL: '🟢', CAUTION: '🟡', REDUCE: '🟠', SKIP: '🔴' };
+        const shortStrategies = s.strategies_by_direction?.short ?? [];
+        const longStrategies = s.strategies_by_direction?.long ?? [];
+        return (
+        <div className="rounded-xl border border-border bg-card overflow-hidden">
+          <button onClick={() => setAllocOpen(!allocOpen)}
+            className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/10 transition-colors">
+            <div className="flex items-center gap-2">
+              <Shield className="w-4 h-4 text-amber-400" />
+              <span className="font-semibold text-sm">寄前アロケータ</span>
+              <span className="text-xs text-muted-foreground">({s.target_date})</span>
+            </div>
+            <div className="flex items-center gap-3 text-xs">
+              {Object.entries(s.level_counts ?? {}).map(([level, count]) => (
+                <span key={level}>{levelIcon[level] ?? ''} {count}</span>
+              ))}
+              {allocOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            </div>
+          </button>
+          {allocOpen && (
+          <div className="border-t border-border/30 px-4 py-3 space-y-3">
+            {/* Risk Indicators */}
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
+              <div className="bg-background/50 rounded-lg px-3 py-2 text-center">
+                <p className="text-xs text-muted-foreground">日経VI</p>
+                <p className={`text-lg font-bold tabular-nums ${viColor}`}>{s.vi_close?.toFixed(1) ?? '—'}</p>
+                <p className="text-xs text-muted-foreground">{s.vi_regime ?? '—'}</p>
+              </div>
+              <div className="bg-background/50 rounded-lg px-3 py-2 text-center">
+                <p className="text-xs text-muted-foreground">20日DD</p>
+                <p className={`text-lg font-bold tabular-nums ${ddColor}`}>{s.dd_20d_pct != null ? `${(s.dd_20d_pct * 100).toFixed(1)}%` : '—'}</p>
+                <p className="text-xs text-muted-foreground">前日 {s.dd_daily_pct != null ? `${(s.dd_daily_pct * 100).toFixed(1)}%` : '—'}</p>
+              </div>
+              <div className="bg-background/50 rounded-lg px-3 py-2 text-center">
+                <p className="text-xs text-muted-foreground">CME Gap</p>
+                <p className={`text-lg font-bold tabular-nums ${cmeColor}`}>{s.cme_change_pct != null ? `${s.cme_change_pct > 0 ? '+' : ''}${s.cme_change_pct.toFixed(2)}%` : '—'}</p>
+              </div>
+              <div className="bg-background/50 rounded-lg px-3 py-2 text-center">
+                <p className="text-xs text-muted-foreground">SHORT</p>
+                <p className="text-lg font-bold tabular-nums">{shortStrategies.length}戦略</p>
+                <p className="text-xs text-muted-foreground truncate">{shortStrategies.join(', ') || '—'}</p>
+              </div>
+              <div className="bg-background/50 rounded-lg px-3 py-2 text-center">
+                <p className="text-xs text-muted-foreground">LONG</p>
+                <p className="text-lg font-bold tabular-nums">{longStrategies.length}戦略</p>
+                <p className="text-xs text-muted-foreground truncate">{longStrategies.join(', ') || '—'}</p>
+              </div>
+            </div>
+            {/* Signal Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-muted-foreground border-b border-border/30">
+                    <th className="text-left py-1.5 px-2">戦略</th>
+                    <th className="text-left py-1.5 px-2">銘柄</th>
+                    <th className="text-left py-1.5 px-2">方向</th>
+                    <th className="text-right py-1.5 px-2">数量</th>
+                    <th className="text-right py-1.5 px-2">VI</th>
+                    <th className="text-right py-1.5 px-2">DD</th>
+                    <th className="text-right py-1.5 px-2">方向</th>
+                    <th className="text-right py-1.5 px-2">CME</th>
+                    <th className="text-right py-1.5 px-2">Size</th>
+                    <th className="text-right py-1.5 px-2">合計</th>
+                    <th className="text-center py-1.5 px-2">判定</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {alloc.signals.map((sig, i) => {
+                    const icon = levelIcon[sig.rec_level] ?? '';
+                    const rowColor = sig.rec_level === 'SKIP' ? 'opacity-40' : sig.rec_level === 'REDUCE' ? 'opacity-70' : '';
+                    return (
+                    <tr key={i} className={`border-b border-border/10 ${rowColor}`}>
+                      <td className="py-1.5 px-2">{sig.strategy}</td>
+                      <td className="py-1.5 px-2">{sig.stock_name}</td>
+                      <td className={`py-1.5 px-2 ${sig.direction.includes('short') ? 'text-price-down' : 'text-price-up'}`}>{sig.direction}</td>
+                      <td className="py-1.5 px-2 text-right tabular-nums">{sig.rec_qty}</td>
+                      <td className="py-1.5 px-2 text-right tabular-nums">{sig.vi_scale.toFixed(2)}</td>
+                      <td className="py-1.5 px-2 text-right tabular-nums">{sig.dd_scale.toFixed(2)}</td>
+                      <td className="py-1.5 px-2 text-right tabular-nums">{sig.dir_scale.toFixed(2)}</td>
+                      <td className="py-1.5 px-2 text-right tabular-nums">{sig.overlay_scale.toFixed(2)}</td>
+                      <td className="py-1.5 px-2 text-right tabular-nums">{sig.sizing_scale.toFixed(2)}</td>
+                      <td className="py-1.5 px-2 text-right tabular-nums font-medium">{sig.final_scale.toFixed(2)}</td>
+                      <td className="py-1.5 px-2 text-center">{icon} {sig.rec_level}</td>
+                    </tr>);
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          )}
+        </div>);
+      })()}
 
       {/* SQ-4 Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
