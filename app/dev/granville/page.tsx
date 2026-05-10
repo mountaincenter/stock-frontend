@@ -215,12 +215,12 @@ const SortHeader = <T,>({ label, field, sortKey, sortDir, toggle, className }: {
 
 // === Layout Components ===
 const StatCard = ({ label, children, sub }: { label: string; children: React.ReactNode; sub?: React.ReactNode }) => (
-  <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 px-5 py-4 shadow-lg shadow-black/5 backdrop-blur-xl">
+  <div className="relative overflow-hidden rounded-xl border border-border/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 px-3 py-2.5 md:px-5 md:py-4 shadow-lg shadow-black/5 backdrop-blur-xl">
     <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
     <div className="relative">
-      <div className="text-muted-foreground text-sm mb-2">{label}</div>
-      <div className="text-xl font-bold text-right tabular-nums">{children}</div>
-      {sub && <div className="text-sm text-right mt-1 text-muted-foreground tabular-nums">{sub}</div>}
+      <div className="text-muted-foreground text-xs md:text-sm mb-1.5 md:mb-2">{label}</div>
+      <div className="text-lg md:text-xl font-bold text-right tabular-nums">{children}</div>
+      {sub && <div className="text-[10px] md:text-sm text-right mt-1 text-muted-foreground tabular-nums">{sub}</div>}
     </div>
   </div>
 );
@@ -277,9 +277,9 @@ function GranvilleContent() {
     return (
       <main className="relative min-h-screen">
         <div className="fixed inset-0 -z-10"><div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/20" /></div>
-        <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className="max-w-7xl mx-auto px-2 md:px-4 py-4">
           <div className="h-6 w-48 bg-muted/50 rounded mb-4 animate-pulse" />
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 mb-6">
             {[...Array(4)].map((_, i) => <div key={i} className="rounded-xl border border-border/40 bg-card/50 p-5 h-24 animate-pulse" />)}
           </div>
         </div>
@@ -297,11 +297,11 @@ function GranvilleContent() {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.03)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.03)_1px,transparent_1px)] bg-[size:4rem_4rem]" />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-4">
+      <div className="max-w-7xl mx-auto px-2 md:px-4 py-4">
         {/* Header */}
         <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4 pb-3 border-b border-border/30">
           <div>
-            <h1 className="text-xl font-bold text-foreground">Granville B1-B4</h1>
+            <h1 className="text-lg md:text-xl font-bold text-foreground">Granville B1-B4</h1>
             <p className="text-muted-foreground text-xs mt-0.5">
               B4(-15%) / 急騰フィルター / MH15 / 翌寄付Exit
               {status?.signal_date ? ` (${status.signal_date})` : ''}
@@ -312,7 +312,7 @@ function GranvilleContent() {
 
         {/* Status Bar */}
         {status && (
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-5">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-2 md:gap-3 mb-5">
             <StatCard label="現金保証金" sub={`建玉評価 ¥${fmt(status.position_value)}`}>
               <span className="text-foreground">¥{fmt(status.cash_margin)}</span>
             </StatCard>
@@ -369,35 +369,35 @@ function GranvilleContent() {
               </div>
             } border={borderColor}>
               {/* 市場環境 — regime + b4Entry統合 */}
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-2 px-4 py-3">
-                <div className="rounded-lg border border-border/40 px-3 py-2">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-3 px-2 md:px-4 py-3">
+                <div className="rounded-lg border border-border/40 px-2 md:px-3 py-1.5 md:py-2">
                   <div className="text-xs text-muted-foreground">N225 vs SMA20</div>
-                  <div className={`text-lg font-bold ${regime?.n225_above_sma20 ? 'text-emerald-400' : regime?.n225_above_sma20 === false ? 'text-rose-400' : 'text-muted-foreground'}`}>
+                  <div className={`text-base md:text-lg font-bold ${regime?.n225_above_sma20 ? 'text-emerald-400' : regime?.n225_above_sma20 === false ? 'text-rose-400' : 'text-muted-foreground'}`}>
                     {regime?.n225_above_sma20 != null ? (regime.n225_above_sma20 ? '上昇' : '下降') : '-'}
                   </div>
                 </div>
-                <div className="rounded-lg border border-border/40 px-3 py-2">
+                <div className="rounded-lg border border-border/40 px-2 md:px-3 py-1.5 md:py-2">
                   <div className="text-xs text-muted-foreground">N225 ret20</div>
-                  <div className={`text-lg font-bold tabular-nums ${(regime?.n225_ret20 ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  <div className={`text-base md:text-lg font-bold tabular-nums ${(regime?.n225_ret20 ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                     {regime?.n225_ret20 != null ? `${regime.n225_ret20 >= 0 ? '+' : ''}${regime.n225_ret20.toFixed(1)}%` : '-'}
                   </div>
                 </div>
-                <div className="rounded-lg border border-border/40 px-3 py-2">
+                <div className="rounded-lg border border-border/40 px-2 md:px-3 py-1.5 md:py-2">
                   <div className="text-xs text-muted-foreground">CME gap</div>
-                  <div className={`text-lg font-bold tabular-nums ${regime?.cme_gap != null || b4Entry?.cme_gap != null ? (Math.abs((regime?.cme_gap ?? b4Entry?.cme_gap ?? 0)) <= 0.5 ? 'text-emerald-400' : 'text-muted-foreground') : 'text-muted-foreground'}`}>
+                  <div className={`text-base md:text-lg font-bold tabular-nums ${regime?.cme_gap != null || b4Entry?.cme_gap != null ? (Math.abs((regime?.cme_gap ?? b4Entry?.cme_gap ?? 0)) <= 0.5 ? 'text-emerald-400' : 'text-muted-foreground') : 'text-muted-foreground'}`}>
                     {(() => { const v = regime?.cme_gap ?? b4Entry?.cme_gap; return v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '-'; })()}
                     {(() => { const v = regime?.cme_gap ?? b4Entry?.cme_gap; return v != null && Math.abs(v) <= 0.5 ? <span className="text-[10px] ml-0.5">(flat)</span> : null; })()}
                   </div>
                 </div>
-                <div className="rounded-lg border border-border/40 px-3 py-2">
+                <div className="rounded-lg border border-border/40 px-2 md:px-3 py-1.5 md:py-2">
                   <div className="text-xs text-muted-foreground">日経VI</div>
-                  <div className={`text-lg font-bold tabular-nums ${(regime?.vi ?? b4Entry?.vi ?? 0) >= 40 ? 'text-emerald-400' : (regime?.vi ?? b4Entry?.vi ?? 0) >= 30 ? 'text-rose-400 font-semibold' : (regime?.vi ?? b4Entry?.vi ?? 0) >= 25 ? 'text-amber-400' : 'text-muted-foreground'}`}>
+                  <div className={`text-base md:text-lg font-bold tabular-nums ${(regime?.vi ?? b4Entry?.vi ?? 0) >= 40 ? 'text-emerald-400' : (regime?.vi ?? b4Entry?.vi ?? 0) >= 30 ? 'text-rose-400 font-semibold' : (regime?.vi ?? b4Entry?.vi ?? 0) >= 25 ? 'text-amber-400' : 'text-muted-foreground'}`}>
                     {(() => { const v = regime?.vi ?? b4Entry?.vi; return v != null ? v.toFixed(1) : '-'; })()}
                   </div>
                 </div>
-                <div className="rounded-lg border border-border/40 px-3 py-2">
+                <div className="rounded-lg border border-border/40 px-2 md:px-3 py-1.5 md:py-2">
                   <div className="text-xs text-muted-foreground">N225 前日比</div>
-                  <div className={`text-lg font-bold tabular-nums ${b4Entry?.n225_chg != null ? (b4Entry.n225_chg >= 0 ? 'text-emerald-400' : 'text-rose-400') : 'text-muted-foreground'}`}>
+                  <div className={`text-base md:text-lg font-bold tabular-nums ${b4Entry?.n225_chg != null ? (b4Entry.n225_chg >= 0 ? 'text-emerald-400' : 'text-rose-400') : 'text-muted-foreground'}`}>
                     {b4Entry?.n225_chg != null ? `${b4Entry.n225_chg > 0 ? '+' : ''}${b4Entry.n225_chg.toFixed(2)}%` : '-'}
                   </div>
                 </div>
@@ -485,37 +485,37 @@ function GranvilleContent() {
 
                 return (
                   <div className="overflow-x-auto border-t border-border/20">
-                    <table className="w-full text-sm">
+                    <table className="w-full text-xs md:text-sm">
                       <thead>
                         <tr className="text-muted-foreground text-xs">
-                          <th className="px-2 py-2 text-center">#</th>
-                          <th className="px-3 py-2 text-left">銘柄</th>
-                          <th className="px-2 py-2 text-center">ルール</th>
-                          <th className="px-2 py-2 text-center">グレード</th>
-                          <th className="px-2 py-2 text-right">終値</th>
-                          <th className="px-2 py-2 text-right">SMA20乖離</th>
-                          <th className="px-2 py-2 text-center">保有</th>
-                          {rows.some(r => r.max_cost) && <th className="px-2 py-2 text-right">取引上限</th>}
+                          <th className="px-1.5 md:px-2 py-1 md:py-2 text-center">#</th>
+                          <th className="px-1.5 md:px-3 py-1 md:py-2 text-left">銘柄</th>
+                          <th className="px-1.5 md:px-2 py-1 md:py-2 text-center">ルール</th>
+                          <th className="px-1.5 md:px-2 py-1 md:py-2 text-center">グレード</th>
+                          <th className="px-1.5 md:px-2 py-1 md:py-2 text-right hidden md:table-cell">終値</th>
+                          <th className="px-1.5 md:px-2 py-1 md:py-2 text-right">SMA20乖離</th>
+                          <th className="px-1.5 md:px-2 py-1 md:py-2 text-center">保有</th>
+                          {rows.some(r => r.max_cost) && <th className="px-1.5 md:px-2 py-1 md:py-2 text-right hidden md:table-cell">取引上限</th>}
                         </tr>
                       </thead>
                       <tbody>
                         {rows.map((r, i) => (
                           <tr key={`${r.ticker}-${r.rule}`} className="border-t border-border/20 hover:bg-white/[0.02]">
-                            <td className="px-2 py-2 text-center text-muted-foreground">{i + 1}</td>
-                            <td className="px-3 py-2">
+                            <td className="px-1.5 md:px-2 py-1 md:py-2 text-center text-muted-foreground">{i + 1}</td>
+                            <td className="px-1.5 md:px-3 py-1 md:py-2">
                               <a href={`/${r.ticker.replace('.T', '')}`} className="text-primary hover:underline font-medium">{r.ticker.replace('.T', '')}</a>
-                              <span className="ml-1.5 text-muted-foreground text-xs">{r.stock_name}</span>
+                              <span className="ml-1.5 text-muted-foreground text-xs hidden md:inline">{r.stock_name}</span>
                             </td>
-                            <td className="px-2 py-2 text-center"><RuleBadge rule={r.rule} /></td>
-                            <td className="px-2 py-2 text-center">
+                            <td className="px-1.5 md:px-2 py-1 md:py-2 text-center"><RuleBadge rule={r.rule} /></td>
+                            <td className="px-1.5 md:px-2 py-1 md:py-2 text-center">
                               <span className={`inline-block px-1.5 py-0.5 text-xs rounded leading-none border ${gradeCls(r.grade)}`}>
                                 {r.grade === 'B4' ? 'B4' : `${r.grade} ${gradeLabel(r.grade)}`}
                               </span>
                             </td>
-                            <td className="px-2 py-2 text-right tabular-nums">¥{r.close.toLocaleString()}</td>
-                            <td className="px-2 py-2 text-right tabular-nums">{fmtPct(r.dev_from_sma20, 1)}</td>
-                            <td className="px-2 py-2 text-center">{r.hold_days}d</td>
-                            {rows.some(x => x.max_cost) && <td className="px-2 py-2 text-right tabular-nums">{r.max_cost ? fmt(r.max_cost) : '-'}</td>}
+                            <td className="px-1.5 md:px-2 py-1 md:py-2 text-right tabular-nums hidden md:table-cell">¥{r.close.toLocaleString()}</td>
+                            <td className="px-1.5 md:px-2 py-1 md:py-2 text-right tabular-nums">{fmtPct(r.dev_from_sma20, 1)}</td>
+                            <td className="px-1.5 md:px-2 py-1 md:py-2 text-center">{r.hold_days}d</td>
+                            {rows.some(x => x.max_cost) && <td className="px-1.5 md:px-2 py-1 md:py-2 text-right tabular-nums hidden md:table-cell">{r.max_cost ? fmt(r.max_cost) : '-'}</td>}
                           </tr>
                         ))}
                       </tbody>
@@ -536,22 +536,22 @@ function GranvilleContent() {
             </div>
           } border="border-amber-500/40">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm md:text-base">
+              <table className="w-full text-xs md:text-sm">
                 <thead><tr className="text-muted-foreground border-b border-border/30 bg-muted/10">
-                  <th className="px-3 py-2.5 text-xs font-medium w-8">
+                  <th className="px-1.5 md:px-3 py-1 md:py-2.5 text-xs font-medium w-8">
                     <Checkbox checked={posData.exits.length > 0 && posData.exits.every(p => exitChecks.checked.has(p.ticker))}
                       onChange={() => exitChecks.toggleAll(posData.exits.map(p => p.ticker))} />
                   </th>
-                  <th className="text-left px-4 py-2.5 text-xs font-medium">コード</th>
-                  <th className="text-left px-4 py-2.5 text-xs font-medium">銘柄</th>
-                  <th className="text-center px-3 py-2.5 text-xs font-medium">ルール</th>
-                  <th className="text-right px-4 py-2.5 text-xs font-medium">IN日</th>
-                  <th className="text-right px-4 py-2.5 text-xs font-medium hidden md:table-cell">IN価格</th>
-                  <th className="text-right px-4 py-2.5 text-xs font-medium hidden md:table-cell">現在値</th>
-                  <th className="text-right px-4 py-2.5 text-xs font-medium">損益%</th>
-                  <th className="text-right px-4 py-2.5 text-xs font-medium">損益</th>
-                  <th className="text-right px-4 py-2.5 text-xs font-medium">日数</th>
-                  <th className="text-left px-4 py-2.5 text-xs font-medium">理由</th>
+                  <th className="text-left px-1.5 md:px-4 py-1 md:py-2.5 text-xs font-medium">コード</th>
+                  <th className="text-left px-1.5 md:px-4 py-1 md:py-2.5 text-xs font-medium hidden md:table-cell">銘柄</th>
+                  <th className="text-center px-1.5 md:px-3 py-1 md:py-2.5 text-xs font-medium">ルール</th>
+                  <th className="text-right px-1.5 md:px-4 py-1 md:py-2.5 text-xs font-medium hidden md:table-cell">IN日</th>
+                  <th className="text-right px-1.5 md:px-4 py-1 md:py-2.5 text-xs font-medium hidden md:table-cell">IN価格</th>
+                  <th className="text-right px-1.5 md:px-4 py-1 md:py-2.5 text-xs font-medium hidden md:table-cell">現在値</th>
+                  <th className="text-right px-1.5 md:px-4 py-1 md:py-2.5 text-xs font-medium">損益%</th>
+                  <th className="text-right px-1.5 md:px-4 py-1 md:py-2.5 text-xs font-medium">損益</th>
+                  <th className="text-right px-1.5 md:px-4 py-1 md:py-2.5 text-xs font-medium hidden md:table-cell">日数</th>
+                  <th className="text-left px-1.5 md:px-4 py-1 md:py-2.5 text-xs font-medium hidden md:table-cell">理由</th>
                 </tr></thead>
                 <tbody>
                   {posData.exits.map((p, i) => {
@@ -559,21 +559,21 @@ function GranvilleContent() {
                     const isExited = exitChecks.checked.has(p.ticker);
                     return (
                       <tr key={i} className={`border-b border-border/20 hover:bg-muted/5 ${isExited ? 'opacity-50' : ''}`}>
-                        <td className="px-3 py-2.5"><Checkbox checked={isExited} onChange={() => exitChecks.toggle(p.ticker)} /></td>
-                        <td className="px-4 py-2.5 tabular-nums font-semibold">
+                        <td className="px-1.5 md:px-3 py-1 md:py-2.5"><Checkbox checked={isExited} onChange={() => exitChecks.toggle(p.ticker)} /></td>
+                        <td className="px-1.5 md:px-4 py-1 md:py-2.5 tabular-nums font-semibold">
                           <button type="button" className="hover:text-primary" onClick={() => window.open(`/${p.ticker.replace('.T', '')}`, 'stock-detail')}>
                             {p.ticker.replace('.T', '')}
                           </button>
                         </td>
-                        <td className="px-4 py-2.5 max-w-[140px] truncate">{p.stock_name}</td>
-                        <td className="px-3 py-2.5 text-center"><RuleBadge rule={p.rule} /></td>
-                        <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">{shortDate(p.entry_date)}</td>
-                        <td className="px-4 py-2.5 text-right tabular-nums hidden md:table-cell">¥{fmt(p.entry_price)}</td>
-                        <td className="px-4 py-2.5 text-right tabular-nums hidden md:table-cell">¥{fmt(p.current_price)}</td>
-                        <td className={`px-4 py-2.5 text-right tabular-nums ${p.unrealized_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{fmtPct(p.unrealized_pct, 2)}</td>
-                        <td className="px-4 py-2.5 text-right tabular-nums">{fmtPnl(p.unrealized_yen)}</td>
-                        <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">{p.hold_days}/{p.max_hold}</td>
-                        <td className={`px-4 py-2.5 ${el.cls}`}>{el.text}</td>
+                        <td className="px-1.5 md:px-4 py-1 md:py-2.5 max-w-[140px] truncate hidden md:table-cell">{p.stock_name}</td>
+                        <td className="px-1.5 md:px-3 py-1 md:py-2.5 text-center"><RuleBadge rule={p.rule} /></td>
+                        <td className="px-1.5 md:px-4 py-1 md:py-2.5 text-right tabular-nums text-muted-foreground hidden md:table-cell">{shortDate(p.entry_date)}</td>
+                        <td className="px-1.5 md:px-4 py-1 md:py-2.5 text-right tabular-nums hidden md:table-cell">¥{fmt(p.entry_price)}</td>
+                        <td className="px-1.5 md:px-4 py-1 md:py-2.5 text-right tabular-nums hidden md:table-cell">¥{fmt(p.current_price)}</td>
+                        <td className={`px-1.5 md:px-4 py-1 md:py-2.5 text-right tabular-nums ${p.unrealized_pct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{fmtPct(p.unrealized_pct, 2)}</td>
+                        <td className="px-1.5 md:px-4 py-1 md:py-2.5 text-right tabular-nums">{fmtPnl(p.unrealized_yen)}</td>
+                        <td className="px-1.5 md:px-4 py-1 md:py-2.5 text-right tabular-nums text-muted-foreground hidden md:table-cell">{p.hold_days}/{p.max_hold}</td>
+                        <td className={`px-1.5 md:px-4 py-1 md:py-2.5 hidden md:table-cell ${el.cls}`}>{el.text}</td>
                       </tr>
                     );
                   })}
@@ -684,32 +684,32 @@ function GranvilleContent() {
             </button>
             {showAllSignals && signals && signals.signals.length > 0 && (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full text-xs md:text-sm">
                   <thead><tr className="text-muted-foreground border-b border-border/30 bg-muted/10">
-                    <SortHeader<Signal> label="ルール" field="rule" {...sigSort} className="text-center px-3 py-2.5 text-xs font-medium" />
-                    <th className="text-left px-4 py-2.5 text-xs font-medium">コード</th>
-                    <th className="text-left px-4 py-2.5 text-xs font-medium">銘柄</th>
-                    <th className="text-left px-4 py-2.5 text-xs font-medium hidden md:table-cell">セクター</th>
-                    <SortHeader<Signal> label="終値" field="close" {...sigSort} className="text-right px-4 py-2.5 text-xs font-medium" />
-                    <th className="text-right px-4 py-2.5 text-xs font-medium hidden md:table-cell">SMA20</th>
-                    <SortHeader<Signal> label="乖離%" field="dev_from_sma20" {...sigSort} className="text-right px-4 py-2.5 text-xs font-medium" />
-                    <th className="text-right px-4 py-2.5 text-xs font-medium hidden md:table-cell">Slope</th>
+                    <SortHeader<Signal> label="ルール" field="rule" {...sigSort} className="text-center px-1.5 md:px-3 py-1 md:py-2.5 text-xs font-medium" />
+                    <th className="text-left px-1.5 md:px-4 py-1 md:py-2.5 text-xs font-medium">コード</th>
+                    <th className="text-left px-1.5 md:px-4 py-1 md:py-2.5 text-xs font-medium hidden md:table-cell">銘柄</th>
+                    <th className="text-left px-1.5 md:px-4 py-1 md:py-2.5 text-xs font-medium hidden md:table-cell">セクター</th>
+                    <SortHeader<Signal> label="終値" field="close" {...sigSort} className="text-right px-1.5 md:px-4 py-1 md:py-2.5 text-xs font-medium" />
+                    <th className="text-right px-1.5 md:px-4 py-1 md:py-2.5 text-xs font-medium hidden md:table-cell">SMA20</th>
+                    <SortHeader<Signal> label="乖離%" field="dev_from_sma20" {...sigSort} className="text-right px-1.5 md:px-4 py-1 md:py-2.5 text-xs font-medium" />
+                    <th className="text-right px-1.5 md:px-4 py-1 md:py-2.5 text-xs font-medium hidden md:table-cell">Slope</th>
                   </tr></thead>
                   <tbody>
                     {sigSort.sorted.map((s, i) => (
                       <tr key={i} className="border-b border-border/20 hover:bg-muted/5">
-                        <td className="px-3 py-2.5 text-center"><RuleBadge rule={s.rule} /></td>
-                        <td className="px-4 py-2.5 tabular-nums">
+                        <td className="px-1.5 md:px-3 py-1 md:py-2.5 text-center"><RuleBadge rule={s.rule} /></td>
+                        <td className="px-1.5 md:px-4 py-1 md:py-2.5 tabular-nums">
                           <button type="button" className="hover:text-primary font-semibold" onClick={() => window.open(`/${s.ticker.replace('.T', '')}`, 'stock-detail')}>
                             {s.ticker.replace('.T', '')}
                           </button>
                         </td>
-                        <td className="px-4 py-2.5 max-w-[140px] truncate">{s.stock_name}</td>
-                        <td className="px-4 py-2.5 text-muted-foreground hidden md:table-cell">{s.sector}</td>
-                        <td className="px-4 py-2.5 text-right tabular-nums">¥{fmt(s.close)}</td>
-                        <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground hidden md:table-cell">¥{fmt(Math.round(s.sma20))}</td>
-                        <td className={`px-4 py-2.5 text-right tabular-nums ${s.dev_from_sma20 < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>{fmtPct(s.dev_from_sma20, 2)}</td>
-                        <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground hidden md:table-cell">{s.sma20_slope.toFixed(1)}</td>
+                        <td className="px-1.5 md:px-4 py-1 md:py-2.5 max-w-[140px] truncate hidden md:table-cell">{s.stock_name}</td>
+                        <td className="px-1.5 md:px-4 py-1 md:py-2.5 text-muted-foreground hidden md:table-cell">{s.sector}</td>
+                        <td className="px-1.5 md:px-4 py-1 md:py-2.5 text-right tabular-nums">¥{fmt(s.close)}</td>
+                        <td className="px-1.5 md:px-4 py-1 md:py-2.5 text-right tabular-nums text-muted-foreground hidden md:table-cell">¥{fmt(Math.round(s.sma20))}</td>
+                        <td className={`px-1.5 md:px-4 py-1 md:py-2.5 text-right tabular-nums ${s.dev_from_sma20 < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>{fmtPct(s.dev_from_sma20, 2)}</td>
+                        <td className="px-1.5 md:px-4 py-1 md:py-2.5 text-right tabular-nums text-muted-foreground hidden md:table-cell">{s.sma20_slope.toFixed(1)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -743,13 +743,13 @@ function GranvilleContent() {
                 </div>
               }>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full text-xs md:text-sm">
                     <thead><tr className="text-muted-foreground border-b border-border/30 bg-muted/10">
-                      <th className="text-left px-4 py-2.5 text-xs font-medium">月</th>
-                      <th className="text-right px-4 py-2.5 text-xs font-medium">件数</th>
-                      <th className="text-right px-4 py-2.5 text-xs font-medium">PnL</th>
-                      <th className="text-right px-4 py-2.5 text-xs font-medium">勝率</th>
-                      <th className="text-right px-4 py-2.5 text-xs font-medium hidden md:table-cell">累計</th>
+                      <th className="text-left px-1.5 md:px-4 py-1 md:py-2.5 text-xs font-medium">月</th>
+                      <th className="text-right px-1.5 md:px-4 py-1 md:py-2.5 text-xs font-medium">件数</th>
+                      <th className="text-right px-1.5 md:px-4 py-1 md:py-2.5 text-xs font-medium">PnL</th>
+                      <th className="text-right px-1.5 md:px-4 py-1 md:py-2.5 text-xs font-medium">勝率</th>
+                      <th className="text-right px-1.5 md:px-4 py-1 md:py-2.5 text-xs font-medium hidden md:table-cell">累計</th>
                     </tr></thead>
                     <tbody>
                       {(() => {
@@ -762,11 +762,11 @@ function GranvilleContent() {
                         }
                         return withCum.reverse().map(({ m, cum }) => (
                             <tr key={m.month} className="border-b border-border/20 hover:bg-muted/5">
-                              <td className="px-4 py-2.5 tabular-nums font-semibold">{m.month}</td>
-                              <td className="px-4 py-2.5 text-right tabular-nums">{m.count}</td>
-                              <td className="px-4 py-2.5 text-right tabular-nums">{fmtPnl(m.pnl)}</td>
-                              <td className={`px-4 py-2.5 text-right tabular-nums ${m.win_rate >= 55 ? 'text-emerald-400' : m.win_rate >= 45 ? 'text-amber-400' : 'text-rose-400'}`}>{m.win_rate.toFixed(1)}%</td>
-                              <td className="px-4 py-2.5 text-right tabular-nums hidden md:table-cell">{fmtPnl(cum)}</td>
+                              <td className="px-1.5 md:px-4 py-1 md:py-2.5 tabular-nums font-semibold">{m.month}</td>
+                              <td className="px-1.5 md:px-4 py-1 md:py-2.5 text-right tabular-nums">{m.count}</td>
+                              <td className="px-1.5 md:px-4 py-1 md:py-2.5 text-right tabular-nums">{fmtPnl(m.pnl)}</td>
+                              <td className={`px-1.5 md:px-4 py-1 md:py-2.5 text-right tabular-nums ${m.win_rate >= 55 ? 'text-emerald-400' : m.win_rate >= 45 ? 'text-amber-400' : 'text-rose-400'}`}>{m.win_rate.toFixed(1)}%</td>
+                              <td className="px-1.5 md:px-4 py-1 md:py-2.5 text-right tabular-nums hidden md:table-cell">{fmtPnl(cum)}</td>
                             </tr>
                         ));
                       })()}
