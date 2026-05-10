@@ -12,25 +12,23 @@ interface NavItem {
 
 // 3グループに分類
 const NAV_GROUPS: NavItem[][] = [
-  // Overview
+  // Core
   [
     { href: "/dev", label: "Dashboard" },
-    { href: "/dev/analysis-custom", label: "Custom" },
-    { href: "/dev/analysis-ml", label: "ML" },
+    { href: "/dev/dashboard", label: "Trading" },
+    { href: "/dev/analysis", label: "Analysis" },
   ],
-  // Analysis
+  // Data
   [
     { href: "/dev/recommendations", label: "Recs" },
-    { href: isDev ? "/dev/dev-stock-results" : "/dev/stock-results", label: "Results" },
     { href: "/dev/reports", label: "Reports" },
+    { href: isDev ? "/dev/dev-stock-results" : "/dev/stock-results", label: "Results" },
   ],
   // Strategy
   [
     { href: "/dev/granville", label: "Granville" },
     { href: "/dev/pairs", label: "Pairs" },
     { href: "/dev/calendar", label: "Calendar" },
-    { href: "/dev/dashboard", label: "Trading" },
-    { href: "/dev/strategy/granville", label: "Strategy" },
   ],
 ];
 
