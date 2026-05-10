@@ -586,7 +586,8 @@ export default function CalendarPage() {
                   {rows.map((r, i) => {
                     const code4 = r.code5.replace(/0$/, '');
                     const rt = realtimeData[code4];
-                    const gap = rt?.open != null && r.prev_close != null ? rt.open - r.prev_close : null;
+                    const priceDiff = r.prev_day_ret != null && r.prev_close != null ? Math.round(r.prev_close * r.prev_day_ret / (100 + r.prev_day_ret)) : null;
+                    const openDiff = rt?.price != null && rt?.open != null && rt.open > 0 ? rt.price - rt.open : null;
 
 
                     return (
@@ -601,11 +602,11 @@ export default function CalendarPage() {
                         <span className={`no-underline inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${r.direction === 'LONG' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>{r.direction}</span>
                       </td>
                       <td className="px-1.5 md:px-3 py-1 text-right tabular-nums text-muted-foreground whitespace-nowrap">{r.prev_close != null ? r.prev_close.toLocaleString('ja-JP', { maximumFractionDigits: 1 }) : '—'}</td>
-                      <td className={`px-1.5 md:px-3 py-1 text-right tabular-nums whitespace-nowrap ${r.prev_day_ret != null ? (r.prev_day_ret > 0 ? 'text-emerald-400' : r.prev_day_ret < 0 ? 'text-rose-400' : 'text-muted-foreground') : 'text-muted-foreground'}`}>
-                        {r.prev_day_ret != null ? `${r.prev_day_ret > 0 ? '+' : ''}${r.prev_day_ret.toFixed(2)}%` : '—'}
+                      <td className={`px-1.5 md:px-3 py-1 text-right tabular-nums whitespace-nowrap ${priceDiff != null ? (priceDiff > 0 ? 'text-emerald-400' : priceDiff < 0 ? 'text-rose-400' : 'text-muted-foreground') : 'text-muted-foreground'}`}>
+                        {priceDiff != null ? `${priceDiff > 0 ? '+' : ''}${priceDiff.toLocaleString()}` : '—'}
                       </td>
-                      <td className={`px-1.5 md:px-3 py-1 text-right tabular-nums whitespace-nowrap ${gap != null ? (gap > 0 ? 'text-emerald-400' : gap < 0 ? 'text-rose-400' : 'text-muted-foreground') : 'text-muted-foreground'}`}>
-                        {gap != null ? `${gap > 0 ? '+' : ''}${gap.toFixed(0)}` : '—'}
+                      <td className={`px-1.5 md:px-3 py-1 text-right tabular-nums whitespace-nowrap ${openDiff != null ? (openDiff > 0 ? 'text-emerald-400' : openDiff < 0 ? 'text-rose-400' : 'text-muted-foreground') : 'text-muted-foreground'}`}>
+                        {openDiff != null ? `${openDiff > 0 ? '+' : ''}${openDiff.toLocaleString()}` : '—'}
                       </td>
                       <td className={`px-1.5 md:px-3 py-1 text-right tabular-nums whitespace-nowrap ${r.pf != null && r.pf >= 1.5 ? 'text-teal-400' : r.pf != null && r.pf < 1 ? 'text-rose-400' : ''}`}>{r.pf?.toFixed(2) ?? '—'}</td>
                       <td className="px-1.5 md:px-3 py-1 text-muted-foreground whitespace-nowrap">{r.execution}</td>
