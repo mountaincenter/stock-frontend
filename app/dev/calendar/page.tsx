@@ -534,7 +534,18 @@ export default function CalendarPage() {
                   const directions = [...new Set(weRows.map(r => r.direction))];
                   const spPct = sp500_latest?.change_pct;
                   const cmeChg = cme_latest?.change;
-                  const filterLabel = spPct != null && directions.length > 0
+
+                  const parseDateUtc = (s: string) => { const [y, m, d] = s.split('-').map(Number); return Date.UTC(y, m - 1, d); };
+                  let usDataReady = false;
+                  if (sp500_latest?.date && nextDate) {
+                    const entryMs = parseDateUtc(nextDate);
+                    const spMs = parseDateUtc(sp500_latest.date);
+                    const diffDays = Math.floor((entryMs - spMs) / 86400000);
+                    const entryDow = new Date(entryMs).getUTCDay();
+                    usDataReady = diffDays === (entryDow === 1 ? 3 : 1);
+                  }
+
+                  const filterLabel = usDataReady && spPct != null && directions.length > 0
                     ? directions.map(dir => {
                         const ok = dir === 'LONG' ? spPct <= 1 : spPct >= -1;
                         return `${dow}${dir} ${ok ? '通過' : '除外'}`;
@@ -542,14 +553,18 @@ export default function CalendarPage() {
                     : null;
                   return (
                     <>
-                      {spPct != null && (
+                      {usDataReady && spPct != null ? (
                         <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium border ${filterLabel?.includes('除外') ? 'bg-red-500/10 text-red-400 border-red-500/30' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'}`}>
                           S&P500 {spPct > 0 ? '+' : ''}{spPct.toFixed(2)}%{filterLabel ? ` / ${filterLabel}` : ''}
                         </span>
+                      ) : (
+                        <span className="inline-flex px-2 py-0.5 rounded text-xs font-medium border bg-yellow-500/10 text-yellow-400 border-yellow-500/30">
+                          USフィルタ 判定待ち（{sp500_latest?.date?.slice(5) ?? '—'}時点）
+                        </span>
                       )}
                       {cmeChg != null && (
-                        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium border ${cmeChg > 0 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : cmeChg < 0 ? 'bg-red-500/10 text-red-400 border-red-500/30' : 'bg-white/10 text-muted-foreground border-border/40'}`}>
-                          CME {cmeChg > 0 ? '+' : ''}{cmeChg.toLocaleString()} ({cmeChg > 0 ? '↑' : cmeChg < 0 ? '↓' : '→'})
+                        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium border ${!usDataReady ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30' : cmeChg > 0 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : cmeChg < 0 ? 'bg-red-500/10 text-red-400 border-red-500/30' : 'bg-white/10 text-muted-foreground border-border/40'}`}>
+                          CME {cmeChg > 0 ? '+' : ''}{cmeChg.toLocaleString()} ({cmeChg > 0 ? '↑' : cmeChg < 0 ? '↓' : '→'}){!usDataReady ? ' 未確定' : ''}
                         </span>
                       )}
                     </>
