@@ -12,7 +12,6 @@ type Report = {
   date: string;
   title: string;
   size_bytes: number;
-  uploaded_at: string;
   report_type: ReportType;
 };
 
