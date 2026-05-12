@@ -24,7 +24,7 @@ interface WeekdayEdgeStockStats { code: string; name: string; direction: string;
 interface WeekdayEdgePick { date: string; code: string; name: string; direction: string; group: string; dow_label: string; adj_open: number; adj_close: number; ret_pct: number; pnl_100: number; us_prev_ret: number | null; }
 interface WeekdayEdgeWeekly { week: string; start_date: string; end_date: string; n_trades: number; total_ret: number; total_pnl_100: number; picks: WeekdayEdgePick[]; }
 interface WeekdayEdgeYearly { year: number; total: number; wins: number; wr: number; pf: number | null; total_ret: number; total_pnl_100: number; max_dd: MaxDD; }
-interface WeekdayEdgeNextEntry { date: string; code: string; name: string; direction: string; dow_label: string; prev_close: number | null; prev_day_ret: number | null; }
+interface WeekdayEdgeNextEntry { date: string; code: string; name: string; direction: string; dow_label: string; prev_close: number | null; prev_day_ret: number | null; earnings_alert?: string; }
 interface WeekdayEdgeData { params: Record<string, string | number>; stats_filtered: Sq4Stats; stats_all: Sq4Stats; max_dd_filtered: MaxDD; yearly: WeekdayEdgeYearly[]; stock_stats: WeekdayEdgeStockStats[]; next_entries: WeekdayEdgeNextEntry[]; weekly: WeekdayEdgeWeekly[]; }
 interface CalendarResponse {
   today: { flags: string[] };
@@ -389,7 +389,7 @@ export default function CalendarPage() {
 
       {/* エントリー候補 */}
       {(() => {
-        type CandidateRow = { date: string; code: string; code5: string; name: string; strategy: string; direction: string; pf: number | null; execution: string; prev_close: number | null; prev_day_ret: number | null; excluded: boolean; exclude_reason: string | null };
+        type CandidateRow = { date: string; code: string; code5: string; name: string; strategy: string; direction: string; pf: number | null; execution: string; prev_close: number | null; prev_day_ret: number | null; excluded: boolean; exclude_reason: string | null; earnings_alert?: string | null };
         const sqPlus1SegPf = (ret: number): number | null => {
           if (ret > 10) return 1.84;
           if (ret > 7) return 2.85;
@@ -412,6 +412,7 @@ export default function CalendarPage() {
             direction: e.direction, pf: wePfMap[e.code] ?? null, execution: '寄成→引成',
             prev_close: e.prev_close ?? null, prev_day_ret: e.prev_day_ret ?? null,
             excluded: false, exclude_reason: null,
+            earnings_alert: e.earnings_alert ?? null,
           });
         }
 
@@ -608,7 +609,7 @@ export default function CalendarPage() {
                     return (
                     <tr key={i} className={`border-b border-border/10 h-8 ${r.excluded ? 'opacity-40 line-through' : 'hover:bg-muted/20'}`}>
                       <td className="px-1.5 md:px-3 py-1 tabular-nums whitespace-nowrap">{r.code}</td>
-                      <td className="px-1.5 md:px-3 py-1 whitespace-nowrap">{r.name}</td>
+                      <td className="px-1.5 md:px-3 py-1 whitespace-nowrap">{r.name}{r.earnings_alert && <span className="ml-1 no-underline inline-flex px-1 py-0.5 rounded text-[10px] font-medium bg-amber-500/20 text-amber-400">決算{r.earnings_alert.slice(5)}</span>}</td>
                       <td className="px-1.5 md:px-3 py-1 text-muted-foreground whitespace-nowrap">
                         {r.strategy}
                         {r.excluded && <span className="ml-1.5 no-underline inline-flex px-1.5 py-0.5 rounded text-xs font-medium bg-red-500/20 text-red-400">{r.exclude_reason}</span>}
