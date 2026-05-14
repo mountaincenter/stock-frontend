@@ -112,6 +112,20 @@ interface CalendarResponse {
   };
 }
 
+// Strategy Matrix
+interface StrategyWeekdayStats { n: number; wins: number; wr: number; pf: number | null; total_pnl: number; }
+interface StrategyMatrixResponse {
+  generated_at: string;
+  weekdays: string[];
+  strategies: {
+    grok_short: { label: string; by_weekday: Record<string, StrategyWeekdayStats> };
+    weekday_edge: { label: string; by_weekday: Record<string, StrategyWeekdayStats> };
+    pairs: { label: string; by_weekday: Record<string, StrategyWeekdayStats> };
+    calendar: { label: string; summary: Record<string, { pf: number | null; n: number; wr: number }> };
+  };
+  ratings: Record<string, Record<string, string>>;
+}
+
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 // === Helpers ===
@@ -206,6 +220,7 @@ export default function DashboardPage() {
   const [signals, setSignals] = useState<SignalsResponse | null>(null);
   const [pairsData, setPairsData] = useState<PairsResponse | null>(null);
   const [calendarData, setCalendarData] = useState<CalendarResponse | null>(null);
+  const [matrixData, setMatrixData] = useState<StrategyMatrixResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -277,10 +292,12 @@ export default function DashboardPage() {
       fetch(`${API_BASE}/api/dev/reversal/signals`).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(`${API_BASE}/api/dev/pairs/signals`).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(`${API_BASE}/api/dev/calendar`).then(r => r.ok ? r.json() : null).catch(() => null),
-    ]).then(([pos, b4, lr, sig, pairs, cal]) => {
+      fetch(`${API_BASE}/api/dev/backtest/strategy-weekday-matrix`).then(r => r.ok ? r.json() : null).catch(() => null),
+    ]).then(([pos, b4, lr, sig, pairs, cal, matrix]) => {
       setPosData(pos); setB4Entry(b4); setLongRecs(lr); setSignals(sig);
       setPairsData(pairs ?? null);
       setCalendarData(cal ?? null);
+      setMatrixData(matrix ?? null);
       setLoading(false);
     });
   };
@@ -383,6 +400,68 @@ export default function DashboardPage() {
             </div>
           );
         })()}
+
+        {/* ===== Strategy × Weekday Matrix ===== */}
+        {matrixData && (
+          <Panel title={
+            <div className="flex items-center gap-2">
+              <h2 className="text-base md:text-lg font-semibold">戦略×曜日 PFマトリクス</h2>
+              <span className="text-xs text-muted-foreground">{matrixData.generated_at ? `更新: ${matrixData.generated_at.split('T')[0]}` : ''}</span>
+            </div>
+          }>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-foreground border-b border-border/40 bg-muted/30">
+                    <th className="text-center px-3 py-2 text-xs font-medium">曜日</th>
+                    <th className="text-center px-3 py-2 text-xs font-medium">grok SHORT</th>
+                    <th className="text-center px-3 py-2 text-xs font-medium">曜日20銘柄</th>
+                    <th className="text-center px-3 py-2 text-xs font-medium">pair Top3</th>
+                    <th className="text-center px-3 py-2 text-xs font-medium">Calendar</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/30">
+                  {matrixData.weekdays.map((dow) => {
+                    const grok = matrixData.strategies.grok_short.by_weekday[dow];
+                    const we = matrixData.strategies.weekday_edge.by_weekday[dow];
+                    const pair = matrixData.strategies.pairs.by_weekday[dow];
+                    const ratings = matrixData.ratings[dow] || {};
+                    const calLabel = dow === '月' ? 'SQ+1d' : dow === '金' ? '1306' : '-';
+                    const ratingCls = (r: string) => r === '◎' ? 'text-price-up font-bold' : r === '○' ? 'text-price-up' : r === '△' ? 'text-amber-400' : r === '×' ? 'text-price-down' : 'text-muted-foreground';
+                    const pfCell = (stats: StrategyWeekdayStats | undefined, rating: string) => {
+                      if (!stats?.pf) return <span className="text-muted-foreground">-</span>;
+                      return (
+                        <span className={ratingCls(rating)}>
+                          {rating} {stats.pf.toFixed(2)}
+                          <span className="text-[10px] text-muted-foreground ml-1">({stats.n})</span>
+                        </span>
+                      );
+                    };
+                    return (
+                      <tr key={dow} className="hover:bg-muted/5">
+                        <td className="text-center px-3 py-2.5 font-medium text-foreground">{dow}</td>
+                        <td className="text-center px-3 py-2.5 tabular-nums">{pfCell(grok, ratings.grok_short || '-')}</td>
+                        <td className="text-center px-3 py-2.5 tabular-nums">{pfCell(we, ratings.weekday_edge || '-')}</td>
+                        <td className="text-center px-3 py-2.5 tabular-nums">{pfCell(pair, ratings.pairs || '-')}</td>
+                        <td className="text-center px-3 py-2.5 text-muted-foreground text-xs">{calLabel}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {(() => {
+              const cal = matrixData.strategies.calendar.summary;
+              return (
+                <div className="px-4 py-2.5 border-t border-border/40 flex flex-wrap gap-4 text-xs text-muted-foreground">
+                  {cal.sq4 && <span>SQ-4: PF{cal.sq4.pf?.toFixed(2)} (N={cal.sq4.n})</span>}
+                  {cal.sq_plus1 && <span>SQ+1: PF{cal.sq_plus1.pf?.toFixed(2)} (N={cal.sq_plus1.n})</span>}
+                  {cal.etf1306 && <span>1306: PF{cal.etf1306.pf?.toFixed(2)} (N={cal.etf1306.n})</span>}
+                </div>
+              );
+            })()}
+          </Panel>
+        )}
 
         {/* ===== Exit Candidates ===== */}
         {exits.length > 0 && (
