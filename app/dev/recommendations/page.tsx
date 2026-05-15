@@ -13,7 +13,15 @@ type DayTradeStock = {
   rsi9: number | null;
   atr_pct: number | null;
   prob_up: number | null;
+  prob_bin: string | null;
+  price_band: string | null;
   bucket: string | null;
+  credit_bucket: string | null;
+  expected_pf: number | null;
+  expected_pf_n: number;
+  expected_pf_basis: string | null;
+  expected_pnl_avg: number | null;
+  expected_wr: number | null;
   shortable: boolean;
   day_trade: boolean;
   ng: boolean;
@@ -377,6 +385,12 @@ export default function DayTradeListPage() {
     return `${sign}${profit.toLocaleString()}`;
   };
 
+  const formatPfBasis = (stock: DayTradeStock) => {
+    if (!stock.expected_pf_basis) return "-";
+    const basis = stock.expected_pf_basis.replace("_low_n", "*");
+    return `${basis} n=${stock.expected_pf_n}`;
+  };
+
   const formatVolume = (vol: number | null) => {
     if (vol === null) return "-";
     if (vol >= 1_000_000) return `${(vol / 1_000_000).toFixed(1)}M`;
@@ -707,6 +721,8 @@ export default function DayTradeListPage() {
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("close")}>終値<SortIcon col="close" /></th>
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("price_diff")}>前日差<SortIcon col="price_diff" /></th>
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">寄付差</th>
+                  <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("expected_pf")}>期待PF<SortIcon col="expected_pf" /></th>
+                  <th className="px-2 py-3 text-left text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("expected_pf_basis")}>根拠<SortIcon col="expected_pf_basis" /></th>
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("prob_up")}>prob<SortIcon col="prob_up" /></th>
                   <th className="px-2 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("bucket")}>Bucket<SortIcon col="bucket" /></th>
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("atr_pct")}>ATR%<SortIcon col="atr_pct" /></th>
@@ -739,7 +755,7 @@ export default function DayTradeListPage() {
                   const canExpand = !bulkEditMode && stock.appearance_count >= 1;
                   const history = historyData[stock.ticker] || [];
                   const isLoadingHistory = loadingHistory === stock.ticker;
-                  const colSpan = bulkEditMode ? 16 : 14;
+                  const colSpan = bulkEditMode ? 18 : 16;
 
                   return (
                     <React.Fragment key={stock.ticker}>
@@ -840,6 +856,22 @@ export default function DayTradeListPage() {
                             const diff = rt.price - rt.open;
                             return (diff > 0 ? "+" : "") + diff.toLocaleString();
                           })()}
+                        </td>
+                        <td className={`px-2 py-4 text-right tabular-nums ${
+                          stock.expected_pf !== null
+                            ? stock.expected_pf >= 2
+                              ? "text-emerald-400 font-semibold"
+                              : stock.expected_pf >= 1.2
+                                ? "text-amber-400 font-medium"
+                                : "text-rose-400 font-medium"
+                            : "text-muted-foreground"
+                        }`}>
+                          {stock.expected_pf !== null ? stock.expected_pf.toFixed(2) : "-"}
+                        </td>
+                        <td className="px-2 py-4 text-left text-xs text-muted-foreground whitespace-nowrap">
+                          <div title={`avg=${stock.expected_pnl_avg ?? "-"} / WR=${stock.expected_wr ?? "-"}% / ${stock.prob_bin ?? "-"} / ${stock.price_band ?? "-"}`}>
+                            {formatPfBasis(stock)}
+                          </div>
                         </td>
                         <td className={`px-2 py-4 text-right tabular-nums ${
                           stock.prob_up !== null
