@@ -60,6 +60,7 @@ type Summary = {
 
 type ProbBinCell = {
   label: string;
+  decision?: "SHORT" | "SKIP";
   n: number;
   pf: number | null;
   winRate: number | null;
@@ -432,7 +433,7 @@ export default function DayTradeListPage() {
     }
 
     if (sortKey) {
-      const bucketRank: Record<string, number> = { SHORT: 0, DISC: 1, LONG: 2 };
+      const bucketRank: Record<string, number> = { SHORT: 0, SKIP: 1 };
       list = [...list].sort((a, b) => {
         const av = a[sortKey];
         const bv = b[sortKey];
@@ -724,7 +725,7 @@ export default function DayTradeListPage() {
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("expected_pf")}>期待PF<SortIcon col="expected_pf" /></th>
                   <th className="px-2 py-3 text-left text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("expected_pf_basis")}>根拠<SortIcon col="expected_pf_basis" /></th>
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("prob_up")}>prob<SortIcon col="prob_up" /></th>
-                  <th className="px-2 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("bucket")}>Bucket<SortIcon col="bucket" /></th>
+                  <th className="px-2 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("bucket")}>Action<SortIcon col="bucket" /></th>
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("atr_pct")}>ATR%<SortIcon col="atr_pct" /></th>
                   <th className="px-2 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">
                     {bulkEditMode ? "制度" : "信用区分"}
@@ -886,8 +887,7 @@ export default function DayTradeListPage() {
                         </td>
                         <td className={`px-2 py-4 text-center tabular-nums font-medium ${
                           stock.bucket === "SHORT" ? "text-rose-400" :
-                          stock.bucket === "DISC" ? "text-amber-400" :
-                          stock.bucket === "LONG" ? "text-emerald-400" :
+                          stock.bucket === "SKIP" ? "text-muted-foreground" :
                           "text-muted-foreground"
                         }`}>
                           {stock.bucket ?? "-"}
@@ -1071,8 +1071,7 @@ export default function DayTradeListPage() {
             <div className="text-xs text-muted-foreground mb-2 font-medium">ML予測 閾値区分（PFテーブル用）</div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
               <span><span className="text-rose-400 font-medium">SHORT</span>: prob &lt; 0.45</span>
-              <span><span className="text-amber-400 font-medium">DISC</span>: 0.45 ≤ prob ≤ 0.70</span>
-              <span><span className="text-emerald-400 font-medium">LONG</span>: prob &gt; 0.70</span>
+              <span><span className="text-muted-foreground font-medium">SKIP</span>: prob ≥ 0.45（ショート回避）</span>
             </div>
             <div className="text-xs text-muted-foreground mt-2">
               prob: 株価上昇確率 / ATR: <span className="text-rose-400">3%未満</span>=負け傾向 <span className="text-emerald-400">6%以上</span>=高ボラ
@@ -1095,7 +1094,7 @@ export default function DayTradeListPage() {
           <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
           <div className="relative px-4 py-3">
             <div className="flex items-center justify-between mb-3">
-              <div className="text-sm text-muted-foreground font-medium">prob別パフォーマンス（SHORT基準 / 残0除外）</div>
+              <div className="text-sm text-muted-foreground font-medium">prob別パフォーマンス（SHORT/SKIP / 残0除外）</div>
               {probPfData && (
                 <div className="text-sm text-muted-foreground">
                   {probPfData.dataRange.start}～{probPfData.dataRange.end}（{probPfData.dataRange.tradingDays}日 / n={probPfData.total}）
@@ -1196,6 +1195,7 @@ export default function DayTradeListPage() {
                           <table className="w-full text-sm md:text-base">
                             <thead>
                               <tr className="border-b border-border/40">
+                                <th className="px-2 py-1.5 text-left text-muted-foreground font-medium">判定</th>
                                 <th className="px-2 py-1.5 text-left text-muted-foreground font-medium">prob区間</th>
                                 <th className="px-2 py-1.5 text-right text-muted-foreground font-medium">件数</th>
                                 <th className="px-2 py-1.5 text-right text-muted-foreground font-medium">勝率</th>
@@ -1210,6 +1210,7 @@ export default function DayTradeListPage() {
                               {group.bins.map((bin) => {
                                 if (bin.n === 0) return (
                                   <tr key={bin.label} className="border-b border-border/20">
+                                    <td className={`px-2 py-1.5 font-medium ${bin.decision === "SHORT" ? "text-rose-400" : "text-muted-foreground"}`}>{bin.decision ?? (["0.00-0.20", "0.20-0.32", "0.32-0.45"].includes(bin.label) ? "SHORT" : "SKIP")}</td>
                                     <td className="px-2 py-1.5 font-medium">{bin.label}</td>
                                     <td className="px-2 py-1.5 text-right text-muted-foreground/40">0</td>
                                     <td colSpan={6} className="px-2 py-1.5 text-center text-muted-foreground/30">-</td>
@@ -1224,6 +1225,7 @@ export default function DayTradeListPage() {
                                 const barColor = bin.total !== null && bin.total >= 0 ? "bg-emerald-500/60" : "bg-rose-500/60";
                                 return (
                                   <tr key={bin.label} className="border-b border-border/20 hover:bg-muted/20">
+                                    <td className={`px-2 py-1.5 font-medium ${bin.decision === "SHORT" ? "text-rose-400" : "text-muted-foreground"}`}>{bin.decision ?? (["0.00-0.20", "0.20-0.32", "0.32-0.45"].includes(bin.label) ? "SHORT" : "SKIP")}</td>
                                     <td className="px-2 py-1.5 font-medium">{bin.label}</td>
                                     <td className="px-2 py-1.5 text-right tabular-nums">{bin.n}</td>
                                     <td className={`px-2 py-1.5 text-right tabular-nums ${wrColor}`}>{bin.winRate !== null ? `${bin.winRate}%` : "-"}</td>

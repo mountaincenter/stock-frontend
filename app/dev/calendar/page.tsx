@@ -20,11 +20,11 @@ interface CmeLatest { date: string; close: number; prev_close: number; change: n
 interface Sp500Latest { date: string; close: number; prev_close: number; change: number; change_pct: number; }
 interface Sq4Data { stats: Sq4Stats; stats_cme_down: Sq4Stats; stats_cme_up: Sq4Stats; max_dd: MaxDD; max_dd_cme_down: MaxDD; next_sq4: { entry_date: string; exit_date: string | null } | null; candidates: { as_of: string; count: number; sector: string }; monthly: Sq4Monthly[]; }
 interface SqPlus1Data { stats: Sq4Stats; stats_cme_down: Sq4Stats; stats_cme_up: Sq4Stats; max_dd: MaxDD; max_dd_cme_down: MaxDD; next_sq_plus1: { sq_date: string; entry_date: string } | null; monthly: SqPlus1Monthly[]; }
-interface WeekdayEdgeStockStats { code: string; name: string; direction: string; group: string; dow: number; dow_label: string; stats_filtered: Sq4Stats; stats_all: Sq4Stats; n_filtered: number; n_all: number; }
-interface WeekdayEdgePick { date: string; code: string; name: string; direction: string; group: string; dow_label: string; adj_open: number; adj_close: number; ret_pct: number; pnl_100: number; us_prev_ret: number | null; }
+interface WeekdayEdgeStockStats { code: string; name: string; direction: string; group: string; dow: number; dow_label: string; stats_filtered: Sq4Stats; stats_all: Sq4Stats; n_filtered: number; n_all: number; order_style?: string; take_profit_pct?: number | null; exit_rule?: string; expected_pf?: number | null; expected_wr?: number | null; expected_avg_ret?: number | null; }
+interface WeekdayEdgePick { date: string; code: string; name: string; direction: string; group: string; dow_label: string; adj_open: number; adj_close: number; ret_pct: number; pnl_100: number; us_prev_ret: number | null; order_style?: string; take_profit_pct?: number | null; exit_rule?: string; }
 interface WeekdayEdgeWeekly { week: string; start_date: string; end_date: string; n_trades: number; total_ret: number; total_pnl_100: number; picks: WeekdayEdgePick[]; }
 interface WeekdayEdgeYearly { year: number; total: number; wins: number; wr: number; pf: number | null; total_ret: number; total_pnl_100: number; max_dd: MaxDD; }
-interface WeekdayEdgeNextEntry { date: string; code: string; name: string; direction: string; dow_label: string; prev_close: number | null; prev_day_ret: number | null; earnings_alert?: string; }
+interface WeekdayEdgeNextEntry { date: string; code: string; name: string; direction: string; dow_label: string; prev_close: number | null; prev_day_ret: number | null; earnings_alert?: string; order_style?: string; take_profit_pct?: number | null; exit_rule?: string; expected_pf?: number | null; expected_wr?: number | null; expected_avg_ret?: number | null; }
 interface WeekdayEdgeData { params: Record<string, string | number>; stats_filtered: Sq4Stats; stats_all: Sq4Stats; max_dd_filtered: MaxDD; yearly: WeekdayEdgeYearly[]; stock_stats: WeekdayEdgeStockStats[]; next_entries: WeekdayEdgeNextEntry[]; weekly: WeekdayEdgeWeekly[]; }
 interface CalendarResponse {
   today: { flags: string[] };
@@ -409,7 +409,7 @@ export default function CalendarPage() {
           candidates.push({
             date: e.date, code: e.code.replace(/0$/, ''), code5: e.code, name: e.name,
             strategy: `曜日${e.direction}(${e.dow_label})`,
-            direction: e.direction, pf: wePfMap[e.code] ?? null, execution: '寄成→引成',
+            direction: e.direction, pf: e.expected_pf ?? wePfMap[e.code] ?? null, execution: e.exit_rule ?? '寄成IN→引成OUT',
             prev_close: e.prev_close ?? null, prev_day_ret: e.prev_day_ret ?? null,
             excluded: false, exclude_reason: null,
             earnings_alert: e.earnings_alert ?? null,
@@ -711,11 +711,13 @@ export default function CalendarPage() {
           if (weSeenDates.has(key)) return;
           weSeenDates.add(key);
           const isLong = entry.direction === 'LONG';
-          const nStocks = (weekday_edge?.next_entries ?? []).filter(e => e.date === entry.date && e.direction === entry.direction).length;
+          const sameSideEntries = (weekday_edge?.next_entries ?? []).filter(e => e.date === entry.date && e.direction === entry.direction);
+          const nStocks = sameSideEntries.length;
+          const hasLimitClose = sameSideEntries.some(e => e.order_style === 'limit_close');
           allRows.push({
             date: entry.date,
             label: (<><span className={`inline-flex px-2 py-0.5 rounded text-xs md:text-sm font-medium ${isLong ? 'bg-emerald-500/10 text-emerald-400/80' : 'bg-red-500/10 text-red-400/80'}`}>曜日{isLong ? 'LONG' : 'SHORT'}</span><span className="ml-2 text-xs text-muted-foreground">{entry.dow_label} {nStocks}銘柄</span></>),
-            action: '寄成→引成',
+            action: hasLimitClose ? '寄成→利確指値/引成' : '寄成→引成',
             pf: weekday_edge?.stats_filtered?.pf?.toFixed(2) ?? '—',
           });
         });
@@ -977,6 +979,7 @@ export default function CalendarPage() {
                         <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-right">N</th>
                         <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-right hidden md:table-cell">WR</th>
                         <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-right">PF</th>
+                        <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-left hidden lg:table-cell">執行</th>
                         <th className="px-1.5 md:px-3 py-1 md:py-1.5 text-right">PnL(100株)</th>
                       </tr>
                     </thead>
@@ -989,6 +992,7 @@ export default function CalendarPage() {
                           <td className="px-1.5 md:px-3 py-1 text-xs md:text-sm text-right tabular-nums">{s.n_filtered}</td>
                           <td className="px-1.5 md:px-3 py-1 text-xs md:text-sm text-right tabular-nums hidden md:table-cell">{s.stats_filtered?.wr?.toFixed(1) ?? '—'}%</td>
                           <td className="px-1.5 md:px-3 py-1 text-xs md:text-sm text-right tabular-nums">{s.stats_filtered?.pf?.toFixed(2) ?? '—'}</td>
+                          <td className="px-1.5 md:px-3 py-1 text-xs text-muted-foreground hidden lg:table-cell">{s.exit_rule ?? '寄成IN→引成OUT'}</td>
                           <td className={`px-1.5 md:px-3 py-1 text-xs md:text-sm text-right tabular-nums font-medium ${pnlColor(s.stats_filtered?.total_pnl_100)}`}>{fmtPnl(s.stats_filtered?.total_pnl_100)}</td>
                         </tr>
                       ))}

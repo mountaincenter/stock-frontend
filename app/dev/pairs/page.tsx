@@ -19,6 +19,10 @@ interface PairSignal {
   imbalance_pct: number;
   full_pf: number; full_n: number;
   revert_1d: number;
+  pair_validity?: string;
+  pair_validity_label?: string;
+  pair_validity_rank?: number;
+  pair_validity_reason?: string;
   is_entry: boolean; direction: string;
   signal_date: string;
 }
@@ -109,6 +113,21 @@ const DirectionBadge = ({ direction, z }: { direction: string; z: number }) => {
   return <span className={`inline-block px-1.5 py-0.5 text-xs rounded leading-none border ${cls}`}>{label}</span>;
 };
 
+const ValidityBadge = ({ pair }: { pair: PairSignal }) => {
+  const validity = pair.pair_validity || 'unknown';
+  const label = pair.pair_validity_label || '未分類';
+  const cls = validity === 'principle_strong'
+    ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+    : validity === 'principle'
+      ? 'bg-sky-500/15 text-sky-400 border-sky-500/30'
+      : 'bg-amber-500/15 text-amber-400 border-amber-500/30';
+  return (
+    <span title={pair.pair_validity_reason || ''} className={`inline-block px-1.5 py-0.5 text-xs rounded leading-none border whitespace-nowrap ${cls}`}>
+      {label}
+    </span>
+  );
+};
+
 // === Main ===
 export default function PairsPage() {
   const [signals, setSignals] = useState<SignalsResponse | null>(null);
@@ -184,7 +203,7 @@ export default function PairsPage() {
           <div>
             <h1 className="text-lg md:text-xl font-bold text-foreground">Pairs v2 — ペアトレード</h1>
             <p className="text-foreground/50 text-xs md:text-sm mt-0.5">
-              161ペア | z=2.0エントリー | 寄引 | 200万円
+              {signals?.total ?? 0}ペア | 前日終値|z|=2.0候補 | 寄付確認→引成
               {signals?.signal_date ? ` (${signals.signal_date})` : ''}
             </p>
           </div>
@@ -200,10 +219,10 @@ export default function PairsPage() {
 
         {/* Status Bar */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 mb-4 md:mb-6 px-2 md:px-0">
-          <StatCard label="監視ペア数" sub="共和分+ADF検定済">
+          <StatCard label="監視ペア数" sub="除外後の運用対象">
             <span className="text-foreground">{signals?.total ?? 0}</span>
           </StatCard>
-          <StatCard label="エントリー可 (|z|>=2.0)" sub="|z|降順で推奨">
+          <StatCard label="寄付確認候補 (|z|>=2.0)" sub="翌朝の閾値確認が必要">
             <span className={entryPairs.length > 0 ? 'text-price-down' : 'text-muted-foreground'}>
               {entryPairs.length}
             </span>
@@ -222,7 +241,7 @@ export default function PairsPage() {
         {top3.length > 0 ? (
           <Panel title={
             <h2 className="text-base md:text-lg font-semibold text-price-down">
-              TOP {top3.length} 推奨 — |z|上位（明朝エントリー）
+              TOP {top3.length} 推奨 — |z|上位（翌営業日 条件付き）
             </h2>
           } border="border-rose-500/40">
             <div className="divide-y divide-border/20">
@@ -267,6 +286,7 @@ export default function PairsPage() {
                           <div>参照: <span className="text-foreground">{p.lookback}日</span></div>
                           <div>PF: <span className={`${p.full_pf >= 2.5 ? 'text-price-up font-semibold' : 'text-foreground'}`}>{p.full_pf.toFixed(2)}</span> ({p.full_n}回)</div>
                           <div>1d回帰: <span className="text-foreground">{p.revert_1d.toFixed(0)}%</span></div>
+                          <div>妥当性: <ValidityBadge pair={p} /></div>
                         </div>
                       </div>
                       <div className="text-left md:text-right ml-8 md:ml-0 md:min-w-[280px] border-t border-border/20 pt-2 md:border-0 md:pt-0">
@@ -299,7 +319,7 @@ export default function PairsPage() {
               })}
             </div>
             <div className="px-4 md:px-5 py-2.5 border-t border-border/40 text-sm text-foreground/50">
-              資金制約下TOP2-3ペアが最適（Phase 73d検証済み）。100株単位等金額。指値推奨。
+              前日終値で候補化し、翌営業日の寄付が表示閾値を満たした場合のみ発注。100株単位等金額。
             </div>
           </Panel>
         ) : (
@@ -314,12 +334,11 @@ export default function PairsPage() {
         {entryPairs.length > 3 && (
           <Panel title={
             <h2 className="text-base md:text-lg font-semibold text-amber-400">
-              その他エントリー可 — {entryPairs.length - 3}ペア
+              その他候補 — {entryPairs.length - 3}ペア
             </h2>
           } border="border-amber-500/30">
             <div className="divide-y divide-border/20">
               {entryPairs.slice(3).map((p) => {
-                const isShort = p.direction === 'short_tk1';
                 return (
                   <div key={`${p.tk1}-${p.tk2}`} className="px-3 md:px-5 py-2 md:py-2.5 cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => window.open(`/pairs/${p.tk1.replace('.', '')}-${p.tk2.replace('.', '')}`, 'pair-chart')}>
                     <div className="flex items-center justify-between gap-2">
@@ -331,6 +350,7 @@ export default function PairsPage() {
                         <span>z: {fmtZ(p.z_latest)}</span>
                         <span className="hidden sm:inline">LB={p.lookback}</span>
                         <span>PF={p.full_pf.toFixed(2)}</span>
+                        <ValidityBadge pair={p} />
                         <span className="hidden sm:inline">{p.shares1}/{p.shares2}株</span>
                       </div>
                     </div>
@@ -345,9 +365,9 @@ export default function PairsPage() {
         <Panel title={
           <div className="flex items-center gap-2">
             <h2 className="text-base md:text-lg font-semibold">全ペア一覧</h2>
-            <span className="text-sm text-foreground/50">161ペア | ペア固有LB | z=2.0エントリー | 引成決済</span>
+            <span className="text-sm text-foreground/50">{allPairs.length}ペア | ペア固有LB | 前日終値候補 | 寄付確認→引成</span>
           </div>
-        } footer={`${allPairs.length} pairs | z_entry=2.0 | 200万円 (100株単位等金額)`}>
+        } footer={`${allPairs.length} pairs | 前日終値 z_entry=2.0 | 100株単位等金額`}>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="text-foreground/50 border-b border-border/30 bg-muted/30">
@@ -361,6 +381,7 @@ export default function PairsPage() {
                 <th className="text-right px-2 py-2.5 text-sm font-medium hidden md:table-cell">Short閾値</th>
                 <th className="text-right px-2 py-2.5 text-sm font-medium hidden md:table-cell">Long閾値</th>
                 <SortHeader<PairSignal> label="PF" field="full_pf" {...pairSort} className="text-right px-1.5 md:px-2 py-1.5 md:py-2.5 text-xs md:text-sm font-medium" />
+                <SortHeader<PairSignal> label="妥当性" field="pair_validity_rank" {...pairSort} className="text-center px-2 py-2.5 text-sm font-medium hidden md:table-cell" />
                 <th className="text-right px-2 py-2.5 text-sm font-medium hidden md:table-cell">株数</th>
                 <SortHeader<PairSignal> label="HL" field="revert_1d" {...pairSort} className="text-right px-2 py-2.5 text-sm font-medium hidden lg:table-cell" />
               </tr></thead>
@@ -403,6 +424,9 @@ export default function PairsPage() {
                           {p.full_pf.toFixed(2)}
                         </span>
                       </td>
+                      <td className="px-2 py-2.5 text-center hidden md:table-cell">
+                        <ValidityBadge pair={p} />
+                      </td>
                       <td className="px-2 py-2.5 text-right tabular-nums text-sm text-foreground/50 hidden md:table-cell">
                         {p.shares1}/{p.shares2}
                       </td>
@@ -418,22 +442,23 @@ export default function PairsPage() {
         </Panel>
 
         {/* Action Guide */}
-        <Panel title="翌朝 9:00 アクション手順">
+        <Panel title="翌朝 アクション手順">
           <div className="px-3 md:px-5 py-3 md:py-4 text-xs md:text-sm text-foreground/60 space-y-2">
-            <div className="flex gap-3"><span className="text-foreground font-semibold">1.</span><span>TOP推奨ペアを優先（|z|上位2-3ペアが最適）</span></div>
-            <div className="flex gap-3"><span className="text-foreground font-semibold">2.</span>
+            <div className="flex gap-3"><span className="text-foreground font-semibold">1.</span><span>TOP候補を優先（|z|上位2-3ペア）</span></div>
+            <div className="flex gap-3"><span className="text-foreground font-semibold">2.</span><span>妥当性は「原則・厚め」「原則」を優先。「例外注意」は機会を消さず、サイズ縮小または見送り候補として扱う</span></div>
+            <div className="flex gap-3"><span className="text-foreground font-semibold">3.</span>
               <div>
-                <span>9:00 寄付価格を確認</span>
+                <span>寄付価格を確認</span>
                 <div className="mt-1 ml-2 space-y-0.5 text-sm">
                   <div>→ tk1の寄付が<span className="text-price-down">Short閾値以上</span> → tk1空売り + tk2買い</div>
                   <div>→ tk1の寄付が<span className="text-price-up">Long閾値以下</span> → tk1買い + tk2空売り</div>
                 </div>
               </div>
             </div>
-            <div className="flex gap-3"><span className="text-foreground font-semibold">3.</span><span>表示株数で両銘柄同時発注（100株単位等金額）</span></div>
-            <div className="flex gap-3"><span className="text-foreground font-semibold">4.</span><span>15:25 引成で両方決済</span></div>
+            <div className="flex gap-3"><span className="text-foreground font-semibold">4.</span><span>条件を満たしたペアだけ、表示株数で両銘柄同時発注（100株単位等金額）</span></div>
+            <div className="flex gap-3"><span className="text-foreground font-semibold">5.</span><span>15:25 引成で両方決済</span></div>
             <div className="mt-3 pt-3 border-t border-border/30 text-sm text-foreground/40 space-y-1">
-              <div>Phase 70-75 検証済みパラメータ: 共和分ペア選定 / ペア固有LB / |z|優先 / 等金額100株単位 / レジームフィルタ不要</div>
+              <div>表示は前日終値シグナル。実発注は翌営業日の寄付条件を満たす場合のみ。</div>
               <div>指値推奨（成行はスリッページでPF低下）</div>
             </div>
           </div>
