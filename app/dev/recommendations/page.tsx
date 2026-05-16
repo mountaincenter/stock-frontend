@@ -51,6 +51,20 @@ type Summary = {
 };
 
 type FilterType = "all" | "unchecked" | "shortable" | "day_trade" | "ng";
+type EditField = "shortable" | "day_trade" | "ng" | "day_trade_available_shares" | "margin_sell_balance" | "margin_buy_balance";
+type StorageTarget = {
+  mode?: "local" | "s3";
+  local_path?: string;
+  s3_key?: string;
+  backup_key?: string | null;
+  log_key?: string | null;
+  warnings?: string[];
+};
+type StorageInfo = {
+  mode?: "local" | "s3";
+  grokTrending?: StorageTarget;
+  dayTradeList?: StorageTarget;
+};
 
 const FILTER_OPTIONS = [
   { value: "all", label: "すべて" },
@@ -58,6 +72,14 @@ const FILTER_OPTIONS = [
   { value: "shortable", label: "制度" },
   { value: "day_trade", label: "いちにち" },
   { value: "ng", label: "NG" },
+];
+const EDIT_FIELDS: EditField[] = [
+  "shortable",
+  "day_trade",
+  "ng",
+  "day_trade_available_shares",
+  "margin_sell_balance",
+  "margin_buy_balance",
 ];
 
 export default function DayTradeListPage() {
@@ -77,6 +99,9 @@ export default function DayTradeListPage() {
   const [loadingHistory, setLoadingHistory] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<keyof DayTradeStock | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const editCellRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const [storageInfo, setStorageInfo] = useState<StorageInfo | null>(null);
+  const [saveNotice, setSaveNotice] = useState<string | null>(null);
 
   // リアルタイム寄付価格
   const [realtimeData, setRealtimeData] = useState<Record<string, { price: number | null; open: number | null; marketState: string | null }>>({});
@@ -86,10 +111,11 @@ export default function DayTradeListPage() {
   const fetchData = async () => {
     try {
       const res = await fetch("/api/dev/day-trade-list");
-      if (!res.ok) throw new Error("データ取得に失敗しました");
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.detail || data?.error || "データ取得に失敗しました");
       setStocks(data.stocks);
       setSummary(data.summary);
+      setStorageInfo(data.storage ?? null);
       setLoading(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "エラー");
@@ -228,7 +254,10 @@ export default function DayTradeListPage() {
         }))),
       });
 
-      if (!res.ok) throw new Error("一括更新に失敗しました");
+      const responseBody = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(responseBody?.detail || responseBody?.error || "一括更新に失敗しました");
+      }
 
       // ローカル状態を更新
       setStocks((prev) =>
@@ -273,6 +302,15 @@ export default function DayTradeListPage() {
 
       setEditedStocks({});
       setBulkEditMode(false);
+      setStorageInfo(responseBody?.storage ?? storageInfo);
+      const grokStorage = responseBody?.storage?.grokTrending;
+      const backup = grokStorage?.backup_key;
+      const log = grokStorage?.log_key;
+      setSaveNotice(
+        `${changes.length}件保存しました` +
+        (backup ? ` / backup: ${backup}` : "") +
+        (log ? ` / log: ${log}` : "")
+      );
     } catch (err) {
       alert(err instanceof Error ? err.message : "更新エラー");
     } finally {
@@ -290,12 +328,6 @@ export default function DayTradeListPage() {
   const formatPrice = (price: number | null) => {
     if (price === null) return "-";
     return price.toLocaleString("ja-JP", { maximumFractionDigits: 0 });
-  };
-
-  const formatPercent = (pct: number | null, decimals = 2) => {
-    if (pct === null) return "-";
-    const sign = pct >= 0 ? "+" : "";
-    return `${sign}${pct.toFixed(decimals)}%`;
   };
 
   const formatProfit = (profit: number | null) => {
@@ -328,6 +360,8 @@ export default function DayTradeListPage() {
       : <ArrowDown className="w-3 h-3 text-primary ml-0.5 inline" />;
   };
 
+  const storageLabel = storageInfo?.mode === "s3" ? "S3" : storageInfo?.mode === "local" ? "LOCAL" : "UNKNOWN";
+
   const filteredStocks = useMemo(() => {
     let list = filter === "all"
       ? stocks
@@ -352,6 +386,41 @@ export default function DayTradeListPage() {
     }
     return list;
   }, [stocks, filter, sortKey, sortDir]);
+
+  const editCellOrder = useMemo(
+    () => filteredStocks.flatMap((stock) => EDIT_FIELDS.map((field) => `${stock.ticker}:${field}`)),
+    [filteredStocks]
+  );
+
+  const setEditCellRef = (ticker: string, field: EditField) => (node: HTMLInputElement | null) => {
+    editCellRefs.current[`${ticker}:${field}`] = node;
+  };
+
+  const handleEditCellKeyDown = (
+    event: React.KeyboardEvent<HTMLInputElement>,
+    ticker: string,
+    field: EditField
+  ) => {
+    if (event.key !== "Tab") return;
+
+    const currentKey = `${ticker}:${field}`;
+    const currentIndex = editCellOrder.indexOf(currentKey);
+    if (currentIndex < 0) return;
+
+    event.preventDefault();
+    const direction = event.shiftKey ? -1 : 1;
+
+    for (let step = 1; step <= editCellOrder.length; step += 1) {
+      const nextIndex = currentIndex + direction * step;
+      if (nextIndex < 0 || nextIndex >= editCellOrder.length) break;
+      const nextNode = editCellRefs.current[editCellOrder[nextIndex]];
+      if (nextNode && !nextNode.disabled) {
+        nextNode.focus();
+        if (nextNode.type === "number") nextNode.select();
+        break;
+      }
+    }
+  };
 
   if (loading) {
     return (
@@ -406,14 +475,32 @@ export default function DayTradeListPage() {
             <h1 className="text-xl font-bold text-foreground">
               Grok デイトレードリスト
             </h1>
-            <p className="text-sm text-muted-foreground">
-              空売り対象銘柄の管理（制度信用・いちにち信用）
-            </p>
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <span>空売り対象銘柄の管理（制度信用・いちにち信用）</span>
+              <span className={`px-2 py-0.5 rounded border text-xs font-medium ${
+                storageInfo?.mode === "s3"
+                  ? "border-sky-500/40 bg-sky-500/10 text-sky-300"
+                  : storageInfo?.mode === "local"
+                    ? "border-amber-500/40 bg-amber-500/10 text-amber-300"
+                    : "border-border/40 bg-muted/30 text-muted-foreground"
+              }`}>
+                {storageLabel}
+              </span>
+              <span className="text-xs">
+                {storageInfo?.grokTrending?.s3_key ?? storageInfo?.grokTrending?.local_path ?? ""}
+              </span>
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <DevNavLinks />
           </div>
         </header>
+
+        {saveNotice && (
+          <div className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
+            {saveNotice}
+          </div>
+        )}
 
         {/* Summary Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4">
@@ -693,8 +780,10 @@ export default function DayTradeListPage() {
                             <td className="px-2 py-4 text-center">
                               <input
                                 type="checkbox"
+                                ref={setEditCellRef(stock.ticker, "shortable")}
                                 checked={edited?.shortable ?? stock.shortable}
                                 onChange={(e) => updateEditedStock(stock.ticker, "shortable", e.target.checked)}
+                                onKeyDown={(e) => handleEditCellKeyDown(e, stock.ticker, "shortable")}
                                 onClick={(e) => e.stopPropagation()}
                                 className="w-4 h-4 accent-teal-500"
                               />
@@ -702,8 +791,10 @@ export default function DayTradeListPage() {
                             <td className="px-2 py-4 text-center">
                               <input
                                 type="checkbox"
+                                ref={setEditCellRef(stock.ticker, "day_trade")}
                                 checked={edited?.day_trade ?? stock.day_trade}
                                 onChange={(e) => updateEditedStock(stock.ticker, "day_trade", e.target.checked)}
+                                onKeyDown={(e) => handleEditCellKeyDown(e, stock.ticker, "day_trade")}
                                 onClick={(e) => e.stopPropagation()}
                                 className="w-4 h-4 accent-orange-500"
                               />
@@ -711,8 +802,10 @@ export default function DayTradeListPage() {
                             <td className="px-2 py-4 text-center">
                               <input
                                 type="checkbox"
+                                ref={setEditCellRef(stock.ticker, "ng")}
                                 checked={edited?.ng ?? stock.ng}
                                 onChange={(e) => updateEditedStock(stock.ticker, "ng", e.target.checked)}
+                                onKeyDown={(e) => handleEditCellKeyDown(e, stock.ticker, "ng")}
                                 onClick={(e) => e.stopPropagation()}
                                 className="w-4 h-4 accent-rose-500"
                               />
@@ -720,12 +813,14 @@ export default function DayTradeListPage() {
                             <td className="px-2 py-4 text-center">
                               <input
                                 type="number"
+                                ref={setEditCellRef(stock.ticker, "day_trade_available_shares")}
                                 inputMode="numeric"
                                 min={0}
                                 max={999999}
                                 step={100}
                                 value={edited?.day_trade_available_shares ?? ""}
                                 onChange={(e) => updateEditedShares(stock.ticker, e.target.value)}
+                                onKeyDown={(e) => handleEditCellKeyDown(e, stock.ticker, "day_trade_available_shares")}
                                 onClick={(e) => e.stopPropagation()}
                                 placeholder="-"
                                 disabled={!(edited?.day_trade ?? stock.day_trade)}
@@ -737,11 +832,13 @@ export default function DayTradeListPage() {
                             <td className="px-2 py-4 text-center">
                               <input
                                 type="number"
+                                ref={setEditCellRef(stock.ticker, "margin_sell_balance")}
                                 inputMode="numeric"
                                 min={0}
                                 step={1000}
                                 value={edited?.margin_sell_balance ?? ""}
                                 onChange={(e) => updateEditedMargin(stock.ticker, "margin_sell_balance", e.target.value)}
+                                onKeyDown={(e) => handleEditCellKeyDown(e, stock.ticker, "margin_sell_balance")}
                                 onClick={(e) => e.stopPropagation()}
                                 placeholder="-"
                                 className="w-24 px-2 py-1 text-right tabular-nums bg-muted/50 border border-border/40 rounded focus:outline-none focus:border-primary/50"
@@ -750,11 +847,13 @@ export default function DayTradeListPage() {
                             <td className="px-2 py-4 text-center">
                               <input
                                 type="number"
+                                ref={setEditCellRef(stock.ticker, "margin_buy_balance")}
                                 inputMode="numeric"
                                 min={0}
                                 step={1000}
                                 value={edited?.margin_buy_balance ?? ""}
                                 onChange={(e) => updateEditedMargin(stock.ticker, "margin_buy_balance", e.target.value)}
+                                onKeyDown={(e) => handleEditCellKeyDown(e, stock.ticker, "margin_buy_balance")}
                                 onClick={(e) => e.stopPropagation()}
                                 placeholder="-"
                                 className="w-24 px-2 py-1 text-right tabular-nums bg-muted/50 border border-border/40 rounded focus:outline-none focus:border-primary/50"

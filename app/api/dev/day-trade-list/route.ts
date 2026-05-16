@@ -12,8 +12,12 @@ export async function GET() {
     });
 
     if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
       return NextResponse.json(
-        { error: 'Failed to fetch day trade list' },
+        {
+          error: 'Failed to fetch day trade list',
+          detail: errorData?.detail ?? errorData?.error ?? null,
+        },
         { status: response.status }
       );
     }

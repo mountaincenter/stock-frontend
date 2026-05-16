@@ -23,8 +23,12 @@ export async function PUT(
     );
 
     if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
       return NextResponse.json(
-        { error: 'Failed to update day trade item' },
+        {
+          error: 'Failed to update day trade item',
+          detail: errorData?.detail ?? errorData?.error ?? null,
+        },
         { status: response.status }
       );
     }

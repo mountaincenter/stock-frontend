@@ -16,8 +16,12 @@ export async function PUT(request: NextRequest) {
     });
 
     if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
       return NextResponse.json(
-        { error: 'Failed to bulk update day trade list' },
+        {
+          error: 'Failed to bulk update day trade list',
+          detail: errorData?.detail ?? errorData?.error ?? null,
+        },
         { status: response.status }
       );
     }
