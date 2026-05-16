@@ -419,13 +419,17 @@ export default function CalendarPage() {
           wePfMap[s.code] = s.stats_filtered?.pf ?? null;
         }
         for (const e of weekday_edge?.next_entries ?? []) {
-          if (!isUsFilterReady(e.date, sp500_latest?.date) || !passesWeekdayUsFilter(e.direction, sp500_latest?.change_pct)) continue;
           candidates.push({
             date: e.date, code: e.code.replace(/0$/, ''), code5: e.code, name: e.name,
             strategy: `曜日${e.direction}(${e.dow_label})`,
             direction: e.direction, pf: e.expected_pf ?? wePfMap[e.code] ?? null, execution: e.exit_rule ?? '寄成IN→引成OUT',
             prev_close: e.prev_close ?? null, prev_day_ret: e.prev_day_ret ?? null,
-            excluded: false, exclude_reason: null,
+            excluded: false,
+            exclude_reason: !isUsFilterReady(e.date, sp500_latest?.date)
+              ? 'US判定待ち'
+              : !passesWeekdayUsFilter(e.direction, sp500_latest?.change_pct)
+                ? 'US条件未成立'
+                : null,
             earnings_alert: e.earnings_alert ?? null,
           });
         }
