@@ -4,63 +4,6 @@ import { useEffect, useState } from 'react';
 import { DevNavLinks } from '../../../components/dev';
 import { RefreshCw } from 'lucide-react';
 
-// === Types (granville positions準拠: hold_stocks.parquetベース) ===
-interface Position {
-  ticker: string; stock_name: string; rule: string; direction: string;
-  margin_type: string; deadline: string;
-  entry_date: string; entry_price: number;
-  current_price: number; quantity: number; cost_total: number; market_value: number;
-  high_20d: number; atr10: number; gap_to_high: number;
-  unrealized_pct: number; unrealized_yen: number;
-  hold_days: number; max_hold: number; remaining_days: number; exit_type: string;
-}
-interface PositionsResponse { positions: Position[]; exits: Position[]; as_of: string | null; }
-
-// B4 Entry (vi情報含む)
-interface B4Candidate {
-  ticker: string; stock_name: string; sector: string;
-  close: number; entry_price_est: number;
-  dev_from_sma20: number; max_cost?: number;
-}
-interface B4EntryResponse {
-  vi: number | null; cme_gap: number | null; n225_chg: number | null;
-  decision: string; date: string | null;
-  excluded_rules: string[];
-  total_b4_signals: number;
-  candidates: B4Candidate[]; selected: B4Candidate[];
-}
-
-// Regime + Long Recommendations (Granville B1-B3)
-interface Regime {
-  n225_above_sma20: boolean | null; n225_ret20: number | null;
-  cme_gap: number | null; vi: number | null;
-  n225_close: number | null; n225_sma20: number | null;
-  cme_close: number | null;
-}
-interface LongRecommendation {
-  ticker: string; stock_name: string; sector: string; rule: string;
-  long_grade: string; hold_days: number; expected_pf: number;
-  close: number; entry_price_est: number; sma20: number;
-  dev_from_sma20: number; atr10_pct: number;
-}
-interface LongRecommendationsResponse {
-  long_recommendations: LongRecommendation[]; count: number;
-  date: string | null; regime: Regime;
-}
-
-// Reversal signals (bearish + b4)
-interface Signal {
-  ticker: string; stock_name: string; sector: string; strategy: string;
-  close: number; open: number; body_pct: number;
-  sma20: number; dev_from_sma20: number;
-  entry_price_est: number; prev_close: number; vi: number;
-}
-interface SignalsResponse {
-  bearish: Signal[]; b4: Signal[];
-  bearish_count: number; b4_count: number;
-  bearish_date: string | null; b4_date: string | null;
-}
-
 // Pairs
 interface PairSignal {
   tk1: string; tk2: string;
@@ -78,10 +21,40 @@ interface PairSignal {
 }
 interface PairsResponse {
   pairs: PairSignal[];
-  entry: PairSignal[];
+  entry?: PairSignal[];
+  hot?: PairSignal[];
   signal_date: string | null;
   total: number;
-  entry_count: number;
+  entry_count?: number;
+  hot_count?: number;
+}
+
+// Grok
+interface GrokStock {
+  ticker: string;
+  stock_name: string;
+  grok_rank: number | null;
+  close: number | null;
+  price_diff: number | null;
+  prob_up: number | null;
+  prob_bin: string | null;
+  expected_pf: number | null;
+  expected_pnl_avg: number | null;
+  expected_wr: number | null;
+  credit_bucket: string | null;
+  shortable: boolean;
+  day_trade: boolean;
+  ng: boolean;
+  day_trade_available_shares: number | null;
+  max_cost_100: number | null;
+  short_recommended: boolean;
+  reason_category: string | null;
+}
+interface GrokResponse {
+  total: number;
+  stocks: GrokStock[];
+  market?: { futures_change_pct: number | null; nikkei_change_pct: number | null };
+  weekday_rule?: { label?: string; direction?: string; allowed?: boolean };
 }
 
 // Calendar
@@ -96,6 +69,7 @@ interface CalendarResponse {
   upcoming: Array<{ date: string; flags: string[] }>;
   next_trading_date: string | null;
   etf_latest: { close: number; change_pct: number | null };
+  sp500_latest?: { date?: string; change_pct?: number | null };
   sq4: {
     stats_cme_down: { pf: number | null } | null;
     next_sq4: { entry_date: string } | null;
@@ -108,14 +82,25 @@ interface CalendarResponse {
   etf1306: { stats: { pf: number } };
   weekday_edge: {
     stock_stats: Array<{ code: string; stats_filtered: { pf: number | null } }>;
-    next_entries: Array<{ date: string; code: string; name: string; direction: string; dow_label: string; prev_close: number | null; prev_day_ret: number | null }>;
+    next_entries: Array<{
+      date: string;
+      code: string;
+      name: string;
+      direction: string;
+      dow_label: string;
+      prev_close: number | null;
+      prev_day_ret: number | null;
+      exit_rule?: string;
+      expected_pf?: number | null;
+      earnings_alert?: string | null;
+    }>;
   };
 }
 
 // Strategy Matrix
 interface StrategyWeekdayStats { n: number; wins: number; wr: number; pf: number | null; total_pnl: number; }
 interface StrategyMatrixResponse {
-  generated_at: string;
+  generated_at: string | null;
   weekdays: string[];
   strategies: {
     grok_short: { label: string; by_weekday: Record<string, StrategyWeekdayStats> };
@@ -126,14 +111,50 @@ interface StrategyMatrixResponse {
   ratings: Record<string, Record<string, string>>;
 }
 
+interface UnifiedRecommendation {
+  source: 'Calendar' | 'Pair' | 'Grok';
+  date: string | null;
+  code: string;
+  name: string;
+  pairCode?: string;
+  pairName?: string;
+  direction: string;
+  strategy: string;
+  pf: number | null;
+  rank?: number | null;
+  price: number | null;
+  pairPrice?: number | null;
+  execution: string;
+  note: string;
+  excluded?: boolean;
+}
+
+interface RealtimeQuote {
+  price: number | null;
+  open: number | null;
+  marketState: string | null;
+  marketTime: string | null;
+}
+
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 // === Helpers ===
+const parseDateUtc = (s: string) => { const [y, m, d] = s.split('-').map(Number); return Date.UTC(y, m - 1, d); };
+const isUsFilterReady = (entryDate: string, spDate?: string | null) => {
+  if (!entryDate || !spDate) return false;
+  const entryMs = parseDateUtc(entryDate);
+  const spMs = parseDateUtc(spDate);
+  const diffDays = Math.floor((entryMs - spMs) / 86400000);
+  const entryDow = new Date(entryMs).getUTCDay();
+  return diffDays === (entryDow === 1 ? 3 : 1);
+};
+const passesWeekdayUsFilter = (direction: string, spPct?: number | null) => {
+  if (spPct == null) return false;
+  return direction === 'LONG' ? spPct <= 0 : spPct >= 0;
+};
 const fmt = (v: number | null | undefined) => (v ?? 0).toLocaleString('ja-JP');
-const fmtPnl = (v: number | null | undefined) => { const n = v ?? 0; return <span className={n >= 0 ? 'text-price-up' : 'text-price-down'}>{n >= 0 ? '+' : ''}{fmt(n)}円</span>; };
-const fmtPct = (v: number | null | undefined, d = 1) => { const n = v ?? 0; return `${n >= 0 ? '+' : ''}${n.toFixed(d)}%`; };
-const shortDate = (d: string) => { const m = d.match(/\d{4}-(\d{2})-(\d{2})/); return m ? `${m[1]}/${m[2]}` : d; };
 const fmtZ = (v: number) => <span className={Math.abs(v) >= 2.0 ? (v > 0 ? 'text-price-down' : 'text-price-up') : Math.abs(v) >= 1.5 ? 'text-amber-400' : 'text-muted-foreground'}>{v >= 0 ? '+' : ''}{v.toFixed(2)}</span>;
+const toYahooTicker = (code: string) => code.includes('.') ? code : `${code}.T`;
 
 // === Sortable ===
 type SortDir = 'asc' | 'desc' | null;
@@ -173,14 +194,6 @@ const SortHeader = <T,>({ label, field, sortKey, sortDir, toggle, className }: {
 );
 
 // === Layout Components ===
-const StatCard = ({ label, children, sub }: { label: string; children: React.ReactNode; sub?: React.ReactNode }) => (
-  <div className="rounded-xl border border-border bg-card px-3 md:px-4 py-2.5 md:py-3">
-    <div className="text-muted-foreground text-xs md:text-sm mb-1">{label}</div>
-    <div className="text-lg sm:text-xl md:text-2xl font-bold text-right tabular-nums">{children}</div>
-    {sub && <div className="text-[10px] md:text-xs text-right mt-1 text-muted-foreground tabular-nums">{sub}</div>}
-  </div>
-);
-
 const Panel = ({ title, border, children, footer }: { title: React.ReactNode; border?: string; children: React.ReactNode; footer?: React.ReactNode }) => (
   <section className="mb-5">
     <div className={`rounded-xl border ${border || 'border-border'} bg-card overflow-hidden`}>
@@ -204,29 +217,22 @@ const TickerLink = ({ ticker }: { ticker: string }) => (
   </button>
 );
 
-const RuleBadge = ({ rule }: { rule: string }) => {
-  const cls = rule === 'B4' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30'
-    : rule === 'B1' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
-    : rule === 'B3' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
-    : 'bg-purple-500/20 text-purple-400 border-purple-500/30';
-  return <span className={`inline-block min-w-[40px] text-center px-2 py-1 text-xs rounded border ${cls}`}>{rule}</span>;
-};
-
 // === Main ===
 export default function DashboardPage() {
-  const [posData, setPosData] = useState<PositionsResponse | null>(null);
-  const [b4Entry, setB4Entry] = useState<B4EntryResponse | null>(null);
-  const [longRecs, setLongRecs] = useState<LongRecommendationsResponse | null>(null);
-  const [signals, setSignals] = useState<SignalsResponse | null>(null);
   const [pairsData, setPairsData] = useState<PairsResponse | null>(null);
   const [calendarData, setCalendarData] = useState<CalendarResponse | null>(null);
+  const [grokData, setGrokData] = useState<GrokResponse | null>(null);
   const [matrixData, setMatrixData] = useState<StrategyMatrixResponse | null>(null);
+  const [realtimeData, setRealtimeData] = useState<Record<string, RealtimeQuote>>({});
+  const [realtimeLoading, setRealtimeLoading] = useState(false);
+  const [realtimeTimestamp, setRealtimeTimestamp] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
   const buildCalendarCandidates = (cal: CalendarResponse): CalendarCandidate[] => {
     const rows: CalendarCandidate[] = [];
-    const { weekday_edge, sq4, sq_plus1, upcoming, etf_latest, etf1306, next_trading_date } = cal;
+    const { weekday_edge, sq4, sq_plus1, upcoming, etf_latest, etf1306, next_trading_date, sp500_latest } = cal;
+    const targetDate = next_trading_date;
+    if (!targetDate) return [];
     const sqPlus1SegPf = (ret: number): number | null => {
       if (ret > 10) return 1.84; if (ret > 7) return 2.85; if (ret > 5) return 2.09;
       if (ret > 3) return 1.71; if (ret > 2) return 0.44; return null;
@@ -234,13 +240,19 @@ export default function DashboardPage() {
     const wePfMap: Record<string, number | null> = {};
     for (const s of weekday_edge?.stock_stats ?? []) wePfMap[s.code] = s.stats_filtered?.pf ?? null;
     for (const e of weekday_edge?.next_entries ?? []) {
+      if (e.date !== targetDate) continue;
       rows.push({ date: e.date, code: e.code.replace(/0$/, ''), name: e.name,
         strategy: `曜日${e.direction}(${e.dow_label})`, direction: e.direction,
-        pf: wePfMap[e.code] ?? null, execution: '寄成→引成',
+        pf: e.expected_pf ?? wePfMap[e.code] ?? null, execution: e.exit_rule ?? '寄成IN→引成OUT',
         prev_close: e.prev_close ?? null, prev_day_ret: e.prev_day_ret ?? null,
-        excluded: false, exclude_reason: null });
+        excluded: false,
+        exclude_reason: !isUsFilterReady(e.date, sp500_latest?.date)
+          ? 'US判定待ち'
+          : !passesWeekdayUsFilter(e.direction, sp500_latest?.change_pct)
+            ? 'US条件未成立'
+            : e.earnings_alert ?? null });
     }
-    if (sq4?.next_sq4) {
+    if (sq4?.next_sq4?.entry_date === targetDate) {
       const picks = sq4.candidates?.picks;
       if (picks?.length) {
         for (const p of picks) {
@@ -252,7 +264,7 @@ export default function DashboardPage() {
       }
     }
     const sp1Next = sq_plus1?.next_sq_plus1;
-    if (sp1Next?.entry_date) {
+    if (sp1Next?.entry_date === targetDate) {
       const sp1Picks = sp1Next.picks;
       const cmeDir = sp1Next.cme_direction ?? '';
       if (sp1Picks?.length) {
@@ -266,7 +278,7 @@ export default function DashboardPage() {
         }
       }
     }
-    const upcomingEtf = upcoming.filter(ev => ev.flags.some(f => f.includes('買い')));
+    const upcomingEtf = upcoming.filter(ev => ev.date === targetDate && ev.flags.some(f => f.includes('買い')));
     for (const ev of upcomingEtf) {
       const qLabel = ev.flags[0]?.match(/^\dQ/)?.[0] ?? 'Q';
       rows.push({ date: ev.date, code: '1306', name: 'TOPIX連動型上場投信',
@@ -274,29 +286,102 @@ export default function DashboardPage() {
         prev_close: etf_latest?.close ?? null, prev_day_ret: etf_latest?.change_pct ?? null,
         excluded: false, exclude_reason: null });
     }
-    if (rows.length === 0) return [];
-    const ntd = next_trading_date ?? '';
-    const future = ntd ? rows.filter(c => c.date >= ntd) : rows;
-    if (future.length === 0) return [];
-    const nextDate = future.map(c => c.date).sort()[0];
-    return future.filter(c => c.date === nextDate)
-      .sort((a, b) => { if (a.excluded !== b.excluded) return a.excluded ? 1 : -1; return (b.pf ?? 0) - (a.pf ?? 0); });
+    return rows.sort((a, b) => {
+      if (a.excluded !== b.excluded) return a.excluded ? 1 : -1;
+      return (b.pf ?? 0) - (a.pf ?? 0);
+    });
+  };
+
+  const buildGrokCandidates = (grok: GrokResponse | null): GrokStock[] => {
+    if (!grok?.stocks?.length) return [];
+    return grok.stocks
+      .filter((s) => !s.ng && (s.shortable || (s.day_trade && (s.day_trade_available_shares ?? 0) > 0)))
+      .sort((a, b) => {
+        const pfCmp = (b.expected_pf ?? -1) - (a.expected_pf ?? -1);
+        if (pfCmp !== 0) return pfCmp;
+        const pnlCmp = (b.expected_pnl_avg ?? -1_000_000) - (a.expected_pnl_avg ?? -1_000_000);
+        if (pnlCmp !== 0) return pnlCmp;
+        return (a.grok_rank ?? 999) - (b.grok_rank ?? 999);
+      });
+  };
+
+  const buildUnifiedRecommendations = (): UnifiedRecommendation[] => {
+    const rows: UnifiedRecommendation[] = [];
+    const calRows = calendarData ? buildCalendarCandidates(calendarData) : [];
+    for (const c of calRows) {
+      rows.push({
+        source: 'Calendar',
+        date: c.date,
+        code: c.code,
+        name: c.name,
+        direction: c.direction,
+        strategy: c.strategy,
+        pf: c.pf,
+        price: c.prev_close,
+        execution: c.execution,
+        note: c.exclude_reason ?? '',
+        excluded: c.excluded,
+      });
+    }
+
+    for (const p of pairEntries) {
+      const longFirst = p.direction === 'long_tk1';
+      rows.push({
+        source: 'Pair',
+        date: p.signal_date,
+        code: p.tk1.replace('.T', ''),
+        name: p.name1,
+        pairCode: p.tk2.replace('.T', ''),
+        pairName: p.name2,
+        direction: longFirst ? 'L/S' : 'S/L',
+        strategy: `Pair |z| ${p.z_abs.toFixed(2)}`,
+        pf: p.full_pf,
+        price: p.c1,
+        pairPrice: p.c2,
+        execution: '寄成→引成',
+        note: `${p.shares1}:${p.shares2} / 不均衡 ${p.imbalance_pct.toFixed(1)}%`,
+      });
+    }
+
+    for (const g of buildGrokCandidates(grokData)) {
+      rows.push({
+        source: 'Grok',
+        date: null,
+        code: g.ticker.replace('.T', ''),
+        name: g.stock_name,
+        direction: 'SHORT',
+        strategy: g.reason_category ?? 'Grok SHORT',
+        pf: g.expected_pf,
+        rank: g.grok_rank,
+        price: g.close,
+        execution: '寄成→引成',
+        note: `${g.credit_bucket ?? '-'}${g.expected_pnl_avg != null ? ` / 平均${fmt(Math.round(g.expected_pnl_avg))}円` : ''}`,
+      });
+    }
+
+    const sourceOrder: Record<UnifiedRecommendation['source'], number> = { Calendar: 0, Pair: 1, Grok: 2 };
+    return rows
+      .filter((r) => !r.excluded)
+      .sort((a, b) => {
+        const pfCmp = (b.pf ?? -1) - (a.pf ?? -1);
+        if (pfCmp !== 0) return pfCmp;
+        const srcCmp = sourceOrder[a.source] - sourceOrder[b.source];
+        if (srcCmp !== 0) return srcCmp;
+        return (a.rank ?? 999) - (b.rank ?? 999);
+      });
   };
 
   const fetchData = () => {
     setLoading(true);
     Promise.all([
-      fetch(`${API_BASE}/api/dev/granville/positions`).then(r => r.ok ? r.json() : null).catch(() => null),
-      fetch(`${API_BASE}/api/dev/granville/b4_entry`).then(r => r.ok ? r.json() : null).catch(() => null),
-      fetch(`${API_BASE}/api/dev/granville/long-recommendations`).then(r => r.ok ? r.json() : null).catch(() => null),
-      fetch(`${API_BASE}/api/dev/reversal/signals`).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(`${API_BASE}/api/dev/pairs/signals`).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(`${API_BASE}/api/dev/calendar`).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(`${API_BASE}/dev/day-trade-list`).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(`${API_BASE}/api/dev/backtest/strategy-weekday-matrix`).then(r => r.ok ? r.json() : null).catch(() => null),
-    ]).then(([pos, b4, lr, sig, pairs, cal, matrix]) => {
-      setPosData(pos); setB4Entry(b4); setLongRecs(lr); setSignals(sig);
+    ]).then(([pairs, cal, grok, matrix]) => {
       setPairsData(pairs ?? null);
       setCalendarData(cal ?? null);
+      setGrokData(grok ?? null);
       setMatrixData(matrix ?? null);
       setLoading(false);
     });
@@ -304,32 +389,99 @@ export default function DashboardPage() {
 
   useEffect(() => { fetchData(); }, []);
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    try {
-      await Promise.all([
-        fetch(`${API_BASE}/api/dev/granville/refresh`, { method: 'POST' }),
-        fetch(`${API_BASE}/api/dev/reversal/refresh`, { method: 'POST' }),
-        fetch(`${API_BASE}/api/dev/pairs/refresh`, { method: 'POST' }),
-        fetch(`${API_BASE}/api/dev/calendar/refresh`, { method: 'POST' }).catch(() => null),
-      ]);
-      fetchData();
-    } finally { setRefreshing(false); }
-  };
-
-  // Positions from hold_stocks
-  const exits = posData?.exits || [];
-  const active = posData?.positions || [];
-  const totalPnl = active.reduce((s, p) => s + p.unrealized_yen, 0);
-
-  // VI from b4_entry
-  const vi = b4Entry?.vi ?? null;
+  const pairEntriesAll = pairsData?.entry ?? pairsData?.hot ?? [];
+  const pairEntries = pairEntriesAll.slice().sort((a, b) => b.z_abs - a.z_abs).slice(0, 3);
+  const pairEntryCount = pairEntries.length;
+  const grokCandidates = buildGrokCandidates(grokData);
+  const unifiedRecommendations = buildUnifiedRecommendations();
+  const realtimeTickers = Array.from(new Set(unifiedRecommendations.flatMap((r) => [
+    toYahooTicker(r.code),
+    ...(r.pairCode ? [toYahooTicker(r.pairCode)] : []),
+  ])));
+  const hasMatrix =
+    Boolean(matrixData?.weekdays?.length) &&
+    Boolean(matrixData?.strategies?.grok_short?.by_weekday) &&
+    Boolean(matrixData?.strategies?.weekday_edge?.by_weekday) &&
+    Boolean(matrixData?.strategies?.pairs?.by_weekday);
 
   // Sortable hooks
-  const exitSort = useSortable<Position>(exits, 'unrealized_pct');
-  const activeSort = useSortable<Position>(active, 'unrealized_pct');
-  const bearishSort = useSortable<Signal>(signals?.bearish || [], 'body_pct');
-  const pairSort = useSortable<PairSignal>(pairsData?.entry || [], 'z_abs');
+  const pairSort = useSortable<PairSignal>(pairEntries, 'z_abs');
+
+  const fetchRealtime = async (force = false) => {
+    if (realtimeTickers.length === 0) return;
+    setRealtimeLoading(true);
+    try {
+      const url = `/api/realtime?tickers=${encodeURIComponent(realtimeTickers.join(','))}${force ? '&force=true' : ''}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`realtime fetch failed: ${res.status}`);
+      const json = await res.json();
+      const quotes = Array.isArray(json?.data) ? json.data : [];
+      const map: Record<string, RealtimeQuote> = {};
+      quotes.forEach((q: any) => {
+        if (!q?.ticker) return;
+        map[q.ticker] = {
+          price: q.price ?? null,
+          open: q.open ?? null,
+          marketState: q.marketState ?? null,
+          marketTime: q.marketTime ?? null,
+        };
+      });
+      setRealtimeData(map);
+      setRealtimeTimestamp(json.timestamp ? new Date(json.timestamp).toLocaleTimeString('ja-JP') : null);
+    } catch (err) {
+      console.error('リアルタイム取得エラー:', err);
+    } finally {
+      setRealtimeLoading(false);
+    }
+  };
+
+  const hasOpenedToday = (rt: RealtimeQuote | undefined) => {
+    if (!rt || rt.price === null || rt.open === null || rt.open <= 0) return false;
+    const now = new Date();
+    const jst = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' }));
+    const jstTime = jst.getHours() * 60 + jst.getMinutes();
+    const jstDay = jst.getDay();
+    const isWeekday = jstDay >= 1 && jstDay <= 5;
+    const isZaraba = isWeekday && jstTime >= 540 && jstTime <= 930;
+    if (isZaraba && rt.marketTime) {
+      const mt = new Date(rt.marketTime);
+      const mtJst = new Date(mt.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' }));
+      if (mtJst.toDateString() !== jst.toDateString()) return false;
+    }
+    return true;
+  };
+
+  const renderPriceCell = (r: UnifiedRecommendation) => (
+    <span>
+      {r.price != null ? r.price.toLocaleString('ja-JP', { maximumFractionDigits: 1 }) : '—'}
+      {r.pairCode && (
+        <>
+          <span className="text-muted-foreground mx-1">/</span>
+          {r.pairPrice != null ? r.pairPrice.toLocaleString('ja-JP', { maximumFractionDigits: 1 }) : '—'}
+        </>
+      )}
+    </span>
+  );
+
+  const renderOpenDiffValue = (code: string) => {
+    const rt = realtimeData[toYahooTicker(code)];
+    if (!hasOpenedToday(rt)) return <span className="text-muted-foreground">-</span>;
+    const diff = (rt!.price as number) - (rt!.open as number);
+    const cls = diff > 0 ? 'text-emerald-400' : diff < 0 ? 'text-rose-400' : 'text-muted-foreground';
+    return <span className={cls}>{diff > 0 ? '+' : ''}{diff.toLocaleString('ja-JP', { maximumFractionDigits: 1 })}</span>;
+  };
+
+  const renderOpenDiffCell = (r: UnifiedRecommendation) => (
+    <span>
+      {renderOpenDiffValue(r.code)}
+      {r.pairCode && (
+        <>
+          <span className="text-muted-foreground mx-1">/</span>
+          {renderOpenDiffValue(r.pairCode)}
+        </>
+      )}
+    </span>
+  );
 
   if (loading) {
     return (
@@ -356,22 +508,88 @@ export default function DashboardPage() {
           <div>
             <h1 className="text-xl font-bold text-foreground">Trading Dashboard</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Granville + Bearish Reversal + Pairs
-              {b4Entry?.date ? ` (${b4Entry.date})` : ''}
+              Grok + Calendar + Pair
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <button type="button" onClick={handleRefresh} disabled={refreshing}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-border/40 rounded-lg hover:bg-muted/20 transition-colors disabled:opacity-50">
-              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-              更新
+            <button type="button" onClick={() => fetchRealtime(true)} disabled={realtimeLoading || realtimeTickers.length === 0}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-500/20 text-sky-400 text-xs font-medium hover:bg-sky-500/30 transition-colors whitespace-nowrap disabled:opacity-50">
+              <RefreshCw className={`w-3.5 h-3.5 ${realtimeLoading ? 'animate-spin' : ''}`} />
+              寄付
+              {realtimeTimestamp && <span className="text-sky-400/60 ml-1">{realtimeTimestamp}</span>}
             </button>
             <DevNavLinks />
           </div>
         </header>
 
+        {/* ===== Unified Recommendations ===== */}
+        <Panel title={
+          <div className="flex items-center gap-2">
+            <h2 className="text-base md:text-lg font-semibold">推奨銘柄一覧</h2>
+            <span className="text-xs text-muted-foreground">Grok / Calendar / Pair をPF順に統合</span>
+            {unifiedRecommendations.length > 0 && (
+              <span className="ml-auto text-xs tabular-nums text-primary">{unifiedRecommendations.length}件</span>
+            )}
+          </div>
+        } border={unifiedRecommendations.length > 0 ? 'border-primary/40' : undefined}>
+          {unifiedRecommendations.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-[760px] md:w-full text-sm md:text-base">
+                <thead>
+                  <tr className="text-foreground border-b border-border/40 bg-muted/30">
+                    <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">種別</th>
+                    <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">tk1/銘柄</th>
+                    <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">tk1名</th>
+                    <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">tk2/補足</th>
+                    <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">方向</th>
+                    <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">理由</th>
+                    <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">PF</th>
+                    <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">終値</th>
+                    <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">寄付差</th>
+                    <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">執行</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/30">
+                  {unifiedRecommendations.map((r, i) => (
+                    <tr key={`${r.source}-${r.code}-${r.pairCode ?? ''}-${i}`} className="hover:bg-muted/10">
+                      <td className="px-2 py-2.5 whitespace-nowrap">
+                        <span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${
+                          r.source === 'Calendar' ? 'bg-teal-500/20 text-teal-400' :
+                          r.source === 'Pair' ? 'bg-blue-500/20 text-blue-400' :
+                          'bg-amber-500/20 text-amber-400'
+                        }`}>
+                          {r.source}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2.5 tabular-nums whitespace-nowrap"><TickerLink ticker={`${r.code}.T`} /></td>
+                      <td className="px-2 py-2.5 text-foreground whitespace-nowrap">{r.name}</td>
+                      <td className="px-2 py-2.5 text-muted-foreground whitespace-nowrap">
+                        {r.pairCode ? <><TickerLink ticker={`${r.pairCode}.T`} /> <span className="ml-1">{r.pairName}</span></> : r.note}
+                      </td>
+                      <td className="px-2 py-2.5 text-center whitespace-nowrap">
+                        <span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${
+                          r.direction.includes('LONG') || r.direction.startsWith('L') ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'
+                        }`}>{r.direction}</span>
+                      </td>
+                      <td className="px-2 py-2.5 text-muted-foreground whitespace-nowrap">{r.strategy}</td>
+                      <td className={`px-2 py-2.5 text-right tabular-nums whitespace-nowrap ${r.pf != null && r.pf >= 1.5 ? 'text-teal-400' : r.pf != null && r.pf < 1 ? 'text-rose-400' : ''}`}>
+                        {r.pf?.toFixed(2) ?? '—'}
+                      </td>
+                      <td className="px-2 py-2.5 text-right tabular-nums text-muted-foreground whitespace-nowrap">{renderPriceCell(r)}</td>
+                      <td className="px-2 py-2.5 text-right tabular-nums whitespace-nowrap">{renderOpenDiffCell(r)}</td>
+                      <td className="px-2 py-2.5 text-muted-foreground whitespace-nowrap">{r.execution}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <EmptyState message="統合推奨候補なし" />
+          )}
+        </Panel>
+
         {/* ===== Strategy × Weekday Matrix ===== */}
-        {matrixData && (
+        {matrixData && hasMatrix && (
           <Panel title={
             <div className="flex items-center gap-2">
               <h2 className="text-base md:text-lg font-semibold">戦略×曜日 PFマトリクス</h2>
@@ -420,7 +638,7 @@ export default function DashboardPage() {
               </table>
             </div>
             {(() => {
-              const cal = matrixData.strategies.calendar.summary;
+              const cal = matrixData.strategies.calendar?.summary ?? {};
               return (
                 <div className="px-4 py-2.5 border-t border-border/40 flex flex-wrap gap-4 text-xs text-muted-foreground">
                   {cal.sq4 && <span>SQ-4: PF{cal.sq4.pf?.toFixed(2)} (N={cal.sq4.n})</span>}
@@ -431,332 +649,6 @@ export default function DashboardPage() {
             })()}
           </Panel>
         )}
-
-        {/* ===== Market Summary ===== */}
-        {(() => {
-          const regime = longRecs?.regime;
-          const cmeGap = regime?.cme_gap ?? b4Entry?.cme_gap;
-          return (
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
-              <StatCard label={`N225 トレンド${b4Entry?.date ? ` ${b4Entry.date}` : ''}`} sub={regime?.n225_close != null && regime?.n225_sma20 != null ? `N225: ${fmt(regime.n225_close)} / SMA20: ${fmt(regime.n225_sma20)}${regime?.n225_ret20 != null ? ` / ret20: ${regime.n225_ret20 >= 0 ? '+' : ''}${regime.n225_ret20.toFixed(1)}%` : ''}` : undefined}>
-                <span className={regime?.n225_above_sma20 ? 'text-price-up' : regime?.n225_above_sma20 === false ? 'text-price-down' : 'text-muted-foreground'}>
-                  {regime?.n225_above_sma20 != null ? (regime.n225_above_sma20 ? 'Uptrend' : 'Downtrend') : '-'}
-                </span>
-              </StatCard>
-              <StatCard label="CME gap" sub={regime?.cme_close != null && regime?.n225_close != null ? `CME: ${fmt(regime.cme_close)} / N225: ${fmt(regime.n225_close)}${b4Entry?.n225_chg != null ? ` / 前日比: ${b4Entry.n225_chg >= 0 ? '+' : ''}${b4Entry.n225_chg.toFixed(2)}%` : ''}` : cmeGap != null && Math.abs(cmeGap) <= 0.5 ? 'flat (±0.5%)' : undefined}>
-                <span className={cmeGap != null ? (cmeGap >= 0 ? 'text-price-up' : 'text-price-down') : 'text-muted-foreground'}>
-                  {cmeGap != null ? `${cmeGap >= 0 ? '+' : ''}${cmeGap.toFixed(2)}%` : '-'}
-                </span>
-              </StatCard>
-              <StatCard label="日経VI" sub={vi !== null && vi >= 30 ? 'H1発動圏' : vi !== null && vi >= 25 ? 'B4発動圏' : vi !== null && vi >= 20 ? '逆張り有効' : undefined}>
-                <span className={vi !== null && vi >= 30 ? 'text-price-down' : vi !== null && vi >= 25 ? 'text-amber-400' : vi !== null && vi >= 20 ? 'text-price-up' : 'text-muted-foreground'}>
-                  {vi ?? '-'}
-                </span>
-              </StatCard>
-              <StatCard label="含み損益" sub={`${active.length}件保有 / Exit: ${exits.length}件`}>
-                <span className={totalPnl >= 0 ? 'text-price-up' : 'text-price-down'}>{totalPnl >= 0 ? '+' : ''}{fmt(totalPnl)}円</span>
-              </StatCard>
-              <StatCard label="本日シグナル" sub={`G: ${(longRecs?.count ?? 0) + (b4Entry?.selected?.length ?? 0)} / 陰線: ${signals?.bearish_count ?? 0} / P: ${pairsData?.entry_count ?? 0}`}>
-                <span className="text-foreground">{(longRecs?.count ?? 0) + (b4Entry?.selected?.length ?? 0) + (signals?.bearish_count ?? 0) + (pairsData?.entry_count ?? 0)}</span>
-              </StatCard>
-            </div>
-          );
-        })()}
-
-        {/* ===== Exit Candidates ===== */}
-        {exits.length > 0 && (
-          <Panel title={
-            <h2 className="text-base md:text-lg font-semibold text-amber-400">
-              Exit候補 — {exits.length}件
-            </h2>
-          } border="border-amber-500/40">
-            <div className="overflow-x-auto">
-              <table className="min-w-[640px] md:w-full text-sm md:text-base">
-                <thead><tr className="text-foreground border-b border-border/40 bg-muted/30">
-                  <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">売買</th>
-                  <SortHeader<Position> label="コード" field="ticker" {...exitSort} className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap" />
-                  <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">銘柄</th>
-                  <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">建日</th>
-                  <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">日数/MH</th>
-                  <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">建単価</th>
-                  <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">現在値</th>
-                  <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">発火ライン</th>
-                  <SortHeader<Position> label="含み%" field="unrealized_pct" {...exitSort} className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap" />
-                  <SortHeader<Position> label="含み損益" field="unrealized_yen" {...exitSort} className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap" />
-                  <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">アクション</th>
-                </tr></thead>
-                <tbody className="divide-y divide-border/30">
-                  {exitSort.sorted.map((p, i) => (
-                    <tr key={`exit-${p.ticker}-${i}`} className="hover:bg-amber-500/5">
-                      <td className="px-2 py-2.5 text-center">
-                        <span className={`inline-block min-w-[40px] text-center px-2 py-1 text-xs rounded border ${p.direction === '売建' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'}`}>
-                          {p.direction || '-'}
-                        </span>
-                      </td>
-                      <td className="px-2 py-2.5 tabular-nums"><TickerLink ticker={p.ticker} /></td>
-                      <td className="px-2 py-2.5 text-foreground max-w-[140px] truncate">{p.stock_name}</td>
-                      <td className="px-2 py-2.5 text-right tabular-nums text-muted-foreground text-xs">{p.entry_date ? shortDate(p.entry_date) : '-'}</td>
-                      <td className="px-2 py-2.5 text-right tabular-nums text-muted-foreground">{p.hold_days}/{p.max_hold || 15}</td>
-                      <td className="px-2 py-2.5 text-right tabular-nums text-muted-foreground whitespace-nowrap">&yen;{fmt(p.entry_price)}</td>
-                      <td className="px-2 py-2.5 text-right tabular-nums text-foreground whitespace-nowrap">&yen;{fmt(p.current_price)}</td>
-                      <td className={`px-2 py-2.5 text-right tabular-nums font-semibold ${p.high_20d > 0 ? 'text-amber-400' : 'text-muted-foreground'}`}>
-                        {p.high_20d > 0 ? `¥${fmt(Math.round(p.high_20d))}` : '-'}
-                      </td>
-                      <td className={`px-2 py-2.5 text-right tabular-nums ${p.unrealized_pct >= 0 ? 'text-price-up' : 'text-price-down'}`}>{fmtPct(p.unrealized_pct, 2)}</td>
-                      <td className="px-2 py-2.5 text-right tabular-nums">{fmtPnl(p.unrealized_yen)}</td>
-                      <td className="px-2 py-2.5 text-center">
-                        {p.hold_days >= (p.max_hold || 15) ? (
-                          <span className="px-2 py-0.5 rounded text-xs font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30">損切り</span>
-                        ) : p.exit_type === 'high_update' ? (
-                          <span className="px-2 py-0.5 rounded text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">利確</span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">{p.exit_type || '-'}</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Panel>
-        )}
-
-        {/* ===== Active Positions ===== */}
-        {active.length > 0 && (
-          <Panel title={`保有ポジション — ${active.length}件 (${posData?.as_of || '-'})`}
-            footer={<span>合計含み損益: <span className="font-bold tabular-nums ml-1">{fmtPnl(totalPnl)}</span></span>}>
-            <div className="overflow-x-auto">
-              <table className="min-w-[640px] md:w-full text-sm md:text-base">
-                <thead><tr className="text-foreground border-b border-border/40 bg-muted/30">
-                  <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">売買</th>
-                  <SortHeader<Position> label="コード" field="ticker" {...activeSort} className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap" />
-                  <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">銘柄</th>
-                  <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">信用区分</th>
-                  <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">建日</th>
-                  <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">日数/MH</th>
-                  <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">建単価</th>
-                  <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">現在値</th>
-                  <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">発火ライン</th>
-                  <SortHeader<Position> label="含み%" field="unrealized_pct" {...activeSort} className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap" />
-                  <SortHeader<Position> label="含み損益" field="unrealized_yen" {...activeSort} className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap" />
-                </tr></thead>
-                <tbody className="divide-y divide-border/30">
-                  {activeSort.sorted.map((p, i) => (
-                    <tr key={`pos-${p.ticker}-${i}`} className="hover:bg-muted/5">
-                      <td className="px-2 py-2.5 text-center">
-                        <span className={`inline-block min-w-[40px] text-center px-2 py-1 text-xs rounded border ${p.direction === '売建' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'}`}>
-                          {p.direction || '-'}
-                        </span>
-                      </td>
-                      <td className="px-2 py-2.5 tabular-nums"><TickerLink ticker={p.ticker} /></td>
-                      <td className="px-2 py-2.5 text-foreground max-w-[140px] truncate">{p.stock_name}</td>
-                      <td className="px-2 py-2.5 text-center text-xs text-muted-foreground">{p.margin_type}</td>
-                      <td className="px-2 py-2.5 text-right tabular-nums text-muted-foreground text-xs">{p.entry_date ? shortDate(p.entry_date) : '-'}</td>
-                      <td className="px-2 py-2.5 text-right tabular-nums text-muted-foreground">{p.hold_days}/{p.max_hold || 15}</td>
-                      <td className="px-2 py-2.5 text-right tabular-nums text-muted-foreground whitespace-nowrap">&yen;{fmt(p.entry_price)}</td>
-                      <td className="px-2 py-2.5 text-right tabular-nums text-foreground whitespace-nowrap">&yen;{fmt(p.current_price)}</td>
-                      <td className={`px-2 py-2.5 text-right tabular-nums font-semibold ${p.high_20d > 0 ? 'text-amber-400' : 'text-muted-foreground'}`}>
-                        {p.high_20d > 0 ? `¥${fmt(Math.round(p.high_20d))}` : '-'}
-                      </td>
-                      <td className={`px-2 py-2.5 text-right tabular-nums ${p.unrealized_pct >= 0 ? 'text-price-up' : 'text-price-down'}`}>{fmtPct(p.unrealized_pct, 2)}</td>
-                      <td className="px-2 py-2.5 text-right tabular-nums">{fmtPnl(p.unrealized_yen)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Panel>
-        )}
-
-        {/* ===== B1-B4 エントリー判定 (Granville統合) ===== */}
-        {(() => {
-          const regime = longRecs?.regime;
-          const lrCount = longRecs?.count ?? 0;
-          const gradeLabel = (g: string) => g === 'H1' ? 'VI≥30 反発' : g === 'H2' ? '上昇+CME静' : g === 'H3' ? '急落後B1' : g;
-          const gradeCls = (g: string) => g === 'H1' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30'
-            : g === 'H2' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-            : g === 'B4' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
-            : 'bg-amber-500/20 text-amber-400 border-amber-500/30';
-          const b4Decision = b4Entry?.decision;
-          const hasB4 = b4Decision === 'strong_entry' || b4Decision === 'entry' || b4Decision === 'consider';
-          const totalEntries = lrCount + (b4Entry?.selected?.length ?? 0);
-          const borderColor = totalEntries > 0 ? 'border-emerald-500/30' : hasB4 ? 'border-amber-500/30' : undefined;
-
-          return (
-            <Panel title={
-              <div className="flex items-center justify-between">
-                <h2 className="text-base md:text-lg font-semibold">
-                  <a href="/dev/granville" className="hover:text-primary transition-colors">B1-B4 エントリー判定</a>
-                  {b4Entry?.date && <span className="ml-2 text-sm font-normal text-muted-foreground">({b4Entry.date})</span>}
-                </h2>
-                {totalEntries > 0
-                  ? <span className="px-3 py-1 rounded-full text-sm font-bold border text-price-up bg-emerald-500/10 border-emerald-500/30">{totalEntries}件</span>
-                  : <span className="px-3 py-1 rounded-full text-sm border text-muted-foreground bg-muted/10 border-border/40">候補なし</span>
-                }
-              </div>
-            } border={borderColor}>
-              {/* フィルター判定バッジ */}
-              <div className="px-4 pb-2 flex flex-wrap gap-1.5">
-                {regime?.vi != null && regime.vi >= 30 && <span className="px-1.5 py-0.5 text-xs rounded border bg-rose-500/20 text-rose-400 border-rose-500/30">H1可</span>}
-                {regime?.n225_above_sma20 && regime?.cme_gap != null && Math.abs(regime.cme_gap) <= 0.5 && <span className="px-1.5 py-0.5 text-xs rounded border bg-emerald-500/20 text-emerald-400 border-emerald-500/30">H2可</span>}
-                {regime?.n225_ret20 != null && regime.n225_ret20 < -5 && <span className="px-1.5 py-0.5 text-xs rounded border bg-amber-500/20 text-amber-400 border-amber-500/30">H3可</span>}
-                {b4Entry && b4Entry.total_b4_signals > 0 && <span className="px-1.5 py-0.5 text-xs rounded border bg-blue-500/20 text-blue-400 border-blue-500/30">B4 {b4Entry.total_b4_signals}件</span>}
-                {b4Entry?.excluded_rules && b4Entry.excluded_rules.length > 0 && <span className="px-1.5 py-0.5 text-xs rounded border bg-rose-500/10 text-rose-400 border-rose-500/30">除外: {b4Entry.excluded_rules.join(', ')}</span>}
-              </div>
-
-              {/* シグナル・フィルター説明（折りたたみ） */}
-              <details className="px-4 pb-3">
-                <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground/70 select-none">シグナル・フィルター定義</summary>
-                <div className="mt-2 space-y-3 text-xs leading-relaxed">
-                  <div>
-                    <div className="font-medium text-foreground/80 mb-1">Granville買いシグナル</div>
-                    <table className="w-full border-collapse">
-                      <tbody className="text-muted-foreground">
-                        <tr className="border-b border-border/20"><td className="py-1 pr-3 font-medium text-foreground/70 w-10">B1</td><td className="py-1">MA上抜けブレイク — 前日SMA20下→当日上抜け、SMA上昇中</td></tr>
-                        <tr className="border-b border-border/20"><td className="py-1 pr-3 font-medium text-foreground/70">B2</td><td className="py-1">上昇中の押し目 — SMA上昇中、乖離-5~0%、陽線、SMA下</td></tr>
-                        <tr className="border-b border-border/20"><td className="py-1 pr-3 font-medium text-foreground/70">B3</td><td className="py-1">MA接近で反発 — SMA上昇中+上、乖離0~3%で縮小中、陽線</td></tr>
-                        <tr><td className="py-1 pr-3 font-medium text-foreground/70">B4</td><td className="py-1">暴落リバウンド — SMA20乖離 &lt; -15%、陽線、急騰フィルター付き</td></tr>
-                      </tbody>
-                    </table>
-                  </div>
-                  <div>
-                    <div className="font-medium text-foreground/80 mb-1">ロングフィルター（B1-B3に適用）</div>
-                    <table className="w-full border-collapse">
-                      <tbody className="text-muted-foreground">
-                        <tr className="border-b border-border/20"><td className="py-1 pr-3 w-10"><span className="px-1 py-0.5 rounded border bg-rose-500/20 text-rose-400 border-rose-500/30">H1</span></td><td className="py-1">VI&ge;30 + B1 &rarr; 9日保有 — 恐怖局面でのMA上抜け反発</td><td className="py-1 text-right tabular-nums">PF 2.13</td></tr>
-                        <tr className="border-b border-border/20"><td className="py-1 pr-3"><span className="px-1 py-0.5 rounded border bg-emerald-500/20 text-emerald-400 border-emerald-500/30">H2</span></td><td className="py-1">N225&gt;SMA20 + CME flat(&plusmn;0.5%) + B3 &rarr; 9日保有 — 静かな上昇トレンドの押し目</td><td className="py-1 text-right tabular-nums">PF 2.67</td></tr>
-                        <tr><td className="py-1 pr-3"><span className="px-1 py-0.5 rounded border bg-amber-500/20 text-amber-400 border-amber-500/30">H3</span></td><td className="py-1">N225 ret20&lt;-5% + B1 &rarr; 4日保有 — 急落後のブレイク反発</td><td className="py-1 text-right tabular-nums">PF 2.38</td></tr>
-                      </tbody>
-                    </table>
-                  </div>
-                  <div>
-                    <div className="font-medium text-foreground/80 mb-1">B4エントリー条件</div>
-                    <p className="text-muted-foreground">VI&ge;25で発動。乖離深い順に資金枠内で選定。出口: 直近高値更新&rarr;翌寄付 or MH15。PF 2.79（全期間）</p>
-                    <p className="text-muted-foreground mt-0.5">除外: VI30-40&times;CME膠着 / VI30-40&times;GU / N225&lt;-3%</p>
-                  </div>
-                </div>
-              </details>
-
-              {/* 統合テーブル（グレード優先） */}
-              {(() => {
-                const gradeOrder: Record<string, number> = { B4: 0, H2: 1, H3: 2, H1: 3 };
-                type UnifiedRow = { ticker: string; stock_name: string; sector: string; rule: string; grade: string; close: number; dev_from_sma20: number; hold_days: number; max_cost?: number; };
-                const rows: UnifiedRow[] = [];
-                if (longRecs) {
-                  for (const r of longRecs.long_recommendations) {
-                    rows.push({ ticker: r.ticker, stock_name: r.stock_name, sector: r.sector, rule: r.rule, grade: r.long_grade, close: r.close, dev_from_sma20: r.dev_from_sma20, hold_days: r.hold_days });
-                  }
-                }
-                if (b4Entry?.selected) {
-                  for (const c of b4Entry.selected) {
-                    rows.push({ ticker: c.ticker, stock_name: c.stock_name, sector: c.sector, rule: 'B4', grade: 'B4', close: c.close, dev_from_sma20: c.dev_from_sma20, hold_days: 15, max_cost: c.max_cost });
-                  }
-                }
-                rows.sort((a, b) => (gradeOrder[a.grade] ?? 99) - (gradeOrder[b.grade] ?? 99));
-
-                if (rows.length === 0) return (
-                  <div className="px-4 py-4 text-center text-muted-foreground text-sm border-t border-border/20">
-                    {b4Decision === 'excluded' ? 'B4除外ルール該当' :
-                     b4Decision === 'wait' ? `B4待機 (VI=${b4Entry?.vi} < 25)` :
-                     lrCount === 0 && (!b4Entry || b4Entry.total_b4_signals === 0) ? 'B1-B3フィルター不成立 / B4シグナルなし' :
-                     'エントリー候補なし'}
-                  </div>
-                );
-
-                return (
-                  <div className="overflow-x-auto border-t border-border/20">
-                    <table className="min-w-[640px] md:w-full text-sm md:text-base">
-                            <thead>
-                        <tr className="text-foreground border-b border-border/40 bg-muted/30">
-                          <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">ルール</th>
-                          <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">コード</th>
-                          <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">銘柄</th>
-                          <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">セクター</th>
-                          <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">グレード</th>
-                          <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">終値</th>
-                          <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">SMA20乖離</th>
-                          <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">保有</th>
-                          {rows.some(r => r.max_cost) && <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">取引上限</th>}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border/30">
-                        {rows.map((r, i) => (
-                          <tr key={`${r.ticker}-${r.rule}`} className="hover:bg-muted/5">
-                            <td className="px-2 py-2.5 text-center"><RuleBadge rule={r.rule} /></td>
-                            <td className="px-2 py-2.5 tabular-nums"><TickerLink ticker={r.ticker} /></td>
-                            <td className="px-2 py-2.5 text-foreground">{r.stock_name}</td>
-                            <td className="px-2 py-2.5 text-muted-foreground text-xs max-w-[120px] truncate">{r.sector}</td>
-                            <td className="px-2 py-2.5 text-center">
-                              <span className={`inline-block min-w-[40px] text-center px-2 py-1 text-xs rounded border ${gradeCls(r.grade)}`}>
-                                {r.grade === 'B4' ? 'B4' : `${r.grade} ${gradeLabel(r.grade)}`}
-                              </span>
-                            </td>
-                            <td className="px-2 py-2.5 text-right tabular-nums">&yen;{r.close.toLocaleString()}</td>
-                            <td className="px-2 py-2.5 text-right tabular-nums">{fmtPct(r.dev_from_sma20, 1)}</td>
-                            <td className="px-2 py-2.5 text-center">{r.hold_days}d</td>
-                            {rows.some(x => x.max_cost) && <td className="px-2 py-2.5 text-right tabular-nums">{r.max_cost ? fmt(r.max_cost) : '-'}</td>}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                );
-              })()}
-            </Panel>
-          );
-        })()}
-
-        {/* ===== Bearish Entry Candidates ===== */}
-        <Panel title={
-          <div className="flex items-center gap-2">
-            <h2 className="text-base md:text-lg font-semibold"><a href="/dev/reversal" className="hover:text-primary transition-colors">大陰線 エントリー候補</a></h2>
-            <span className="text-xs text-muted-foreground">実体 &le; -5% / VI &ge; 20 / &le; &yen;15,000</span>
-            {signals && signals.bearish.length > 0 && (
-              <span className="ml-auto text-xs tabular-nums text-violet-400">{signals.bearish.length}件</span>
-            )}
-          </div>
-        } border={signals && signals.bearish.length > 0 ? 'border-violet-500/40' : undefined}>
-          {signals && signals.bearish.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-[640px] md:w-full text-sm md:text-base">
-                <thead><tr className="text-foreground border-b border-border/40 bg-muted/30">
-                  <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">戦略</th>
-                  <SortHeader<Signal> label="コード" field="ticker" {...bearishSort} className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap" />
-                  <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">銘柄</th>
-                  <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">セクター</th>
-                  <SortHeader<Signal> label="終値" field="close" {...bearishSort} className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap" />
-                  <SortHeader<Signal> label="実体%" field="body_pct" {...bearishSort} className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap" />
-                  <SortHeader<Signal> label="SMA20乖離" field="dev_from_sma20" {...bearishSort} className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap" />
-                  <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">SMA20</th>
-                  <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">推定IN</th>
-                </tr></thead>
-                <tbody className="divide-y divide-border/30">
-                  {bearishSort.sorted.map((s, i) => (
-                    <tr key={s.ticker} className="hover:bg-muted/10">
-                      <td className="px-2 py-2.5 text-center">
-                        <span className="inline-block min-w-[40px] text-center px-2 py-1 text-xs rounded border bg-violet-500/20 text-violet-400 border-violet-500/30">陰線</span>
-                      </td>
-                      <td className="px-2 py-2.5 tabular-nums"><TickerLink ticker={s.ticker} /></td>
-                      <td className="px-2 py-2.5 text-foreground">{s.stock_name}</td>
-                      <td className="px-2 py-2.5 text-muted-foreground text-xs max-w-[120px] truncate">{s.sector}</td>
-                      <td className="text-right px-2 py-2.5 tabular-nums text-muted-foreground whitespace-nowrap">{fmt(s.close)}</td>
-                      <td className="text-right px-2 py-2.5 tabular-nums text-price-down font-semibold">{s.body_pct.toFixed(1)}%</td>
-                      <td className="text-right px-2 py-2.5 tabular-nums text-price-down">{s.dev_from_sma20.toFixed(1)}%</td>
-                      <td className="text-right px-2 py-2.5 tabular-nums text-muted-foreground whitespace-nowrap">{fmt(Math.round(s.sma20))}</td>
-                      <td className="text-right px-2 py-2.5 tabular-nums text-muted-foreground whitespace-nowrap">{fmt(s.entry_price_est)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <EmptyState message={
-              vi !== null && vi < 20
-                ? `VI=${vi} < 20: 平穏相場では大陰線シグナルは発生しません`
-                : '本日の大陰線シグナルなし'
-            } />
-          )}
-        </Panel>
 
         {/* ===== Calendar Entry Candidates ===== */}
         {(() => {
@@ -820,13 +712,13 @@ export default function DashboardPage() {
           <div className="flex items-center gap-2">
             <h2 className="text-base md:text-lg font-semibold"><a href="/dev/pairs" className="hover:text-primary transition-colors">ペア エントリー候補</a></h2>
             <span className="text-xs text-muted-foreground">|z| &ge; 2.0 / 共和分ベース161ペア</span>
-            {pairsData && pairsData.entry.length > 0 && (
-              <span className="ml-auto text-xs tabular-nums text-blue-400">{pairsData.entry.length}件</span>
+            {pairsData && pairEntries.length > 0 && (
+              <span className="ml-auto text-xs tabular-nums text-blue-400">{pairEntries.length}件</span>
             )}
           </div>
-        } border={pairsData && pairsData.entry.length > 0 ? 'border-blue-500/40' : undefined}
-          footer={pairsData ? <span>{pairsData.total}ペア中 {pairsData.entry_count}件エントリー ({pairsData.signal_date})</span> : undefined}>
-          {pairsData && pairsData.entry.length > 0 ? (
+        } border={pairsData && pairEntries.length > 0 ? 'border-blue-500/40' : undefined}
+          footer={pairsData ? <span>{pairsData.total}ペア中 Top{pairEntryCount} / 候補{pairEntriesAll.length}件 ({pairsData.signal_date})</span> : undefined}>
+          {pairsData && pairEntries.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="min-w-[640px] md:w-full text-sm md:text-base">
                 <thead><tr className="text-foreground border-b border-border/40 bg-muted/30">
@@ -879,6 +771,61 @@ export default function DashboardPage() {
             </div>
           ) : (
             <EmptyState message="本日のペアエントリーなし" />
+          )}
+        </Panel>
+
+        {/* ===== Grok Entry Candidates ===== */}
+        <Panel title={
+          <div className="flex items-center gap-2">
+            <h2 className="text-base md:text-lg font-semibold"><a href="/dev/recommendations" className="hover:text-primary transition-colors">Grok エントリー候補</a></h2>
+            <span className="text-xs text-muted-foreground">expected PF / 信用可否 / ML確率</span>
+            {grokCandidates.length > 0 && (
+              <span className="ml-auto text-xs tabular-nums text-amber-400">{grokCandidates.length}件</span>
+            )}
+          </div>
+        } border={grokCandidates.length > 0 ? 'border-amber-500/40' : undefined}
+          footer={grokData ? <span>{grokData.total}件中 {grokCandidates.length}件が実行候補</span> : undefined}>
+          {grokCandidates.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-[720px] md:w-full text-sm md:text-base">
+                <thead>
+                  <tr className="text-foreground border-b border-border/40 bg-muted/30">
+                    <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">Rank</th>
+                    <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">銘柄</th>
+                    <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">銘柄名</th>
+                    <th className="text-center px-2 py-2 text-xs font-medium whitespace-nowrap">方向</th>
+                    <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">終値</th>
+                    <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">期待PF</th>
+                    <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">期待PnL</th>
+                    <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">勝率</th>
+                    <th className="text-right px-2 py-2 text-xs font-medium whitespace-nowrap">上昇確率</th>
+                    <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">信用</th>
+                    <th className="text-left px-2 py-2 text-xs font-medium whitespace-nowrap">理由</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/30">
+                  {grokCandidates.map((g) => (
+                    <tr key={g.ticker} className="hover:bg-muted/10">
+                      <td className="px-2 py-2.5 text-right tabular-nums text-muted-foreground">{g.grok_rank ?? '—'}</td>
+                      <td className="px-2 py-2.5 tabular-nums whitespace-nowrap"><TickerLink ticker={g.ticker} /></td>
+                      <td className="px-2 py-2.5 text-foreground whitespace-nowrap">{g.stock_name}</td>
+                      <td className="px-2 py-2.5 text-center whitespace-nowrap">
+                        <span className="inline-flex px-1.5 py-0.5 rounded text-xs font-medium bg-red-500/20 text-red-400">SHORT</span>
+                      </td>
+                      <td className="px-2 py-2.5 text-right tabular-nums text-muted-foreground whitespace-nowrap">{g.close != null ? fmt(g.close) : '—'}</td>
+                      <td className={`px-2 py-2.5 text-right tabular-nums whitespace-nowrap ${g.expected_pf != null && g.expected_pf >= 1.5 ? 'text-teal-400' : g.expected_pf != null && g.expected_pf < 1 ? 'text-rose-400' : ''}`}>{g.expected_pf?.toFixed(2) ?? '—'}</td>
+                      <td className={`px-2 py-2.5 text-right tabular-nums whitespace-nowrap ${(g.expected_pnl_avg ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{g.expected_pnl_avg != null ? `${g.expected_pnl_avg >= 0 ? '+' : ''}${fmt(Math.round(g.expected_pnl_avg))}` : '—'}</td>
+                      <td className="px-2 py-2.5 text-right tabular-nums text-muted-foreground whitespace-nowrap">{g.expected_wr != null ? `${g.expected_wr.toFixed(1)}%` : '—'}</td>
+                      <td className="px-2 py-2.5 text-right tabular-nums text-muted-foreground whitespace-nowrap">{g.prob_up != null ? `${(g.prob_up * 100).toFixed(0)}%` : g.prob_bin ?? '—'}</td>
+                      <td className="px-2 py-2.5 text-muted-foreground whitespace-nowrap">{g.credit_bucket ?? (g.shortable ? '制度' : 'いちにち')}</td>
+                      <td className="px-2 py-2.5 text-muted-foreground whitespace-nowrap">{g.reason_category ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <EmptyState message={grokData ? 'Grok 実行候補なし' : 'Grok データ取得失敗'} />
           )}
         </Panel>
 

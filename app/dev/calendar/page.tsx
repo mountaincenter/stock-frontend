@@ -10,7 +10,7 @@ interface EtfLatest { date: string; close: number; prev_close: number | null; ch
 interface Trade { entry_date: string; exit_date: string; month: number; year: number; ret_pct: number; entry_price: number | null; exit_price: number | null; pnl_1000: number | null; }
 interface YearSummary { year: number; n: number; wins: number; wr: number; total_ret: number; pnl_1000: number | null; pf: number | null; max_dd: number; }
 interface Stats { total: number; wins: number; losses: number; wr: number; avg: number; median: number; max: number; min: number; pf: number; total_ret: number; pnl_1000: number; }
-interface Sq4Stats { total: number; wins: number; losses: number; wr: number; avg_ret: number; pf: number | null; total_ret: number; total_pnl_100: number; }
+interface Sq4Stats { total: number; wins: number; losses: number; wr: number; avg_ret: number; pf: number | null; total_ret: number; total_pnl_100: number; pnl_100_total?: number; }
 interface Sq4Pick { code: string; name: string; prev_close: number; ret_5d?: number; entry_price: number; exit_price: number; ret_pct: number; pnl_100: number; entry_date?: string; exit_date?: string; }
 interface Sq4Monthly { month: string; entry_date: string; exit_date: string; n_picks: number; total_ret: number; total_pnl_100: number; cme_change: number | null; cme_ret: number | null; picks: Sq4Pick[]; }
 interface SqPlus1Pick { code: string; name: string; prev_close: number; prev_day_ret: number; entry_price: number; exit_price: number; ret_pct: number; pnl_100: number; }
@@ -43,6 +43,19 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
 const getWeekday = (dateStr: string) => WEEKDAYS[new Date(dateStr).getDay()];
+const parseDateUtc = (s: string) => { const [y, m, d] = s.split('-').map(Number); return Date.UTC(y, m - 1, d); };
+const isUsFilterReady = (entryDate: string, spDate?: string | null) => {
+  if (!entryDate || !spDate) return false;
+  const entryMs = parseDateUtc(entryDate);
+  const spMs = parseDateUtc(spDate);
+  const diffDays = Math.floor((entryMs - spMs) / 86400000);
+  const entryDow = new Date(entryMs).getUTCDay();
+  return diffDays === (entryDow === 1 ? 3 : 1);
+};
+const passesWeekdayUsFilter = (direction: string, spPct?: number | null) => {
+  if (spPct == null) return false;
+  return direction === 'LONG' ? spPct <= 0 : spPct >= 0;
+};
 
 const fmtPct = (v: number | null | undefined) => {
   if (v == null) return '—';
@@ -406,6 +419,7 @@ export default function CalendarPage() {
           wePfMap[s.code] = s.stats_filtered?.pf ?? null;
         }
         for (const e of weekday_edge?.next_entries ?? []) {
+          if (!isUsFilterReady(e.date, sp500_latest?.date) || !passesWeekdayUsFilter(e.direction, sp500_latest?.change_pct)) continue;
           candidates.push({
             date: e.date, code: e.code.replace(/0$/, ''), code5: e.code, name: e.name,
             strategy: `曜日${e.direction}(${e.dow_label})`,
@@ -536,15 +550,7 @@ export default function CalendarPage() {
                   const spPct = sp500_latest?.change_pct;
                   const cmeChg = cme_latest?.change;
 
-                  const parseDateUtc = (s: string) => { const [y, m, d] = s.split('-').map(Number); return Date.UTC(y, m - 1, d); };
-                  let usDataReady = false;
-                  if (sp500_latest?.date && nextDate) {
-                    const entryMs = parseDateUtc(nextDate);
-                    const spMs = parseDateUtc(sp500_latest.date);
-                    const diffDays = Math.floor((entryMs - spMs) / 86400000);
-                    const entryDow = new Date(entryMs).getUTCDay();
-                    usDataReady = diffDays === (entryDow === 1 ? 3 : 1);
-                  }
+                  const usDataReady = isUsFilterReady(nextDate, sp500_latest?.date);
 
                   const filterLabel = usDataReady && spPct != null && directions.length > 0
                     ? directions.map(dir => {
@@ -993,7 +999,7 @@ export default function CalendarPage() {
                           <td className="px-1.5 md:px-3 py-1 text-xs md:text-sm text-right tabular-nums hidden md:table-cell">{s.stats_filtered?.wr?.toFixed(1) ?? '—'}%</td>
                           <td className="px-1.5 md:px-3 py-1 text-xs md:text-sm text-right tabular-nums">{s.stats_filtered?.pf?.toFixed(2) ?? '—'}</td>
                           <td className="px-1.5 md:px-3 py-1 text-xs text-muted-foreground hidden lg:table-cell">{s.exit_rule ?? '寄成IN→引成OUT'}</td>
-                          <td className={`px-1.5 md:px-3 py-1 text-xs md:text-sm text-right tabular-nums font-medium ${pnlColor(s.stats_filtered?.total_pnl_100)}`}>{fmtPnl(s.stats_filtered?.total_pnl_100)}</td>
+                          <td className={`px-1.5 md:px-3 py-1 text-xs md:text-sm text-right tabular-nums font-medium ${pnlColor(s.stats_filtered?.pnl_100_total ?? s.stats_filtered?.total_pnl_100)}`}>{fmtPnl(s.stats_filtered?.pnl_100_total ?? s.stats_filtered?.total_pnl_100)}</td>
                         </tr>
                       ))}
                     </tbody>

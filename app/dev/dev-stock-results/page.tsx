@@ -295,7 +295,6 @@ function StockResultsContent() {
           {[
             { key: null, label: '全体' },
             { key: 'grok', label: 'Grok' },
-            { key: 'granville', label: 'Granville' },
             { key: 'llm', label: 'LLM' },
           ].map(({ key, label }) => (
             <button
