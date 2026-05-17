@@ -346,10 +346,22 @@ export default function DayTradeListPage() {
     return `${sign}${profit.toLocaleString()}`;
   };
 
-  const formatPfBasis = (stock: DayTradeStock) => {
-    if (!stock.expected_pf_basis) return "-";
-    const basis = stock.expected_pf_basis.replace("_low_n", "*");
-    return `${basis} n=${stock.expected_pf_n}`;
+  const getPfBasisDisplay = (stock: DayTradeStock) => {
+    if (!stock.expected_pf_basis) return null;
+    const lowN = stock.expected_pf_basis.endsWith("_low_n");
+    const basis = stock.expected_pf_basis.replace("_low_n", "");
+    const n = stock.expected_pf_n ?? 0;
+    const confidence =
+      n >= 50 ? "厚い" :
+      n >= 30 ? "標準" :
+      n >= 20 ? "薄い" :
+      n > 0 ? "参考" :
+      "不足";
+    return {
+      basis,
+      meta: `n=${n} ${confidence}${lowN ? " / fallback" : ""}`,
+      lowN,
+    };
   };
 
   const formatVolume = (vol: number | null) => {
@@ -829,9 +841,20 @@ export default function DayTradeListPage() {
                         }`}>
                           {stock.expected_pf !== null ? stock.expected_pf.toFixed(2) : "-"}
                         </td>
-                        <td className="px-2 py-4 text-left text-xs text-muted-foreground whitespace-nowrap">
+                        <td className="px-2 py-3 text-left text-xs text-muted-foreground whitespace-nowrap">
                           <div title={`avg=${stock.expected_pnl_avg ?? "-"} / WR=${stock.expected_wr ?? "-"}% / ${stock.prob_bin ?? "-"} / ${stock.price_band ?? "-"}`}>
-                            {formatPfBasis(stock)}
+                            {(() => {
+                              const basis = getPfBasisDisplay(stock);
+                              if (!basis) return "-";
+                              return (
+                                <div className="leading-tight">
+                                  <div className="text-foreground/80">{basis.basis}</div>
+                                  <div className={basis.lowN ? "text-amber-400" : "text-muted-foreground"}>
+                                    {basis.meta}
+                                  </div>
+                                </div>
+                              );
+                            })()}
                           </div>
                         </td>
                         <td className={`px-2 py-4 text-right tabular-nums ${
