@@ -312,49 +312,9 @@ export default function DayTradeListPage() {
 
       if (!res.ok) throw new Error("一括更新に失敗しました");
 
-      // ローカル状態を更新
-      setStocks((prev) =>
-        prev.map((s) => {
-          const edited = editedStocks[s.ticker];
-          return edited ? { ...s, ...edited } : s;
-        })
-      );
-
-      // サマリー再計算
-      const updated = stocks.map((s) => {
-        const edited = editedStocks[s.ticker];
-        return edited ? { ...s, ...edited } : s;
-      });
-      const shortableStocks = updated.filter((s) => s.shortable);
-      const dayTradeStocks = updated.filter((s) => s.day_trade && !s.shortable);
-      const dayTradeNonzeroStocks = dayTradeStocks.filter((s) =>
-        s.day_trade_available_shares != null && s.day_trade_available_shares > 0
-      );
-      const totalFundsShortable = shortableStocks.reduce(
-        (sum, s) => sum + (s.max_cost_100 ?? 0), 0
-      );
-      const totalFundsDayTradeNonzero = dayTradeNonzeroStocks.reduce(
-        (sum, s) => sum + (s.max_cost_100 ?? 0), 0
-      );
-      const totalRequiredFunds = updated
-        .filter((s) => !s.ng && (
-          s.shortable || (s.day_trade && s.day_trade_available_shares != null && s.day_trade_available_shares > 0)
-        ))
-        .reduce((sum, s) => sum + (s.max_cost_100 ?? 0), 0);
-
-      setSummary({
-        unchecked: updated.filter((s) => !s.shortable && !s.day_trade && !s.ng).length,
-        shortable: shortableStocks.length,
-        day_trade: dayTradeStocks.length,
-        day_trade_nonzero: dayTradeNonzeroStocks.length,
-        ng: updated.filter((s) => s.ng).length,
-        total_funds_shortable: totalFundsShortable,
-        total_funds_day_trade_nonzero: totalFundsDayTradeNonzero,
-        total_required_funds: totalRequiredFunds,
-      });
-
       setEditedStocks({});
       setBulkEditMode(false);
+      await fetchData();
     } catch (err) {
       alert(err instanceof Error ? err.message : "更新エラー");
     } finally {
