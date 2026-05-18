@@ -113,7 +113,7 @@ export default function DayTradeListPage() {
   const [expandedTicker, setExpandedTicker] = useState<string | null>(null);
   const [historyData, setHistoryData] = useState<Record<string, HistoryRecord[]>>({});
   const [loadingHistory, setLoadingHistory] = useState<string | null>(null);
-  const [sortKey, setSortKey] = useState<keyof DayTradeStock | null>(null);
+  const [sortKey, setSortKey] = useState<keyof DayTradeStock | null>("prob_up");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   // リアルタイム寄付価格
