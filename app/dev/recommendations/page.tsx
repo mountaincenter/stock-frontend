@@ -81,6 +81,8 @@ type ProbBinGroup = {
 
 type ProbBinPfData = {
   view: string;
+  probSource?: string;
+  probColumn?: string;
   probLabels: string[];
   dataRange: { start: string | null; end: string | null; tradingDays: number };
   total: number;
@@ -129,6 +131,7 @@ export default function DayTradeListPage() {
   const [probPfView, setProbPfView] = useState<string>("daily");
   const [probPfPriceFilter, setProbPfPriceFilter] = useState<string>("all");
   const [probPfMarginFilter, setProbPfMarginFilter] = useState<string>("");
+  const [probPfSource, setProbPfSource] = useState<"live" | "wfcv">("live");
   const [probPfLoading, setProbPfLoading] = useState(false);
   const [probPfExpanded, setProbPfExpanded] = useState<Set<string>>(new Set());
 
@@ -157,10 +160,10 @@ export default function DayTradeListPage() {
     }
   };
 
-  const fetchProbPf = useCallback(async (view: string, priceFilter: string, marginFilter: string) => {
+  const fetchProbPf = useCallback(async (view: string, priceFilter: string, marginFilter: string, source: "live" | "wfcv") => {
     setProbPfLoading(true);
     try {
-      const params = new URLSearchParams({ view });
+      const params = new URLSearchParams({ view, prob_source: source });
       if (priceFilter !== "all") {
         const [min, max] = priceFilter.split("-").map(Number);
         params.set("price_min", String(min));
@@ -180,7 +183,7 @@ export default function DayTradeListPage() {
 
   useEffect(() => {
     fetchData();
-    fetchProbPf("daily", "all", "");
+    fetchProbPf("daily", "all", "", "live");
   }, [fetchProbPf]);
 
   const fetchRealtime = useCallback(async (force: boolean = false) => {
@@ -1077,7 +1080,9 @@ export default function DayTradeListPage() {
           <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
           <div className="relative px-4 py-3">
             <div className="flex items-center justify-between mb-3">
-              <div className="text-sm text-muted-foreground font-medium">prob別パフォーマンス（SHORT/SKIP / 残0除外）</div>
+              <div className="text-sm text-muted-foreground font-medium">
+                prob別パフォーマンス（{probPfData?.probSource === "wfcv" ? "WFCV" : "live"} / SHORT/SKIP / 残0除外）
+              </div>
               {probPfData && (
                 <div className="text-sm text-muted-foreground">
                   {probPfData.dataRange.start}～{probPfData.dataRange.end}（{probPfData.dataRange.tradingDays}日 / n={probPfData.total}）
@@ -1086,7 +1091,23 @@ export default function DayTradeListPage() {
             </div>
 
             {/* タブ */}
-            <div className="flex gap-1 mb-3">
+            <div className="flex flex-wrap gap-1 mb-3">
+              {[
+                { key: "live", label: "live" },
+                { key: "wfcv", label: "WFCV" },
+              ].map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => {
+                    const source = key as "live" | "wfcv";
+                    setProbPfSource(source);
+                    fetchProbPf(probPfView, probPfPriceFilter, probPfMarginFilter, source);
+                  }}
+                  className={`px-3 py-1 text-sm rounded-md transition-colors ${probPfSource === key ? "bg-teal-500/20 text-teal-300 font-medium" : "text-muted-foreground hover:bg-muted/30"}`}
+                >
+                  {label}
+                </button>
+              ))}
               {[
                 { key: "daily", label: "日別" },
                 { key: "weekly", label: "週別" },
@@ -1095,7 +1116,7 @@ export default function DayTradeListPage() {
               ].map(({ key, label }) => (
                 <button
                   key={key}
-                  onClick={() => { setProbPfView(key); fetchProbPf(key, probPfPriceFilter, probPfMarginFilter); }}
+                  onClick={() => { setProbPfView(key); fetchProbPf(key, probPfPriceFilter, probPfMarginFilter, probPfSource); }}
                   className={`px-3 py-1 text-sm rounded-md transition-colors ${probPfView === key ? "bg-primary/20 text-primary font-medium" : "text-muted-foreground hover:bg-muted/30"}`}
                 >
                   {label}
@@ -1117,7 +1138,7 @@ export default function DayTradeListPage() {
                 ].map(({ key, label }) => (
                   <button
                     key={key}
-                    onClick={() => { setProbPfPriceFilter(key); fetchProbPf(probPfView, key, probPfMarginFilter); }}
+                    onClick={() => { setProbPfPriceFilter(key); fetchProbPf(probPfView, key, probPfMarginFilter, probPfSource); }}
                     className={`px-2 py-0.5 rounded text-sm transition-colors ${probPfPriceFilter === key ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-muted/30"}`}
                   >
                     {label}
@@ -1133,7 +1154,7 @@ export default function DayTradeListPage() {
                 ].map(({ key, label }) => (
                   <button
                     key={key}
-                    onClick={() => { setProbPfMarginFilter(key); fetchProbPf(probPfView, probPfPriceFilter, key); }}
+                    onClick={() => { setProbPfMarginFilter(key); fetchProbPf(probPfView, probPfPriceFilter, key, probPfSource); }}
                     className={`px-2 py-0.5 rounded text-sm transition-colors ${probPfMarginFilter === key ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-muted/30"}`}
                   >
                     {label}
