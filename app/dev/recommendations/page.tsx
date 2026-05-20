@@ -131,7 +131,7 @@ export default function DayTradeListPage() {
   const [probPfView, setProbPfView] = useState<string>("daily");
   const [probPfPriceFilter, setProbPfPriceFilter] = useState<string>("all");
   const [probPfMarginFilter, setProbPfMarginFilter] = useState<string>("");
-  const [probPfSource, setProbPfSource] = useState<"live" | "wfcv">("live");
+  const [probPfSource, setProbPfSource] = useState<"hybrid" | "live" | "wfcv">("hybrid");
   const [probPfLoading, setProbPfLoading] = useState(false);
   const [probPfExpanded, setProbPfExpanded] = useState<Set<string>>(new Set());
 
@@ -160,7 +160,7 @@ export default function DayTradeListPage() {
     }
   };
 
-  const fetchProbPf = useCallback(async (view: string, priceFilter: string, marginFilter: string, source: "live" | "wfcv") => {
+  const fetchProbPf = useCallback(async (view: string, priceFilter: string, marginFilter: string, source: "hybrid" | "live" | "wfcv") => {
     setProbPfLoading(true);
     try {
       const params = new URLSearchParams({ view, prob_source: source });
@@ -183,7 +183,7 @@ export default function DayTradeListPage() {
 
   useEffect(() => {
     fetchData();
-    fetchProbPf("daily", "all", "", "live");
+    fetchProbPf("daily", "all", "", "hybrid");
   }, [fetchProbPf]);
 
   const fetchRealtime = useCallback(async (force: boolean = false) => {
@@ -1081,7 +1081,7 @@ export default function DayTradeListPage() {
           <div className="relative px-4 py-3">
             <div className="flex items-center justify-between mb-3">
               <div className="text-sm text-muted-foreground font-medium">
-                prob別パフォーマンス（{probPfData?.probSource === "wfcv" ? "WFCV" : "live"} / SHORT/SKIP / 残0除外）
+                prob別パフォーマンス（{probPfData?.probSource === "wfcv" ? "WFCV" : probPfData?.probSource === "live" ? "live" : "hybrid"} / SHORT/SKIP / 残0除外）
               </div>
               {probPfData && (
                 <div className="text-sm text-muted-foreground">
@@ -1093,13 +1093,14 @@ export default function DayTradeListPage() {
             {/* タブ */}
             <div className="flex flex-wrap gap-1 mb-3">
               {[
+                { key: "hybrid", label: "hybrid" },
                 { key: "live", label: "live" },
                 { key: "wfcv", label: "WFCV" },
               ].map(({ key, label }) => (
                 <button
                   key={key}
                   onClick={() => {
-                    const source = key as "live" | "wfcv";
+                    const source = key as "hybrid" | "live" | "wfcv";
                     setProbPfSource(source);
                     fetchProbPf(probPfView, probPfPriceFilter, probPfMarginFilter, source);
                   }}
