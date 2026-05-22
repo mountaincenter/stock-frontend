@@ -17,6 +17,12 @@ interface PairSignal {
   shares1: number; shares2: number;
   notional1: number; notional2: number;
   imbalance_pct: number;
+  ret1_tk1?: number; ret1_tk2?: number;
+  ret1_spread_abs?: number;
+  earnings_near?: boolean;
+  risk_ok?: boolean;
+  risk_model?: string;
+  risk_skip_reason?: string;
   full_pf: number; full_n: number;
   revert_1d: number;
   pair_validity?: string;
@@ -128,6 +134,24 @@ const ValidityBadge = ({ pair }: { pair: PairSignal }) => {
   );
 };
 
+const RiskBadge = ({ pair }: { pair: PairSignal }) => {
+  const riskOk = pair.risk_ok !== false;
+  const reason = pair.risk_skip_reason || '';
+  const ret1 = ((pair.ret1_spread_abs ?? 0) * 100).toFixed(1);
+  if (riskOk) {
+    return (
+      <span title={`ret1差 ${ret1}% / 決算近接なし`} className="inline-block px-1.5 py-0.5 text-xs rounded leading-none border whitespace-nowrap bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
+        risk通過
+      </span>
+    );
+  }
+  return (
+    <span title={`${reason} / ret1差 ${ret1}%`} className="inline-block px-1.5 py-0.5 text-xs rounded leading-none border whitespace-nowrap bg-rose-500/15 text-rose-400 border-rose-500/30">
+      risk除外
+    </span>
+  );
+};
+
 // === Main ===
 export default function PairsPage() {
   const [signals, setSignals] = useState<SignalsResponse | null>(null);
@@ -156,6 +180,7 @@ export default function PairsPage() {
 
   const allPairs = signals?.pairs || [];
   const entryPairs = signals?.entry || [];
+  const riskBlocked = allPairs.filter(p => p.z_abs >= 2.0 && p.full_pf >= 1.5 && p.risk_ok === false).length;
   // Top3 dedup: エントリー推奨(is_entry)を|z|順に業種重複除外で充填→枠残ればwatch(|z|>=1.5)で繰上げ
   // セクター悪化リスク分散 (backtest: MaxDD -22%改善)
   const top3: PairSignal[] = [];
@@ -218,7 +243,7 @@ export default function PairsPage() {
         </header>
 
         {/* Status Bar */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 mb-4 md:mb-6 px-2 md:px-0">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-3 mb-4 md:mb-6 px-2 md:px-0">
           <StatCard label="監視ペア数" sub="除外後の運用対象">
             <span className="text-foreground">{signals?.total ?? 0}</span>
           </StatCard>
@@ -232,6 +257,11 @@ export default function PairsPage() {
               {allPairs.filter(p => p.z_abs >= 1.5 && p.z_abs < 2.0).length}
             </span>
           </StatCard>
+          <StatCard label="risk除外" sub="ret1差8%超 / 決算近接">
+            <span className={riskBlocked > 0 ? 'text-amber-400' : 'text-muted-foreground'}>
+              {riskBlocked}
+            </span>
+          </StatCard>
           <StatCard label="データ日付">
             <span className="text-foreground text-base">{signals?.signal_date ?? '-'}</span>
           </StatCard>
@@ -241,7 +271,7 @@ export default function PairsPage() {
         {top3.length > 0 ? (
           <Panel title={
             <h2 className="text-base md:text-lg font-semibold text-price-down">
-              TOP {top3.length} 推奨 — |z|上位（翌営業日 条件付き）
+              TOP {top3.length} 推奨 — リスク回避Pair（翌営業日 条件付き）
             </h2>
           } border="border-rose-500/40">
             <div className="divide-y divide-border/20">
@@ -287,6 +317,7 @@ export default function PairsPage() {
                           <div>PF: <span className={`${p.full_pf >= 2.5 ? 'text-price-up font-semibold' : 'text-foreground'}`}>{p.full_pf.toFixed(2)}</span> ({p.full_n}回)</div>
                           <div>1d回帰: <span className="text-foreground">{p.revert_1d.toFixed(0)}%</span></div>
                           <div>妥当性: <ValidityBadge pair={p} /></div>
+                          <div>risk: <RiskBadge pair={p} /></div>
                         </div>
                       </div>
                       <div className="text-left md:text-right ml-8 md:ml-0 md:min-w-[280px] border-t border-border/20 pt-2 md:border-0 md:pt-0">
@@ -319,7 +350,7 @@ export default function PairsPage() {
               })}
             </div>
             <div className="px-4 md:px-5 py-2.5 border-t border-border/40 text-sm text-foreground/50">
-              前日終値で候補化し、翌営業日の寄付が表示閾値を満たした場合のみ発注。100株単位等金額。
+              前日終値で候補化し、ret1差8%未満・決算近接なしを通過したペアのみ表示。翌営業日の寄付が表示閾値を満たした場合のみ発注。
             </div>
           </Panel>
         ) : (
@@ -367,7 +398,7 @@ export default function PairsPage() {
             <h2 className="text-base md:text-lg font-semibold">全ペア一覧</h2>
             <span className="text-sm text-foreground/50">{allPairs.length}ペア | ペア固有LB | 前日終値候補 | 寄付確認→引成</span>
           </div>
-        } footer={`${allPairs.length} pairs | 前日終値 z_entry=2.0 | 100株単位等金額`}>
+        } footer={`${allPairs.length} pairs | 前日終値 z_entry=2.0 | risk: ret1差<8%・決算近接除外 | 100株単位等金額`}>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="text-foreground/50 border-b border-border/30 bg-muted/30">
@@ -382,6 +413,7 @@ export default function PairsPage() {
                 <th className="text-right px-2 py-2.5 text-sm font-medium hidden md:table-cell">Long閾値</th>
                 <SortHeader<PairSignal> label="PF" field="full_pf" {...pairSort} className="text-right px-1.5 md:px-2 py-1.5 md:py-2.5 text-xs md:text-sm font-medium" />
                 <SortHeader<PairSignal> label="妥当性" field="pair_validity_rank" {...pairSort} className="text-center px-2 py-2.5 text-sm font-medium hidden md:table-cell" />
+                <SortHeader<PairSignal> label="risk" field="ret1_spread_abs" {...pairSort} className="text-center px-2 py-2.5 text-sm font-medium hidden md:table-cell" />
                 <th className="text-right px-2 py-2.5 text-sm font-medium hidden md:table-cell">株数</th>
                 <SortHeader<PairSignal> label="HL" field="revert_1d" {...pairSort} className="text-right px-2 py-2.5 text-sm font-medium hidden lg:table-cell" />
               </tr></thead>
@@ -427,6 +459,9 @@ export default function PairsPage() {
                       <td className="px-2 py-2.5 text-center hidden md:table-cell">
                         <ValidityBadge pair={p} />
                       </td>
+                      <td className="px-2 py-2.5 text-center hidden md:table-cell">
+                        <RiskBadge pair={p} />
+                      </td>
                       <td className="px-2 py-2.5 text-right tabular-nums text-sm text-foreground/50 hidden md:table-cell">
                         {p.shares1}/{p.shares2}
                       </td>
@@ -446,7 +481,8 @@ export default function PairsPage() {
           <div className="px-3 md:px-5 py-3 md:py-4 text-xs md:text-sm text-foreground/60 space-y-2">
             <div className="flex gap-3"><span className="text-foreground font-semibold">1.</span><span>TOP候補を優先（|z|上位2-3ペア）</span></div>
             <div className="flex gap-3"><span className="text-foreground font-semibold">2.</span><span>妥当性は「原則・厚め」「原則」を優先。「例外注意」は機会を消さず、サイズ縮小または見送り候補として扱う</span></div>
-            <div className="flex gap-3"><span className="text-foreground font-semibold">3.</span>
+            <div className="flex gap-3"><span className="text-foreground font-semibold">3.</span><span>risk除外（ret1差8%超・決算近接）は入らない。個別材料・決算でspreadが動いた日は収束期待を優先しない</span></div>
+            <div className="flex gap-3"><span className="text-foreground font-semibold">4.</span>
               <div>
                 <span>寄付価格を確認</span>
                 <div className="mt-1 ml-2 space-y-0.5 text-sm">
@@ -455,8 +491,8 @@ export default function PairsPage() {
                 </div>
               </div>
             </div>
-            <div className="flex gap-3"><span className="text-foreground font-semibold">4.</span><span>条件を満たしたペアだけ、表示株数で両銘柄同時発注（100株単位等金額）</span></div>
-            <div className="flex gap-3"><span className="text-foreground font-semibold">5.</span><span>15:25 引成で両方決済</span></div>
+            <div className="flex gap-3"><span className="text-foreground font-semibold">5.</span><span>条件を満たしたペアだけ、表示株数で両銘柄同時発注（100株単位等金額）</span></div>
+            <div className="flex gap-3"><span className="text-foreground font-semibold">6.</span><span>15:25 引成で両方決済</span></div>
             <div className="mt-3 pt-3 border-t border-border/30 text-sm text-foreground/40 space-y-1">
               <div>表示は前日終値シグナル。実発注は翌営業日の寄付条件を満たす場合のみ。</div>
               <div>指値推奨（成行はスリッページでPF低下）</div>
