@@ -29,6 +29,10 @@ interface PairSignal {
   pair_validity_label?: string;
   pair_validity_rank?: number;
   pair_validity_reason?: string;
+  pair_health_state?: string;
+  pair_health_reason?: string;
+  pair_health_reviewed_at?: string;
+  pair_health_recheck_after?: string;
   is_entry: boolean; direction: string;
   signal_date: string;
 }
@@ -152,6 +156,29 @@ const RiskBadge = ({ pair }: { pair: PairSignal }) => {
   );
 };
 
+const HealthBadge = ({ pair }: { pair: PairSignal }) => {
+  const state = pair.pair_health_state || 'ACTIVE';
+  if (state === 'WATCH') {
+    return (
+      <span title={`${pair.pair_health_reason || '要確認'} / 再確認: ${pair.pair_health_recheck_after || '-'}`} className="inline-block px-1.5 py-0.5 text-xs rounded leading-none border whitespace-nowrap bg-amber-500/15 text-amber-400 border-amber-500/30">
+        watch
+      </span>
+    );
+  }
+  if (state === 'SUSPENDED') {
+    return (
+      <span title={`${pair.pair_health_reason || '停止'} / 再確認: ${pair.pair_health_recheck_after || '-'}`} className="inline-block px-1.5 py-0.5 text-xs rounded leading-none border whitespace-nowrap bg-rose-500/15 text-rose-400 border-rose-500/30">
+        suspended
+      </span>
+    );
+  }
+  return (
+    <span title="pair health: ACTIVE" className="inline-block px-1.5 py-0.5 text-xs rounded leading-none border whitespace-nowrap bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
+      active
+    </span>
+  );
+};
+
 // === Main ===
 export default function PairsPage() {
   const [signals, setSignals] = useState<SignalsResponse | null>(null);
@@ -181,6 +208,7 @@ export default function PairsPage() {
   const allPairs = signals?.pairs || [];
   const entryPairs = signals?.entry || [];
   const riskBlocked = allPairs.filter(p => p.z_abs >= 2.0 && p.full_pf >= 1.5 && p.risk_ok === false).length;
+  const watchPairs = allPairs.filter(p => p.pair_health_state === 'WATCH').length;
   // Top3 dedup: エントリー推奨(is_entry)を|z|順に業種重複除外で充填→枠残ればwatch(|z|>=1.5)で繰上げ
   // セクター悪化リスク分散 (backtest: MaxDD -22%改善)
   const top3: PairSignal[] = [];
@@ -243,7 +271,7 @@ export default function PairsPage() {
         </header>
 
         {/* Status Bar */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-3 mb-4 md:mb-6 px-2 md:px-0">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-2 md:gap-3 mb-4 md:mb-6 px-2 md:px-0">
           <StatCard label="監視ペア数" sub="除外後の運用対象">
             <span className="text-foreground">{signals?.total ?? 0}</span>
           </StatCard>
@@ -260,6 +288,11 @@ export default function PairsPage() {
           <StatCard label="risk除外" sub="ret1差8%超 / 決算近接">
             <span className={riskBlocked > 0 ? 'text-amber-400' : 'text-muted-foreground'}>
               {riskBlocked}
+            </span>
+          </StatCard>
+          <StatCard label="health watch" sub="表示のみ / 要確認">
+            <span className={watchPairs > 0 ? 'text-amber-400' : 'text-muted-foreground'}>
+              {watchPairs}
             </span>
           </StatCard>
           <StatCard label="データ日付">
@@ -318,6 +351,7 @@ export default function PairsPage() {
                           <div>1d回帰: <span className="text-foreground">{p.revert_1d.toFixed(0)}%</span></div>
                           <div>妥当性: <ValidityBadge pair={p} /></div>
                           <div>risk: <RiskBadge pair={p} /></div>
+                          <div>health: <HealthBadge pair={p} /></div>
                         </div>
                       </div>
                       <div className="text-left md:text-right ml-8 md:ml-0 md:min-w-[280px] border-t border-border/20 pt-2 md:border-0 md:pt-0">
@@ -382,6 +416,7 @@ export default function PairsPage() {
                         <span className="hidden sm:inline">LB={p.lookback}</span>
                         <span>PF={p.full_pf.toFixed(2)}</span>
                         <ValidityBadge pair={p} />
+                        <HealthBadge pair={p} />
                         <span className="hidden sm:inline">{p.shares1}/{p.shares2}株</span>
                       </div>
                     </div>
@@ -414,6 +449,7 @@ export default function PairsPage() {
                 <SortHeader<PairSignal> label="PF" field="full_pf" {...pairSort} className="text-right px-1.5 md:px-2 py-1.5 md:py-2.5 text-xs md:text-sm font-medium" />
                 <SortHeader<PairSignal> label="妥当性" field="pair_validity_rank" {...pairSort} className="text-center px-2 py-2.5 text-sm font-medium hidden md:table-cell" />
                 <SortHeader<PairSignal> label="risk" field="ret1_spread_abs" {...pairSort} className="text-center px-2 py-2.5 text-sm font-medium hidden md:table-cell" />
+                <SortHeader<PairSignal> label="health" field="pair_health_state" {...pairSort} className="text-center px-2 py-2.5 text-sm font-medium hidden md:table-cell" />
                 <th className="text-right px-2 py-2.5 text-sm font-medium hidden md:table-cell">株数</th>
                 <SortHeader<PairSignal> label="HL" field="revert_1d" {...pairSort} className="text-right px-2 py-2.5 text-sm font-medium hidden lg:table-cell" />
               </tr></thead>
@@ -461,6 +497,9 @@ export default function PairsPage() {
                       </td>
                       <td className="px-2 py-2.5 text-center hidden md:table-cell">
                         <RiskBadge pair={p} />
+                      </td>
+                      <td className="px-2 py-2.5 text-center hidden md:table-cell">
+                        <HealthBadge pair={p} />
                       </td>
                       <td className="px-2 py-2.5 text-right tabular-nums text-sm text-foreground/50 hidden md:table-cell">
                         {p.shares1}/{p.shares2}
