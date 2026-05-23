@@ -44,6 +44,22 @@ interface OverseasRow {
   ret20?: number;
 }
 
+interface BacktestRow {
+  variant: string;
+  n: number;
+  days: number;
+  pf?: number;
+  win_rate?: number;
+  sum_pnl_100?: number;
+  avg_pnl_100?: number;
+  max_dd_100?: number;
+  worst_trade_100?: number;
+  q05_100?: number;
+  cvar05_100?: number;
+  from?: string;
+  to?: string;
+}
+
 interface SemiconResponse {
   generated_at?: string;
   data_date?: string;
@@ -69,11 +85,32 @@ interface SemiconResponse {
     morning_checks: string[];
     avoid_rules: string[];
   };
+  backtest?: {
+    available: boolean;
+    rows: BacktestRow[];
+    report_url?: string | null;
+    takeaway: string;
+  };
 }
 
 const fmt = (v?: number, digits = 1) => v == null || Number.isNaN(v) ? '-' : v.toLocaleString('ja-JP', { maximumFractionDigits: digits, minimumFractionDigits: digits });
 const pct = (v?: number) => v == null || Number.isNaN(v) ? '-' : `${v > 0 ? '+' : ''}${v.toFixed(2)}%`;
 const clsPct = (v?: number) => v == null ? 'text-muted-foreground' : v > 0 ? 'text-emerald-400' : v < 0 ? 'text-rose-400' : 'text-muted-foreground';
+const yen = (v?: number) => v == null || Number.isNaN(v) ? '-' : `${v >= 0 ? '+' : ''}${Math.round(v).toLocaleString('ja-JP')}円`;
+
+const variantLabel = (variant: string) => {
+  const map: Record<string, string> = {
+    all_top3: '全銘柄 Top3',
+    tradable_top1: '国内現実株 Top1',
+    tradable_top3: '国内現実株 Top3',
+    tradable_left_tail_guard: '左尾ガード Top3',
+    tradable_price_guard: '値嵩除外 Top3',
+    market_momentum_top1: 'SOX×MU/NVDA Top1',
+    market_momentum_top3: 'SOX×MU/NVDA Top3',
+    market_momentum_guard_top1: 'SOX×MU/NVDA+過熱除外 Top1',
+  };
+  return map[variant] || variant;
+};
 
 function DecisionBadge({ decision }: { decision: Decision }) {
   const map = {
@@ -191,6 +228,59 @@ export default function SemiconPage() {
               シグナル計算データが {data.stale_days} 日前です。実運用では詳細HTMLと最新生成後のデータで確認してください。
             </div>
           )}
+        </section>
+
+        <section className="mb-4 rounded-lg border border-border bg-card p-4">
+          <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <h2 className="text-sm font-semibold">検証: 市場モメンタム順張り</h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                条件: SOX 5日上昇、かつ MU または NVIDIA が5日上昇。翌営業日寄付エントリー、大引け決済、100株換算。
+              </p>
+            </div>
+            {data?.backtest?.report_url && (
+              <a href={`${API_BASE}${data.backtest.report_url}`} target="_blank" rel="noreferrer"
+                className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted/30">
+                検証HTMLを開く
+              </a>
+            )}
+          </div>
+          <div className="mb-3 rounded-md border border-border/60 bg-background/50 px-3 py-2 text-sm text-muted-foreground">
+            {data?.backtest?.takeaway || '検証結果なし'}
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[980px] text-sm">
+              <thead>
+                <tr className="border-b border-border/50 text-muted-foreground">
+                  <th className="px-2 py-2 text-left">モデル</th>
+                  <th className="px-2 py-2 text-right">件数</th>
+                  <th className="px-2 py-2 text-right">PF</th>
+                  <th className="px-2 py-2 text-right">勝率</th>
+                  <th className="px-2 py-2 text-right">損益</th>
+                  <th className="px-2 py-2 text-right">DD</th>
+                  <th className="px-2 py-2 text-right">最大損失</th>
+                  <th className="px-2 py-2 text-right">左尾CVaR5</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(data?.backtest?.rows || []).map((r) => (
+                  <tr key={r.variant} className="border-b border-border/20">
+                    <td className="px-2 py-2">
+                      <div className="font-medium">{variantLabel(r.variant)}</div>
+                      <div className="text-xs text-muted-foreground">{r.from} - {r.to}</div>
+                    </td>
+                    <td className="px-2 py-2 text-right tabular-nums">{r.n.toLocaleString('ja-JP')}</td>
+                    <td className={`px-2 py-2 text-right tabular-nums font-semibold ${r.pf != null && r.pf >= 1.2 ? 'text-emerald-300' : r.pf != null && r.pf < 1 ? 'text-rose-300' : 'text-amber-300'}`}>{fmt(r.pf, 2)}</td>
+                    <td className="px-2 py-2 text-right tabular-nums">{fmt(r.win_rate, 1)}%</td>
+                    <td className={`px-2 py-2 text-right tabular-nums ${clsPct(r.sum_pnl_100)}`}>{yen(r.sum_pnl_100)}</td>
+                    <td className="px-2 py-2 text-right tabular-nums text-rose-300">{yen(r.max_dd_100)}</td>
+                    <td className="px-2 py-2 text-right tabular-nums text-rose-300">{yen(r.worst_trade_100)}</td>
+                    <td className="px-2 py-2 text-right tabular-nums text-rose-300">{yen(r.cvar05_100)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
 
         <section className="mb-4 rounded-lg border border-border bg-card p-4">
