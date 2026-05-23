@@ -45,6 +45,41 @@ interface SignalsResponse {
   entry_count: number;
 }
 
+interface PairHealthRow {
+  pair: string;
+  判定?: string;
+  health_state?: string;
+  'long/short例'?: string;
+  業種?: string;
+  n_2026?: number;
+  pf_2026?: number;
+  pnl_2026?: number;
+  max_loss_2026?: number;
+  recent_pf?: number;
+  recent_pnl?: number;
+  rolling_pf_last?: number;
+  worst3?: string;
+  candidate_type?: string;
+  candidate_reason?: string;
+}
+
+interface PairHealthResponse {
+  summary: PairHealthRow[];
+  candidates: {
+    stop: { rows: PairHealthRow[] };
+    suspended_to_watch: { rows: PairHealthRow[] };
+    restore: { rows: PairHealthRow[] };
+  };
+  counts: {
+    summary: number;
+    stop: number;
+    suspended_to_watch: number;
+    restore: number;
+    suspended: number;
+    watch: number;
+  };
+}
+
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 // === Helpers ===
@@ -182,14 +217,25 @@ const HealthBadge = ({ pair }: { pair: PairSignal }) => {
 // === Main ===
 export default function PairsPage() {
   const [signals, setSignals] = useState<SignalsResponse | null>(null);
+  const [health, setHealth] = useState<PairHealthResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [savingHealth, setSavingHealth] = useState(false);
+  const [selectedHealth, setSelectedHealth] = useState<Record<string, boolean>>({});
+  const [healthActions, setHealthActions] = useState<Record<string, string>>({});
+  const [healthNote, setHealthNote] = useState('');
 
   const fetchData = () => {
     setLoading(true);
-    fetch(`${API_BASE}/api/dev/pairs/signals`)
-      .then(r => r.json())
-      .then((data: SignalsResponse) => { setSignals(data); setLoading(false); })
+    Promise.all([
+      fetch(`${API_BASE}/api/dev/pairs/signals`).then(r => r.json()),
+      fetch(`${API_BASE}/api/dev/pairs/health`).then(r => r.json()).catch(() => null),
+    ])
+      .then(([signalsData, healthData]: [SignalsResponse, PairHealthResponse | null]) => {
+        setSignals(signalsData);
+        setHealth(healthData);
+        setLoading(false);
+      })
       .catch(() => setLoading(false));
   };
 
@@ -231,6 +277,53 @@ export default function PairsPage() {
   pickUnique(entrySorted);
   pickUnique(watchSorted);
   const pairSort = useSortable<PairSignal>(allPairs, 'z_abs');
+  const healthSummary = health?.summary || [];
+  const candidatePairs = new Set([
+    ...(health?.candidates.stop.rows || []).map(r => r.pair),
+    ...(health?.candidates.suspended_to_watch.rows || []).map(r => r.pair),
+    ...(health?.candidates.restore.rows || []).map(r => r.pair),
+  ]);
+  const healthRows = healthSummary
+    .filter(r => r.health_state === 'SUSPENDED' || r.health_state === 'WATCH' || r.判定 === '停止候補' || r.判定 === '警告' || candidatePairs.has(r.pair))
+    .slice(0, 80);
+  const suggestedAction = (row: PairHealthRow) => {
+    if (row.health_state === 'SUSPENDED') return 'WATCH';
+    if (row.health_state === 'WATCH') return 'ACTIVE';
+    if (row.判定 === '停止候補' || row.判定 === '警告') return 'SUSPENDED';
+    return row.health_state || 'ACTIVE';
+  };
+  const actionFor = (row: PairHealthRow) => healthActions[row.pair] || suggestedAction(row);
+  const toggleHealthRow = (row: PairHealthRow) => {
+    setSelectedHealth(prev => ({ ...prev, [row.pair]: !prev[row.pair] }));
+    setHealthActions(prev => ({ ...prev, [row.pair]: prev[row.pair] || suggestedAction(row) }));
+  };
+  const saveHealthUpdates = async () => {
+    const updates = healthRows
+      .filter(r => selectedHealth[r.pair])
+      .map(r => ({
+        pair: r.pair,
+        state: actionFor(r),
+        reason: `${r.判定 || 'manual'} / 2026PF ${r.pf_2026 ?? '-'} / 2026損益 ${r.pnl_2026 ?? '-'} / rollingPF ${r.rolling_pf_last ?? '-'}`,
+      }));
+    if (updates.length === 0) return;
+    const ok = window.confirm(`${updates.length}件のpair health stateを更新します。よいですか？`);
+    if (!ok) return;
+    setSavingHealth(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/dev/pairs/health/state`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updates, note: healthNote }),
+      });
+      if (!res.ok) throw new Error('pair health update failed');
+      setSelectedHealth({});
+      setHealthActions({});
+      setHealthNote('');
+      fetchData();
+    } finally {
+      setSavingHealth(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -426,6 +519,88 @@ export default function PairsPage() {
             </div>
           </Panel>
         )}
+
+        {/* Pair Health Semi-Manual Control */}
+        <Panel title={
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+            <div>
+              <h2 className="text-base md:text-lg font-semibold">Pair Health 半裁量チェック</h2>
+              <p className="text-xs md:text-sm text-foreground/50 mt-0.5">
+                停止候補・警告・停止中・復活候補を確認し、チェックしたpairだけ state を保存
+              </p>
+            </div>
+            <button type="button" onClick={saveHealthUpdates} disabled={savingHealth || !Object.values(selectedHealth).some(Boolean)}
+              className="px-3 py-1.5 text-xs rounded-lg border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10 disabled:opacity-40 disabled:hover:bg-transparent">
+              {savingHealth ? '保存中...' : '選択pairを保存'}
+            </button>
+          </div>
+        } border="border-amber-500/30" footer={`停止中 ${health?.counts.suspended ?? 0} / WATCH ${health?.counts.watch ?? 0} / 停止候補 ${health?.counts.stop ?? 0} / 復活候補 ${(health?.counts.suspended_to_watch ?? 0) + (health?.counts.restore ?? 0)}`}>
+          <div className="px-3 md:px-5 py-3 border-b border-border/30">
+            <input
+              value={healthNote}
+              onChange={e => setHealthNote(e.target.value)}
+              placeholder="手動メモ（例: 村田/京セラはAI・半導体テーマ差で継続停止）"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-foreground/35 outline-none focus:border-amber-500/50"
+            />
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-foreground/50 border-b border-border/30 bg-muted/30">
+                  <th className="text-center px-2 py-2.5 font-medium">選択</th>
+                  <th className="text-left px-2 py-2.5 font-medium">pair</th>
+                  <th className="text-center px-2 py-2.5 font-medium">状態</th>
+                  <th className="text-center px-2 py-2.5 font-medium">判定</th>
+                  <th className="text-right px-2 py-2.5 font-medium">2026PF</th>
+                  <th className="text-right px-2 py-2.5 font-medium">2026損益</th>
+                  <th className="text-right px-2 py-2.5 font-medium">直近PF</th>
+                  <th className="text-right px-2 py-2.5 font-medium">rollingPF</th>
+                  <th className="text-right px-2 py-2.5 font-medium">最大損失</th>
+                  <th className="text-left px-2 py-2.5 font-medium">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {healthRows.length === 0 ? (
+                  <tr><td colSpan={10} className="px-4 py-8 text-center text-foreground/50">pair health report がありません。16:45 pipeline 後に表示されます。</td></tr>
+                ) : healthRows.map(row => {
+                  const pnl = row.pnl_2026 ?? 0;
+                  const maxLoss = row.max_loss_2026 ?? 0;
+                  return (
+                    <tr key={row.pair} className="border-b border-border/20 hover:bg-muted/30">
+                      <td className="px-2 py-2.5 text-center">
+                        <input type="checkbox" checked={!!selectedHealth[row.pair]} onChange={() => toggleHealthRow(row)}
+                          className="h-4 w-4 accent-amber-500" />
+                      </td>
+                      <td className="px-2 py-2.5">
+                        <div className="font-medium text-foreground">{row.pair}</div>
+                        <div className="text-xs text-foreground/45">{row['long/short例'] || row.業種 || '-'}</div>
+                      </td>
+                      <td className="px-2 py-2.5 text-center">
+                        <span className={`inline-block px-1.5 py-0.5 text-xs rounded border ${row.health_state === 'SUSPENDED' ? 'bg-rose-500/15 text-rose-400 border-rose-500/30' : row.health_state === 'WATCH' ? 'bg-amber-500/15 text-amber-400 border-amber-500/30' : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'}`}>
+                          {row.health_state || 'ACTIVE'}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2.5 text-center text-foreground/70">{row.判定 || '-'}</td>
+                      <td className="px-2 py-2.5 text-right tabular-nums">{row.pf_2026 != null ? row.pf_2026.toFixed(2) : '-'}</td>
+                      <td className={`px-2 py-2.5 text-right tabular-nums ${pnl < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>{fmt(pnl)}</td>
+                      <td className="px-2 py-2.5 text-right tabular-nums">{row.recent_pf != null ? row.recent_pf.toFixed(2) : '-'}</td>
+                      <td className="px-2 py-2.5 text-right tabular-nums">{row.rolling_pf_last != null ? row.rolling_pf_last.toFixed(2) : '-'}</td>
+                      <td className={`px-2 py-2.5 text-right tabular-nums ${maxLoss < -25000 ? 'text-rose-400' : 'text-foreground/60'}`}>{fmt(maxLoss)}</td>
+                      <td className="px-2 py-2.5">
+                        <select value={actionFor(row)} onChange={e => setHealthActions(prev => ({ ...prev, [row.pair]: e.target.value }))}
+                          className="rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground outline-none">
+                          <option value="SUSPENDED">停止</option>
+                          <option value="WATCH">WATCH</option>
+                          <option value="ACTIVE">復活</option>
+                        </select>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Panel>
 
         {/* All Pairs Table */}
         <Panel title={
