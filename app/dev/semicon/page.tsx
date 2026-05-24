@@ -32,6 +32,8 @@ interface SemiconSignal {
   op_margin?: number;
   left_tail?: string;
   judgement?: string;
+  trade_bucket?: string;
+  trade_bucket_reasons?: string[];
 }
 
 interface OverseasRow {
@@ -60,6 +62,26 @@ interface BacktestRow {
   to?: string;
 }
 
+interface SegmentStrengthRow {
+  segment: string;
+  count: number;
+  avg_ret5?: number;
+  avg_ret20?: number;
+  avg_vs25?: number;
+  breadth5?: number;
+  breadth20?: number;
+  watch_count: number;
+  leader_code?: string;
+  leader_name?: string;
+  leader_score?: number;
+}
+
+interface BucketSummaryRow {
+  bucket: string;
+  count: number;
+  leaders: Array<{ code?: string; name?: string; score?: number }>;
+}
+
 interface SemiconResponse {
   generated_at?: string;
   data_date?: string;
@@ -75,6 +97,8 @@ interface SemiconResponse {
   };
   counts: { buy: number; watch: number; avoid: number; total: number };
   signals: SemiconSignal[];
+  segment_strength?: SegmentStrengthRow[];
+  bucket_summary?: BucketSummaryRow[];
   overseas: OverseasRow[];
   report_available: boolean;
   report_url?: string;
@@ -137,6 +161,70 @@ function StatCard({ label, value, sub, tone = 'default' }: { label: string; valu
   );
 }
 
+const mondayRegimeRows = [
+  { signal: '金↑ / CME弱い / 円高 / NASDAQ先物弱い', regime: 'リスクオフ', shortAction: '保有して様子見', longAction: 'なし', note: 'ショート含み損改善を待つ' },
+  { signal: '金↑ / CME強い / 円安 / NASDAQ先物強い', regime: '混在', shortAction: '寄りで切らない', longAction: '原則なし', note: '株は強いが安全資産買いが残る' },
+  { signal: '金↓ / CME強い / 円安 / NASDAQ先物強い', regime: 'リスクオン', shortAction: '全損切り候補', longAction: '半導体/AI周辺を小さく', note: '踏み上げ警戒。Top1-Top3だけ' },
+  { signal: '金↓ / CME弱い / 円高', regime: '不明/弱い', shortAction: '様子見', longAction: 'なし', note: 'ノートレでよい' },
+  { signal: '原油急騰 / 金↑ / CME弱い', regime: '地政学悪化', shortAction: '保有または改善待ち', longAction: 'なし', note: '防衛/資源以外は触らない' },
+  { signal: '原油急落 / 金↓ / CME強い', regime: '和平リスクオン', shortAction: '切る寄り', longAction: '半導体/AI周辺候補', note: 'ただし寄り買いしない' },
+  { signal: '原油急落 / 金↑ / CME強い', regime: '和平期待+保険買い', shortAction: '寄り後確認', longAction: '30分待ち', note: '足元の混在形。決め打ちしない' },
+];
+
+const intradayChecks = [
+  ['半導体主力', 'TEL / アドバンテスト / ディスコ / レーザーテック / SCREEN の過半がプラス'],
+  ['周辺テーマ', 'フジクラ / 古河電工 / イビデン / 村田 / 信越 / ルネサスの過半がプラス'],
+  ['指数', '日経・TOPIXが寄り後に失速していない'],
+  ['為替', '急な円高でない'],
+  ['金・原油', '金がさらに上、原油急騰なら警戒'],
+  ['候補銘柄', 'VWAP上、寄付差過大でない、前日高値を意識'],
+];
+
+const semiconUniverseGroups = [
+  {
+    segment: '半導体主力',
+    role: '指標銘柄',
+    tickers: 'TEL / アドバンテスト / ディスコ / レーザーテック / SCREEN / キオクシア',
+    use: 'テーマ全体の温度計。強さは見るが、寄り高・値嵩で実弾は慎重。',
+  },
+  {
+    segment: 'AIインフラ',
+    role: '実弾候補',
+    tickers: 'フジクラ / 古河電工 / 村田製作所 / イビデン / KOKUSAI / ルネサス',
+    use: '資金流入の本命候補。半導体主力より出遅れなら優先。',
+  },
+  {
+    segment: '電力',
+    role: '実弾候補',
+    tickers: '日立 / 三菱電機 / 富士電機 / 住友電工 / SWCC',
+    use: 'データセンター・電力増強の波及。地合い悪化時でも相対的に残るかを見る。',
+  },
+  {
+    segment: '光通信',
+    role: '実弾候補',
+    tickers: 'フジクラ / 古河電工 / 住友電工 / SWCC',
+    use: 'AIサーバー接続・データセンター投資の波及。急騰後は寄り天に注意。',
+  },
+  {
+    segment: '冷却/空調',
+    role: '監視候補',
+    tickers: 'ダイキン / 大気社',
+    use: 'AIデータセンターの熱対策。株価反応が遅れている時だけ候補化。',
+  },
+  {
+    segment: '材料/基板',
+    role: '実弾候補',
+    tickers: 'イビデン / 東京応化 / レゾナック / SUMCO / 信越化学',
+    use: 'パッケージ基板・レジスト・ウエハ。半導体主力より資金の二段目を狙う。',
+  },
+  {
+    segment: 'DC建設/不動産',
+    role: '周辺監視',
+    tickers: '大林組 / 大和ハウス / 三井不動産 / 三菱地所 / 日揮HD',
+    use: 'テーマの末端波及。短期売買では主役ではなく、出遅れ確認用。',
+  },
+];
+
 export default function SemiconPage() {
   const [data, setData] = useState<SemiconResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -161,6 +249,10 @@ export default function SemiconPage() {
 
   const priorityRows = useMemo(() => {
     return (data?.signals || []).filter((r) => r.decision !== 'AVOID').slice(0, 6);
+  }, [data]);
+
+  const bucketRows = useMemo(() => {
+    return (data?.signals || []).filter((r) => r.trade_bucket && r.trade_bucket !== '見送り');
   }, [data]);
 
   const marketTone = data?.market.state === 'RISK_ON' ? 'good' : data?.market.state === 'RISK_OFF' ? 'bad' : 'warn';
@@ -228,6 +320,205 @@ export default function SemiconPage() {
               シグナル計算データが {data.stale_days} 日前です。実運用では詳細HTMLと最新生成後のデータで確認してください。
             </div>
           )}
+        </section>
+
+        <section className="mb-4 rounded-lg border border-sky-500/30 bg-sky-500/10 p-4">
+          <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="text-xs text-sky-200/80">月曜朝レジーム判定</div>
+              <h2 className="mt-1 text-lg font-semibold text-sky-100">混在ならノートレを正解にする</h2>
+              <p className="mt-2 max-w-4xl text-sm leading-6 text-sky-100/85">
+                米祝日・地政学ヘッドライン・サンデー気配が混ざる日は、当てに行くより分岐を固定する。リスクオン確定まで既存ショートも新規ロングも決め打ちしない。
+              </p>
+            </div>
+            <div className="rounded-lg border border-sky-300/30 bg-background/40 px-3 py-2 text-xs text-sky-100">
+              行動: リスクオフ=ロングなし / リスクオン=ショート処理+小ロング / 混在=待つ
+            </div>
+          </div>
+          <div className="overflow-x-auto rounded-lg border border-border/60 bg-background/50">
+            <table className="w-full min-w-[1120px] text-sm">
+              <thead>
+                <tr className="border-b border-border/50 text-muted-foreground">
+                  <th className="px-3 py-2 text-left">観測</th>
+                  <th className="px-3 py-2 text-left">判定</th>
+                  <th className="px-3 py-2 text-left">既存ショート</th>
+                  <th className="px-3 py-2 text-left">新規ロング</th>
+                  <th className="px-3 py-2 text-left">コメント</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mondayRegimeRows.map((row) => (
+                  <tr key={row.signal} className="border-b border-border/20">
+                    <td className="px-3 py-2 text-muted-foreground">{row.signal}</td>
+                    <td className="px-3 py-2 font-semibold text-foreground">{row.regime}</td>
+                    <td className="px-3 py-2 text-amber-200">{row.shortAction}</td>
+                    <td className="px-3 py-2 text-emerald-200">{row.longAction}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{row.note}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {intradayChecks.map(([label, check]) => (
+              <div key={label} className="rounded-lg border border-border/60 bg-background/45 p-3">
+                <div className="text-xs text-muted-foreground">{label}</div>
+                <div className="mt-1 text-sm leading-5 text-foreground">{check}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="mb-4 rounded-lg border border-border bg-card p-4">
+          <div className="mb-3">
+            <h2 className="text-sm font-semibold">ユニバース整理</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              半導体主力を温度計、AIインフラ/電力/光/材料を実弾候補として分ける。主力が高すぎる日は、周辺の出遅れと寄り後の資金流入を優先する。
+            </p>
+          </div>
+          <div className="overflow-x-auto rounded-lg border border-border/60">
+            <table className="w-full min-w-[1080px] text-sm">
+              <thead>
+                <tr className="border-b border-border/50 bg-muted/20 text-muted-foreground">
+                  <th className="px-3 py-2 text-left">セグメント</th>
+                  <th className="px-3 py-2 text-left">扱い</th>
+                  <th className="px-3 py-2 text-left">見る銘柄</th>
+                  <th className="px-3 py-2 text-left">使い方</th>
+                </tr>
+              </thead>
+              <tbody>
+                {semiconUniverseGroups.map((row) => (
+                  <tr key={row.segment} className="border-b border-border/20">
+                    <td className="px-3 py-2 font-semibold">{row.segment}</td>
+                    <td className="px-3 py-2">
+                      <span className={`rounded border px-2 py-0.5 text-xs ${
+                        row.role === '指標銘柄'
+                          ? 'border-sky-400/40 bg-sky-400/10 text-sky-200'
+                          : row.role === '実弾候補'
+                            ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200'
+                            : 'border-amber-400/40 bg-amber-400/10 text-amber-200'
+                      }`}>
+                        {row.role}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground">{row.tickers}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{row.use}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="mb-4 rounded-lg border border-border bg-card p-4">
+          <div className="mb-3">
+            <h2 className="text-sm font-semibold">実弾候補フィルタ</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              主力・値嵩は温度計、短期過熱・左尾高は注意、寄り後条件付きで現実的に入れるものだけを実弾候補に寄せる。
+            </p>
+          </div>
+          <div className="grid gap-3 md:grid-cols-4">
+            {(data?.bucket_summary || []).map((bucket) => (
+              <div key={bucket.bucket} className="rounded-lg border border-border/60 bg-background/45 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-xs text-muted-foreground">{bucket.bucket}</div>
+                  <div className="text-lg font-semibold tabular-nums">{bucket.count}</div>
+                </div>
+                <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                  {bucket.leaders.map((leader) => (
+                    <div key={`${bucket.bucket}-${leader.code}`}>{leader.name || '-'} <span className="tabular-nums">({leader.code || '-'})</span></div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 overflow-x-auto rounded-lg border border-border/60">
+            <table className="w-full min-w-[1080px] text-sm">
+              <thead>
+                <tr className="border-b border-border/50 bg-muted/20 text-muted-foreground">
+                  <th className="px-3 py-2 text-left">区分</th>
+                  <th className="px-3 py-2 text-left">銘柄</th>
+                  <th className="px-3 py-2 text-left">分類</th>
+                  <th className="px-3 py-2 text-right">点</th>
+                  <th className="px-3 py-2 text-right">終値</th>
+                  <th className="px-3 py-2 text-right">5日</th>
+                  <th className="px-3 py-2 text-right">25日線比</th>
+                  <th className="px-3 py-2 text-right">CVaR5</th>
+                  <th className="px-3 py-2 text-left">理由</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bucketRows.map((row) => (
+                  <tr key={`bucket-${row.code}`} className="border-b border-border/20">
+                    <td className="px-3 py-2">
+                      <span className={`rounded border px-2 py-0.5 text-xs ${
+                        row.trade_bucket === '実弾候補'
+                          ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200'
+                          : row.trade_bucket === '指標銘柄'
+                            ? 'border-sky-400/40 bg-sky-400/10 text-sky-200'
+                            : 'border-amber-400/40 bg-amber-400/10 text-amber-200'
+                      }`}>
+                        {row.trade_bucket}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="font-medium">{row.name}</div>
+                      <div className="text-xs text-muted-foreground">{row.ticker}</div>
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground">{row.segment}</td>
+                    <td className="px-3 py-2 text-right tabular-nums font-semibold">{fmt(row.score, 1)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{fmt(row.close, 1)}</td>
+                    <td className={`px-3 py-2 text-right tabular-nums ${clsPct(row.ret5)}`}>{pct(row.ret5)}</td>
+                    <td className={`px-3 py-2 text-right tabular-nums ${clsPct(row.vs25)}`}>{pct(row.vs25)}</td>
+                    <td className={`px-3 py-2 text-right tabular-nums ${clsPct(row.cvar05)}`}>{pct(row.cvar05)}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{(row.trade_bucket_reasons || []).join(' / ') || '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="mb-4 rounded-lg border border-border bg-card p-4">
+          <div className="mb-3">
+            <h2 className="text-sm font-semibold">セグメント強弱</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              直近5日と20日の平均騰落、上昇銘柄比率、セグメント内リーダーを見る。強いセグメントから実弾候補を選び、弱いセグメントは見送る。
+            </p>
+          </div>
+          <div className="overflow-x-auto rounded-lg border border-border/60">
+            <table className="w-full min-w-[980px] text-sm">
+              <thead>
+                <tr className="border-b border-border/50 bg-muted/20 text-muted-foreground">
+                  <th className="px-3 py-2 text-left">セグメント</th>
+                  <th className="px-3 py-2 text-right">銘柄数</th>
+                  <th className="px-3 py-2 text-right">5日平均</th>
+                  <th className="px-3 py-2 text-right">20日平均</th>
+                  <th className="px-3 py-2 text-right">25日線比</th>
+                  <th className="px-3 py-2 text-right">5日上昇比率</th>
+                  <th className="px-3 py-2 text-right">監視数</th>
+                  <th className="px-3 py-2 text-left">リーダー</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(data?.segment_strength || []).map((row) => (
+                  <tr key={row.segment} className="border-b border-border/20">
+                    <td className="px-3 py-2 font-semibold">{row.segment}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{row.count}</td>
+                    <td className={`px-3 py-2 text-right tabular-nums ${clsPct(row.avg_ret5)}`}>{pct(row.avg_ret5)}</td>
+                    <td className={`px-3 py-2 text-right tabular-nums ${clsPct(row.avg_ret20)}`}>{pct(row.avg_ret20)}</td>
+                    <td className={`px-3 py-2 text-right tabular-nums ${clsPct(row.avg_vs25)}`}>{pct(row.avg_vs25)}</td>
+                    <td className={`px-3 py-2 text-right tabular-nums ${clsPct((row.breadth5 || 0) - 50)}`}>{fmt(row.breadth5, 0)}%</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{row.watch_count}</td>
+                    <td className="px-3 py-2">
+                      <span className="font-medium">{row.leader_name || '-'}</span>
+                      {row.leader_code && <span className="ml-2 text-xs text-muted-foreground">{row.leader_code}</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
 
         <section className="mb-4 rounded-lg border border-border bg-card p-4">
