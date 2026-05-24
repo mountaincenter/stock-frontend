@@ -106,6 +106,10 @@ interface SemiconResponse {
   report_available: boolean;
   report_url?: string;
   source?: string;
+  source_environment?: string;
+  source_data_mode?: 'local' | 's3';
+  source_data_mode_reason?: string;
+  source_data_mode_error?: string | null;
   operation?: {
     headline: string;
     primary_action: string;
@@ -284,13 +288,22 @@ const avoidCheckGroups = [
 export default function SemiconPage() {
   const [data, setData] = useState<SemiconResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Decision | 'ALL'>('ALL');
 
   const fetchData = async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch(`${API_BASE}/api/dev/semicon/signals`, { cache: 'no-store' });
-      setData(await res.json());
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json?.detail || `API error ${res.status}`);
+      }
+      setData(json);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'semicon API の取得に失敗しました');
+      setData(null);
     } finally {
       setLoading(false);
     }
@@ -319,7 +332,6 @@ export default function SemiconPage() {
   }, [data]);
 
   const marketTone = data?.market.state === 'RISK_ON' ? 'good' : data?.market.state === 'RISK_OFF' ? 'bad' : 'warn';
-
   return (
     <main className="min-h-screen bg-background text-foreground">
       <div className="mx-auto max-w-[1500px] px-3 py-4 md:px-5">
@@ -340,6 +352,12 @@ export default function SemiconPage() {
           </div>
         </header>
 
+        {error && (
+          <section className="mb-4 rounded-lg border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+            Semicon API error: {error}
+          </section>
+        )}
+
         <section className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-5">
           <StatCard label="米国地合い" value={data?.market.label || '-'} sub={data?.data_date ? `data ${data.data_date}` : undefined} tone={marketTone} />
           <StatCard label="買い候補" value={data?.counts.buy ?? 0} tone="good" />
@@ -347,6 +365,21 @@ export default function SemiconPage() {
           <StatCard label="見送り" value={data?.counts.avoid ?? 0} tone="bad" />
           <StatCard label="対象" value={data?.counts.total ?? 0} sub="AI/半導体+周辺" />
         </section>
+
+        <details className="mb-4 rounded-lg border border-border/60 bg-card/60 px-4 py-3 text-sm">
+          <summary className="cursor-pointer select-none text-xs font-medium text-muted-foreground hover:text-foreground">
+            開発情報
+          </summary>
+          <div className="mt-3 grid gap-2 text-xs text-muted-foreground md:grid-cols-2 lg:grid-cols-4">
+            <div><span className="text-foreground">source_data_mode:</span> {data?.source_data_mode || '-'}</div>
+            <div><span className="text-foreground">environment:</span> {data?.source_environment || '-'}</div>
+            <div><span className="text-foreground">reason:</span> {data?.source_data_mode_reason || '-'}</div>
+            <div><span className="text-foreground">source:</span> {data?.source || '-'}</div>
+            <div><span className="text-foreground">generated_at:</span> {data?.generated_at || '-'}</div>
+            <div><span className="text-foreground">data_date:</span> {data?.data_date || '-'}</div>
+            <div><span className="text-foreground">error:</span> {error || data?.source_data_mode_error || '-'}</div>
+          </div>
+        </details>
 
         <section className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
