@@ -26,6 +26,7 @@ const NAV_GROUPS: NavItem[][] = [
   ],
   // Strategy
   [
+    { href: "/dev/semicon", label: "Semicon" },
     { href: "/dev/pairs", label: "Pairs" },
     { href: "/dev/calendar", label: "Calendar" },
   ],
