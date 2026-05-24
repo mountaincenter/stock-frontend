@@ -225,6 +225,49 @@ const semiconUniverseGroups = [
   },
 ];
 
+const entryPlan = (row: SemiconSignal) => {
+  const gapLimit = row.trade_bucket === '実弾候補' ? '原則 +0〜+2.5%' : '原則待ち';
+  const openAction = row.trade_bucket === '実弾候補'
+    ? '寄り買いしない。寄り後30分でVWAP上を確認'
+    : row.trade_bucket === '過熱注意'
+      ? '寄り高なら見送り。押し目か前日高値再突破だけ確認'
+      : '温度計として見る';
+  const trigger = row.entry_trigger_price ? `${fmt(row.entry_trigger_price, 0)}超え` : '前日高値/VWAP上維持';
+  const invalidation = row.trade_bucket === '実弾候補'
+    ? 'VWAP割れ、指数失速、金上昇継続'
+    : row.trade_bucket === '過熱注意'
+      ? '寄り天、25日線乖離拡大、左尾悪化'
+      : '主力全体が弱い';
+  return { gapLimit, openAction, trigger, invalidation };
+};
+
+const avoidCheckGroups = [
+  {
+    title: '地合いNG',
+    tone: 'bad',
+    checks: ['金上昇継続', '原油急騰', 'CME/SGX失速', 'USDJPY急円高', 'NASDAQ/SOX先物弱い'],
+    action: '1つでも強ければ新規ロングを止める',
+  },
+  {
+    title: 'テーマ内NG',
+    tone: 'warn',
+    checks: ['半導体主力の過半がマイナス', 'AIインフラ周辺の過半がマイナス', '対象セグメントが5日/20日で弱い', 'リーダー銘柄が寄り後失速'],
+    action: 'セグメント資金流入が弱ければ候補から外す',
+  },
+  {
+    title: '個別NG',
+    tone: 'warn',
+    checks: ['寄付差が大きすぎる', 'VWAP割れ', '前日高値超え失敗', '25日線乖離が大きすぎる', '左尾高', '決算/材料直後でボラ過大'],
+    action: '2つ以上該当なら見送り',
+  },
+  {
+    title: '行動ルール',
+    tone: 'good',
+    checks: ['混在ならノートレ', '地合いNGなら全体見送り', '個別NGが1つならロットを落とす', '実弾候補でも寄り買いしない'],
+    action: '勝つより変な負け方を避ける',
+  },
+];
+
 export default function SemiconPage() {
   const [data, setData] = useState<SemiconResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -253,6 +296,12 @@ export default function SemiconPage() {
 
   const bucketRows = useMemo(() => {
     return (data?.signals || []).filter((r) => r.trade_bucket && r.trade_bucket !== '見送り');
+  }, [data]);
+
+  const entryRows = useMemo(() => {
+    return (data?.signals || [])
+      .filter((r) => ['実弾候補', '過熱注意'].includes(r.trade_bucket || ''))
+      .slice(0, 10);
   }, [data]);
 
   const marketTone = data?.market.state === 'RISK_ON' ? 'good' : data?.market.state === 'RISK_OFF' ? 'bad' : 'warn';
@@ -476,6 +525,86 @@ export default function SemiconPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </section>
+
+        <section className="mb-4 rounded-lg border border-border bg-card p-4">
+          <div className="mb-3">
+            <h2 className="text-sm font-semibold">エントリー条件</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              ここは発注指示ではなく、寄付前と寄り後30分で確認する条件表。寄り買いではなく、VWAP上維持と前日高値を見てから候補化する。
+            </p>
+          </div>
+          <div className="overflow-x-auto rounded-lg border border-border/60">
+            <table className="w-full min-w-[1280px] text-sm">
+              <thead>
+                <tr className="border-b border-border/50 bg-muted/20 text-muted-foreground">
+                  <th className="px-3 py-2 text-left">銘柄</th>
+                  <th className="px-3 py-2 text-left">区分</th>
+                  <th className="px-3 py-2 text-right">終値</th>
+                  <th className="px-3 py-2 text-right">発火価格</th>
+                  <th className="px-3 py-2 text-left">寄付差</th>
+                  <th className="px-3 py-2 text-left">寄り後</th>
+                  <th className="px-3 py-2 text-left">入る条件</th>
+                  <th className="px-3 py-2 text-left">無効条件</th>
+                </tr>
+              </thead>
+              <tbody>
+                {entryRows.map((row) => {
+                  const plan = entryPlan(row);
+                  return (
+                    <tr key={`entry-${row.code}`} className="border-b border-border/20">
+                      <td className="px-3 py-2">
+                        <div className="font-medium">{row.name}</div>
+                        <div className="text-xs text-muted-foreground">{row.ticker} / {row.segment}</div>
+                      </td>
+                      <td className="px-3 py-2">
+                        <span className={`rounded border px-2 py-0.5 text-xs ${
+                          row.trade_bucket === '実弾候補'
+                            ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200'
+                            : 'border-amber-400/40 bg-amber-400/10 text-amber-200'
+                        }`}>
+                          {row.trade_bucket}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums">{fmt(row.close, 1)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums font-semibold">{fmt(row.entry_trigger_price, 0)}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{plan.gapLimit}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{plan.openAction}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{plan.trigger}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{plan.invalidation}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="mb-4 rounded-lg border border-rose-500/25 bg-rose-500/10 p-4">
+          <div className="mb-3">
+            <div className="text-xs text-rose-200/80">見送り条件</div>
+            <h2 className="mt-1 text-lg font-semibold text-rose-100">高値掴みと落ちるナイフを避ける</h2>
+            <p className="mt-2 max-w-4xl text-sm leading-6 text-rose-100/85">
+              AI/半導体周辺は強いテーマだが、寄り天・過熱・地政学で一撃の左尾が出る。条件が崩れた日は、候補があってもノートレを正解にする。
+            </p>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {avoidCheckGroups.map((group) => (
+              <div key={group.title} className="rounded-lg border border-border/60 bg-background/50 p-3">
+                <div className={`text-sm font-semibold ${
+                  group.tone === 'bad' ? 'text-rose-300' : group.tone === 'warn' ? 'text-amber-300' : 'text-emerald-300'
+                }`}>
+                  {group.title}
+                </div>
+                <ul className="mt-2 space-y-1 text-xs leading-5 text-muted-foreground">
+                  {group.checks.map((check) => <li key={check}>・{check}</li>)}
+                </ul>
+                <div className="mt-3 rounded border border-border/50 bg-muted/20 px-2 py-1.5 text-xs text-foreground">
+                  {group.action}
+                </div>
+              </div>
+            ))}
           </div>
         </section>
 
