@@ -20,6 +20,7 @@ type DayTradeStock = {
   expected_pf: number | null;
   expected_pf_n: number;
   expected_pf_basis: string | null;
+  expected_pf_confidence?: string | null;
   expected_pnl_avg: number | null;
   expected_wr: number | null;
   shortable: boolean;
@@ -60,7 +61,7 @@ type Summary = {
 
 type ProbBinCell = {
   label: string;
-  decision?: "SHORT" | "SKIP";
+  decision?: "SHORT" | "SKIP" | "MIX";
   n: number;
   pf: number | null;
   winRate: number | null;
@@ -351,19 +352,19 @@ export default function DayTradeListPage() {
 
   const getPfBasisDisplay = (stock: DayTradeStock) => {
     if (!stock.expected_pf_basis) return null;
-    const lowN = stock.expected_pf_basis.endsWith("_low_n");
-    const basis = stock.expected_pf_basis.replace("_low_n", "");
+    const basis = stock.expected_pf_basis;
     const n = stock.expected_pf_n ?? 0;
-    const confidence =
-      n >= 50 ? "厚い" :
-      n >= 30 ? "標準" :
-      n >= 20 ? "薄い" :
-      n > 0 ? "参考" :
-      "不足";
+    const confidence = stock.expected_pf_confidence ||
+      (n >= 100 ? "厚い" :
+      n >= 50 ? "標準" :
+      n >= 30 ? "参考" :
+      n >= 10 ? "少" :
+      n > 0 ? "極薄" :
+      "不足");
     return {
       basis,
-      meta: `n=${n} ${confidence}${lowN ? " / fallback" : ""}`,
-      lowN,
+      meta: `n=${n} ${confidence}`,
+      lowN: n < 30 || basis === "残0" || basis === "取扱なし",
     };
   };
 
@@ -372,6 +373,24 @@ export default function DayTradeListPage() {
     if (vol >= 1_000_000) return `${(vol / 1_000_000).toFixed(1)}M`;
     if (vol >= 1_000) return `${(vol / 1_000).toFixed(0)}K`;
     return vol.toLocaleString();
+  };
+
+  const getProbBinDecision = (bin: ProbBinCell) => {
+    if (bin.decision) return bin.decision;
+    const start = Number(bin.label.split("-")[0]);
+    const end = Number(bin.label.split("-")[1]);
+    if (Number.isFinite(start) && Number.isFinite(end)) {
+      if (end <= 0.4) return "SHORT";
+      if (start >= 0.5) return "SKIP";
+      return "MIX";
+    }
+    return "SKIP";
+  };
+
+  const getDecisionClass = (decision: string) => {
+    if (decision === "SHORT") return "text-rose-400";
+    if (decision === "MIX") return "text-amber-400";
+    return "text-muted-foreground";
   };
 
   const toggleSort = (key: keyof DayTradeStock) => {
@@ -698,7 +717,6 @@ export default function DayTradeListPage() {
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("price_diff")}>前日差<SortIcon col="price_diff" /></th>
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">寄付差</th>
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("expected_pf")}>期待PF<SortIcon col="expected_pf" /></th>
-                  <th className="px-2 py-3 text-left text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("expected_pf_basis")}>根拠<SortIcon col="expected_pf_basis" /></th>
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("prob_up")}>prob<SortIcon col="prob_up" /></th>
                   <th className="px-2 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("bucket")}>Action<SortIcon col="bucket" /></th>
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("atr_pct")}>ATR%<SortIcon col="atr_pct" /></th>
@@ -731,7 +749,7 @@ export default function DayTradeListPage() {
                   const canExpand = !bulkEditMode && stock.appearance_count >= 1;
                   const history = historyData[stock.ticker] || [];
                   const isLoadingHistory = loadingHistory === stock.ticker;
-                  const colSpan = bulkEditMode ? 18 : 16;
+                  const colSpan = bulkEditMode ? 17 : 15;
 
                   return (
                     <React.Fragment key={stock.ticker}>
@@ -833,7 +851,7 @@ export default function DayTradeListPage() {
                             return (diff > 0 ? "+" : "") + diff.toLocaleString();
                           })()}
                         </td>
-                        <td className={`px-2 py-4 text-right tabular-nums ${
+                        <td className={`px-2 py-3 text-right tabular-nums ${
                           stock.expected_pf !== null
                             ? stock.expected_pf >= 2
                               ? "text-emerald-400 font-semibold"
@@ -842,19 +860,18 @@ export default function DayTradeListPage() {
                                 : "text-rose-400 font-medium"
                             : "text-muted-foreground"
                         }`}>
-                          {stock.expected_pf !== null ? stock.expected_pf.toFixed(2) : "-"}
-                        </td>
-                        <td className="px-2 py-3 text-left text-xs text-muted-foreground whitespace-nowrap">
                           <div title={`avg=${stock.expected_pnl_avg ?? "-"} / WR=${stock.expected_wr ?? "-"}% / ${stock.prob_bin ?? "-"} / ${stock.price_band ?? "-"}`}>
                             {(() => {
                               const basis = getPfBasisDisplay(stock);
-                              if (!basis) return "-";
+                              if (stock.expected_pf === null) return "-";
                               return (
                                 <div className="leading-tight">
-                                  <div className="text-foreground/80">{basis.basis}</div>
-                                  <div className={basis.lowN ? "text-amber-400" : "text-muted-foreground"}>
-                                    {basis.meta}
-                                  </div>
+                                  <div>{stock.expected_pf.toFixed(2)}</div>
+                                  {basis && (
+                                    <div className={`text-[10px] ${basis.lowN ? "text-amber-400" : "text-muted-foreground"}`}>
+                                      {basis.meta}
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })()}
@@ -1213,9 +1230,10 @@ export default function DayTradeListPage() {
                             </thead>
                             <tbody>
                               {group.bins.map((bin) => {
+                                const decision = getProbBinDecision(bin);
                                 if (bin.n === 0) return (
                                   <tr key={bin.label} className="border-b border-border/20">
-                                    <td className={`px-2 py-1.5 font-medium ${bin.decision === "SHORT" ? "text-rose-400" : "text-muted-foreground"}`}>{bin.decision ?? (["0.00-0.20", "0.20-0.32", "0.32-0.45"].includes(bin.label) ? "SHORT" : "SKIP")}</td>
+                                    <td className={`px-2 py-1.5 font-medium ${getDecisionClass(decision)}`}>{decision}</td>
                                     <td className="px-2 py-1.5 font-medium">{bin.label}</td>
                                     <td className="px-2 py-1.5 text-right text-muted-foreground/40">0</td>
                                     <td colSpan={6} className="px-2 py-1.5 text-center text-muted-foreground/30">-</td>
@@ -1230,7 +1248,7 @@ export default function DayTradeListPage() {
                                 const barColor = bin.total !== null && bin.total >= 0 ? "bg-emerald-500/60" : "bg-rose-500/60";
                                 return (
                                   <tr key={bin.label} className="border-b border-border/20 hover:bg-muted/20">
-                                    <td className={`px-2 py-1.5 font-medium ${bin.decision === "SHORT" ? "text-rose-400" : "text-muted-foreground"}`}>{bin.decision ?? (["0.00-0.20", "0.20-0.32", "0.32-0.45"].includes(bin.label) ? "SHORT" : "SKIP")}</td>
+                                    <td className={`px-2 py-1.5 font-medium ${getDecisionClass(decision)}`}>{decision}</td>
                                     <td className="px-2 py-1.5 font-medium">{bin.label}</td>
                                     <td className="px-2 py-1.5 text-right tabular-nums">{bin.n}</td>
                                     <td className={`px-2 py-1.5 text-right tabular-nums ${wrColor}`}>{bin.winRate !== null ? `${bin.winRate}%` : "-"}</td>
