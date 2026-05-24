@@ -34,6 +34,9 @@ interface SemiconSignal {
   judgement?: string;
   trade_bucket?: string;
   trade_bucket_reasons?: string[];
+  entry_status?: 'READY' | 'WAIT' | 'AVOID';
+  entry_priority?: number;
+  entry_reasons?: string[];
 }
 
 interface OverseasRow {
@@ -148,6 +151,16 @@ function DecisionBadge({ decision }: { decision: Decision }) {
     AVOID: '見送り',
   };
   return <span className={`inline-block rounded border px-2 py-0.5 text-xs whitespace-nowrap ${map[decision]}`}>{label[decision]}</span>;
+}
+
+function EntryStatusBadge({ status }: { status?: string }) {
+  const label = status === 'READY' ? '候補' : status === 'AVOID' ? '回避' : '待ち';
+  const cls = status === 'READY'
+    ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200'
+    : status === 'AVOID'
+      ? 'border-rose-400/40 bg-rose-400/10 text-rose-200'
+      : 'border-amber-400/40 bg-amber-400/10 text-amber-200';
+  return <span className={`rounded border px-2 py-0.5 text-xs ${cls}`}>{label}</span>;
 }
 
 function StatCard({ label, value, sub, tone = 'default' }: { label: string; value: string | number; sub?: string; tone?: 'default' | 'good' | 'warn' | 'bad' }) {
@@ -301,6 +314,7 @@ export default function SemiconPage() {
   const entryRows = useMemo(() => {
     return (data?.signals || [])
       .filter((r) => ['実弾候補', '過熱注意'].includes(r.trade_bucket || ''))
+      .sort((a, b) => (b.entry_priority || 0) - (a.entry_priority || 0))
       .slice(0, 10);
   }, [data]);
 
@@ -486,14 +500,17 @@ export default function SemiconPage() {
               <thead>
                 <tr className="border-b border-border/50 bg-muted/20 text-muted-foreground">
                   <th className="px-3 py-2 text-left">区分</th>
+                  <th className="px-3 py-2 text-left">状態</th>
                   <th className="px-3 py-2 text-left">銘柄</th>
                   <th className="px-3 py-2 text-left">分類</th>
+                  <th className="px-3 py-2 text-right">優先度</th>
                   <th className="px-3 py-2 text-right">点</th>
                   <th className="px-3 py-2 text-right">終値</th>
                   <th className="px-3 py-2 text-right">5日</th>
                   <th className="px-3 py-2 text-right">25日線比</th>
                   <th className="px-3 py-2 text-right">CVaR5</th>
                   <th className="px-3 py-2 text-left">理由</th>
+                  <th className="px-3 py-2 text-left">判定理由</th>
                 </tr>
               </thead>
               <tbody>
@@ -510,17 +527,20 @@ export default function SemiconPage() {
                         {row.trade_bucket}
                       </span>
                     </td>
+                    <td className="px-3 py-2"><EntryStatusBadge status={row.entry_status} /></td>
                     <td className="px-3 py-2">
                       <div className="font-medium">{row.name}</div>
                       <div className="text-xs text-muted-foreground">{row.ticker}</div>
                     </td>
                     <td className="px-3 py-2 text-muted-foreground">{row.segment}</td>
+                    <td className="px-3 py-2 text-right tabular-nums font-semibold">{fmt(row.entry_priority, 1)}</td>
                     <td className="px-3 py-2 text-right tabular-nums font-semibold">{fmt(row.score, 1)}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{fmt(row.close, 1)}</td>
                     <td className={`px-3 py-2 text-right tabular-nums ${clsPct(row.ret5)}`}>{pct(row.ret5)}</td>
                     <td className={`px-3 py-2 text-right tabular-nums ${clsPct(row.vs25)}`}>{pct(row.vs25)}</td>
                     <td className={`px-3 py-2 text-right tabular-nums ${clsPct(row.cvar05)}`}>{pct(row.cvar05)}</td>
                     <td className="px-3 py-2 text-muted-foreground">{(row.trade_bucket_reasons || []).join(' / ') || '-'}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{(row.entry_reasons || []).join(' / ') || '-'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -540,7 +560,9 @@ export default function SemiconPage() {
               <thead>
                 <tr className="border-b border-border/50 bg-muted/20 text-muted-foreground">
                   <th className="px-3 py-2 text-left">銘柄</th>
+                  <th className="px-3 py-2 text-left">状態</th>
                   <th className="px-3 py-2 text-left">区分</th>
+                  <th className="px-3 py-2 text-right">優先度</th>
                   <th className="px-3 py-2 text-right">終値</th>
                   <th className="px-3 py-2 text-right">発火価格</th>
                   <th className="px-3 py-2 text-left">寄付差</th>
@@ -558,6 +580,7 @@ export default function SemiconPage() {
                         <div className="font-medium">{row.name}</div>
                         <div className="text-xs text-muted-foreground">{row.ticker} / {row.segment}</div>
                       </td>
+                      <td className="px-3 py-2"><EntryStatusBadge status={row.entry_status} /></td>
                       <td className="px-3 py-2">
                         <span className={`rounded border px-2 py-0.5 text-xs ${
                           row.trade_bucket === '実弾候補'
@@ -567,6 +590,7 @@ export default function SemiconPage() {
                           {row.trade_bucket}
                         </span>
                       </td>
+                      <td className="px-3 py-2 text-right tabular-nums font-semibold">{fmt(row.entry_priority, 1)}</td>
                       <td className="px-3 py-2 text-right tabular-nums">{fmt(row.close, 1)}</td>
                       <td className="px-3 py-2 text-right tabular-nums font-semibold">{fmt(row.entry_trigger_price, 0)}</td>
                       <td className="px-3 py-2 text-muted-foreground">{plan.gapLimit}</td>
