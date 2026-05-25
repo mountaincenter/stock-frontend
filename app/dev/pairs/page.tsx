@@ -47,6 +47,10 @@ interface SignalsResponse {
 
 interface PairHealthRow {
   pair: string;
+  tk1?: string;
+  tk2?: string;
+  name1?: string;
+  name2?: string;
   判定?: string;
   health_state?: string;
   'long/short例'?: string;
@@ -85,6 +89,20 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 // === Helpers ===
 const fmt = (v: number | null | undefined) => (v ?? 0).toLocaleString('ja-JP');
 const fmtZ = (v: number) => <span className={Math.abs(v) >= 2.0 ? (v > 0 ? 'text-price-down' : 'text-price-up') : Math.abs(v) >= 1.5 ? 'text-amber-400' : 'text-foreground/60'}>{v >= 0 ? '+' : ''}{v.toFixed(2)}</span>;
+const splitPair = (pair: string) => {
+  const [tk1 = '', tk2 = ''] = pair.split('/');
+  return { tk1: tk1.trim(), tk2: tk2.trim() };
+};
+const pairNameLabel = (row: PairHealthRow) => {
+  const { tk1, tk2 } = splitPair(row.pair);
+  const name1 = row.name1 && row.name1 !== row.tk1 && row.name1 !== tk1 ? row.name1 : row.tk1 || tk1;
+  const name2 = row.name2 && row.name2 !== row.tk2 && row.name2 !== tk2 ? row.name2 : row.tk2 || tk2;
+  return `${name1 || '-'} / ${name2 || '-'}`;
+};
+const pairTickerLabel = (row: PairHealthRow) => {
+  const { tk1, tk2 } = splitPair(row.pair);
+  return `${row.tk1 || tk1 || '-'} / ${row.tk2 || tk2 || '-'}`;
+};
 
 // === Sortable ===
 type SortDir = 'asc' | 'desc' | null;
@@ -572,8 +590,9 @@ export default function PairsPage() {
                           className="h-4 w-4 accent-amber-500" />
                       </td>
                       <td className="px-2 py-2.5">
-                        <div className="font-medium text-foreground">{row.pair}</div>
-                        <div className="text-xs text-foreground/45">{row['long/short例'] || row.業種 || '-'}</div>
+                        <div className="font-medium text-foreground">{pairNameLabel(row)}</div>
+                        <div className="text-xs text-foreground/45 tabular-nums">{pairTickerLabel(row)}</div>
+                        <div className="text-xs text-foreground/35">{row['long/short例'] || row.業種 || '-'}</div>
                       </td>
                       <td className="px-2 py-2.5 text-center">
                         <span className={`inline-block px-1.5 py-0.5 text-xs rounded border ${row.health_state === 'SUSPENDED' ? 'bg-rose-500/15 text-rose-400 border-rose-500/30' : row.health_state === 'WATCH' ? 'bg-amber-500/15 text-amber-400 border-amber-500/30' : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'}`}>
