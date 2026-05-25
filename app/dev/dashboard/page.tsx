@@ -104,6 +104,8 @@ interface StrategyMatrixResponse {
   weekdays: string[];
   strategies: {
     grok_short: { label: string; by_weekday: Record<string, StrategyWeekdayStats> };
+    grok_short_seido?: { label: string; by_weekday: Record<string, StrategyWeekdayStats> };
+    grok_short_daytrade?: { label: string; by_weekday: Record<string, StrategyWeekdayStats> };
     weekday_edge: { label: string; by_weekday: Record<string, StrategyWeekdayStats> };
     pairs: { label: string; by_weekday: Record<string, StrategyWeekdayStats> };
     calendar: { label: string; summary: Record<string, { pf: number | null; n: number; wr: number }> };
@@ -603,7 +605,8 @@ export default function DashboardPage() {
                 <thead>
                   <tr className="text-foreground border-b border-border/40 bg-muted/30">
                     <th className="text-center px-3 py-2 text-xs font-medium">曜日</th>
-                    <th className="text-center px-3 py-2 text-xs font-medium">grok SHORT</th>
+                    <th className="text-center px-3 py-2 text-xs font-medium">Grok 制度</th>
+                    <th className="text-center px-3 py-2 text-xs font-medium">Grok いちにち除0</th>
                     <th className="text-center px-3 py-2 text-xs font-medium">曜日20銘柄</th>
                     <th className="text-center px-3 py-2 text-xs font-medium">pair Top3</th>
                     <th className="text-center px-3 py-2 text-xs font-medium">Calendar</th>
@@ -611,7 +614,9 @@ export default function DashboardPage() {
                 </thead>
                 <tbody className="divide-y divide-border/30">
                   {matrixData.weekdays.map((dow) => {
-                    const grok = matrixData.strategies.grok_short.by_weekday[dow];
+                    const grokSeido = matrixData.strategies.grok_short_seido?.by_weekday[dow]
+                      ?? matrixData.strategies.grok_short.by_weekday[dow];
+                    const grokDaytrade = matrixData.strategies.grok_short_daytrade?.by_weekday[dow];
                     const we = matrixData.strategies.weekday_edge.by_weekday[dow];
                     const pair = matrixData.strategies.pairs.by_weekday[dow];
                     const ratings = matrixData.ratings[dow] || {};
@@ -629,7 +634,8 @@ export default function DashboardPage() {
                     return (
                       <tr key={dow} className="hover:bg-muted/5">
                         <td className="text-center px-3 py-2.5 font-medium text-foreground">{dow}</td>
-                        <td className="text-center px-3 py-2.5 tabular-nums">{pfCell(grok, ratings.grok_short || '-')}</td>
+                        <td className="text-center px-3 py-2.5 tabular-nums">{pfCell(grokSeido, ratings.grok_short_seido || ratings.grok_short || '-')}</td>
+                        <td className="text-center px-3 py-2.5 tabular-nums">{pfCell(grokDaytrade, ratings.grok_short_daytrade || '-')}</td>
                         <td className="text-center px-3 py-2.5 tabular-nums">{pfCell(we, ratings.weekday_edge || '-')}</td>
                         <td className="text-center px-3 py-2.5 tabular-nums">{pfCell(pair, ratings.pairs || '-')}</td>
                         <td className="text-center px-3 py-2.5 text-muted-foreground text-xs">{calLabel}</td>
