@@ -291,13 +291,23 @@ const entryPlan = (row: SemiconSignal) => {
     : row.trade_bucket === '過熱注意'
       ? '寄り高なら見送り。押し目か前日高値再突破だけ確認'
       : '温度計として見る';
-  const trigger = row.entry_trigger_price ? `${fmt(row.entry_trigger_price, 0)}超え` : '前日高値または寄り後維持';
+  const trigger = row.entry_trigger_price
+    ? `${fmt(row.entry_trigger_price, 0)}超え`
+    : row.entry_rule?.includes('終値')
+      ? `終値${fmt(row.close, 0)}奪回`
+      : '前日高値または寄り後維持';
   const invalidation = row.trade_bucket === '実弾候補'
     ? '寄り後失速、指数失速、金上昇継続'
     : row.trade_bucket === '過熱注意'
       ? '寄り天、25日線乖離拡大、左尾悪化'
       : '主力全体が弱い';
   return { gapLimit, openAction, trigger, invalidation };
+};
+
+const triggerPriceFor = (row: SemiconSignal) => {
+  if (row.entry_trigger_price != null) return row.entry_trigger_price;
+  if (row.entry_rule?.includes('終値') && row.close != null) return row.close;
+  return undefined;
 };
 
 const avoidCheckGroups = [
@@ -415,13 +425,28 @@ export default function SemiconPage() {
       : '無理に入らず監視';
 
   const realtimeFor = (ticker: string) => realtimeData[ticker];
+  const isRealtimeFreshForZaraba = (rt?: RealtimeQuote) => {
+    if (!rt?.marketTime) return true;
+    const now = new Date();
+    const jst = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' }));
+    const jstTime = jst.getHours() * 60 + jst.getMinutes();
+    const jstDay = jst.getDay();
+    const isWeekday = jstDay >= 1 && jstDay <= 5;
+    const isZaraba = isWeekday && jstTime >= 540 && jstTime <= 930;
+    if (!isZaraba) return true;
+    const mt = new Date(rt.marketTime);
+    const mtJst = new Date(mt.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' }));
+    return mtJst.toDateString() === jst.toDateString();
+  };
   const priceDiffFromClose = (row: SemiconSignal) => {
     const rt = realtimeFor(row.ticker);
+    if (!isRealtimeFreshForZaraba(rt)) return null;
     if (rt?.price == null || row.close == null) return null;
     return rt.price - row.close;
   };
   const openGapFromClose = (row: SemiconSignal) => {
     const rt = realtimeFor(row.ticker);
+    if (!isRealtimeFreshForZaraba(rt)) return null;
     if (rt?.open == null || row.close == null) return null;
     return rt.open - row.close;
   };
@@ -774,29 +799,37 @@ export default function SemiconPage() {
         </section>
 
         <section className="mb-4 rounded-lg border border-border bg-card p-4">
-          <div className="mb-3">
-            <h2 className="text-sm font-semibold">エントリー条件</h2>
-            <p className="mt-1 text-xs text-muted-foreground">
-              ここは発注指示ではなく、寄付前と寄り後30分で確認する条件表。寄り買いではなく、前日高値と寄り後の維持を見てから候補化する。VWAPは証券画面で手動確認する。
-            </p>
+          <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold">エントリー条件</h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                ここは発注指示ではなく、寄付前と寄り後30分で確認する条件表。寄り買いではなく、前日高値と寄り後の維持を見てから候補化する。VWAPは証券画面で手動確認する。
+              </p>
+            </div>
+            <button type="button" onClick={fetchRealtime} disabled={realtimeLoading || !data}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-sky-500/20 px-3 py-1.5 text-xs font-medium text-sky-300 transition-colors hover:bg-sky-500/30 disabled:opacity-50">
+              <RefreshCw className={`h-3.5 w-3.5 ${realtimeLoading ? 'animate-spin' : ''}`} />
+              寄付
+              {realtimeTimestamp && <span className="ml-1 text-sky-300/60">{realtimeTimestamp}</span>}
+            </button>
           </div>
           <div className="overflow-x-auto rounded-lg border border-border/60">
-            <table className="w-full min-w-[1280px] text-sm">
+            <table className="w-full min-w-[1680px] text-sm">
               <thead>
                 <tr className="border-b border-border/50 bg-muted/20 text-muted-foreground">
-                  <th className="px-3 py-2 text-left">銘柄</th>
+                  <th className="px-3 py-2 text-left whitespace-nowrap">銘柄</th>
                   <th className="px-3 py-2 text-left whitespace-nowrap">状態</th>
                   <th className="px-3 py-2 text-left whitespace-nowrap">区分</th>
-                  <th className="px-3 py-2 text-right">優先度</th>
-                  <th className="px-3 py-2 text-right">終値</th>
-                  <th className="px-3 py-2 text-right">現在</th>
-                  <th className="px-3 py-2 text-right">前日比</th>
-                  <th className="px-3 py-2 text-right">寄付差</th>
-                  <th className="px-3 py-2 text-right">発火価格</th>
-                  <th className="px-3 py-2 text-left">寄付条件</th>
-                  <th className="px-3 py-2 text-left">寄り後</th>
-                  <th className="px-3 py-2 text-left">入る条件</th>
-                  <th className="px-3 py-2 text-left">無効条件</th>
+                  <th className="px-3 py-2 text-right whitespace-nowrap">優先度</th>
+                  <th className="px-3 py-2 text-right whitespace-nowrap">終値</th>
+                  <th className="px-3 py-2 text-right whitespace-nowrap">現在</th>
+                  <th className="px-3 py-2 text-right whitespace-nowrap">前日比</th>
+                  <th className="px-3 py-2 text-right whitespace-nowrap">寄付差</th>
+                  <th className="px-3 py-2 text-right whitespace-nowrap">発火価格</th>
+                  <th className="px-3 py-2 text-left whitespace-nowrap">寄付条件</th>
+                  <th className="px-3 py-2 text-left whitespace-nowrap">寄り後</th>
+                  <th className="px-3 py-2 text-left whitespace-nowrap">入る条件</th>
+                  <th className="px-3 py-2 text-left whitespace-nowrap">無効条件</th>
                 </tr>
               </thead>
               <tbody>
@@ -812,16 +845,16 @@ export default function SemiconPage() {
                       <td className="px-3 py-2 whitespace-nowrap">
                         <TradeBucketBadge bucket={row.trade_bucket} />
                       </td>
-                      <td className="px-3 py-2 text-right tabular-nums font-semibold">{fmt(row.entry_priority, 1)}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">{fmt(row.close, 1)}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">{fmt(realtimeFor(row.ticker)?.price ?? undefined, 1)}</td>
-                      <td className={`px-3 py-2 text-right tabular-nums ${clsPct(priceDiffFromClose(row) ?? undefined)}`}>{yenAbs(priceDiffFromClose(row) ?? undefined)}</td>
-                      <td className={`px-3 py-2 text-right tabular-nums ${clsPct(openGapFromClose(row) ?? undefined)}`}>{yenAbs(openGapFromClose(row) ?? undefined)}</td>
-                      <td className="px-3 py-2 text-right tabular-nums font-semibold">{fmt(row.entry_trigger_price, 0)}</td>
-                      <td className="px-3 py-2 text-muted-foreground">{plan.gapLimit}</td>
-                      <td className="px-3 py-2 text-muted-foreground">{plan.openAction}</td>
-                      <td className="px-3 py-2 text-muted-foreground">{plan.trigger}</td>
-                      <td className="px-3 py-2 text-muted-foreground">{plan.invalidation}</td>
+                      <td className="px-3 py-2 text-right tabular-nums font-semibold whitespace-nowrap">{fmt(row.entry_priority, 1)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">{fmt(row.close, 1)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">{fmt(realtimeFor(row.ticker)?.price ?? undefined, 1)}</td>
+                      <td className={`px-3 py-2 text-right tabular-nums whitespace-nowrap ${clsPct(priceDiffFromClose(row) ?? undefined)}`}>{yenAbs(priceDiffFromClose(row) ?? undefined)}</td>
+                      <td className={`px-3 py-2 text-right tabular-nums whitespace-nowrap ${clsPct(openGapFromClose(row) ?? undefined)}`}>{yenAbs(openGapFromClose(row) ?? undefined)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums font-semibold whitespace-nowrap">{fmt(triggerPriceFor(row), 0)}</td>
+                      <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{plan.gapLimit}</td>
+                      <td className="px-3 py-2 text-muted-foreground"><div className="max-w-[220px] leading-5">{plan.openAction}</div></td>
+                      <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{plan.trigger}</td>
+                      <td className="px-3 py-2 text-muted-foreground"><div className="max-w-[260px] leading-5">{plan.invalidation}</div></td>
                     </tr>
                   );
                 })}
