@@ -191,7 +191,22 @@ function EntryStatusBadge({ status }: { status?: string }) {
     : status === 'AVOID'
       ? 'border-rose-400/40 bg-rose-400/10 text-rose-200'
       : 'border-amber-400/40 bg-amber-400/10 text-amber-200';
-  return <span className={`rounded border px-2 py-0.5 text-xs ${cls}`}>{label}</span>;
+  return <span className={`inline-flex shrink-0 items-center rounded border px-2 py-0.5 text-xs font-medium whitespace-nowrap ${cls}`}>{label}</span>;
+}
+
+function TradeBucketBadge({ bucket }: { bucket?: string }) {
+  const cls = bucket === '実弾候補'
+    ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200'
+    : bucket === '指標銘柄'
+      ? 'border-sky-400/40 bg-sky-400/10 text-sky-200'
+      : bucket === '見送り'
+        ? 'border-rose-400/40 bg-rose-400/10 text-rose-200'
+        : 'border-amber-400/40 bg-amber-400/10 text-amber-200';
+  return (
+    <span className={`inline-flex shrink-0 items-center rounded border px-2 py-0.5 text-xs font-medium whitespace-nowrap ${cls}`}>
+      {bucket || '-'}
+    </span>
+  );
 }
 
 function StatCard({ label, value, sub, tone = 'default' }: { label: string; value: string | number; sub?: string; tone?: 'default' | 'good' | 'warn' | 'bad' }) {
@@ -717,8 +732,8 @@ export default function SemiconPage() {
             <table className="w-full min-w-[1080px] text-sm">
               <thead>
                 <tr className="border-b border-border/50 bg-muted/20 text-muted-foreground">
-                  <th className="px-3 py-2 text-left">区分</th>
-                  <th className="px-3 py-2 text-left">状態</th>
+                  <th className="px-3 py-2 text-left whitespace-nowrap">区分</th>
+                  <th className="px-3 py-2 text-left whitespace-nowrap">状態</th>
                   <th className="px-3 py-2 text-left">銘柄</th>
                   <th className="px-3 py-2 text-left">分類</th>
                   <th className="px-3 py-2 text-right">優先度</th>
@@ -734,18 +749,10 @@ export default function SemiconPage() {
               <tbody>
                 {bucketRows.map((row) => (
                   <tr key={`bucket-${row.code}`} className="border-b border-border/20">
-                    <td className="px-3 py-2">
-                      <span className={`rounded border px-2 py-0.5 text-xs ${
-                        row.trade_bucket === '実弾候補'
-                          ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200'
-                          : row.trade_bucket === '指標銘柄'
-                            ? 'border-sky-400/40 bg-sky-400/10 text-sky-200'
-                            : 'border-amber-400/40 bg-amber-400/10 text-amber-200'
-                      }`}>
-                        {row.trade_bucket}
-                      </span>
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      <TradeBucketBadge bucket={row.trade_bucket} />
                     </td>
-                    <td className="px-3 py-2"><EntryStatusBadge status={row.entry_status} /></td>
+                    <td className="px-3 py-2 whitespace-nowrap"><EntryStatusBadge status={row.entry_status} /></td>
                     <td className="px-3 py-2">
                       <div className="font-medium">{row.name}</div>
                       <div className="text-xs text-muted-foreground">{row.ticker}</div>
@@ -778,8 +785,8 @@ export default function SemiconPage() {
               <thead>
                 <tr className="border-b border-border/50 bg-muted/20 text-muted-foreground">
                   <th className="px-3 py-2 text-left">銘柄</th>
-                  <th className="px-3 py-2 text-left">状態</th>
-                  <th className="px-3 py-2 text-left">区分</th>
+                  <th className="px-3 py-2 text-left whitespace-nowrap">状態</th>
+                  <th className="px-3 py-2 text-left whitespace-nowrap">区分</th>
                   <th className="px-3 py-2 text-right">優先度</th>
                   <th className="px-3 py-2 text-right">終値</th>
                   <th className="px-3 py-2 text-right">現在</th>
@@ -801,15 +808,9 @@ export default function SemiconPage() {
                         <div className="font-medium">{row.name}</div>
                         <div className="text-xs text-muted-foreground">{row.ticker} / {row.segment}</div>
                       </td>
-                      <td className="px-3 py-2"><EntryStatusBadge status={row.entry_status} /></td>
-                      <td className="px-3 py-2">
-                        <span className={`rounded border px-2 py-0.5 text-xs ${
-                          row.trade_bucket === '実弾候補'
-                            ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200'
-                            : 'border-amber-400/40 bg-amber-400/10 text-amber-200'
-                        }`}>
-                          {row.trade_bucket}
-                        </span>
+                      <td className="px-3 py-2 whitespace-nowrap"><EntryStatusBadge status={row.entry_status} /></td>
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        <TradeBucketBadge bucket={row.trade_bucket} />
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums font-semibold">{fmt(row.entry_priority, 1)}</td>
                       <td className="px-3 py-2 text-right tabular-nums">{fmt(row.close, 1)}</td>
