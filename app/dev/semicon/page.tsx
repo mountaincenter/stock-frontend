@@ -85,6 +85,31 @@ interface BucketSummaryRow {
   leaders: Array<{ code?: string; name?: string; score?: number }>;
 }
 
+interface HoldShortExposure {
+  code: string;
+  ticker: string;
+  name: string;
+  segment: string;
+  label: string;
+  side: string;
+  quantity?: number;
+  current_price?: number;
+  entry_value?: number;
+  pnl?: number;
+  pnl_pct?: number;
+  risk_level?: string;
+  note?: string;
+}
+
+interface RealtimeQuote {
+  price: number | null;
+  open: number | null;
+  change?: number | null;
+  changePercent?: number | null;
+  marketState: string | null;
+  marketTime: string | null;
+}
+
 interface SemiconResponse {
   generated_at?: string;
   data_date?: string;
@@ -102,6 +127,7 @@ interface SemiconResponse {
   signals: SemiconSignal[];
   segment_strength?: SegmentStrengthRow[];
   bucket_summary?: BucketSummaryRow[];
+  hold_short_exposures?: HoldShortExposure[];
   overseas: OverseasRow[];
   report_available: boolean;
   report_url?: string;
@@ -128,6 +154,7 @@ const fmt = (v?: number, digits = 1) => v == null || Number.isNaN(v) ? '-' : v.t
 const pct = (v?: number) => v == null || Number.isNaN(v) ? '-' : `${v > 0 ? '+' : ''}${v.toFixed(2)}%`;
 const clsPct = (v?: number) => v == null ? 'text-muted-foreground' : v > 0 ? 'text-emerald-400' : v < 0 ? 'text-rose-400' : 'text-muted-foreground';
 const yen = (v?: number) => v == null || Number.isNaN(v) ? '-' : `${v >= 0 ? '+' : ''}${Math.round(v).toLocaleString('ja-JP')}円`;
+const yenAbs = (v?: number) => v == null || Number.isNaN(v) ? '-' : `${Math.round(v).toLocaleString('ja-JP')}円`;
 
 const variantLabel = (variant: string) => {
   const map: Record<string, string> = {
@@ -194,7 +221,7 @@ const intradayChecks = [
   ['指数', '日経・TOPIXが寄り後に失速していない'],
   ['為替', '急な円高でない'],
   ['金・原油', '金がさらに上、原油急騰なら警戒'],
-  ['候補銘柄', 'VWAP上、寄付差過大でない、前日高値を意識'],
+  ['候補銘柄', '寄付差過大でない、前日高値を意識。VWAPは証券画面で手動確認'],
 ];
 
 const semiconUniverseGroups = [
@@ -245,13 +272,13 @@ const semiconUniverseGroups = [
 const entryPlan = (row: SemiconSignal) => {
   const gapLimit = row.trade_bucket === '実弾候補' ? '原則 +0〜+2.5%' : '原則待ち';
   const openAction = row.trade_bucket === '実弾候補'
-    ? '寄り買いしない。寄り後30分でVWAP上を確認'
+    ? '寄り買いしない。寄り後30分で維持を確認'
     : row.trade_bucket === '過熱注意'
       ? '寄り高なら見送り。押し目か前日高値再突破だけ確認'
       : '温度計として見る';
-  const trigger = row.entry_trigger_price ? `${fmt(row.entry_trigger_price, 0)}超え` : '前日高値/VWAP上維持';
+  const trigger = row.entry_trigger_price ? `${fmt(row.entry_trigger_price, 0)}超え` : '前日高値または寄り後維持';
   const invalidation = row.trade_bucket === '実弾候補'
-    ? 'VWAP割れ、指数失速、金上昇継続'
+    ? '寄り後失速、指数失速、金上昇継続'
     : row.trade_bucket === '過熱注意'
       ? '寄り天、25日線乖離拡大、左尾悪化'
       : '主力全体が弱い';
@@ -274,7 +301,7 @@ const avoidCheckGroups = [
   {
     title: '個別NG',
     tone: 'warn',
-    checks: ['寄付差が大きすぎる', 'VWAP割れ', '前日高値超え失敗', '25日線乖離が大きすぎる', '左尾高', '決算/材料直後でボラ過大'],
+    checks: ['寄付差が大きすぎる', '寄り後失速', '前日高値超え失敗', '25日線乖離が大きすぎる', '左尾高', '決算/材料直後でボラ過大'],
     action: '2つ以上該当なら見送り',
   },
   {
@@ -290,6 +317,9 @@ export default function SemiconPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Decision | 'ALL'>('ALL');
+  const [realtimeData, setRealtimeData] = useState<Record<string, RealtimeQuote>>({});
+  const [realtimeLoading, setRealtimeLoading] = useState(false);
+  const [realtimeTimestamp, setRealtimeTimestamp] = useState<string | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -311,6 +341,34 @@ export default function SemiconPage() {
 
   useEffect(() => { fetchData(); }, []);
 
+  const fetchRealtime = async () => {
+    const tickers = Array.from(new Set((data?.signals || []).map((s) => s.ticker).filter(Boolean)));
+    if (tickers.length === 0) return;
+    setRealtimeLoading(true);
+    try {
+      const res = await fetch(`/api/realtime?tickers=${encodeURIComponent(tickers.join(','))}&force=true`);
+      if (!res.ok) throw new Error(`realtime API ${res.status}`);
+      const json = await res.json();
+      const map: Record<string, RealtimeQuote> = {};
+      for (const q of json.data || []) {
+        map[q.ticker] = {
+          price: q.price ?? null,
+          open: q.open ?? null,
+          change: q.change ?? null,
+          changePercent: q.changePercent ?? null,
+          marketState: q.marketState ?? null,
+          marketTime: q.marketTime ?? null,
+        };
+      }
+      setRealtimeData(map);
+      setRealtimeTimestamp(json.timestamp ? new Date(json.timestamp).toLocaleTimeString('ja-JP') : null);
+    } catch (e) {
+      console.error('semicon realtime fetch failed', e);
+    } finally {
+      setRealtimeLoading(false);
+    }
+  };
+
   const rows = useMemo(() => {
     const base = data?.signals || [];
     return filter === 'ALL' ? base : base.filter((r) => r.decision === filter);
@@ -331,6 +389,28 @@ export default function SemiconPage() {
       .slice(0, 10);
   }, [data]);
 
+  const holdShorts = data?.hold_short_exposures || [];
+  const highRiskShorts = holdShorts.filter((r) => r.risk_level === '高' || r.risk_level === '中');
+  const readyRows = entryRows.filter((r) => r.entry_status === 'READY');
+  const hotThemeRows = (data?.segment_strength || []).slice(0, 3);
+  const actionableHeadline = highRiskShorts.length > 0
+    ? '既存ショートの踏み上げ警戒を最優先'
+    : readyRows.length > 0
+      ? '寄り後条件通過なら小さく順張り'
+      : '無理に入らず監視';
+
+  const realtimeFor = (ticker: string) => realtimeData[ticker];
+  const priceDiffFromClose = (row: SemiconSignal) => {
+    const rt = realtimeFor(row.ticker);
+    if (rt?.price == null || row.close == null) return null;
+    return rt.price - row.close;
+  };
+  const openGapFromClose = (row: SemiconSignal) => {
+    const rt = realtimeFor(row.ticker);
+    if (rt?.open == null || row.close == null) return null;
+    return rt.open - row.close;
+  };
+
   const marketTone = data?.market.state === 'RISK_ON' ? 'good' : data?.market.state === 'RISK_OFF' ? 'bad' : 'warn';
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -339,7 +419,7 @@ export default function SemiconPage() {
           <div>
             <h1 className="text-lg font-semibold tracking-tight">AI/半導体 順張り v1</h1>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              無条件買いではなく、米地合い・発火価格・VWAP・左尾で当日朝に候補化する半裁量画面
+              無条件買いではなく、米地合い・発火価格・寄付差・左尾で当日朝に候補化する半裁量画面
             </p>
           </div>
           <div className="ml-auto flex items-center gap-2">
@@ -365,6 +445,111 @@ export default function SemiconPage() {
           <StatCard label="見送り" value={data?.counts.avoid ?? 0} tone="bad" />
           <StatCard label="対象" value={data?.counts.total ?? 0} sub="AI/半導体+周辺" />
         </section>
+
+        <section className="mb-4 rounded-lg border border-emerald-500/25 bg-card p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="text-xs text-muted-foreground">今日の実務判断</div>
+              <h2 className="mt-1 text-xl font-semibold">{actionableHeadline}</h2>
+              <p className="mt-2 max-w-4xl text-sm leading-6 text-muted-foreground">
+                目的はAI/半導体周辺の強い流れに乗ること。ただし、寄り買いではなく、地合い・セグメント強度・寄付差・寄り後の維持を通過した銘柄だけ候補化する。
+              </p>
+            </div>
+            <button type="button" onClick={fetchRealtime} disabled={realtimeLoading || !data}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted/30 disabled:opacity-50">
+              <RefreshCw className={`h-3.5 w-3.5 ${realtimeLoading ? 'animate-spin' : ''}`} />
+              リアルタイム
+              {realtimeTimestamp && <span className="text-muted-foreground/70">{realtimeTimestamp}</span>}
+            </button>
+          </div>
+          <div className="mt-4 grid gap-3 lg:grid-cols-4">
+            <div className="rounded-lg border border-border/60 bg-background/45 p-3">
+              <div className="text-xs text-muted-foreground">新規ロング</div>
+              <div className={`mt-1 text-lg font-semibold ${readyRows.length > 0 ? 'text-emerald-300' : 'text-amber-300'}`}>
+                {readyRows.length > 0 ? `${readyRows.length}件 条件付き` : '原則待ち'}
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground">READYでも寄り後維持/前日高値確認が前提</div>
+            </div>
+            <div className="rounded-lg border border-border/60 bg-background/45 p-3">
+              <div className="text-xs text-muted-foreground">既存ショート</div>
+              <div className={`mt-1 text-lg font-semibold ${highRiskShorts.length > 0 ? 'text-rose-300' : 'text-muted-foreground'}`}>
+                {highRiskShorts.length > 0 ? `${highRiskShorts.length}件 警戒` : '該当薄い'}
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground">テーマ該当売建は新規ロング判断より先に確認</div>
+            </div>
+            <div className="rounded-lg border border-border/60 bg-background/45 p-3">
+              <div className="text-xs text-muted-foreground">強いセグメント</div>
+              <div className="mt-1 space-y-1 text-sm">
+                {hotThemeRows.map((row) => (
+                  <div key={row.segment} className="flex justify-between gap-2">
+                    <span className="truncate">{row.segment}</span>
+                    <span className={`tabular-nums ${clsPct(row.avg_ret5)}`}>{pct(row.avg_ret5)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="rounded-lg border border-border/60 bg-background/45 p-3">
+              <div className="text-xs text-muted-foreground">ノートレ条件</div>
+              <div className="mt-1 text-sm leading-5 text-muted-foreground">
+                地合い混在、寄りで飛びすぎ、セグメント内の過半失速、候補が寄り後に失速。
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {holdShorts.length > 0 && (
+          <section className="mb-4 rounded-lg border border-rose-500/30 bg-rose-500/10 p-4">
+            <div className="mb-3">
+              <div className="text-xs text-rose-200/80">既存ショート警戒</div>
+              <h2 className="mt-1 text-lg font-semibold text-rose-100">AI/半導体周辺の売建を先に見る</h2>
+              <p className="mt-2 text-sm leading-6 text-rose-100/80">
+                ここは新規エントリー候補ではなく、テーマ順張り相場で踏まれやすい既存ショートの確認欄です。
+              </p>
+            </div>
+            <div className="overflow-x-auto rounded-lg border border-border/60 bg-background/50">
+              <table className="w-full min-w-[900px] text-sm">
+                <thead>
+                  <tr className="border-b border-border/50 text-muted-foreground">
+                    <th className="px-3 py-2 text-left">銘柄</th>
+                    <th className="px-3 py-2 text-left">分類</th>
+                    <th className="px-3 py-2 text-right">数量</th>
+                    <th className="px-3 py-2 text-right">時価</th>
+                    <th className="px-3 py-2 text-right">評価損益</th>
+                    <th className="px-3 py-2 text-right">損益率</th>
+                    <th className="px-3 py-2 text-left">警戒</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {holdShorts.map((row) => (
+                    <tr key={row.code} className="border-b border-border/20">
+                      <td className="px-3 py-2">
+                        <div className="font-medium">{row.name}</div>
+                        <div className="text-xs text-muted-foreground">{row.ticker}</div>
+                      </td>
+                      <td className="px-3 py-2 text-muted-foreground">{row.segment}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{fmt(row.quantity, 0)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{fmt(row.current_price, 1)}</td>
+                      <td className={`px-3 py-2 text-right tabular-nums font-semibold ${row.pnl != null && row.pnl < 0 ? 'text-rose-300' : 'text-emerald-300'}`}>{yen(row.pnl)}</td>
+                      <td className={`px-3 py-2 text-right tabular-nums ${clsPct(row.pnl_pct)}`}>{pct(row.pnl_pct)}</td>
+                      <td className="px-3 py-2">
+                        <span className={`rounded border px-2 py-0.5 text-xs ${
+                          row.risk_level === '高'
+                            ? 'border-rose-400/40 bg-rose-400/10 text-rose-200'
+                            : row.risk_level === '中'
+                              ? 'border-amber-400/40 bg-amber-400/10 text-amber-200'
+                              : 'border-border text-muted-foreground'
+                        }`}>
+                          {row.risk_level || '-'}
+                        </span>
+                        <span className="ml-2 text-xs text-muted-foreground">{row.note}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
 
         <details className="mb-4 rounded-lg border border-border/60 bg-card/60 px-4 py-3 text-sm">
           <summary className="cursor-pointer select-none text-xs font-medium text-muted-foreground hover:text-foreground">
@@ -585,7 +770,7 @@ export default function SemiconPage() {
           <div className="mb-3">
             <h2 className="text-sm font-semibold">エントリー条件</h2>
             <p className="mt-1 text-xs text-muted-foreground">
-              ここは発注指示ではなく、寄付前と寄り後30分で確認する条件表。寄り買いではなく、VWAP上維持と前日高値を見てから候補化する。
+              ここは発注指示ではなく、寄付前と寄り後30分で確認する条件表。寄り買いではなく、前日高値と寄り後の維持を見てから候補化する。VWAPは証券画面で手動確認する。
             </p>
           </div>
           <div className="overflow-x-auto rounded-lg border border-border/60">
@@ -597,8 +782,11 @@ export default function SemiconPage() {
                   <th className="px-3 py-2 text-left">区分</th>
                   <th className="px-3 py-2 text-right">優先度</th>
                   <th className="px-3 py-2 text-right">終値</th>
+                  <th className="px-3 py-2 text-right">現在</th>
+                  <th className="px-3 py-2 text-right">前日比</th>
+                  <th className="px-3 py-2 text-right">寄付差</th>
                   <th className="px-3 py-2 text-right">発火価格</th>
-                  <th className="px-3 py-2 text-left">寄付差</th>
+                  <th className="px-3 py-2 text-left">寄付条件</th>
                   <th className="px-3 py-2 text-left">寄り後</th>
                   <th className="px-3 py-2 text-left">入る条件</th>
                   <th className="px-3 py-2 text-left">無効条件</th>
@@ -625,6 +813,9 @@ export default function SemiconPage() {
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums font-semibold">{fmt(row.entry_priority, 1)}</td>
                       <td className="px-3 py-2 text-right tabular-nums">{fmt(row.close, 1)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{fmt(realtimeFor(row.ticker)?.price ?? undefined, 1)}</td>
+                      <td className={`px-3 py-2 text-right tabular-nums ${clsPct(priceDiffFromClose(row) ?? undefined)}`}>{yenAbs(priceDiffFromClose(row) ?? undefined)}</td>
+                      <td className={`px-3 py-2 text-right tabular-nums ${clsPct(openGapFromClose(row) ?? undefined)}`}>{yenAbs(openGapFromClose(row) ?? undefined)}</td>
                       <td className="px-3 py-2 text-right tabular-nums font-semibold">{fmt(row.entry_trigger_price, 0)}</td>
                       <td className="px-3 py-2 text-muted-foreground">{plan.gapLimit}</td>
                       <td className="px-3 py-2 text-muted-foreground">{plan.openAction}</td>
@@ -764,7 +955,7 @@ export default function SemiconPage() {
           <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
             <div>
               <h2 className="text-sm font-semibold">優先監視</h2>
-              <p className="mt-1 text-xs text-muted-foreground">発火価格、VWAP、米地合いを通過した銘柄だけ小さく候補化します。</p>
+              <p className="mt-1 text-xs text-muted-foreground">発火価格、寄付差、米地合いを通過した銘柄だけ小さく候補化します。VWAPは証券画面で確認します。</p>
             </div>
             <div className="text-xs text-muted-foreground">source: {data?.source || '-'}</div>
           </div>
