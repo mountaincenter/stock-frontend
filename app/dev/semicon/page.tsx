@@ -444,11 +444,11 @@ export default function SemiconPage() {
     if (rt?.price == null || row.close == null) return null;
     return rt.price - row.close;
   };
-  const openGapFromClose = (row: SemiconSignal) => {
+  const priceDiffFromOpen = (row: SemiconSignal) => {
     const rt = realtimeFor(row.ticker);
     if (!isRealtimeFreshForZaraba(rt)) return null;
-    if (rt?.open == null || row.close == null) return null;
-    return rt.open - row.close;
+    if (rt?.price == null || rt.open == null || rt.open <= 0) return null;
+    return rt.price - rt.open;
   };
 
   const marketTone = data?.market.state === 'RISK_ON' ? 'good' : data?.market.state === 'RISK_OFF' ? 'bad' : 'warn';
@@ -849,7 +849,7 @@ export default function SemiconPage() {
                       <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">{fmt(row.close, 1)}</td>
                       <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap">{fmt(realtimeFor(row.ticker)?.price ?? undefined, 1)}</td>
                       <td className={`px-3 py-2 text-right tabular-nums whitespace-nowrap ${clsPct(priceDiffFromClose(row) ?? undefined)}`}>{yenAbs(priceDiffFromClose(row) ?? undefined)}</td>
-                      <td className={`px-3 py-2 text-right tabular-nums whitespace-nowrap ${clsPct(openGapFromClose(row) ?? undefined)}`}>{yenAbs(openGapFromClose(row) ?? undefined)}</td>
+                      <td className={`px-3 py-2 text-right tabular-nums whitespace-nowrap ${clsPct(priceDiffFromOpen(row) ?? undefined)}`}>{yenAbs(priceDiffFromOpen(row) ?? undefined)}</td>
                       <td className="px-3 py-2 text-right tabular-nums font-semibold whitespace-nowrap">{fmt(triggerPriceFor(row), 0)}</td>
                       <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{plan.gapLimit}</td>
                       <td className="px-3 py-2 text-muted-foreground"><div className="max-w-[220px] leading-5">{plan.openAction}</div></td>
