@@ -110,6 +110,24 @@ interface RealtimeQuote {
   marketTime: string | null;
 }
 
+interface MarketIndicator {
+  ticker: string;
+  name: string;
+  role: string;
+  risk_note: string;
+  good_when: 'up' | 'down' | 'mixed';
+  date?: string;
+  open?: number;
+  high?: number;
+  low?: number;
+  close?: number;
+  ret1?: number;
+  ret5?: number;
+  ret20?: number;
+  source?: string;
+  missing?: boolean;
+}
+
 interface SemiconResponse {
   generated_at?: string;
   data_date?: string;
@@ -128,6 +146,9 @@ interface SemiconResponse {
   segment_strength?: SegmentStrengthRow[];
   bucket_summary?: BucketSummaryRow[];
   hold_short_exposures?: HoldShortExposure[];
+  market_indicators?: MarketIndicator[];
+  market_indicator_date?: string;
+  market_indicator_source?: string;
   overseas: OverseasRow[];
   report_available: boolean;
   report_url?: string;
@@ -155,6 +176,22 @@ const pct = (v?: number) => v == null || Number.isNaN(v) ? '-' : `${v > 0 ? '+' 
 const clsPct = (v?: number) => v == null ? 'text-muted-foreground' : v > 0 ? 'text-emerald-400' : v < 0 ? 'text-rose-400' : 'text-muted-foreground';
 const yen = (v?: number) => v == null || Number.isNaN(v) ? '-' : `${v >= 0 ? '+' : ''}${Math.round(v).toLocaleString('ja-JP')}円`;
 const yenAbs = (v?: number) => v == null || Number.isNaN(v) ? '-' : `${Math.round(v).toLocaleString('ja-JP')}円`;
+const fmtPrice = (v?: number | null, digits = 2) => v == null || Number.isNaN(v) ? '-' : v.toLocaleString('ja-JP', { maximumFractionDigits: digits, minimumFractionDigits: digits });
+
+const indicatorTone = (indicator: MarketIndicator, ret1?: number | null) => {
+  if (ret1 == null || Number.isNaN(ret1)) return 'neutral';
+  if (indicator.good_when === 'mixed') return Math.abs(ret1) >= 0.5 ? 'warn' : 'neutral';
+  const aligned = indicator.good_when === 'up' ? ret1 > 0 : ret1 < 0;
+  return aligned ? 'good' : 'bad';
+};
+
+const indicatorDecision = (indicator: MarketIndicator, ret1?: number | null) => {
+  const tone = indicatorTone(indicator, ret1);
+  if (tone === 'good') return '追い風';
+  if (tone === 'bad') return '逆風';
+  if (tone === 'warn') return '混在';
+  return '未判定';
+};
 
 const variantLabel = (variant: string) => {
   const map: Record<string, string> = {
@@ -255,19 +292,19 @@ const semiconUniverseGroups = [
   {
     segment: '電力',
     role: '実弾候補',
-    tickers: '日立 / 三菱電機 / 富士電機 / 住友電工 / SWCC',
+    tickers: '日立 / 三菱電機 / 富士電機 / 住友電工',
     use: 'データセンター・電力増強の波及。地合い悪化時でも相対的に残るかを見る。',
   },
   {
     segment: '光通信',
     role: '実弾候補',
-    tickers: 'フジクラ / 古河電工 / 住友電工 / SWCC',
+    tickers: 'フジクラ / 古河電工 / 住友電工',
     use: 'AIサーバー接続・データセンター投資の波及。急騰後は寄り天に注意。',
   },
   {
     segment: '冷却/空調',
     role: '監視候補',
-    tickers: 'ダイキン / 大気社',
+    tickers: 'ダイキン',
     use: 'AIデータセンターの熱対策。株価反応が遅れている時だけ候補化。',
   },
   {
@@ -452,6 +489,17 @@ export default function SemiconPage() {
   };
 
   const marketTone = data?.market.state === 'RISK_ON' ? 'good' : data?.market.state === 'RISK_OFF' ? 'bad' : 'warn';
+  const marketIndicators = data?.market_indicators || [];
+  const hasMarketIndicators = marketIndicators.length > 0;
+  const riskOffCount = marketIndicators.filter((indicator) => indicatorTone(indicator, indicator.ret1) === 'bad').length;
+  const riskOnCount = marketIndicators.filter((indicator) => indicatorTone(indicator, indicator.ret1) === 'good').length;
+  const externalRegime = !hasMarketIndicators
+    ? '未取得'
+    : riskOffCount >= 3
+      ? '逆風優勢'
+      : riskOnCount >= 3
+        ? '追い風優勢'
+        : '混在';
   return (
     <main className="min-h-screen bg-background text-foreground">
       <div className="mx-auto max-w-[1500px] px-3 py-4 md:px-5">
@@ -484,6 +532,97 @@ export default function SemiconPage() {
           <StatCard label="条件監視" value={data?.counts.watch ?? 0} tone="warn" />
           <StatCard label="見送り" value={data?.counts.avoid ?? 0} tone="bad" />
           <StatCard label="対象" value={data?.counts.total ?? 0} sub="AI/半導体+周辺" />
+        </section>
+
+        <section className="mb-4 rounded-lg border border-border bg-card p-4">
+          <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="text-xs text-muted-foreground">外部地合い</div>
+              <h2 className="mt-1 text-lg font-semibold">WTI / Gold / 銅 / 日経CME</h2>
+              <p className="mt-2 max-w-5xl text-sm leading-6 text-muted-foreground">
+                半導体ロングの前提確認。主データは pipeline で固めた parquet 由来です。WTIとGoldが同時に強い日は、株先物が高くても地政学リスクを残している扱いです。
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className={`rounded-lg border px-3 py-1.5 text-xs font-medium ${
+                externalRegime === '追い風優勢'
+                  ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200'
+                  : externalRegime === '逆風優勢'
+                    ? 'border-rose-400/40 bg-rose-400/10 text-rose-200'
+                    : 'border-amber-400/40 bg-amber-400/10 text-amber-200'
+              }`}>
+                判定: {externalRegime}
+              </div>
+              <div className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground">
+                date: {data?.market_indicator_date || '-'}
+              </div>
+            </div>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {marketIndicators.map((indicator) => {
+              const tone = indicatorTone(indicator, indicator.ret1);
+              return (
+                <div key={indicator.ticker} className="rounded-lg border border-border/60 bg-background/45 p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="font-semibold">{indicator.name}</div>
+                      <div className="mt-0.5 text-xs text-muted-foreground">{indicator.ticker} / {indicator.role}</div>
+                    </div>
+                    <span className={`rounded border px-2 py-0.5 text-xs whitespace-nowrap ${
+                      tone === 'good'
+                        ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200'
+                        : tone === 'bad'
+                          ? 'border-rose-400/40 bg-rose-400/10 text-rose-200'
+                          : tone === 'warn'
+                            ? 'border-amber-400/40 bg-amber-400/10 text-amber-200'
+                        : 'border-border text-muted-foreground'
+                    }`}>
+                      {indicatorDecision(indicator, indicator.ret1)}
+                    </span>
+                  </div>
+                  <div className="mt-3 grid grid-cols-4 gap-2 text-xs">
+                    <div>
+                      <div className="text-muted-foreground">終値</div>
+                      <div className="mt-1 text-right text-base font-semibold tabular-nums">{fmtPrice(indicator.close)}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">1日</div>
+                      <div className={`mt-1 text-right text-base font-semibold tabular-nums ${clsPct(indicator.ret1)}`}>{pct(indicator.ret1)}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">5日</div>
+                      <div className={`mt-1 text-right text-base font-semibold tabular-nums ${clsPct(indicator.ret5)}`}>{pct(indicator.ret5)}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">日付</div>
+                      <div className="mt-1 text-right text-xs font-medium tabular-nums">{indicator.date || '-'}</div>
+                    </div>
+                  </div>
+                  <div className="mt-3 text-xs leading-5 text-muted-foreground">{indicator.risk_note}</div>
+                  <div className="mt-2 text-[11px] text-muted-foreground/70">source: {indicator.source || data?.market_indicator_source || '-'}</div>
+                </div>
+              );
+            })}
+            {marketIndicators.length === 0 && (
+              <div className="rounded-lg border border-border/60 bg-background/45 p-3 text-sm text-muted-foreground">
+                外部地合いデータ未生成。1645/0700 pipeline の semicon artifact に market_indicators を入れる必要があります。
+              </div>
+            )}
+          </div>
+          <div className="mt-3 grid gap-3 md:grid-cols-3">
+            <div className="rounded-lg border border-border/60 bg-background/45 p-3">
+              <div className="text-xs font-semibold text-emerald-300">順張りしやすい形</div>
+              <div className="mt-1 text-xs leading-5 text-muted-foreground">日経CMEが強く、WTIとGoldが落ち着き、銅が弱くない。寄り後に主力と周辺の過半が維持。</div>
+            </div>
+            <div className="rounded-lg border border-border/60 bg-background/45 p-3">
+              <div className="text-xs font-semibold text-amber-300">混在の形</div>
+              <div className="mt-1 text-xs leading-5 text-muted-foreground">株先物は高いがWTI/Goldも高い。寄り高から利確されやすく、寄り買いではなく30分確認。</div>
+            </div>
+            <div className="rounded-lg border border-border/60 bg-background/45 p-3">
+              <div className="text-xs font-semibold text-rose-300">見送りの形</div>
+              <div className="mt-1 text-xs leading-5 text-muted-foreground">Gold上昇、WTI急騰、日経CME失速のどれかが強い。候補があってもノートレ優先。</div>
+            </div>
+          </div>
         </section>
 
         <section className="mb-4 rounded-lg border border-emerald-500/25 bg-card p-4">
