@@ -507,7 +507,8 @@ export default function DayTradeListPage() {
           ? best.pf - close.amount.pf
           : null;
         const reason = getExitReason(decision, operation, best, close, pfDelta);
-        return { row, best, bestSeg, close, operation, decision, pfDelta, reason };
+        const totalDelta = best && close ? best.total - close.amount.total : null;
+        return { row, best, bestSeg, close, operation, decision, pfDelta, reason, totalDelta };
       });
   }, [weekdayRisk]);
 
@@ -683,28 +684,62 @@ export default function DayTradeListPage() {
                 ))}
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
-              {weekdayExitRows.map(({ row, best, bestSeg, close, operation, decision, reason }) => (
-                <div key={`${row.marginKey}-${row.probKey}`} className="rounded-lg border border-border/30 bg-muted/20 px-3 py-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className={`rounded border px-1.5 py-0.5 text-[11px] font-bold ${exitDecisionClass(decision)}`}>{decision}</span>
-                      <span className="text-sm text-foreground">{row.marginLabel}</span>
-                      <span className={`text-sm font-medium ${getDecisionClass(row.probLabel)}`}>{row.probLabel}</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground">n={row.count}</span>
-                  </div>
-                  <div className="mt-1 flex items-baseline justify-between gap-2">
-                    <span className={`text-sm font-semibold ${exitOperationClass(operation)}`}>
-                      {operation} / {bestSeg ? `${bestSeg.time} ${bestSeg.label}` : "-"}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      PF {best?.pf?.toFixed(2) ?? "-"} / 引け {close?.amount.pf?.toFixed(2) ?? "-"}
-                    </span>
-                  </div>
-                  <div className="mt-1 text-xs text-muted-foreground">{reason}</div>
-                </div>
-              ))}
+            <div className="overflow-x-auto rounded-lg border border-border/30">
+              <table className="w-full min-w-[1100px] text-sm">
+                <thead className="bg-muted/30 text-xs text-muted-foreground">
+                  <tr>
+                    <th className="text-left px-3 py-2 font-medium">判定</th>
+                    <th className="text-left px-3 py-2 font-medium">運用区分</th>
+                    <th className="text-left px-3 py-2 font-medium">信用区分</th>
+                    <th className="text-left px-3 py-2 font-medium">bucket</th>
+                    <th className="text-right px-3 py-2 font-medium">最適PF</th>
+                    <th className="text-right px-3 py-2 font-medium">大引けPF</th>
+                    <th className="text-right px-3 py-2 font-medium">PF差</th>
+                    <th className="text-right px-3 py-2 font-medium">最適損益</th>
+                    <th className="text-right px-3 py-2 font-medium">大引け損益</th>
+                    <th className="text-right px-3 py-2 font-medium">損益差</th>
+                    <th className="text-right px-3 py-2 font-medium">DD</th>
+                    <th className="text-right px-3 py-2 font-medium">CVaR5</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {weekdayExitRows.map(({ row, best, bestSeg, close, operation, decision, pfDelta, reason, totalDelta }) => (
+                    <tr key={`${row.marginKey}-${row.probKey}`} className="border-t border-border/20">
+                      <td className="px-3 py-2">
+                        <span className={`px-2 py-0.5 rounded border text-xs font-bold ${exitDecisionClass(decision)}`}>{decision}</span>
+                        {decision === "CONDITIONAL" && (
+                          <div className="mt-1 text-[11px] text-amber-300">{reason}</div>
+                        )}
+                      </td>
+                      <td className={`px-3 py-2 font-medium ${decision === "SKIP" ? "text-muted-foreground" : exitOperationClass(operation)}`}>
+                        {decision === "SKIP" ? "見送り" : `${operation} / ${bestSeg ? `${bestSeg.time} ${bestSeg.label}` : "-"}`}
+                      </td>
+                      <td className="px-3 py-2 text-foreground">{row.marginLabel}</td>
+                      <td className={`px-3 py-2 font-medium ${getDecisionClass(row.probLabel)}`}>{row.probLabel}</td>
+                      <td className="px-3 py-2 text-right tabular-nums text-foreground">{best?.pf?.toFixed(2) ?? "-"}</td>
+                      <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{close?.amount.pf?.toFixed(2) ?? "-"}</td>
+                      <td className={`px-3 py-2 text-right tabular-nums ${(pfDelta ?? 0) >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                        {pfDelta !== null ? `${pfDelta >= 0 ? "+" : ""}${pfDelta.toFixed(2)}` : "-"}
+                      </td>
+                      <td className={`px-3 py-2 text-right tabular-nums ${(best?.total ?? 0) >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                        {best ? formatProfit(best.total) : "-"}
+                      </td>
+                      <td className={`px-3 py-2 text-right tabular-nums ${(close?.amount.total ?? 0) >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                        {close ? formatProfit(close.amount.total) : "-"}
+                      </td>
+                      <td className={`px-3 py-2 text-right tabular-nums ${(totalDelta ?? 0) >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                        {totalDelta !== null ? formatProfit(totalDelta) : "-"}
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums text-rose-300">
+                        {best?.dailyMaxDD !== null && best?.dailyMaxDD !== undefined ? formatProfit(best.dailyMaxDD) : "-"}
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums text-rose-300">
+                        {best?.cvar05 !== null && best?.cvar05 !== undefined ? formatProfit(best.cvar05) : "-"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </section>
         )}
