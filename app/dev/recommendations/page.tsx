@@ -90,7 +90,47 @@ type ProbBinPfData = {
   results: ProbBinGroup[];
 };
 
+type RiskMetrics = {
+  total: number;
+  pf: number | null;
+  dailyMaxDD: number | null;
+  cvar05: number | null;
+};
+
+type RiskSegment = {
+  key: string;
+  label: string;
+  time: string;
+  amount: RiskMetrics;
+};
+
+type WeekdayRiskRow = {
+  marginKey: string;
+  marginLabel: string;
+  probKey: string;
+  probLabel: string;
+  count: number;
+  bestSegment: {
+    key: string;
+    label: string;
+    pf: number | null;
+    total: number;
+    dailyMaxDD: number | null;
+    cvar05: number | null;
+  } | null;
+  segments: RiskSegment[];
+};
+
+type WeekdayRiskMatrix = {
+  weekdayName: string;
+  dataRange: { tradingDays: number };
+  dataScope?: { analysisStartDate: string };
+  rows: WeekdayRiskRow[];
+};
+
 type FilterType = "all" | "unchecked" | "shortable" | "day_trade" | "ng";
+type ExitDecision = "GO" | "CONDITIONAL" | "SKIP";
+type ExitOperation = "通常" | "早期利確" | "時間指定" | "見送り";
 
 const FILTER_OPTIONS = [
   { value: "all", label: "すべて" },
@@ -99,6 +139,14 @@ const FILTER_OPTIONS = [
   { value: "day_trade", label: "いちにち" },
   { value: "ng", label: "NG" },
 ];
+
+const WEEKDAY_TO_INDEX: Record<string, number> = {
+  "月曜日": 0,
+  "火曜日": 1,
+  "水曜日": 2,
+  "木曜日": 3,
+  "金曜日": 4,
+};
 
 export default function DayTradeListPage() {
   const [stocks, setStocks] = useState<DayTradeStock[]>([]);
@@ -144,6 +192,7 @@ export default function DayTradeListPage() {
     pf: number;
     note: string;
   } | null>(null);
+  const [weekdayRisk, setWeekdayRisk] = useState<WeekdayRiskMatrix | null>(null);
 
   const fetchData = async () => {
     try {
@@ -154,6 +203,13 @@ export default function DayTradeListPage() {
       setSummary(data.summary);
       if (data.market) setMarketData(data.market);
       if (data.weekday_rule) setWeekdayRule(data.weekday_rule);
+      const weekdayIdx = data.weekday_rule?.weekday ? WEEKDAY_TO_INDEX[data.weekday_rule.weekday] : undefined;
+      if (weekdayIdx !== undefined) {
+        const riskRes = await fetch(`/api/dev/weekday-risk-matrix?weekday=${weekdayIdx}&direction=short&segment_mode=4seg`);
+        if (riskRes.ok) {
+          setWeekdayRisk(await riskRes.json());
+        }
+      }
       setLoading(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "エラー");
@@ -387,6 +443,69 @@ export default function DayTradeListPage() {
     return "SKIP";
   };
 
+  const getExitOperation = (best: WeekdayRiskRow["bestSegment"], close: RiskSegment | null): ExitOperation => {
+    const bestPf = best?.pf ?? null;
+    const closePf = close?.amount.pf ?? null;
+    if (!best || bestPf === null) return "見送り";
+    if (best.key === "seg_1530" && bestPf >= 1.2) return "通常";
+    if (best.key !== "seg_1530" && bestPf >= 1.3 && closePf !== null && closePf < 1.0) return "時間指定";
+    if (best.key !== "seg_1530" && closePf !== null && closePf >= 1.0 && bestPf - closePf >= 0.3) return "早期利確";
+    if (bestPf >= 1.2 && closePf !== null && closePf >= 1.0) return "通常";
+    return "見送り";
+  };
+
+  const getExitDecision = (row: WeekdayRiskRow, operation: ExitOperation, close: RiskSegment | null): ExitDecision => {
+    const best = row.bestSegment;
+    if (!best || best.pf === null || best.dailyMaxDD === null || best.cvar05 === null || operation === "見送り") return "SKIP";
+    const closePf = close?.amount.pf ?? null;
+    const riskOk = best.dailyMaxDD >= -30000 && best.cvar05 >= -15000;
+    if (best.pf >= 1.5 && best.total > 0 && riskOk && closePf !== null && closePf >= 1.0 && operation === "通常") return "GO";
+    if (best.pf >= 1.2 && best.total > 0 && best.dailyMaxDD >= -50000) return "CONDITIONAL";
+    return "SKIP";
+  };
+
+  const getExitReason = (decision: ExitDecision, operation: ExitOperation, best: WeekdayRiskRow["bestSegment"], close: RiskSegment | null, pfDelta: number | null) => {
+    if (decision === "SKIP") return "期待値不足";
+    const closePf = close?.amount.pf ?? null;
+    if (operation === "時間指定") return "大引けPF<1";
+    if (operation === "早期利確") return pfDelta !== null ? `PF差 +${pfDelta.toFixed(2)}` : "早期利確優位";
+    if (best?.dailyMaxDD !== null && best?.dailyMaxDD !== undefined && best.dailyMaxDD < -30000) return "DD注意";
+    if (best?.cvar05 !== null && best?.cvar05 !== undefined && best.cvar05 < -15000) return "CVaR注意";
+    if (closePf !== null && closePf < 1.2) return "大引けPF弱め";
+    return "大引け可";
+  };
+
+  const exitDecisionClass = (decision: ExitDecision) => ({
+    GO: "bg-emerald-500/15 text-emerald-300 border-emerald-500/40",
+    CONDITIONAL: "bg-amber-500/15 text-amber-300 border-amber-500/40",
+    SKIP: "bg-rose-500/15 text-rose-300 border-rose-500/40",
+  }[decision]);
+
+  const exitOperationClass = (operation: ExitOperation) => ({
+    通常: "text-emerald-300",
+    早期利確: "text-cyan-300",
+    時間指定: "text-amber-300",
+    見送り: "text-muted-foreground",
+  }[operation]);
+
+  const weekdayExitRows = useMemo(() => {
+    if (!weekdayRisk) return [];
+    return weekdayRisk.rows
+      .filter(row => ["seido", "ichinichi_ex0"].includes(row.marginKey) && ["short", "mix", "skip"].includes(row.probKey))
+      .map(row => {
+        const best = row.bestSegment;
+        const bestSeg = best ? row.segments.find(s => s.key === best.key) ?? null : null;
+        const close = row.segments.find(s => s.key === "seg_1530") ?? null;
+        const operation = getExitOperation(best, close);
+        const decision = getExitDecision(row, operation, close);
+        const pfDelta = best?.pf !== null && best?.pf !== undefined && close?.amount.pf !== null && close?.amount.pf !== undefined
+          ? best.pf - close.amount.pf
+          : null;
+        const reason = getExitReason(decision, operation, best, close, pfDelta);
+        return { row, best, bestSeg, close, operation, decision, pfDelta, reason };
+      });
+  }, [weekdayRisk]);
+
   const getDecisionClass = (decision: string) => {
     if (decision === "SHORT") return "text-rose-400";
     if (decision === "MIX") return "text-amber-400";
@@ -540,6 +659,49 @@ export default function DayTradeListPage() {
             </div>
             <span className="text-xs text-muted-foreground max-w-xs hidden sm:block">{weekdayRule.note}</span>
           </div>
+        )}
+
+        {weekdayExitRows.length > 0 && (
+          <section className="mb-4 rounded-xl border border-border/50 bg-card/80 px-4 py-3">
+            <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+              <div>
+                <div className="text-xs text-muted-foreground">
+                  {weekdayRisk?.dataScope?.analysisStartDate}以降 / {weekdayRisk?.dataRange.tradingDays}日 / 4seg
+                </div>
+                <h2 className="text-sm font-bold text-foreground">曜日出口ルール — {weekdayRisk?.weekdayName}</h2>
+              </div>
+              <div className="flex flex-wrap gap-2 text-xs">
+                {(["GO", "CONDITIONAL", "SKIP"] as const).map(d => (
+                  <span key={d} className={`rounded border px-2 py-1 ${exitDecisionClass(d)}`}>
+                    {d} {weekdayExitRows.filter(r => r.decision === d).length}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+              {weekdayExitRows.map(({ row, best, bestSeg, close, operation, decision, reason }) => (
+                <div key={`${row.marginKey}-${row.probKey}`} className="rounded-lg border border-border/30 bg-muted/20 px-3 py-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className={`rounded border px-1.5 py-0.5 text-[11px] font-bold ${exitDecisionClass(decision)}`}>{decision}</span>
+                      <span className="text-sm text-foreground">{row.marginLabel}</span>
+                      <span className={`text-sm font-medium ${getDecisionClass(row.probLabel)}`}>{row.probLabel}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">n={row.count}</span>
+                  </div>
+                  <div className="mt-1 flex items-baseline justify-between gap-2">
+                    <span className={`text-sm font-semibold ${exitOperationClass(operation)}`}>
+                      {operation} / {bestSeg ? `${bestSeg.time} ${bestSeg.label}` : "-"}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      PF {best?.pf?.toFixed(2) ?? "-"} / 引け {close?.amount.pf?.toFixed(2) ?? "-"}
+                    </span>
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">{reason}</div>
+                </div>
+              ))}
+            </div>
+          </section>
         )}
 
         {/* Summary Grid */}
@@ -1073,8 +1235,9 @@ export default function DayTradeListPage() {
           <div className="relative">
             <div className="text-xs text-muted-foreground mb-2 font-medium">ML予測 閾値区分（PFテーブル用）</div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-              <span><span className="text-rose-400 font-medium">SHORT</span>: prob &lt; 0.45</span>
-              <span><span className="text-muted-foreground font-medium">SKIP</span>: prob ≥ 0.45（ショート回避）</span>
+              <span><span className="text-rose-400 font-medium">SHORT</span>: prob &lt; 0.4</span>
+              <span><span className="text-amber-400 font-medium">MIX</span>: 0.4 ≤ prob &lt; 0.5</span>
+              <span><span className="text-muted-foreground font-medium">SKIP</span>: prob ≥ 0.5（ショート回避）</span>
             </div>
             <div className="text-xs text-muted-foreground mt-2">
               prob: 株価上昇確率 / ATR: <span className="text-rose-400">3%未満</span>=負け傾向 <span className="text-emerald-400">6%以上</span>=高ボラ
@@ -1098,7 +1261,7 @@ export default function DayTradeListPage() {
           <div className="relative px-4 py-3">
             <div className="flex items-center justify-between mb-3">
               <div className="text-sm text-muted-foreground font-medium">
-                prob別パフォーマンス（{probPfData?.probSource === "wfcv" ? "WFCV" : probPfData?.probSource === "live" ? "live" : "hybrid"} / SHORT/SKIP / 残0除外）
+                prob別パフォーマンス（{probPfData?.probSource === "wfcv" ? "WFCV" : probPfData?.probSource === "live" ? "live" : "hybrid"} / SHORT/MIX/SKIP / 残0除外）
               </div>
               {probPfData && (
                 <div className="text-sm text-muted-foreground">
