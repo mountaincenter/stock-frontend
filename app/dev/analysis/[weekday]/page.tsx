@@ -120,6 +120,8 @@ const WEEKDAY_SLUG_MAP: Record<string, number> = {
 const PRICE_RANGE_LABELS = ['~1,000円', '1,000~3,000円', '3,000~5,000円', '5,000~10,000円', '10,000円~'];
 const MARGIN_TYPES = ['制度信用', 'いちにち信用'];
 const BUCKET_SECTIONS = ['全体', 'SHORT', 'SKIP'] as const;
+const EXECUTION_MARGIN_KEYS = ['seido', 'ichinichi_ex0'] as const;
+const EXECUTION_PROB_KEYS = ['short', 'mix', 'skip'] as const;
 
 type DisplayMode = 'amount' | 'pct';
 type SegmentMode = '4seg' | '11seg';
@@ -878,14 +880,15 @@ export default function WeekdayAnalysisPage() {
               </thead>
               <tbody>
                 {riskMatrixData.rows
-                  .filter(r => ['all', 'seido', 'ichinichi_ex0'].includes(r.marginKey) && ['all', 'short', 'mix'].includes(r.probKey))
+                  .filter(r => EXECUTION_MARGIN_KEYS.includes(r.marginKey as typeof EXECUTION_MARGIN_KEYS[number])
+                    && EXECUTION_PROB_KEYS.includes(r.probKey as typeof EXECUTION_PROB_KEYS[number]))
                   .map(row => {
                     const best = row.bestSegment;
                     const bestSeg = best ? row.segments.find(s => s.key === best.key) : null;
                     return (
                       <tr key={`${row.marginKey}-${row.probKey}`} className="border-t border-border/20">
                         <td className="px-3 py-2 text-foreground font-medium">{row.marginLabel}</td>
-                        <td className={`px-3 py-2 font-medium ${row.probLabel === 'SHORT' ? 'text-rose-400' : row.probLabel === 'MIX' ? 'text-amber-400' : 'text-muted-foreground'}`}>
+                        <td className={`px-3 py-2 font-medium ${row.probLabel === 'SHORT' ? 'text-rose-400' : row.probLabel === 'MIX' ? 'text-amber-400' : row.probLabel === 'SKIP' ? 'text-blue-400' : 'text-muted-foreground'}`}>
                           {row.probLabel}
                         </td>
                         <td className="px-3 py-2 text-right tabular-nums">{row.count}</td>
