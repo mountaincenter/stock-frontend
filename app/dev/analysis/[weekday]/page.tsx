@@ -370,6 +370,11 @@ export default function WeekdayAnalysisPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  useEffect(() => {
+    setIchFilter('ex0');
+    setIchChartFilter('ex0');
+  }, [dayIndex]);
+
   // 拡張パネル取得
   useEffect(() => {
     const dir = 'short';
