@@ -61,6 +61,38 @@ interface WeekdayData {
   weekday_rule?: WeekdayRule | null;
 }
 
+interface StrategyCandidate {
+  weekday: string;
+  weekdayIndex: number;
+  marginKey: string;
+  marginLabel: string;
+  bucket: string;
+  count: number;
+  decision: 'GO' | 'CONDITIONAL' | 'SKIP';
+  reason: string;
+  bestSegment: {
+    key: string;
+    label: string;
+    time: string;
+    profit: number;
+    winRate: number | null;
+    count: number;
+    mean: number | null;
+    pf: number | null;
+  } | null;
+  closeSegment: {
+    key: string;
+    label: string;
+    time: string;
+    profit: number;
+    winRate: number | null;
+    count: number;
+    mean: number | null;
+    pf: number | null;
+  } | null;
+  pfDelta: number | null;
+}
+
 interface ApiResponse {
   generatedAt: string;
   timeSegments11: TimeSegment[];
@@ -81,6 +113,7 @@ interface ApiResponse {
     pctSegments4: Record<string, SegmentStatsPct>;
   };
   weekdays: WeekdayData[];
+  strategyCandidates?: StrategyCandidate[];
   excludeExtreme: boolean;
   direction: string;
   filters: {
@@ -137,12 +170,13 @@ const DETAIL_VIEW_LABELS: Record<DetailViewType, string> = {
   weekday: '曜日別',
 };
 
-const BUCKET_LABELS = ['SHORT', 'DISC', 'LONG'] as const;
+const BUCKET_LABELS = ['SHORT', 'MIX', 'SKIP'] as const;
 const BUCKET_COLORS: Record<string, string> = {
   SHORT: 'text-rose-400',
-  DISC: 'text-amber-400',
-  LONG: 'text-emerald-400',
+  MIX: 'text-amber-400',
+  SKIP: 'text-muted-foreground',
 };
+const WEEKDAY_SLUGS = ['mon', 'tue', 'wed', 'thu', 'fri'] as const;
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
@@ -180,6 +214,12 @@ const pfClass = (pf: number | null) => {
   if (pf >= 0.7) return 'text-rose-400';
   return 'text-rose-400 font-bold';
 };
+
+const decisionClass = (decision: StrategyCandidate['decision']) => ({
+  GO: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40',
+  CONDITIONAL: 'bg-amber-500/15 text-amber-300 border-amber-500/40',
+  SKIP: 'bg-rose-500/15 text-rose-300 border-rose-500/40',
+}[decision]);
 
 // Color classes for segments
 const getSegmentClasses = (
@@ -229,7 +269,7 @@ export default function AnalysisCustomPage() {
   const [segmentMode, setSegmentMode] = useState<SegmentMode>('4seg');
   const [displayMode, setDisplayMode] = useState<DisplayMode>('amount');
   const [excludeExtreme, setExcludeExtreme] = useState(false);
-  const [direction, setDirection] = useState<Direction>('short');
+  const [direction] = useState<Direction>('short');
 
   // Price filters
   const [priceMin, setPriceMin] = useState(0);
@@ -471,29 +511,9 @@ export default function AnalysisCustomPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {/* Direction toggle */}
-            <div className="flex gap-1">
-              <button
-                onClick={() => setDirection('short')}
-                className={`px-3 py-1 text-xs rounded-md border transition-colors ${
-                  direction === 'short'
-                    ? 'bg-rose-500/20 text-rose-400 border-rose-500/50'
-                    : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
-                }`}
-              >
-                SHORT
-              </button>
-              <button
-                onClick={() => setDirection('long')}
-                className={`px-3 py-1 text-xs rounded-md border transition-colors ${
-                  direction === 'long'
-                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50'
-                    : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
-                }`}
-              >
-                LONG
-              </button>
-            </div>
+            <span className="rounded border border-rose-500/30 bg-rose-500/10 px-3 py-1 text-xs text-rose-300">
+              SHORT運用
+            </span>
             <span className="text-border">|</span>
             {/* 異常日除外トグル */}
             <label className="flex items-center gap-1.5 cursor-pointer">
@@ -645,6 +665,89 @@ export default function AnalysisCustomPage() {
             適用
           </button>
         </div>
+
+        {/* Strategy Candidates */}
+        {data.strategyCandidates && (
+          <section className="mb-6 rounded-xl border border-border/50 bg-card/80 p-4">
+            <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
+              <div>
+                <h2 className="text-lg font-bold text-foreground">戦略候補一覧</h2>
+                <p className="text-xs text-muted-foreground mt-1">
+                  曜日 × 信用区分 × bucket を4区分で評価。候補を選び、曜日別出口ルールで深掘りする。
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2 text-xs">
+                {(['GO', 'CONDITIONAL', 'SKIP'] as const).map(d => (
+                  <span key={d} className={`rounded border px-2 py-1 ${decisionClass(d)}`}>
+                    {d} {data.strategyCandidates?.filter(r => r.decision === d).length ?? 0}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="overflow-x-auto rounded-lg border border-border/30">
+              <table className="w-full min-w-[980px] text-sm">
+                <thead className="bg-muted/30 text-xs text-muted-foreground">
+                  <tr>
+                    <th className="text-left px-3 py-2 font-medium">判定</th>
+                    <th className="text-left px-3 py-2 font-medium">曜日</th>
+                    <th className="text-left px-3 py-2 font-medium">信用区分</th>
+                    <th className="text-left px-3 py-2 font-medium">bucket</th>
+                    <th className="text-right px-3 py-2 font-medium">件数</th>
+                    <th className="text-left px-3 py-2 font-medium">最適時間</th>
+                    <th className="text-right px-3 py-2 font-medium">最適PF</th>
+                    <th className="text-right px-3 py-2 font-medium">大引けPF</th>
+                    <th className="text-right px-3 py-2 font-medium">PF差</th>
+                    <th className="text-right px-3 py-2 font-medium">最適損益</th>
+                    <th className="text-left px-3 py-2 font-medium">理由</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...data.strategyCandidates]
+                    .sort((a, b) => {
+                      const rank = { GO: 0, CONDITIONAL: 1, SKIP: 2 };
+                      return rank[a.decision] - rank[b.decision]
+                        || a.weekdayIndex - b.weekdayIndex
+                        || a.marginLabel.localeCompare(b.marginLabel)
+                        || a.bucket.localeCompare(b.bucket);
+                    })
+                    .map(row => (
+                      <tr key={`${row.weekday}-${row.marginKey}-${row.bucket}`} className="border-t border-border/20">
+                        <td className="px-3 py-2">
+                          <span className={`px-2 py-0.5 rounded border text-xs font-bold ${decisionClass(row.decision)}`}>
+                            {row.decision}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2">
+                          <Link href={`/dev/analysis/${WEEKDAY_SLUGS[row.weekdayIndex]}`} className="text-primary hover:underline">
+                            {row.weekday.replace('曜日', '')}
+                          </Link>
+                        </td>
+                        <td className="px-3 py-2 text-foreground">{row.marginLabel}</td>
+                        <td className={`px-3 py-2 font-medium ${BUCKET_COLORS[row.bucket] ?? 'text-foreground'}`}>{row.bucket}</td>
+                        <td className="px-3 py-2 text-right tabular-nums text-foreground">{row.count}</td>
+                        <td className="px-3 py-2 text-foreground">
+                          {row.bestSegment ? `${row.bestSegment.time} ${row.bestSegment.label}` : '-'}
+                        </td>
+                        <td className={`px-3 py-2 text-right tabular-nums ${pfClass(row.bestSegment?.pf ?? null)}`}>
+                          {formatPF(row.bestSegment?.pf ?? null)}
+                        </td>
+                        <td className={`px-3 py-2 text-right tabular-nums ${pfClass(row.closeSegment?.pf ?? null)}`}>
+                          {formatPF(row.closeSegment?.pf ?? null)}
+                        </td>
+                        <td className={`px-3 py-2 text-right tabular-nums ${(row.pfDelta ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {row.pfDelta !== null ? `${row.pfDelta >= 0 ? '+' : ''}${row.pfDelta.toFixed(2)}` : '-'}
+                        </td>
+                        <td className={`px-3 py-2 text-right tabular-nums ${(row.bestSegment?.profit ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {row.bestSegment ? formatProfit(row.bestSegment.profit) : '-'}
+                        </td>
+                        <td className="px-3 py-2 text-muted-foreground">{row.reason}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
 
         {/* Top Summary Cards */}
         <div className={`grid gap-3 mb-6 ${segmentMode === '4seg' ? 'grid-cols-2 md:grid-cols-5' : 'grid-cols-2 md:grid-cols-4 lg:grid-cols-6'}`}>
