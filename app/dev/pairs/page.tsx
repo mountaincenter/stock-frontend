@@ -33,6 +33,12 @@ interface PairSignal {
   pair_health_reason?: string;
   pair_health_reviewed_at?: string;
   pair_health_recheck_after?: string;
+  trade_date?: string;
+  trade_weekday?: string;
+  risk_label?: string;
+  operation_label?: string;
+  operation_reason?: string;
+  top3_permission?: string;
   is_entry: boolean; direction: string;
   signal_date: string;
 }
@@ -232,6 +238,24 @@ const HealthBadge = ({ pair }: { pair: PairSignal }) => {
   );
 };
 
+const OperationBadge = ({ pair }: { pair: PairSignal }) => {
+  const label = pair.operation_label || '未判定';
+  const risk = pair.risk_label || 'unknown';
+  const reason = pair.operation_reason || '';
+  const cls = label === 'Top3可'
+    ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+    : label === 'Top1限定'
+      ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+      : label === '見送り'
+        ? 'bg-rose-500/15 text-rose-400 border-rose-500/30'
+        : 'bg-muted/40 text-foreground/60 border-border/50';
+  return (
+    <span title={`${reason || label} / risk=${risk} / entry=${pair.trade_date || '-'}(${pair.trade_weekday || '-'})`} className={`inline-block px-1.5 py-0.5 text-xs rounded leading-none border whitespace-nowrap ${cls}`}>
+      {label}
+    </span>
+  );
+};
+
 // === Main ===
 export default function PairsPage() {
   const [signals, setSignals] = useState<SignalsResponse | null>(null);
@@ -273,13 +297,15 @@ export default function PairsPage() {
   const entryPairs = signals?.entry || [];
   const riskBlocked = allPairs.filter(p => p.z_abs >= 2.0 && p.full_pf >= 1.5 && p.risk_ok === false).length;
   const watchPairs = allPairs.filter(p => p.pair_health_state === 'WATCH').length;
-  // Top3 dedup: エントリー推奨(is_entry)を|z|順に業種重複除外で充填→枠残ればwatch(|z|>=1.5)で繰上げ
-  // セクター悪化リスク分散 (backtest: MaxDD -22%改善)
+  // 運用ルール: Top1基本。Top3可の日だけ業種重複を避けて最大3件まで表示。
   const top3: PairSignal[] = [];
   const usedSectors = new Set<string>();
+  const entrySorted = [...entryPairs].sort((a, b) => b.z_abs - a.z_abs);
+  const top3Allowed = entrySorted.some(p => p.top3_permission === '可');
+  const topLimit = top3Allowed ? 3 : 1;
   const pickUnique = (pool: PairSignal[]) => {
     for (const pair of pool) {
-      if (top3.length >= 3) return;
+      if (top3.length >= topLimit) return;
       const sec = pair.sector1 || '';
       if (sec && usedSectors.has(sec)) continue;
       if (top3.some(t => t.tk1 === pair.tk1 && t.tk2 === pair.tk2)) continue;
@@ -287,12 +313,15 @@ export default function PairsPage() {
       if (sec) usedSectors.add(sec);
     }
   };
-  // PF>=1.5 を watch 繰上げの必須条件に追加 (memory: PF<1.0 見送り、PF>=1.5 優先)
-  const entrySorted = [...entryPairs].sort((a, b) => b.z_abs - a.z_abs);
-  const watchSorted = allPairs
-    .filter(p => !p.is_entry && p.z_abs >= 1.5 && p.full_pf >= 1.5)
-    .sort((a, b) => b.z_abs - a.z_abs);
-  pickUnique(entrySorted);
+  const entryPool = top3Allowed
+    ? entrySorted.filter(p => p.top3_permission === '可')
+    : entrySorted.slice(0, 1);
+  const watchSorted = top3Allowed
+    ? allPairs
+      .filter(p => !p.is_entry && p.z_abs >= 1.5 && p.full_pf >= 1.5 && p.top3_permission === '可')
+      .sort((a, b) => b.z_abs - a.z_abs)
+    : [];
+  pickUnique(entryPool);
   pickUnique(watchSorted);
   const pairSort = useSortable<PairSignal>(allPairs, 'z_abs');
   const healthSummary = health?.summary || [];
@@ -463,6 +492,7 @@ export default function PairsPage() {
                           <div>妥当性: <ValidityBadge pair={p} /></div>
                           <div>risk: <RiskBadge pair={p} /></div>
                           <div>health: <HealthBadge pair={p} /></div>
+                          <div>運用: <OperationBadge pair={p} /></div>
                         </div>
                       </div>
                       <div className="text-left md:text-right ml-8 md:ml-0 md:min-w-[280px] border-t border-border/20 pt-2 md:border-0 md:pt-0">
@@ -495,7 +525,7 @@ export default function PairsPage() {
               })}
             </div>
             <div className="px-4 md:px-5 py-2.5 border-t border-border/40 text-sm text-foreground/50">
-              前日終値で候補化し、ret1差8%未満・決算近接なしを通過したペアのみ表示。翌営業日の寄付が表示閾値を満たした場合のみ発注。
+              前日終値で候補化し、ret1差8%未満・決算近接なしを通過したペアのみ表示。運用判定は Top1基本、火水金cleanのみTop3可、月木とrisk labelありはTop1限定。
             </div>
           </Panel>
         ) : (
@@ -528,6 +558,7 @@ export default function PairsPage() {
                         <span>PF={p.full_pf.toFixed(2)}</span>
                         <ValidityBadge pair={p} />
                         <HealthBadge pair={p} />
+                        <OperationBadge pair={p} />
                         <span className="hidden sm:inline">{p.shares1}/{p.shares2}株</span>
                       </div>
                     </div>
@@ -644,6 +675,7 @@ export default function PairsPage() {
                 <SortHeader<PairSignal> label="妥当性" field="pair_validity_rank" {...pairSort} className="text-center px-2 py-2.5 text-sm font-medium hidden md:table-cell" />
                 <SortHeader<PairSignal> label="risk" field="ret1_spread_abs" {...pairSort} className="text-center px-2 py-2.5 text-sm font-medium hidden md:table-cell" />
                 <SortHeader<PairSignal> label="health" field="pair_health_state" {...pairSort} className="text-center px-2 py-2.5 text-sm font-medium hidden md:table-cell" />
+                <SortHeader<PairSignal> label="運用" field="operation_label" {...pairSort} className="text-center px-2 py-2.5 text-sm font-medium hidden lg:table-cell" />
                 <th className="text-right px-2 py-2.5 text-sm font-medium hidden md:table-cell">株数</th>
                 <SortHeader<PairSignal> label="HL" field="revert_1d" {...pairSort} className="text-right px-2 py-2.5 text-sm font-medium hidden lg:table-cell" />
               </tr></thead>
@@ -695,6 +727,9 @@ export default function PairsPage() {
                       <td className="px-2 py-2.5 text-center hidden md:table-cell">
                         <HealthBadge pair={p} />
                       </td>
+                      <td className="px-2 py-2.5 text-center hidden lg:table-cell">
+                        <OperationBadge pair={p} />
+                      </td>
                       <td className="px-2 py-2.5 text-right tabular-nums text-sm text-foreground/50 hidden md:table-cell">
                         {p.shares1}/{p.shares2}
                       </td>
@@ -713,7 +748,7 @@ export default function PairsPage() {
         <Panel title="翌朝 アクション手順">
           <div className="px-3 md:px-5 py-3 md:py-4 text-xs md:text-sm text-foreground/60 space-y-2">
             <div className="flex gap-3"><span className="text-foreground font-semibold">1.</span><span>TOP候補を優先（|z|上位2-3ペア）</span></div>
-            <div className="flex gap-3"><span className="text-foreground font-semibold">2.</span><span>妥当性は「原則・厚め」「原則」を優先。「例外注意」は機会を消さず、サイズ縮小または見送り候補として扱う</span></div>
+            <div className="flex gap-3"><span className="text-foreground font-semibold">2.</span><span>運用判定は Top1基本。火水金かつcleanのみTop3可、月木またはrisk labelありはTop1限定</span></div>
             <div className="flex gap-3"><span className="text-foreground font-semibold">3.</span><span>risk除外（ret1差8%超・決算近接）は入らない。個別材料・決算でspreadが動いた日は収束期待を優先しない</span></div>
             <div className="flex gap-3"><span className="text-foreground font-semibold">4.</span>
               <div>
