@@ -119,7 +119,7 @@ const WEEKDAY_SLUG_MAP: Record<string, number> = {
 };
 const PRICE_RANGE_LABELS = ['~1,000円', '1,000~3,000円', '3,000~5,000円', '5,000~10,000円', '10,000円~'];
 const MARGIN_TYPES = ['制度信用', 'いちにち信用'];
-const BUCKET_SECTIONS = ['全体', 'SHORT', 'SKIP'] as const;
+const BUCKET_SECTIONS = ['全体', 'SHORT', 'MIX', 'SKIP'] as const;
 const EXECUTION_MARGIN_KEYS = ['seido', 'ichinichi_ex0'] as const;
 const EXECUTION_PROB_KEYS = ['short', 'mix', 'skip'] as const;
 
@@ -203,6 +203,13 @@ const operationClassStyle = (operationClass: OperationClass) => ({
   '短時間限定': 'text-amber-300',
   '見送り': 'text-muted-foreground',
 }[operationClass]);
+
+const cardToneClass = (tone: 'good' | 'warn' | 'bad' | 'neutral') => ({
+  good: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
+  warn: 'border-amber-500/30 bg-amber-500/10 text-amber-300',
+  bad: 'border-rose-500/30 bg-rose-500/10 text-rose-300',
+  neutral: 'border-border/40 bg-muted/25 text-muted-foreground',
+}[tone]);
 
 const getOperationClass = (
   best: RiskMatrixRow['bestSegment'],
@@ -416,7 +423,7 @@ export default function WeekdayAnalysisPage() {
   // Bucket別に銘柄を分類
   const stocksByBucket = useMemo(() => {
     const result: Record<string, DetailStock[]> = { '全体': filteredStocks };
-    for (const b of ['SHORT', 'SKIP']) {
+    for (const b of ['SHORT', 'MIX', 'SKIP']) {
       result[b] = filteredStocks.filter(s => s.bucket === b);
     }
     return result;
@@ -973,20 +980,24 @@ export default function WeekdayAnalysisPage() {
         </section>
       )}
 
-      {/* ===== 補助シグナル ===== */}
+      {/* ===== 運用判断サマリー ===== */}
       {tradeSummary && (
         <div className="mb-6">
           <h2 className="text-lg font-bold text-foreground border-b border-border/30 pb-2 mb-4">
-            補助シグナル — {WEEKDAY_SHORT[selectedDay]}曜日
+            運用判断サマリー — {WEEKDAY_SHORT[selectedDay]}曜日
           </h2>
+          <div className="text-xs text-muted-foreground mb-3">
+            入口可否、後場判断、損切り、利確を実行順に確認するための要約。詳細グラフは下の根拠として使う。
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {(['ENTRY', 'TIMING', 'RISK', 'EXIT'] as const).map(cat => {
               const items = tradeSummary.filter(s => s.category === cat);
               if (items.length === 0) return null;
               const catColorClass = { ENTRY: 'text-blue-400', TIMING: 'text-purple-400', RISK: 'text-orange-400', EXIT: 'text-cyan-400' }[cat];
+              const catTitle = { ENTRY: '触ってよい地合いか', TIMING: '後場まで引っ張る価値', RISK: '損失を限定できるか', EXIT: '利益を吐き出さない出口' }[cat];
               return (
                 <div key={cat} className="rounded-xl border border-border/40 bg-card/80 p-4">
-                  <div className={`text-sm font-bold mb-3 ${catColorClass}`}>{items[0].icon} {cat}</div>
+                  <div className={`text-sm font-bold mb-3 ${catColorClass}`}>{catTitle}</div>
                   <div className="space-y-3">
                     {items.map((item, i) => {
                       const valClass = { emerald: 'text-emerald-400', amber: 'text-amber-400', rose: 'text-rose-400' }[item.color] ?? 'text-foreground';
@@ -1221,7 +1232,22 @@ export default function WeekdayAnalysisPage() {
           </div>
         );
 
-        const renderSection = (title: string, dist: typeof seidoDist, extraHeader?: React.ReactNode) => (
+        const renderSection = (title: string, dist: typeof seidoDist, extraHeader?: React.ReactNode) => {
+          const usableRows = dist.summaryByPR.filter(d => d.count >= 3);
+          const bestRightTail = usableRows.length > 0
+            ? [...usableRows].sort((a, b) => b.p90 - a.p90)[0]
+            : null;
+          const worstLeftTail = usableRows.length > 0
+            ? [...usableRows].sort((a, b) => a.p10 - b.p10)[0]
+            : null;
+          const stableRows = usableRows.filter(d => d.p10 >= 0 || (d.winRate >= 50 && d.q1 >= 0));
+          const bestStable = stableRows.length > 0
+            ? [...stableRows].sort((a, b) => b.mean - a.mean)[0]
+            : null;
+          const fmtSummary = (v: number) => displayMode === 'pct' ? formatPctLabel(v) : formatProfit(Math.round(v));
+          const riskTone = worstLeftTail && worstLeftTail.p10 < 0 ? 'bad' : 'good';
+
+          return (
           <section className="bg-card border border-border rounded-xl p-4 mb-4">
             <div className="flex items-center gap-2 mb-3">
               <span className="font-semibold text-foreground">{title}</span>
@@ -1229,7 +1255,31 @@ export default function WeekdayAnalysisPage() {
               {extraHeader}
             </div>
 
-            <h3 className="text-xs text-muted-foreground mb-2">価格帯別 P&L分布（大引け基準）</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-4 text-xs">
+              <div className={`rounded-lg border px-3 py-2 ${bestRightTail ? cardToneClass('good') : cardToneClass('neutral')}`}>
+                <div className="text-muted-foreground mb-1">利確目安</div>
+                <div className="font-semibold text-foreground">
+                  {bestRightTail ? `${bestRightTail.label} P90 ${fmtSummary(bestRightTail.p90)}` : '-'}
+                </div>
+                <div className="mt-1 text-muted-foreground">早い時間にP90超えなら高値利確を検討</div>
+              </div>
+              <div className={`rounded-lg border px-3 py-2 ${cardToneClass(riskTone)}`}>
+                <div className="text-muted-foreground mb-1">左尾リスク</div>
+                <div className="font-semibold text-foreground">
+                  {worstLeftTail ? `${worstLeftTail.label} P10 ${fmtSummary(worstLeftTail.p10)}` : '-'}
+                </div>
+                <div className="mt-1 text-muted-foreground">左尾が深い価格帯は見送り/小さく運用</div>
+              </div>
+              <div className={`rounded-lg border px-3 py-2 ${bestStable ? cardToneClass('good') : cardToneClass('warn')}`}>
+                <div className="text-muted-foreground mb-1">許容しやすい帯</div>
+                <div className="font-semibold text-foreground">
+                  {bestStable ? `${bestStable.label} 平均 ${fmtSummary(bestStable.mean)}` : '左尾確認が必要'}
+                </div>
+                <div className="mt-1 text-muted-foreground">左尾が浅ければn少なめでも候補に残す</div>
+              </div>
+            </div>
+
+            <h3 className="text-xs text-muted-foreground mb-2">分布ガード: 価格帯別の利確水準 / 左尾 / ばらつき</h3>
             <ResponsiveContainer width="100%" height={Math.max(200, dist.summaryByPR.length * 50 + 40)}>
               <ComposedChart data={dist.summaryByPR} layout="vertical" margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" horizontal={false} />
@@ -1309,7 +1359,8 @@ export default function WeekdayAnalysisPage() {
               </div>
             </details>
           </section>
-        );
+          );
+        };
 
         return (
           <>
@@ -1382,8 +1433,17 @@ export default function WeekdayAnalysisPage() {
           const top3Pct = paretoData.length >= 3 ? paretoData[2].cumPct : 0;
           const top5Pct = paretoData.length >= 5 ? paretoData[4].cumPct : 0;
           const top10Pct = paretoData.length >= 10 ? paretoData[9].cumPct : 0;
+          const losses = [...paretoData].filter(d => d.pnl < 0).sort((a, b) => a.pnl - b.pnl);
+          const totalLoss = Math.abs(losses.reduce((a, d) => a + d.pnl, 0));
+          const lossTop3 = totalLoss > 0
+            ? Math.abs(losses.slice(0, 3).reduce((a, d) => a + d.pnl, 0)) / totalLoss * 100
+            : 0;
+          const reliability =
+            top3Pct > 60 ? '利益が上位銘柄に偏重' :
+            lossTop3 > 60 ? '損失が事故銘柄に集中' :
+            'バスケット運用として分散良好';
           return (
-            <div className="flex gap-4 mt-2 text-xs">
+            <div className="flex flex-wrap gap-4 mt-2 text-xs">
               <div className="bg-muted/20 rounded-lg px-3 py-2">
                 <span className="text-muted-foreground">Top 3:</span>
                 <span className={`ml-1 font-semibold ${top3Pct > 60 ? 'text-amber-400' : 'text-emerald-400'}`}>
@@ -1403,7 +1463,10 @@ export default function WeekdayAnalysisPage() {
                 </span>
               </div>
               <div className="bg-muted/20 rounded-lg px-3 py-2 text-muted-foreground">
-                {top3Pct > 60 ? '⚠ 特定銘柄に偏重' : '✓ 比較的均等'}
+                損失Top3: <span className={lossTop3 > 60 ? 'text-rose-400 font-semibold' : 'text-emerald-400 font-semibold'}>{lossTop3.toFixed(1)}%</span>
+              </div>
+              <div className={`rounded-lg border px-3 py-2 ${cardToneClass(top3Pct > 60 || lossTop3 > 60 ? 'warn' : 'good')}`}>
+                {reliability}
               </div>
             </div>
           );
@@ -1456,6 +1519,15 @@ export default function WeekdayAnalysisPage() {
             p10: percentile(finalPnls, 10),
           };
         }).filter(d => d.count > 0);
+        const largeGd = gapData.find(d => d.label === '-3%以下');
+        const weakGd = gapData.find(d => d.label === '-3〜-1%');
+        const bestGap = gapData.length > 0 ? [...gapData].sort((a, b) => b.meanFinal - a.meanFinal)[0] : null;
+        const gapCancel =
+          largeGd && (largeGd.meanFinal < 0 || largeGd.winRate < 45)
+            ? `大幅GDはキャンセル候補（平均 ${displayMode === 'pct' ? formatPctLabel(largeGd.meanFinal) : formatProfit(Math.round(largeGd.meanFinal))} / 勝率 ${largeGd.winRate.toFixed(0)}%）`
+            : weakGd && weakGd.meanFinal < 0
+              ? `GDは利益が取りづらい（-3~-1% 平均 ${displayMode === 'pct' ? formatPctLabel(weakGd.meanFinal) : formatProfit(Math.round(weakGd.meanFinal))}）`
+              : 'ギャップ単体でのキャンセル条件は弱め';
 
         return (
           <section className="bg-card border border-border rounded-xl p-4 mb-4">
@@ -1466,6 +1538,18 @@ export default function WeekdayAnalysisPage() {
             <p className="text-xs text-muted-foreground mb-3">
               寄付きギャップ率 = (買値 - 前日終値) / 前日終値。ギャップ率別の大引け損益分布。
             </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4 text-xs">
+              <div className={`rounded-lg border px-3 py-2 ${cardToneClass(gapCancel.includes('キャンセル') || gapCancel.includes('取りづらい') ? 'warn' : 'neutral')}`}>
+                <div className="text-muted-foreground mb-1">入口キャンセル</div>
+                <div className="font-semibold text-foreground">{gapCancel}</div>
+              </div>
+              <div className={`rounded-lg border px-3 py-2 ${bestGap ? cardToneClass('good') : cardToneClass('neutral')}`}>
+                <div className="text-muted-foreground mb-1">相対的に取りやすい帯</div>
+                <div className="font-semibold text-foreground">
+                  {bestGap ? `${bestGap.label} 平均 ${displayMode === 'pct' ? formatPctLabel(bestGap.meanFinal) : formatProfit(Math.round(bestGap.meanFinal))} / 勝率 ${bestGap.winRate.toFixed(0)}%` : '-'}
+                </div>
+              </div>
+            </div>
 
             <ResponsiveContainer width="100%" height={280}>
               <ComposedChart data={gapData} margin={{ top: 5, right: 40, bottom: 5, left: 20 }}>
@@ -1599,6 +1683,19 @@ export default function WeekdayAnalysisPage() {
           calcTransition(amMinus, '前場マイナス'),
           ...(amZero.length > 0 ? [calcTransition(amZero, '前場ゼロ')] : []),
         ];
+        const actionForTransition = (t: typeof transitions[number]) => {
+          if (t.count === 0) return { action: 'データなし', tone: 'neutral' as const, reason: '-' };
+          if (t.avgFinal > t.avgAM && t.improvedRate >= 55) {
+            return { action: '保有優位', tone: 'good' as const, reason: `改善率 ${t.improvedRate.toFixed(0)}% / 大引け平均 ${displayMode === 'pct' ? formatPctLabel(t.avgFinal) : formatProfit(Math.round(t.avgFinal))}` };
+          }
+          if (t.avgFinal < t.avgAM && t.worsenedRate >= 55) {
+            return { action: t.avgAM > 0 ? '利確優位' : '撤退優位', tone: t.avgAM > 0 ? 'warn' as const : 'bad' as const, reason: `悪化率 ${t.worsenedRate.toFixed(0)}% / 大引け平均 ${displayMode === 'pct' ? formatPctLabel(t.avgFinal) : formatProfit(Math.round(t.avgFinal))}` };
+          }
+          if (t.reverseRate >= 50) {
+            return { action: '撤退寄り', tone: 'bad' as const, reason: `大引けマイナス化 ${t.reverseRate.toFixed(0)}%` };
+          }
+          return { action: '状況判断', tone: 'neutral' as const, reason: `改善率 ${t.improvedRate.toFixed(0)}% / 悪化率 ${t.worsenedRate.toFixed(0)}%` };
+        };
 
         return (
           <section className="bg-card border border-border rounded-xl p-4 mb-4">
@@ -1609,6 +1706,18 @@ export default function WeekdayAnalysisPage() {
             <p className="text-xs text-muted-foreground mb-3">
               11:30時点の損益で分類し、大引けまでの維持率・反転率を分析。
             </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-4 text-xs">
+              {transitions.map(t => {
+                const action = actionForTransition(t);
+                return (
+                  <div key={`action-${t.label}`} className={`rounded-lg border px-3 py-2 ${cardToneClass(action.tone)}`}>
+                    <div className="text-muted-foreground mb-1">{t.label}</div>
+                    <div className="font-semibold text-foreground">{action.action}</div>
+                    <div className="mt-1 text-muted-foreground">{action.reason}</div>
+                  </div>
+                );
+              })}
+            </div>
 
             <div className="overflow-x-auto mb-4">
               <table className="w-full text-sm">
@@ -1727,6 +1836,12 @@ export default function WeekdayAnalysisPage() {
         const avgRetentionAll = profitStocks.length > 0
           ? profitStocks.reduce((a, s) => a + s.retentionRate, 0) / profitStocks.length : 0;
         const medianRetention = percentile(profitStocks.map(s => s.retentionRate), 50);
+        const peakLeader = peakBySegment.length > 0
+          ? [...peakBySegment].sort((a, b) => b.count - a.count)[0]
+          : null;
+        const trailingAction = avgRetentionAll < 50
+          ? 'ピーク後の吐き出し大。P90到達または主要ピーク時間後は利確/トレイル優先'
+          : '大引けまで利益が残りやすい。出口ルール優先で保有可';
 
         return (
           <section className="bg-card border border-border rounded-xl p-4 mb-4">
@@ -1741,6 +1856,12 @@ export default function WeekdayAnalysisPage() {
             {/* サマリーカード */}
             <div className="flex gap-4 mb-4 text-xs">
               <div className="bg-muted/20 rounded-lg px-3 py-2">
+                <span className="text-muted-foreground">ピーク集中:</span>
+                <span className="ml-1 font-semibold text-foreground">
+                  {peakLeader ? `${peakLeader.time} (${peakLeader.pct.toFixed(1)}%)` : '-'}
+                </span>
+              </div>
+              <div className="bg-muted/20 rounded-lg px-3 py-2">
                 <span className="text-muted-foreground">平均利益還元率:</span>
                 <span className={`ml-1 font-semibold ${avgRetentionAll >= 60 ? 'text-emerald-400' : avgRetentionAll >= 30 ? 'text-amber-400' : 'text-rose-400'}`}>
                   {avgRetentionAll.toFixed(1)}%
@@ -1753,7 +1874,7 @@ export default function WeekdayAnalysisPage() {
                 </span>
               </div>
               <div className="bg-muted/20 rounded-lg px-3 py-2 text-muted-foreground">
-                {avgRetentionAll < 50 ? '⚠ ピーク後の吐き出しが大きい → 早期利確検討' : '✓ 利益維持率は良好'}
+                {trailingAction}
               </div>
             </div>
 
@@ -1827,7 +1948,7 @@ export default function WeekdayAnalysisPage() {
 
         // 判定時刻の候補（前場中盤〜引け）
         const checkpoints = segments
-          .filter(seg => ['seg_1030', 'seg_1130', 'seg_1300', 'seg_1430'].includes(seg.key))
+          .filter(seg => ['seg_1030', 'seg_1130', 'seg_1400', 'seg_1430'].includes(seg.key))
           .map(seg => ({ ...seg, idx: segments.findIndex(s => s.key === seg.key) }))
           .filter(seg => seg.idx >= 0);
 
@@ -1890,6 +2011,32 @@ export default function WeekdayAnalysisPage() {
 
           return { ...cp, buckets };
         });
+        const checkpointActions = checkpointData.map(cp => {
+          const actionable = cp.buckets.filter(b => b.count >= 3);
+          const exitWins = actionable.filter(b => b.delta < 0);
+          const holdWins = actionable.filter(b => b.delta > 0);
+          const strongestExit = exitWins.length > 0 ? [...exitWins].sort((a, b) => a.delta - b.delta)[0] : null;
+          const strongestHold = holdWins.length > 0 ? [...holdWins].sort((a, b) => b.delta - a.delta)[0] : null;
+          if (strongestExit && (!strongestHold || Math.abs(strongestExit.delta) >= Math.abs(strongestHold.delta))) {
+            return {
+              key: cp.key,
+              label: cp.label,
+              action: '利確優位',
+              tone: 'warn' as const,
+              reason: `${strongestExit.label}: 大引け差 ${displayMode === 'pct' ? formatPctLabel(strongestExit.delta) : formatProfit(Math.round(strongestExit.delta))}`,
+            };
+          }
+          if (strongestHold) {
+            return {
+              key: cp.key,
+              label: cp.label,
+              action: '保有優位',
+              tone: 'good' as const,
+              reason: `${strongestHold.label}: 大引け差 ${displayMode === 'pct' ? formatPctLabel(strongestHold.delta) : formatProfit(Math.round(strongestHold.delta))}`,
+            };
+          }
+          return { key: cp.key, label: cp.label, action: '判定弱い', tone: 'neutral' as const, reason: '件数または差分が不足' };
+        });
 
         return (
           <section className="bg-card border border-border rounded-xl p-4 mb-4">
@@ -1901,6 +2048,15 @@ export default function WeekdayAnalysisPage() {
               特定時刻の含み益レベル別に「その時点で利確 vs 大引けまで持ち越し」の期待値を比較。
               δ &gt; 0 なら持ち越し有利、δ &lt; 0 なら利確有利。
             </p>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-4 text-xs">
+              {checkpointActions.map(a => (
+                <div key={`cp-action-${a.key}`} className={`rounded-lg border px-3 py-2 ${cardToneClass(a.tone)}`}>
+                  <div className="text-muted-foreground mb-1">{a.label}</div>
+                  <div className="font-semibold text-foreground">{a.action}</div>
+                  <div className="mt-1 text-muted-foreground">{a.reason}</div>
+                </div>
+              ))}
+            </div>
 
             {checkpointData.map(cp => (
               <div key={cp.key} className="mb-6">
@@ -1952,10 +2108,12 @@ export default function WeekdayAnalysisPage() {
 
       {/* ===== 拡張パネル (#1〜#6) ===== */}
       {(futuresGapData || nikkeiChangeData || panelsData) && (
-        <div className="mt-8 space-y-6">
-          <h2 className="text-lg font-bold text-foreground border-b border-border/30 pb-2">
-            トレード判断パネル — {WEEKDAY_SHORT[selectedDay]}曜日（詳細データ）
-          </h2>
+        <details className="mt-8 space-y-6 rounded-xl border border-border/40 bg-card/60 p-4">
+          <summary className="cursor-pointer text-lg font-bold text-foreground">
+            詳細データを表示 — {WEEKDAY_SHORT[selectedDay]}曜日
+            <span className="ml-2 text-xs font-normal text-muted-foreground">判断カードの元データ</span>
+          </summary>
+          <div className="mt-6 space-y-6">
 
           {/* #1 マクロゲーティング */}
           {(futuresGapData || nikkeiChangeData) && (
@@ -2196,7 +2354,8 @@ export default function WeekdayAnalysisPage() {
               )}
             </>
           )}
-        </div>
+          </div>
+        </details>
       )}
     </div>
   );
