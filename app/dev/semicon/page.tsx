@@ -653,14 +653,41 @@ export default function SemiconPage() {
   const highRiskShorts = holdShorts.filter((r) => r.risk_level === '高' || r.risk_level === '中');
   const readyRows = entryRows.filter((r) => r.entry_status === 'READY');
   const morningPilot = data?.morning_pilot;
-  const morningPilotRows = entryRows
-    .filter((r) => r.trade_bucket === '実弾候補' || r.entry_status === 'READY')
-    .slice(0, 6);
   const hotThemeRows = (data?.segment_strength || []).slice(0, 3);
   const flow = data?.flow_analysis;
   const flowThemeRows = (flow?.theme_layers || flow?.core_segments || []).slice(0, 6);
   const flowGroupRows = (flow?.flow_groups || flow?.sub_segments || []).slice(0, 10);
   const flowIndividualRows = (flow?.individuals || []).slice(0, 10);
+  const flowScoreByGroup = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const row of flow?.flow_groups || flow?.sub_segments || []) {
+      const ret = row.avg_ret1 ?? 0;
+      const breadth = row.up_ratio ?? 0;
+      const vs20 = row.turnover_vs20 ?? 0;
+      const vs60 = row.turnover_vs60 ?? 0;
+      const topSharePenalty = (row.top_share ?? 0) >= 70 ? 2 : 0;
+      const score = ret * 2 + breadth / 20 + vs20 * 4 + vs60 - topSharePenalty;
+      map.set(row.segment, score);
+    }
+    return map;
+  }, [flow]);
+  const primaryFlow = useMemo(() => {
+    const rows = flow?.flow_groups || flow?.sub_segments || [];
+    return [...rows]
+      .filter((row) => (row.avg_ret1 ?? 0) > 0 && (row.up_ratio ?? 0) >= 50 && (row.turnover_vs20 ?? 0) >= 1.2)
+      .sort((a, b) => (flowScoreByGroup.get(b.segment) ?? 0) - (flowScoreByGroup.get(a.segment) ?? 0))[0];
+  }, [flow, flowScoreByGroup]);
+  const morningPilotRows = useMemo(() => {
+    return entryRows
+      .filter((r) => r.trade_bucket === '実弾候補' && r.entry_status === 'READY')
+      .sort((a, b) => {
+        const flowA = flowScoreByGroup.get(a.flow_group || a.sub_segment || '') ?? -999;
+        const flowB = flowScoreByGroup.get(b.flow_group || b.sub_segment || '') ?? -999;
+        if (flowA !== flowB) return flowB - flowA;
+        return (b.entry_priority || 0) - (a.entry_priority || 0);
+      })
+      .slice(0, 6);
+  }, [entryRows, flowScoreByGroup]);
   const actionableHeadline = highRiskShorts.length > 0
     ? '既存ショートの踏み上げ警戒を最優先'
     : readyRows.length > 0
@@ -802,7 +829,22 @@ export default function SemiconPage() {
             </div>
           </div>
 
-          <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(360px,0.8fr)]">
+          <div className="mt-4 rounded-lg border border-border/60 bg-background/40 px-3 py-2 text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">今日の主役フロー:</span>{' '}
+            {primaryFlow ? (
+              <>
+                <span className="text-emerald-300">{primaryFlow.segment}</span>
+                <span className="ml-2">売買代金 {oku(primaryFlow.turnover_bil)}億円</span>
+                <span className="ml-2">20日比 {mult(primaryFlow.turnover_vs20)}</span>
+                <span className={`ml-2 ${clsPct(primaryFlow.avg_ret1)}`}>騰落 {pct(primaryFlow.avg_ret1)}</span>
+                <span className="ml-2">上昇 {fmt(primaryFlow.up_ratio, 0)}%</span>
+              </>
+            ) : (
+              <>明確な主役なし。混在ならノートレ。</>
+            )}
+          </div>
+
+          <div className="mt-3">
             <div className="overflow-x-auto rounded-lg border border-border/60 bg-background/40">
               <table className="w-full min-w-[1120px] text-sm">
                 <thead>
@@ -855,10 +897,12 @@ export default function SemiconPage() {
               </table>
             </div>
 
-            <div className="rounded-lg border border-border/60 bg-background/40 p-3">
+            <details className="mt-3 rounded-lg border border-border/60 bg-background/40 p-3">
+              <summary className="cursor-pointer select-none text-sm font-semibold text-muted-foreground hover:text-foreground">
+                検証根拠を表示
+              </summary>
               <div className="mb-2 flex items-center justify-between gap-2">
                 <div>
-                  <div className="text-sm font-semibold">検証根拠</div>
                   <div className="text-xs text-muted-foreground">{morningPilot?.source || 'semicon_intraday_long_short_grid.csv'}</div>
                 </div>
                 <span className={`rounded border px-2 py-0.5 text-xs ${
@@ -888,7 +932,7 @@ export default function SemiconPage() {
               <div className="mt-3 rounded border border-border/50 bg-muted/10 px-2 py-1.5 text-xs leading-5 text-muted-foreground">
                 {morningPilot?.takeaway || '9:20以降に崩れていないものだけを小さく扱う。'}
               </div>
-            </div>
+            </details>
           </div>
         </section>
 
