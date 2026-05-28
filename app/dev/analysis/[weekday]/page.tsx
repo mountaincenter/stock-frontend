@@ -182,13 +182,6 @@ const getSegmentClasses = (
 const winrateClass = (rate: number) =>
   rate > 50 ? 'text-emerald-400' : rate < 50 ? 'text-rose-400' : 'text-foreground';
 
-const getExecutionDecision = (best: RiskMatrixRow['bestSegment']): ExecutionDecision => {
-  if (!best || best.pf === null || best.dailyMaxDD === null || best.cvar05 === null) return 'SKIP';
-  if (best.pf >= 1.5 && best.total > 0 && best.dailyMaxDD >= -30000 && best.cvar05 >= -15000) return 'GO';
-  if (best.pf >= 1.2 && best.total > 0 && best.dailyMaxDD >= -50000) return 'SMALL';
-  return 'SKIP';
-};
-
 const decisionClass = (decision: ExecutionDecision) => ({
   GO: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40',
   SMALL: 'bg-amber-500/15 text-amber-300 border-amber-500/40',
@@ -213,6 +206,17 @@ const getOperationClass = (
   if (best.key !== 'seg_1530' && bestPf >= 1.3 && closePf !== null && closePf < 1.0) return '短時間限定';
   if (best.key !== 'seg_1530' && closePf !== null && closePf >= 1.0 && bestPf - closePf >= 0.3) return '早期利確向き';
   return '見送り';
+};
+
+const getExecutionDecision = (
+  best: RiskMatrixRow['bestSegment'],
+  operationClass: OperationClass,
+): ExecutionDecision => {
+  if (!best || best.pf === null || best.dailyMaxDD === null || best.cvar05 === null) return 'SKIP';
+  if (operationClass === '見送り') return 'SKIP';
+  if (best.pf >= 1.5 && best.total > 0 && best.dailyMaxDD >= -30000 && best.cvar05 >= -15000) return 'GO';
+  if (best.pf >= 1.2 && best.total > 0 && best.dailyMaxDD >= -50000) return 'SMALL';
+  return 'SKIP';
 };
 
 // filteredStocksからサマリーテーブル用の集計を行う
@@ -587,8 +591,8 @@ export default function WeekdayAnalysisPage() {
         const best = row.bestSegment;
         const bestSeg = best ? row.segments.find(s => s.key === best.key) : null;
         const closeSeg = row.segments.find(s => s.key === 'seg_1530') ?? null;
-        const decision = getExecutionDecision(best);
         const operationClass = getOperationClass(best, closeSeg);
+        const decision = getExecutionDecision(best, operationClass);
         const pfDelta = best?.pf !== null && best?.pf !== undefined && closeSeg?.amount.pf !== null && closeSeg?.amount.pf !== undefined
           ? best.pf - closeSeg.amount.pf
           : null;
@@ -596,17 +600,6 @@ export default function WeekdayAnalysisPage() {
         return { row, best, bestSeg, closeSeg, decision, operationClass, pfDelta, totalDelta };
       });
   }, [riskMatrixData]);
-
-  const topExecutionRule = useMemo(() => {
-    const rank: Record<ExecutionDecision, number> = { GO: 2, SMALL: 1, SKIP: 0 };
-    return [...executionRows].sort((a, b) => {
-      const decisionDiff = rank[b.decision] - rank[a.decision];
-      if (decisionDiff !== 0) return decisionDiff;
-      const pfDiff = (b.best?.pf ?? -Infinity) - (a.best?.pf ?? -Infinity);
-      if (pfDiff !== 0) return pfDiff;
-      return (b.best?.total ?? -Infinity) - (a.best?.total ?? -Infinity);
-    })[0] ?? null;
-  }, [executionRows]);
 
   if (loading) {
     return (
@@ -883,7 +876,7 @@ export default function WeekdayAnalysisPage() {
       </header>
 
       {/* ===== 曜日別出口ルール ===== */}
-      {topExecutionRule && (
+      {riskMatrixData && (
         <section className="mb-6 rounded-xl border border-border/50 bg-card/80 p-4">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
@@ -894,66 +887,19 @@ export default function WeekdayAnalysisPage() {
                 曜日別出口ルール — {WEEKDAY_SHORT[selectedDay]}曜日
               </h2>
             </div>
-            <span className={`px-3 py-1 rounded-md border text-sm font-bold ${decisionClass(topExecutionRule.decision)}`}>
-              {topExecutionRule.decision}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 mt-4">
-            <div>
-              <div className="text-xs text-muted-foreground">信用区分</div>
-              <div className="text-base font-semibold text-foreground">{topExecutionRule.row.marginLabel}</div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">prob</div>
-              <div className={`text-base font-semibold ${topExecutionRule.row.probLabel === 'SHORT' ? 'text-rose-400' : topExecutionRule.row.probLabel === 'MIX' ? 'text-amber-400' : 'text-blue-400'}`}>
-                {topExecutionRule.row.probLabel}
-              </div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">推奨出口</div>
-              <div className="text-base font-semibold text-foreground">{topExecutionRule.best?.label ?? '-'}</div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">運用分類</div>
-              <div className={`text-base font-semibold ${operationClassStyle(topExecutionRule.operationClass)}`}>
-                {topExecutionRule.operationClass}
-              </div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">最適PF / 大引けPF</div>
-              <div className="text-base font-semibold tabular-nums text-foreground">{topExecutionRule.best?.pf?.toFixed(2) ?? '-'}</div>
-              <div className="text-xs tabular-nums text-muted-foreground">{topExecutionRule.closeSeg?.amount.pf?.toFixed(2) ?? '-'}</div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">PF差</div>
-              <div className={`text-base font-semibold tabular-nums ${(topExecutionRule.pfDelta ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {topExecutionRule.pfDelta !== null ? formatPctLabel(topExecutionRule.pfDelta).replace('%', '') : '-'}
-              </div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">最適損益100株</div>
-              <div className={`text-base font-semibold tabular-nums ${(topExecutionRule.best?.total ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {topExecutionRule.best ? formatProfit(Math.round(topExecutionRule.best.total)) : '-'}
-              </div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">日次DD</div>
-              <div className="text-base font-semibold tabular-nums text-rose-300">
-                {topExecutionRule.best?.dailyMaxDD !== null && topExecutionRule.best?.dailyMaxDD !== undefined ? formatProfit(Math.round(topExecutionRule.best.dailyMaxDD)) : '-'}
-              </div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">CVaR5</div>
-              <div className="text-base font-semibold tabular-nums text-rose-300">
-                {topExecutionRule.best?.cvar05 !== null && topExecutionRule.best?.cvar05 !== undefined ? formatProfit(Math.round(topExecutionRule.best.cvar05)) : '-'}
-              </div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">件数 / 日次勝率</div>
-              <div className="text-base font-semibold tabular-nums text-foreground">
-                {topExecutionRule.row.count} / {topExecutionRule.bestSeg?.amount.dailyPlusRate !== null && topExecutionRule.bestSeg?.amount.dailyPlusRate !== undefined ? `${topExecutionRule.bestSeg.amount.dailyPlusRate.toFixed(1)}%` : '-'}
-              </div>
+            <div className="flex flex-wrap gap-2 text-xs">
+              <span className="rounded border border-border/40 bg-muted/30 px-2 py-1 text-muted-foreground">
+                候補 {executionRows.length}
+              </span>
+              <span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-emerald-300">
+                GO {executionRows.filter(r => r.decision === 'GO').length}
+              </span>
+              <span className="rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-amber-300">
+                SMALL {executionRows.filter(r => r.decision === 'SMALL').length}
+              </span>
+              <span className="rounded border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-rose-300">
+                SKIP {executionRows.filter(r => r.decision === 'SKIP').length}
+              </span>
             </div>
           </div>
 
