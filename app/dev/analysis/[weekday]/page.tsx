@@ -126,6 +126,7 @@ const EXECUTION_PROB_KEYS = ['short', 'mix', 'skip'] as const;
 type DisplayMode = 'amount' | 'pct';
 type SegmentMode = '4seg' | '11seg';
 type FilterType = 'all' | 'ex0';
+type ExecutionDecision = 'GO' | 'SMALL' | 'SKIP';
 
 // ===== Helpers =====
 function percentile(arr: number[], p: number): number {
@@ -179,6 +180,19 @@ const getSegmentClasses = (
 
 const winrateClass = (rate: number) =>
   rate > 50 ? 'text-emerald-400' : rate < 50 ? 'text-rose-400' : 'text-foreground';
+
+const getExecutionDecision = (best: RiskMatrixRow['bestSegment']): ExecutionDecision => {
+  if (!best || best.pf === null || best.dailyMaxDD === null || best.cvar05 === null) return 'SKIP';
+  if (best.pf >= 1.5 && best.total > 0 && best.dailyMaxDD >= -30000 && best.cvar05 >= -15000) return 'GO';
+  if (best.pf >= 1.2 && best.total > 0 && best.dailyMaxDD >= -50000) return 'SMALL';
+  return 'SKIP';
+};
+
+const decisionClass = (decision: ExecutionDecision) => ({
+  GO: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40',
+  SMALL: 'bg-amber-500/15 text-amber-300 border-amber-500/40',
+  SKIP: 'bg-rose-500/15 text-rose-300 border-rose-500/40',
+}[decision]);
 
 // filteredStocksからサマリーテーブル用の集計を行う
 function aggregateStocks(
@@ -543,6 +557,30 @@ export default function WeekdayAnalysisPage() {
     });
   }, [chartStocks, segments, paretoSegIdx, displayMode]);
 
+  const executionRows = useMemo(() => {
+    if (!riskMatrixData) return [];
+    return riskMatrixData.rows
+      .filter(r => EXECUTION_MARGIN_KEYS.includes(r.marginKey as typeof EXECUTION_MARGIN_KEYS[number])
+        && EXECUTION_PROB_KEYS.includes(r.probKey as typeof EXECUTION_PROB_KEYS[number]))
+      .map(row => {
+        const best = row.bestSegment;
+        const bestSeg = best ? row.segments.find(s => s.key === best.key) : null;
+        const decision = getExecutionDecision(best);
+        return { row, best, bestSeg, decision };
+      });
+  }, [riskMatrixData]);
+
+  const topExecutionRule = useMemo(() => {
+    const rank: Record<ExecutionDecision, number> = { GO: 2, SMALL: 1, SKIP: 0 };
+    return [...executionRows].sort((a, b) => {
+      const decisionDiff = rank[b.decision] - rank[a.decision];
+      if (decisionDiff !== 0) return decisionDiff;
+      const pfDiff = (b.best?.pf ?? -Infinity) - (a.best?.pf ?? -Infinity);
+      if (pfDiff !== 0) return pfDiff;
+      return (b.best?.total ?? -Infinity) - (a.best?.total ?? -Infinity);
+    })[0] ?? null;
+  }, [executionRows]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background p-6 flex items-center justify-center">
@@ -817,11 +855,75 @@ export default function WeekdayAnalysisPage() {
         </div>
       </header>
 
-      {/* ===== 判断サマリー ===== */}
+      {/* ===== 本日の実行ルール ===== */}
+      {topExecutionRule && (
+        <section className="mb-6 rounded-xl border border-border/50 bg-card/80 p-4">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <div className="text-xs text-muted-foreground mb-1">
+                {riskMatrixData?.dataScope?.analysisStartDate}以降 / {riskMatrixData?.dataRange.tradingDays}日 / 4seg
+              </div>
+              <h2 className="text-lg font-bold text-foreground">
+                本日の実行ルール — {WEEKDAY_SHORT[selectedDay]}曜日
+              </h2>
+            </div>
+            <span className={`px-3 py-1 rounded-md border text-sm font-bold ${decisionClass(topExecutionRule.decision)}`}>
+              {topExecutionRule.decision}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 mt-4">
+            <div>
+              <div className="text-xs text-muted-foreground">信用区分</div>
+              <div className="text-base font-semibold text-foreground">{topExecutionRule.row.marginLabel}</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">prob</div>
+              <div className={`text-base font-semibold ${topExecutionRule.row.probLabel === 'SHORT' ? 'text-rose-400' : topExecutionRule.row.probLabel === 'MIX' ? 'text-amber-400' : 'text-blue-400'}`}>
+                {topExecutionRule.row.probLabel}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">推奨出口</div>
+              <div className="text-base font-semibold text-foreground">{topExecutionRule.best?.label ?? '-'}</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">PF</div>
+              <div className="text-base font-semibold tabular-nums text-foreground">{topExecutionRule.best?.pf?.toFixed(2) ?? '-'}</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">損益100株</div>
+              <div className={`text-base font-semibold tabular-nums ${(topExecutionRule.best?.total ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {topExecutionRule.best ? formatProfit(Math.round(topExecutionRule.best.total)) : '-'}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">日次DD</div>
+              <div className="text-base font-semibold tabular-nums text-rose-300">
+                {topExecutionRule.best?.dailyMaxDD !== null && topExecutionRule.best?.dailyMaxDD !== undefined ? formatProfit(Math.round(topExecutionRule.best.dailyMaxDD)) : '-'}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">CVaR5</div>
+              <div className="text-base font-semibold tabular-nums text-rose-300">
+                {topExecutionRule.best?.cvar05 !== null && topExecutionRule.best?.cvar05 !== undefined ? formatProfit(Math.round(topExecutionRule.best.cvar05)) : '-'}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">件数 / 日次勝率</div>
+              <div className="text-base font-semibold tabular-nums text-foreground">
+                {topExecutionRule.row.count} / {topExecutionRule.bestSeg?.amount.dailyPlusRate !== null && topExecutionRule.bestSeg?.amount.dailyPlusRate !== undefined ? `${topExecutionRule.bestSeg.amount.dailyPlusRate.toFixed(1)}%` : '-'}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ===== 補助シグナル ===== */}
       {tradeSummary && (
         <div className="mb-6">
           <h2 className="text-lg font-bold text-foreground border-b border-border/30 pb-2 mb-4">
-            判断サマリー — {WEEKDAY_SHORT[selectedDay]}曜日
+            補助シグナル — {WEEKDAY_SHORT[selectedDay]}曜日
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {(['ENTRY', 'TIMING', 'RISK', 'EXIT'] as const).map(cat => {
@@ -879,12 +981,8 @@ export default function WeekdayAnalysisPage() {
                 </tr>
               </thead>
               <tbody>
-                {riskMatrixData.rows
-                  .filter(r => EXECUTION_MARGIN_KEYS.includes(r.marginKey as typeof EXECUTION_MARGIN_KEYS[number])
-                    && EXECUTION_PROB_KEYS.includes(r.probKey as typeof EXECUTION_PROB_KEYS[number]))
-                  .map(row => {
-                    const best = row.bestSegment;
-                    const bestSeg = best ? row.segments.find(s => s.key === best.key) : null;
+                {executionRows
+                  .map(({ row, best, bestSeg }) => {
                     return (
                       <tr key={`${row.marginKey}-${row.probKey}`} className="border-t border-border/20">
                         <td className="px-3 py-2 text-foreground font-medium">{row.marginLabel}</td>
