@@ -158,6 +158,12 @@ const formatPctLabel = (val: number) => {
 const formatExitLabel = (segment: RiskSegment | null | undefined, fallback?: string | null) =>
   segment ? `${segment.time} ${segment.label}` : (fallback ?? '-');
 
+const formatOperationLabel = (
+  decision: ExecutionDecision,
+  segment: RiskSegment | null | undefined,
+  fallback?: string | null,
+) => decision === 'SKIP' ? '見送り' : formatExitLabel(segment, fallback);
+
 const getSegmentClasses = (
   segments: Record<string, SegmentStats | SegmentStatsPct>,
   timeSegments: TimeSegment[],
@@ -911,10 +917,9 @@ export default function WeekdayAnalysisPage() {
               <thead className="bg-muted/30 text-xs text-muted-foreground">
                 <tr>
                   <th className="text-left px-3 py-2 font-medium">判定</th>
-                  <th className="text-left px-3 py-2 font-medium">運用分類</th>
+                  <th className="text-left px-3 py-2 font-medium">運用区分</th>
                   <th className="text-left px-3 py-2 font-medium">信用区分</th>
                   <th className="text-left px-3 py-2 font-medium">bucket</th>
-                  <th className="text-left px-3 py-2 font-medium">推奨出口</th>
                   <th className="text-right px-3 py-2 font-medium">最適PF</th>
                   <th className="text-right px-3 py-2 font-medium">大引けPF</th>
                   <th className="text-right px-3 py-2 font-medium">PF差</th>
@@ -926,15 +931,16 @@ export default function WeekdayAnalysisPage() {
                 </tr>
               </thead>
               <tbody>
-                {executionRows.map(({ row, best, bestSeg, closeSeg, decision, operationClass, pfDelta, totalDelta }) => (
+                {executionRows.map(({ row, best, bestSeg, closeSeg, decision, pfDelta, totalDelta }) => (
                   <tr key={`exit-${row.marginKey}-${row.probKey}`} className="border-t border-border/20">
                     <td className="px-3 py-2">
                       <span className={`px-2 py-0.5 rounded border text-xs font-bold ${decisionClass(decision)}`}>{decision}</span>
                     </td>
-                    <td className={`px-3 py-2 font-medium ${operationClassStyle(operationClass)}`}>{operationClass}</td>
+                    <td className={`px-3 py-2 font-medium ${decision === 'SKIP' ? 'text-muted-foreground' : 'text-foreground'}`}>
+                      {formatOperationLabel(decision, bestSeg, best?.label)}
+                    </td>
                     <td className="px-3 py-2 text-foreground">{row.marginLabel}</td>
                     <td className={`px-3 py-2 font-medium ${row.probLabel === 'SHORT' ? 'text-rose-400' : row.probLabel === 'MIX' ? 'text-amber-400' : 'text-blue-400'}`}>{row.probLabel}</td>
-                    <td className="px-3 py-2 text-foreground">{formatExitLabel(bestSeg, best?.label)}</td>
                     <td className="px-3 py-2 text-right tabular-nums text-foreground">{best?.pf?.toFixed(2) ?? '-'}</td>
                     <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{closeSeg?.amount.pf?.toFixed(2) ?? '-'}</td>
                     <td className={`px-3 py-2 text-right tabular-nums ${(pfDelta ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
