@@ -146,6 +146,11 @@ const WEEKDAY_TO_INDEX: Record<string, number> = {
   "水曜日": 2,
   "木曜日": 3,
   "金曜日": 4,
+  "月": 0,
+  "火": 1,
+  "水": 2,
+  "木": 3,
+  "金": 4,
 };
 
 export default function DayTradeListPage() {
@@ -628,7 +633,7 @@ export default function DayTradeListPage() {
         </header>
 
         {/* 曜日ルールバナー */}
-        {weekdayRule && (
+        {weekdayRule && weekdayExitRows.length === 0 && (
           <div className={`mb-4 rounded-xl border px-4 py-3 flex items-center gap-3 ${
             weekdayRule.direction === "long"
               ? "border-emerald-500/40 bg-emerald-500/10"
