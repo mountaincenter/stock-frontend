@@ -7,6 +7,7 @@ import { RefreshCw } from 'lucide-react';
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 type Decision = 'BUY_CANDIDATE' | 'WATCH' | 'AVOID';
+type CandidateFilter = 'ALL' | '実弾候補' | '指標銘柄' | '過熱注意' | '見送り';
 
 interface SemiconSignal {
   code: string;
@@ -225,7 +226,7 @@ function DecisionBadge({ decision }: { decision: Decision }) {
     AVOID: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
   };
   const label = {
-    BUY_CANDIDATE: '買い候補',
+    BUY_CANDIDATE: '候補',
     WATCH: '条件監視',
     AVOID: '見送り',
   };
@@ -464,7 +465,7 @@ export default function SemiconPage() {
   const [data, setData] = useState<SemiconResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<Decision | 'ALL'>('ALL');
+  const [filter, setFilter] = useState<CandidateFilter>('ALL');
   const [realtimeData, setRealtimeData] = useState<Record<string, RealtimeQuote>>({});
   const [realtimeLoading, setRealtimeLoading] = useState(false);
   const [realtimeTimestamp, setRealtimeTimestamp] = useState<string | null>(null);
@@ -519,7 +520,7 @@ export default function SemiconPage() {
 
   const rows = useMemo(() => {
     const base = data?.signals || [];
-    return filter === 'ALL' ? base : base.filter((r) => r.decision === filter);
+    return filter === 'ALL' ? base : base.filter((r) => r.trade_bucket === filter);
   }, [data, filter]);
 
   const priorityRows = useMemo(() => {
@@ -1387,10 +1388,10 @@ export default function SemiconPage() {
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 px-4 py-3">
             <h2 className="text-sm font-semibold">候補銘柄</h2>
             <div className="flex gap-1">
-              {(['ALL', 'BUY_CANDIDATE', 'WATCH', 'AVOID'] as const).map((key) => (
+              {(['ALL', '実弾候補', '指標銘柄', '過熱注意', '見送り'] as const).map((key) => (
                 <button key={key} type="button" onClick={() => setFilter(key)}
                   className={`rounded-md px-2.5 py-1 text-xs ${filter === key ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/30'}`}>
-                  {key === 'ALL' ? '全て' : key === 'BUY_CANDIDATE' ? '買い候補' : key === 'WATCH' ? '監視' : '見送り'}
+                  {key === 'ALL' ? '全て' : key}
                 </button>
               ))}
             </div>
