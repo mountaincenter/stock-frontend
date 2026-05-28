@@ -678,16 +678,20 @@ export default function SemiconPage() {
       .sort((a, b) => (flowScoreByGroup.get(b.segment) ?? 0) - (flowScoreByGroup.get(a.segment) ?? 0))[0];
   }, [flow, flowScoreByGroup]);
   const morningPilotRows = useMemo(() => {
-    return entryRows
-      .filter((r) => r.trade_bucket === '実弾候補' && r.entry_status === 'READY')
+    const primarySegment = primaryFlow?.segment;
+    const rows = primarySegment
+      ? entryRows.filter((r) => (r.flow_group || r.sub_segment || '') === primarySegment)
+      : entryRows.filter((r) => r.trade_bucket === '実弾候補' && r.entry_status === 'READY');
+    return rows
       .sort((a, b) => {
         const flowA = flowScoreByGroup.get(a.flow_group || a.sub_segment || '') ?? -999;
         const flowB = flowScoreByGroup.get(b.flow_group || b.sub_segment || '') ?? -999;
         if (flowA !== flowB) return flowB - flowA;
+        if ((a.entry_status === 'READY') !== (b.entry_status === 'READY')) return a.entry_status === 'READY' ? -1 : 1;
         return (b.entry_priority || 0) - (a.entry_priority || 0);
       })
       .slice(0, 6);
-  }, [entryRows, flowScoreByGroup]);
+  }, [entryRows, flowScoreByGroup, primaryFlow]);
   const actionableHeadline = highRiskShorts.length > 0
     ? '既存ショートの踏み上げ警戒を最優先'
     : readyRows.length > 0
