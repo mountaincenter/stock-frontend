@@ -14,6 +14,10 @@ interface SemiconSignal {
   name: string;
   label: string;
   segment: string;
+  core_segment?: string;
+  sub_segment?: string;
+  theme_driver?: string;
+  classification_basis?: string;
   decision: Decision;
   score: number;
   reasons: string[];
@@ -85,6 +89,12 @@ interface BucketSummaryRow {
   leaders: Array<{ code?: string; name?: string; score?: number }>;
 }
 
+interface ClassificationBasisRow {
+  layer: string;
+  basis: string;
+  use: string;
+}
+
 interface HoldShortExposure {
   code: string;
   ticker: string;
@@ -143,6 +153,7 @@ interface SemiconResponse {
   };
   counts: { buy: number; watch: number; avoid: number; total: number };
   signals: SemiconSignal[];
+  classification_basis?: ClassificationBasisRow[];
   segment_strength?: SegmentStrengthRow[];
   bucket_summary?: BucketSummaryRow[];
   hold_short_exposures?: HoldShortExposure[];
@@ -318,6 +329,81 @@ const semiconUniverseGroups = [
     role: '周辺監視',
     tickers: '大林組 / 大和ハウス / 三井不動産 / 三菱地所 / 日揮HD',
     use: 'テーマの末端波及。短期売買では主役ではなく、出遅れ確認用。',
+  },
+];
+
+const usImpactRows: Record<string, { target: string; read: string; domestic: string }> = {
+  '^SOX': {
+    target: '半導体コア全体',
+    read: '半導体全体の温度計。上昇でも日本側が寄り天なら過熱優先。',
+    domestic: 'TEL / アドバンテスト / ディスコ / SCREEN / KOKUSAI',
+  },
+  NVDA: {
+    target: 'AIサーバー本流',
+    read: 'GPU/AI投資の中心。装置・基板・光通信・電力に波及するかを見る。',
+    domestic: 'イビデン / フジクラ / 古河電工 / 村田 / ルネサス',
+  },
+  AVGO: {
+    target: 'ASIC/ネットワーク',
+    read: 'AIカスタムASICとネットワーク投資。基板・光通信・受動部品への波及を見る。',
+    domestic: 'イビデン / フジクラ / 古河電工 / 村田 / 東京応化',
+  },
+  MU: {
+    target: 'メモリ/MLCC周辺',
+    read: 'HBM/DRAM/NAND市況の温度計。キオクシア、材料、受動部品への波及を見る。',
+    domestic: 'キオクシア / SUMCO / 信越 / 村田 / 太陽誘電系',
+  },
+  TSM: {
+    target: 'ファウンドリ/前工程',
+    read: '先端ロジック投資の温度計。前工程装置・材料の反応を見る。',
+    domestic: 'TEL / SCREEN / KOKUSAI / 東京応化 / レゾナック',
+  },
+  '^IXIC': {
+    target: 'グロース地合い',
+    read: 'リスクオン/オフの土台。単独では買い根拠にしない。',
+    domestic: '半導体グロース / 宇宙・防衛など隣接テーマ',
+  },
+  'NQ=F': {
+    target: '寄付前グロース地合い',
+    read: '朝の寄付前確認。強くても寄り後維持までは待つ。',
+    domestic: '半導体/AIインフラ全体',
+  },
+  'NKD=F': {
+    target: '日本寄付前地合い',
+    read: '日本株全体の寄付方向。半導体だけ強いか全体高かを分ける。',
+    domestic: '日経寄与度高い半導体/電機',
+  },
+  'JPY=X': {
+    target: '為替/輸出採算',
+    read: '円安は支え、急円高は逆風。原油高円安は質が悪いので警戒。',
+    domestic: '輸出系半導体 / 電機 / 材料',
+  },
+};
+
+const adjacentThemeRows = [
+  {
+    theme: '防衛/宇宙',
+    source: '国策・防衛予算・宇宙基本計画',
+    watch: '官公庁調達、受注、打上げ成功、通信/観測契約、防衛用途との接続',
+    action: '原則監視。出来高と寄り後維持がなければ触らない',
+  },
+  {
+    theme: 'サイバー/量子',
+    source: '経済安全保障・重要技術育成',
+    watch: '補助金、政府調達、実証採択、既存売上への接続',
+    action: '材料だけでは見送り。売上化が見えるものだけ監視',
+  },
+  {
+    theme: 'ロボット/FA',
+    source: '人手不足・フィジカルAI・工場自動化',
+    watch: '受注、設備投資、半導体/電子部品の需要接続',
+    action: '半導体本流が一服した時の資金移動候補',
+  },
+  {
+    theme: '核融合/次世代電力',
+    source: 'エネルギー安全保障・電力制約',
+    watch: '実証段階、設備メーカー、電源/素材への波及',
+    action: '長期監視。短期売買は過熱と左尾を優先して避ける',
   },
 ];
 
@@ -500,14 +586,15 @@ export default function SemiconPage() {
       : riskOnCount >= 3
         ? '追い風優勢'
         : '混在';
+  const classificationBasisRows = data?.classification_basis || [];
   return (
     <main className="min-h-screen bg-background text-foreground">
       <div className="mx-auto max-w-[1500px] px-3 py-4 md:px-5">
         <header className="mb-4 flex flex-wrap items-center gap-3 border-b border-border/50 pb-3">
           <div>
-            <h1 className="text-lg font-semibold tracking-tight">AI/半導体 順張り v1</h1>
+            <h1 className="text-lg font-semibold tracking-tight">AIインフラ順張り</h1>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              無条件買いではなく、米地合い・発火価格・寄付差・左尾で当日朝に候補化する半裁量画面
+              半導体コア、MLCC、光通信、電力、冷却を主戦場に、隣接国策テーマは監視棚として扱う半裁量画面
             </p>
           </div>
           <div className="ml-auto flex items-center gap-2">
@@ -531,14 +618,14 @@ export default function SemiconPage() {
           <StatCard label="買い候補" value={data?.counts.buy ?? 0} tone="good" />
           <StatCard label="条件監視" value={data?.counts.watch ?? 0} tone="warn" />
           <StatCard label="見送り" value={data?.counts.avoid ?? 0} tone="bad" />
-          <StatCard label="対象" value={data?.counts.total ?? 0} sub="AI/半導体+周辺" />
+          <StatCard label="対象" value={data?.counts.total ?? 0} sub="AIインフラ+周辺" />
         </section>
 
         <section className="mb-4 rounded-lg border border-border bg-card p-4">
           <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
             <div>
               <div className="text-xs text-muted-foreground">外部地合い</div>
-              <h2 className="mt-1 text-lg font-semibold">WTI / Gold / 銅 / 日経CME</h2>
+              <h2 className="mt-1 text-lg font-semibold">米国・先物・為替地合い</h2>
               <p className="mt-2 max-w-5xl text-sm leading-6 text-muted-foreground">
                 半導体ロングの前提確認。主データは pipeline で固めた parquet 由来です。WTIとGoldが同時に強い日は、株先物が高くても地政学リスクを残している扱いです。
               </p>
@@ -631,7 +718,7 @@ export default function SemiconPage() {
               <div className="text-xs text-muted-foreground">今日の実務判断</div>
               <h2 className="mt-1 text-xl font-semibold">{actionableHeadline}</h2>
               <p className="mt-2 max-w-4xl text-sm leading-6 text-muted-foreground">
-                目的はAI/半導体周辺の強い流れに乗ること。ただし、寄り買いではなく、地合い・セグメント強度・寄付差・寄り後の維持を通過した銘柄だけ候補化する。
+                目的はAIインフラ周辺の強い流れに乗ること。ただし、寄り買いではなく、地合い・セグメント強度・寄付差・寄り後の維持を通過した銘柄だけ候補化する。
               </p>
             </div>
             <button type="button" onClick={fetchRealtime} disabled={realtimeLoading || !data}
@@ -680,7 +767,7 @@ export default function SemiconPage() {
           <section className="mb-4 rounded-lg border border-rose-500/30 bg-rose-500/10 p-4">
             <div className="mb-3">
               <div className="text-xs text-rose-200/80">既存ショート警戒</div>
-              <h2 className="mt-1 text-lg font-semibold text-rose-100">AI/半導体周辺の売建を先に見る</h2>
+              <h2 className="mt-1 text-lg font-semibold text-rose-100">AIインフラ周辺の売建を先に見る</h2>
               <p className="mt-2 text-sm leading-6 text-rose-100/80">
                 ここは新規エントリー候補ではなく、テーマ順張り相場で踏まれやすい既存ショートの確認欄です。
               </p>
@@ -830,6 +917,83 @@ export default function SemiconPage() {
         </section>
 
         <section className="mb-4 rounded-lg border border-border bg-card p-4">
+          <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="text-xs text-muted-foreground">分類の根拠</div>
+              <h2 className="mt-1 text-lg font-semibold">経産省の半導体分類を骨格に、AIインフラ周辺を別枠で見る</h2>
+              <p className="mt-2 max-w-5xl text-sm leading-6 text-muted-foreground">
+                半導体ど真ん中は経産省のデバイス・製造装置・部素材・後工程を起点にする。MLCC、光通信、電力、冷却、DC建設は、AIサーバー需要で株価が動く周辺産業として TrendForce / 矢野経済 / 富士経済系の市場分類を使って分ける。
+              </p>
+            </div>
+            <div className="rounded-lg border border-border/60 bg-background/45 px-3 py-2 text-xs text-muted-foreground">
+              表示: core / sub / driver / basis
+            </div>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+            {classificationBasisRows.map((row) => (
+              <div key={row.layer} className="rounded-lg border border-border/60 bg-background/45 p-3">
+                <div className="text-sm font-semibold">{row.layer}</div>
+                <div className="mt-2 text-xs leading-5 text-muted-foreground">{row.basis}</div>
+                <div className="mt-3 rounded border border-border/50 bg-muted/20 px-2 py-1.5 text-xs leading-5 text-foreground">
+                  {row.use}
+                </div>
+              </div>
+            ))}
+            {classificationBasisRows.length === 0 && (
+              <div className="rounded-lg border border-border/60 bg-background/45 p-3 text-sm text-muted-foreground">
+                分類根拠が API にありません。semicon artifact または API 正規化の確認が必要です。
+              </div>
+            )}
+          </div>
+          <div className="mt-3 grid gap-3 md:grid-cols-3">
+            <div className="rounded-lg border border-border/60 bg-background/45 p-3">
+              <div className="text-xs font-semibold text-sky-300">core</div>
+              <div className="mt-1 text-xs leading-5 text-muted-foreground">半導体コア / AIサーバー部品 / 電力・冷却 / 光・通信 / DC建設設備。</div>
+            </div>
+            <div className="rounded-lg border border-border/60 bg-background/45 p-3">
+              <div className="text-xs font-semibold text-emerald-300">driver</div>
+              <div className="mt-1 text-xs leading-5 text-muted-foreground">SOX連動、NAND、MLCC需給、AIデータセンター接続、電力制約など、株価が動く理由。</div>
+            </div>
+            <div className="rounded-lg border border-border/60 bg-background/45 p-3">
+              <div className="text-xs font-semibold text-amber-300">basis</div>
+              <div className="mt-1 text-xs leading-5 text-muted-foreground">経産省は本体、TrendForceはMLCC、矢野経済はDC/冷却、富士経済は光通信の根拠として使う。</div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mb-4 rounded-lg border border-border bg-card p-4">
+          <div className="mb-3">
+            <div className="text-xs text-muted-foreground">隣接国策テーマ・監視棚</div>
+            <h2 className="mt-1 text-lg font-semibold">買う棚ではなく、資金ローテーションを早めに察知する棚</h2>
+            <p className="mt-2 max-w-5xl text-sm leading-6 text-muted-foreground">
+              防衛、宇宙、サイバー、量子、ロボット、次世代電力は国策として重要。ただし左尾が大きい銘柄が多いため、一次情報と出来高、寄り後維持が揃うまで実弾候補にしない。
+            </p>
+          </div>
+          <div className="overflow-x-auto rounded-lg border border-border/60">
+            <table className="w-full min-w-[1080px] text-sm">
+              <thead>
+                <tr className="border-b border-border/50 bg-muted/20 text-muted-foreground">
+                  <th className="px-3 py-2 text-left">テーマ</th>
+                  <th className="px-3 py-2 text-left">一次情報の棚</th>
+                  <th className="px-3 py-2 text-left">見るもの</th>
+                  <th className="px-3 py-2 text-left">扱い</th>
+                </tr>
+              </thead>
+              <tbody>
+                {adjacentThemeRows.map((row) => (
+                  <tr key={row.theme} className="border-b border-border/20">
+                    <td className="px-3 py-2 font-semibold">{row.theme}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{row.source}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{row.watch}</td>
+                    <td className="px-3 py-2 text-amber-200">{row.action}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="mb-4 rounded-lg border border-border bg-card p-4">
           <div className="mb-3">
             <h2 className="text-sm font-semibold">ユニバース整理</h2>
             <p className="mt-1 text-xs text-muted-foreground">
@@ -837,7 +1001,7 @@ export default function SemiconPage() {
             </p>
           </div>
           <div className="overflow-x-auto rounded-lg border border-border/60">
-            <table className="w-full min-w-[1080px] text-sm">
+            <table className="w-full min-w-[1480px] text-sm">
               <thead>
                 <tr className="border-b border-border/50 bg-muted/20 text-muted-foreground">
                   <th className="px-3 py-2 text-left">セグメント</th>
@@ -900,6 +1064,8 @@ export default function SemiconPage() {
                   <th className="px-3 py-2 text-left whitespace-nowrap">状態</th>
                   <th className="px-3 py-2 text-left">銘柄</th>
                   <th className="px-3 py-2 text-left">分類</th>
+                  <th className="px-3 py-2 text-left">core/sub</th>
+                  <th className="px-3 py-2 text-left">driver</th>
                   <th className="px-3 py-2 text-right">優先度</th>
                   <th className="px-3 py-2 text-right">点</th>
                   <th className="px-3 py-2 text-right">終値</th>
@@ -922,6 +1088,11 @@ export default function SemiconPage() {
                       <div className="text-xs text-muted-foreground">{row.ticker}</div>
                     </td>
                     <td className="px-3 py-2 text-muted-foreground">{row.segment}</td>
+                    <td className="px-3 py-2">
+                      <div className="font-medium">{row.core_segment || '-'}</div>
+                      <div className="text-xs text-muted-foreground">{row.sub_segment || '-'}</div>
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground"><div className="max-w-[220px] leading-5">{row.theme_driver || '-'}</div></td>
                     <td className="px-3 py-2 text-right tabular-nums font-semibold">{fmt(row.entry_priority, 1)}</td>
                     <td className="px-3 py-2 text-right tabular-nums font-semibold">{fmt(row.score, 1)}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{fmt(row.close, 1)}</td>
@@ -1007,7 +1178,7 @@ export default function SemiconPage() {
             <div className="text-xs text-rose-200/80">見送り条件</div>
             <h2 className="mt-1 text-lg font-semibold text-rose-100">高値掴みと落ちるナイフを避ける</h2>
             <p className="mt-2 max-w-4xl text-sm leading-6 text-rose-100/85">
-              AI/半導体周辺は強いテーマだが、寄り天・過熱・地政学で一撃の左尾が出る。条件が崩れた日は、候補があってもノートレを正解にする。
+              AIインフラ周辺は強いテーマだが、寄り天・過熱・地政学で一撃の左尾が出る。条件が崩れた日は、候補があってもノートレを正解にする。
             </p>
           </div>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -1170,26 +1341,39 @@ export default function SemiconPage() {
         <section className="mb-4 rounded-lg border border-border bg-card p-4">
           <h2 className="mb-3 text-sm font-semibold">米市場</h2>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-sm">
+            <table className="w-full min-w-[1280px] text-sm">
               <thead>
                 <tr className="border-b border-border/50 text-muted-foreground">
                   <th className="px-2 py-2 text-left">指標</th>
+                  <th className="px-2 py-2 text-left">国内ターゲット</th>
                   <th className="px-2 py-2 text-right">終値</th>
                   <th className="px-2 py-2 text-right">1日</th>
                   <th className="px-2 py-2 text-right">5日</th>
                   <th className="px-2 py-2 text-right">20日</th>
+                  <th className="px-2 py-2 text-left">読み方</th>
                 </tr>
               </thead>
               <tbody>
-                {(data?.overseas || []).map((r) => (
-                  <tr key={r.ticker} className="border-b border-border/20">
-                    <td className="px-2 py-2"><span className="font-medium">{r.name}</span><span className="ml-2 text-xs text-muted-foreground">{r.ticker}</span></td>
-                    <td className="px-2 py-2 text-right tabular-nums">{fmt(r.close, 2)}</td>
-                    <td className={`px-2 py-2 text-right tabular-nums ${clsPct(r.ret1)}`}>{pct(r.ret1)}</td>
-                    <td className={`px-2 py-2 text-right tabular-nums ${clsPct(r.ret5)}`}>{pct(r.ret5)}</td>
-                    <td className={`px-2 py-2 text-right tabular-nums ${clsPct(r.ret20)}`}>{pct(r.ret20)}</td>
-                  </tr>
-                ))}
+                {(data?.overseas || []).map((r) => {
+                  const impact = usImpactRows[r.ticker];
+                  return (
+                    <tr key={r.ticker} className="border-b border-border/20">
+                      <td className="px-2 py-2">
+                        <span className="font-medium">{r.name}</span>
+                        <span className="ml-2 text-xs text-muted-foreground">{r.ticker}</span>
+                      </td>
+                      <td className="px-2 py-2">
+                        <div className="font-medium">{impact?.target || '-'}</div>
+                        <div className="mt-0.5 max-w-[260px] text-xs leading-5 text-muted-foreground">{impact?.domestic || '-'}</div>
+                      </td>
+                      <td className="px-2 py-2 text-right tabular-nums">{fmt(r.close, 2)}</td>
+                      <td className={`px-2 py-2 text-right tabular-nums ${clsPct(r.ret1)}`}>{pct(r.ret1)}</td>
+                      <td className={`px-2 py-2 text-right tabular-nums ${clsPct(r.ret5)}`}>{pct(r.ret5)}</td>
+                      <td className={`px-2 py-2 text-right tabular-nums ${clsPct(r.ret20)}`}>{pct(r.ret20)}</td>
+                      <td className="px-2 py-2 text-xs leading-5 text-muted-foreground"><div className="max-w-[320px]">{impact?.read || '-'}</div></td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -1208,11 +1392,13 @@ export default function SemiconPage() {
             </div>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1280px] text-sm">
+            <table className="w-full min-w-[1600px] text-sm">
               <thead>
                 <tr className="border-b border-border/50 bg-muted/20 text-muted-foreground">
                   <th className="px-3 py-2 text-left">銘柄</th>
                   <th className="px-3 py-2 text-center">判定</th>
+                  <th className="px-3 py-2 text-left">core/sub</th>
+                  <th className="px-3 py-2 text-left">driver</th>
                   <th className="px-3 py-2 text-right">点</th>
                   <th className="px-3 py-2 text-right">発火価格</th>
                   <th className="px-3 py-2 text-right">終値</th>
@@ -1228,9 +1414,9 @@ export default function SemiconPage() {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={13} className="px-4 py-8 text-center text-muted-foreground">読み込み中...</td></tr>
+                  <tr><td colSpan={15} className="px-4 py-8 text-center text-muted-foreground">読み込み中...</td></tr>
                 ) : rows.length === 0 ? (
-                  <tr><td colSpan={13} className="px-4 py-8 text-center text-muted-foreground">該当なし</td></tr>
+                  <tr><td colSpan={15} className="px-4 py-8 text-center text-muted-foreground">該当なし</td></tr>
                 ) : rows.map((r) => (
                   <tr key={r.code} className="border-b border-border/20 hover:bg-muted/20">
                     <td className="px-3 py-2">
@@ -1238,6 +1424,11 @@ export default function SemiconPage() {
                       <div className="text-xs text-muted-foreground">{r.ticker} / {r.segment} / {r.label}</div>
                     </td>
                     <td className="px-3 py-2 text-center"><DecisionBadge decision={r.decision} /></td>
+                    <td className="px-3 py-2">
+                      <div className="font-medium">{r.core_segment || '-'}</div>
+                      <div className="text-xs text-muted-foreground">{r.sub_segment || '-'}</div>
+                    </td>
+                    <td className="px-3 py-2 text-xs leading-5 text-muted-foreground"><div className="max-w-[220px]">{r.theme_driver || '-'}</div></td>
                     <td className="px-3 py-2 text-right tabular-nums font-semibold">{fmt(r.score, 1)}</td>
                     <td className="px-3 py-2 text-right tabular-nums font-semibold">{fmt(r.entry_trigger_price, 0)}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{fmt(r.close, 1)}</td>
