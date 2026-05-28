@@ -587,6 +587,7 @@ export default function SemiconPage() {
         ? '追い風優勢'
         : '混在';
   const classificationBasisRows = data?.classification_basis || [];
+  const bucketCount = (bucket: string) => data?.bucket_summary?.find((row) => row.bucket === bucket)?.count ?? 0;
   return (
     <main className="min-h-screen bg-background text-foreground">
       <div className="mx-auto max-w-[1500px] px-3 py-4 md:px-5">
@@ -615,10 +616,10 @@ export default function SemiconPage() {
 
         <section className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-5">
           <StatCard label="米国地合い" value={data?.market.label || '-'} sub={data?.data_date ? `data ${data.data_date}` : undefined} tone={marketTone} />
-          <StatCard label="買い候補" value={data?.counts.buy ?? 0} tone="good" />
-          <StatCard label="条件監視" value={data?.counts.watch ?? 0} tone="warn" />
-          <StatCard label="見送り" value={data?.counts.avoid ?? 0} tone="bad" />
-          <StatCard label="対象" value={data?.counts.total ?? 0} sub="AIインフラ+周辺" />
+          <StatCard label="実弾候補" value={bucketCount('実弾候補')} sub="寄り後条件付き" tone="good" />
+          <StatCard label="過熱注意" value={bucketCount('過熱注意')} sub="待ち/小ロット" tone="warn" />
+          <StatCard label="指標銘柄" value={bucketCount('指標銘柄')} sub="温度計" />
+          <StatCard label="見送り" value={bucketCount('見送り')} sub={`対象 ${data?.counts.total ?? 0}`} tone="bad" />
         </section>
 
         <section className="mb-4 rounded-lg border border-border bg-card p-4">
@@ -627,7 +628,7 @@ export default function SemiconPage() {
               <div className="text-xs text-muted-foreground">外部地合い</div>
               <h2 className="mt-1 text-lg font-semibold">米国・先物・為替地合い</h2>
               <p className="mt-2 max-w-5xl text-sm leading-6 text-muted-foreground">
-                半導体ロングの前提確認。主データは pipeline で固めた parquet 由来です。WTIとGoldが同時に強い日は、株先物が高くても地政学リスクを残している扱いです。
+                半導体ロングの前提確認。SOX、NVIDIA、Broadcom、Micron、TSMC、NASDAQ先物、日経CME、USDJPYを分けて見ます。強弱が割れた日は全面買いではなく、セグメント別に寄り後維持を確認します。
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -651,23 +652,30 @@ export default function SemiconPage() {
               return (
                 <div key={indicator.ticker} className="rounded-lg border border-border/60 bg-background/45 p-3">
                   <div className="flex items-start justify-between gap-3">
-                    <div>
+                    <div className="min-w-0">
                       <div className="font-semibold">{indicator.name}</div>
                       <div className="mt-0.5 text-xs text-muted-foreground">{indicator.ticker} / {indicator.role}</div>
                     </div>
-                    <span className={`rounded border px-2 py-0.5 text-xs whitespace-nowrap ${
-                      tone === 'good'
-                        ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200'
-                        : tone === 'bad'
-                          ? 'border-rose-400/40 bg-rose-400/10 text-rose-200'
-                          : tone === 'warn'
-                            ? 'border-amber-400/40 bg-amber-400/10 text-amber-200'
-                        : 'border-border text-muted-foreground'
-                    }`}>
-                      {indicatorDecision(indicator, indicator.ret1)}
-                    </span>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      {indicator.date && indicator.date !== data?.market_indicator_date && (
+                        <span className="rounded border border-amber-400/40 bg-amber-400/10 px-2 py-0.5 text-[11px] text-amber-200 whitespace-nowrap">
+                          date {indicator.date}
+                        </span>
+                      )}
+                      <span className={`rounded border px-2 py-0.5 text-xs whitespace-nowrap ${
+                        tone === 'good'
+                          ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200'
+                          : tone === 'bad'
+                            ? 'border-rose-400/40 bg-rose-400/10 text-rose-200'
+                            : tone === 'warn'
+                              ? 'border-amber-400/40 bg-amber-400/10 text-amber-200'
+                          : 'border-border text-muted-foreground'
+                      }`}>
+                        {indicatorDecision(indicator, indicator.ret1)}
+                      </span>
+                    </div>
                   </div>
-                  <div className="mt-3 grid grid-cols-4 gap-2 text-xs">
+                  <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
                     <div>
                       <div className="text-muted-foreground">終値</div>
                       <div className="mt-1 text-right text-base font-semibold tabular-nums">{fmtPrice(indicator.close)}</div>
@@ -679,10 +687,6 @@ export default function SemiconPage() {
                     <div>
                       <div className="text-muted-foreground">5日</div>
                       <div className={`mt-1 text-right text-base font-semibold tabular-nums ${clsPct(indicator.ret5)}`}>{pct(indicator.ret5)}</div>
-                    </div>
-                    <div>
-                      <div className="text-muted-foreground">日付</div>
-                      <div className="mt-1 text-right text-xs font-medium tabular-nums">{indicator.date || '-'}</div>
                     </div>
                   </div>
                   <div className="mt-3 text-xs leading-5 text-muted-foreground">{indicator.risk_note}</div>
