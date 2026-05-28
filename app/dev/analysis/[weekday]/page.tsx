@@ -126,8 +126,8 @@ const EXECUTION_PROB_KEYS = ['short', 'mix', 'skip'] as const;
 type DisplayMode = 'amount' | 'pct';
 type SegmentMode = '4seg' | '11seg';
 type FilterType = 'all' | 'ex0';
-type ExecutionDecision = 'GO' | 'SMALL' | 'SKIP';
-type OperationClass = '大引け保有向き' | '早期利確向き' | '短時間限定' | '見送り';
+type ExecutionDecision = 'GO' | 'CONDITIONAL' | 'SKIP';
+type OperationClass = '通常' | '早期利確' | '時間指定' | '見送り';
 
 // ===== Helpers =====
 function percentile(arr: number[], p: number): number {
@@ -160,9 +160,10 @@ const formatExitLabel = (segment: RiskSegment | null | undefined, fallback?: str
 
 const formatOperationLabel = (
   decision: ExecutionDecision,
+  operationClass: OperationClass,
   segment: RiskSegment | null | undefined,
   fallback?: string | null,
-) => decision === 'SKIP' ? '見送り' : formatExitLabel(segment, fallback);
+) => decision === 'SKIP' ? '見送り' : `${operationClass} / ${formatExitLabel(segment, fallback)}`;
 
 const getSegmentClasses = (
   segments: Record<string, SegmentStats | SegmentStatsPct>,
@@ -193,14 +194,14 @@ const winrateClass = (rate: number) =>
 
 const decisionClass = (decision: ExecutionDecision) => ({
   GO: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40',
-  SMALL: 'bg-amber-500/15 text-amber-300 border-amber-500/40',
+  CONDITIONAL: 'bg-amber-500/15 text-amber-300 border-amber-500/40',
   SKIP: 'bg-rose-500/15 text-rose-300 border-rose-500/40',
 }[decision]);
 
 const operationClassStyle = (operationClass: OperationClass) => ({
-  '大引け保有向き': 'text-emerald-300',
-  '早期利確向き': 'text-cyan-300',
-  '短時間限定': 'text-amber-300',
+  '通常': 'text-emerald-300',
+  '早期利確': 'text-cyan-300',
+  '時間指定': 'text-amber-300',
   '見送り': 'text-muted-foreground',
 }[operationClass]);
 
@@ -218,21 +219,42 @@ const getOperationClass = (
   const bestPf = best?.pf ?? null;
   const closePf = close?.amount.pf ?? null;
   if (!best || bestPf === null) return '見送り';
-  if (best.key === 'seg_1530' && bestPf >= 1.2) return '大引け保有向き';
-  if (best.key !== 'seg_1530' && bestPf >= 1.3 && closePf !== null && closePf < 1.0) return '短時間限定';
-  if (best.key !== 'seg_1530' && closePf !== null && closePf >= 1.0 && bestPf - closePf >= 0.3) return '早期利確向き';
+  if (best.key === 'seg_1530' && bestPf >= 1.2) return '通常';
+  if (best.key !== 'seg_1530' && bestPf >= 1.3 && closePf !== null && closePf < 1.0) return '時間指定';
+  if (best.key !== 'seg_1530' && closePf !== null && closePf >= 1.0 && bestPf - closePf >= 0.3) return '早期利確';
+  if (bestPf >= 1.2 && closePf !== null && closePf >= 1.0) return '通常';
   return '見送り';
 };
 
 const getExecutionDecision = (
   best: RiskMatrixRow['bestSegment'],
   operationClass: OperationClass,
+  close: RiskSegment | null,
 ): ExecutionDecision => {
   if (!best || best.pf === null || best.dailyMaxDD === null || best.cvar05 === null) return 'SKIP';
   if (operationClass === '見送り') return 'SKIP';
-  if (best.pf >= 1.5 && best.total > 0 && best.dailyMaxDD >= -30000 && best.cvar05 >= -15000) return 'GO';
-  if (best.pf >= 1.2 && best.total > 0 && best.dailyMaxDD >= -50000) return 'SMALL';
+  const closePf = close?.amount.pf ?? null;
+  const riskOk = best.dailyMaxDD >= -30000 && best.cvar05 >= -15000;
+  if (best.pf >= 1.5 && best.total > 0 && riskOk && closePf !== null && closePf >= 1.0 && operationClass === '通常') return 'GO';
+  if (best.pf >= 1.2 && best.total > 0 && best.dailyMaxDD >= -50000) return 'CONDITIONAL';
   return 'SKIP';
+};
+
+const getDecisionReason = (
+  decision: ExecutionDecision,
+  operationClass: OperationClass,
+  best: RiskMatrixRow['bestSegment'],
+  close: RiskSegment | null,
+  pfDelta: number | null,
+) => {
+  if (decision === 'SKIP') return '期待値/リスク条件未達';
+  const closePf = close?.amount.pf ?? null;
+  if (operationClass === '時間指定') return '大引けPF<1';
+  if (operationClass === '早期利確') return pfDelta !== null ? `PF差 +${pfDelta.toFixed(2)}` : '早期利確優位';
+  if (best?.dailyMaxDD !== null && best?.dailyMaxDD !== undefined && best.dailyMaxDD < -30000) return 'DD注意';
+  if (best?.cvar05 !== null && best?.cvar05 !== undefined && best.cvar05 < -15000) return 'CVaR注意';
+  if (closePf !== null && closePf < 1.2) return '大引けPF弱め';
+  return '大引けでも期待値あり';
 };
 
 // filteredStocksからサマリーテーブル用の集計を行う
@@ -613,12 +635,13 @@ export default function WeekdayAnalysisPage() {
         const bestSeg = best ? row.segments.find(s => s.key === best.key) : null;
         const closeSeg = row.segments.find(s => s.key === 'seg_1530') ?? null;
         const operationClass = getOperationClass(best, closeSeg);
-        const decision = getExecutionDecision(best, operationClass);
         const pfDelta = best?.pf !== null && best?.pf !== undefined && closeSeg?.amount.pf !== null && closeSeg?.amount.pf !== undefined
           ? best.pf - closeSeg.amount.pf
           : null;
         const totalDelta = best && closeSeg ? best.total - closeSeg.amount.total : null;
-        return { row, best, bestSeg, closeSeg, decision, operationClass, pfDelta, totalDelta };
+        const decision = getExecutionDecision(best, operationClass, closeSeg);
+        const reason = getDecisionReason(decision, operationClass, best, closeSeg, pfDelta);
+        return { row, best, bestSeg, closeSeg, decision, operationClass, reason, pfDelta, totalDelta };
       });
   }, [riskMatrixData]);
 
@@ -919,7 +942,7 @@ export default function WeekdayAnalysisPage() {
                 GO {executionRows.filter(r => r.decision === 'GO').length}
               </span>
               <span className="rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-amber-300">
-                SMALL {executionRows.filter(r => r.decision === 'SMALL').length}
+                CONDITIONAL {executionRows.filter(r => r.decision === 'CONDITIONAL').length}
               </span>
               <span className="rounded border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-rose-300">
                 SKIP {executionRows.filter(r => r.decision === 'SKIP').length}
@@ -946,13 +969,21 @@ export default function WeekdayAnalysisPage() {
                 </tr>
               </thead>
               <tbody>
-                {executionRows.map(({ row, best, bestSeg, closeSeg, decision, pfDelta, totalDelta }) => (
+                {executionRows.map(({ row, best, bestSeg, closeSeg, decision, operationClass, reason, pfDelta, totalDelta }) => (
                   <tr key={`exit-${row.marginKey}-${row.probKey}`} className="border-t border-border/20">
                     <td className="px-3 py-2">
                       <span className={`px-2 py-0.5 rounded border text-xs font-bold ${decisionClass(decision)}`}>{decision}</span>
+                      {decision === 'CONDITIONAL' && (
+                        <div className="mt-1 text-[11px] text-amber-300">{reason}</div>
+                      )}
                     </td>
-                    <td className={`px-3 py-2 font-medium ${decision === 'SKIP' ? 'text-muted-foreground' : 'text-foreground'}`}>
-                      {formatOperationLabel(decision, bestSeg, best?.label)}
+                    <td className={`px-3 py-2 font-medium ${decision === 'SKIP' ? 'text-muted-foreground' : operationClassStyle(operationClass)}`}>
+                      {formatOperationLabel(decision, operationClass, bestSeg, best?.label)}
+                      {operationClass === '時間指定' && (
+                        <div className="mt-1 text-[11px] font-normal text-amber-300">
+                          大引けPF&lt;1。時間指定で成立する候補
+                        </div>
+                      )}
                     </td>
                     <td className="px-3 py-2 text-foreground">{row.marginLabel}</td>
                     <td className={`px-3 py-2 font-medium ${row.probLabel === 'SHORT' ? 'text-rose-400' : row.probLabel === 'MIX' ? 'text-amber-400' : 'text-blue-400'}`}>{row.probLabel}</td>
