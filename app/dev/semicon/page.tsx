@@ -17,6 +17,8 @@ interface SemiconSignal {
   segment: string;
   core_segment?: string;
   sub_segment?: string;
+  theme_layer?: string;
+  flow_group?: string;
   theme_driver?: string;
   classification_basis?: string;
   decision: Decision;
@@ -70,6 +72,38 @@ interface BacktestRow {
   to?: string;
 }
 
+interface MorningPilotEvidence {
+  label: string;
+  variant: string;
+  entry: string;
+  exit: string;
+  n: number;
+  days: number;
+  pf?: number;
+  win_rate?: number;
+  sum_pnl_100?: number;
+  avg_pnl_100?: number;
+  max_dd_100?: number;
+  worst_trade_100?: number;
+  cvar05_100?: number;
+}
+
+interface MorningPilot {
+  available: boolean;
+  label: string;
+  entry_window: string;
+  exit_window: string;
+  max_positions: number;
+  max_shares: number;
+  rules: string[];
+  entry_checks: string[];
+  exit_rules: string[];
+  evidence: MorningPilotEvidence[];
+  takeaway?: string;
+  source?: string;
+  reason?: string;
+}
+
 interface SegmentStrengthRow {
   segment: string;
   count: number;
@@ -82,6 +116,71 @@ interface SegmentStrengthRow {
   leader_code?: string;
   leader_name?: string;
   leader_score?: number;
+}
+
+interface FlowSegmentRow {
+  segment: string;
+  n: number;
+  turnover_bil?: number;
+  turnover_ex_top1_bil?: number;
+  turnover_vs5?: number;
+  turnover_vs20?: number;
+  turnover_vs60?: number;
+  avg_ret1?: number;
+  up_ratio?: number;
+  top_code?: string;
+  top_name?: string;
+  top_share?: number;
+  hint?: string;
+  action_hint?: string;
+}
+
+interface FlowIndividualRow {
+  code: string;
+  name: string;
+  core_segment: string;
+  sub_segment: string;
+  theme_layer?: string;
+  flow_group?: string;
+  ret1?: number;
+  turnover_bil?: number;
+  turnover_vs5?: number;
+  turnover_vs20?: number;
+  turnover_vs60?: number;
+  flow_fit?: string;
+}
+
+interface FlowAnalysis {
+  available: boolean;
+  date?: string;
+  reason?: string;
+  market?: {
+    turnover_bil?: number;
+    turnover_vs5?: number;
+    turnover_vs20?: number;
+    turnover_vs60?: number;
+    n?: number;
+  };
+  universe?: {
+    turnover_bil?: number;
+    turnover_ex_top1_bil?: number;
+    turnover_vs5?: number;
+    turnover_vs20?: number;
+    turnover_vs60?: number;
+    market_share?: number;
+    avg_ret1?: number;
+    up_ratio?: number;
+    n?: number;
+    top_code?: string;
+    top_name?: string;
+    top_share?: number;
+  };
+  core_segments?: FlowSegmentRow[];
+  sub_segments?: FlowSegmentRow[];
+  theme_layers?: FlowSegmentRow[];
+  flow_groups?: FlowSegmentRow[];
+  individuals?: FlowIndividualRow[];
+  notes?: string[];
 }
 
 interface BucketSummaryRow {
@@ -156,6 +255,7 @@ interface SemiconResponse {
   signals: SemiconSignal[];
   classification_basis?: ClassificationBasisRow[];
   segment_strength?: SegmentStrengthRow[];
+  flow_analysis?: FlowAnalysis;
   bucket_summary?: BucketSummaryRow[];
   hold_short_exposures?: HoldShortExposure[];
   market_indicators?: MarketIndicator[];
@@ -181,10 +281,13 @@ interface SemiconResponse {
     report_url?: string | null;
     takeaway: string;
   };
+  morning_pilot?: MorningPilot;
 }
 
 const fmt = (v?: number, digits = 1) => v == null || Number.isNaN(v) ? '-' : v.toLocaleString('ja-JP', { maximumFractionDigits: digits, minimumFractionDigits: digits });
 const pct = (v?: number) => v == null || Number.isNaN(v) ? '-' : `${v > 0 ? '+' : ''}${v.toFixed(2)}%`;
+const mult = (v?: number) => v == null || Number.isNaN(v) ? '-' : `${v.toFixed(2)}x`;
+const oku = (v?: number) => v == null || Number.isNaN(v) ? '-' : (v * 10).toLocaleString('ja-JP', { maximumFractionDigits: 0 });
 const clsPct = (v?: number) => v == null ? 'text-muted-foreground' : v > 0 ? 'text-emerald-400' : v < 0 ? 'text-rose-400' : 'text-muted-foreground';
 const yen = (v?: number) => v == null || Number.isNaN(v) ? '-' : `${v >= 0 ? '+' : ''}${Math.round(v).toLocaleString('ja-JP')}円`;
 const yenAbs = (v?: number) => v == null || Number.isNaN(v) ? '-' : `${Math.round(v).toLocaleString('ja-JP')}円`;
@@ -541,7 +644,15 @@ export default function SemiconPage() {
   const holdShorts = data?.hold_short_exposures || [];
   const highRiskShorts = holdShorts.filter((r) => r.risk_level === '高' || r.risk_level === '中');
   const readyRows = entryRows.filter((r) => r.entry_status === 'READY');
+  const morningPilot = data?.morning_pilot;
+  const morningPilotRows = entryRows
+    .filter((r) => r.trade_bucket === '実弾候補' || r.entry_status === 'READY')
+    .slice(0, 6);
   const hotThemeRows = (data?.segment_strength || []).slice(0, 3);
+  const flow = data?.flow_analysis;
+  const flowThemeRows = (flow?.theme_layers || flow?.core_segments || []).slice(0, 6);
+  const flowGroupRows = (flow?.flow_groups || flow?.sub_segments || []).slice(0, 10);
+  const flowIndividualRows = (flow?.individuals || []).slice(0, 10);
   const actionableHeadline = highRiskShorts.length > 0
     ? '既存ショートの踏み上げ警戒を最優先'
     : readyRows.length > 0
@@ -621,6 +732,292 @@ export default function SemiconPage() {
           <StatCard label="過熱注意" value={bucketCount('過熱注意')} sub="待ち/小ロット" tone="warn" />
           <StatCard label="指標銘柄" value={bucketCount('指標銘柄')} sub="温度計" />
           <StatCard label="見送り" value={bucketCount('見送り')} sub={`対象 ${data?.counts.total ?? 0}`} tone="bad" />
+        </section>
+
+        <section className="mb-4 rounded-lg border border-emerald-500/25 bg-emerald-500/5 p-4">
+          <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="text-xs text-emerald-200/80">実弾パイロット</div>
+              <h2 className="mt-1 text-lg font-semibold text-emerald-100">午前だけ取る順張り</h2>
+              <p className="mt-2 max-w-5xl text-sm leading-6 text-emerald-100/80">
+                前日終値で候補を絞り、寄り直後は見送る。9:20-9:25に地合い・セグメント・個別が崩れていない時だけ100株まで候補化し、10時台で閉じる。
+              </p>
+            </div>
+            <button type="button" onClick={fetchRealtime} disabled={realtimeLoading || !data}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-emerald-400/30 px-3 py-1.5 text-xs text-emerald-100 hover:bg-emerald-400/10 disabled:opacity-50">
+              <RefreshCw className={`h-3.5 w-3.5 ${realtimeLoading ? 'animate-spin' : ''}`} />
+              寄付確認
+              {realtimeTimestamp && <span className="text-emerald-100/60">{realtimeTimestamp}</span>}
+            </button>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-4">
+            <div className="rounded-lg border border-border/60 bg-background/45 p-3">
+              <div className="text-xs text-muted-foreground">見るだけ</div>
+              <div className="mt-1 text-lg font-semibold">9:00-9:15</div>
+              <div className="mt-1 text-xs leading-5 text-muted-foreground">寄り直後の飛びつきを避け、指数とセグメントの崩れを確認。</div>
+            </div>
+            <div className="rounded-lg border border-border/60 bg-background/45 p-3">
+              <div className="text-xs text-muted-foreground">候補化</div>
+              <div className="mt-1 text-lg font-semibold">{morningPilot?.entry_window || '09:20-09:25'}</div>
+              <div className="mt-1 text-xs leading-5 text-muted-foreground">VWAP上または回復、同一フロー層が崩れていない銘柄だけ。</div>
+            </div>
+            <div className="rounded-lg border border-border/60 bg-background/45 p-3">
+              <div className="text-xs text-muted-foreground">撤退</div>
+              <div className="mt-1 text-lg font-semibold">{morningPilot?.exit_window || '10:15-10:45'}</div>
+              <div className="mt-1 text-xs leading-5 text-muted-foreground">利益が出ても伸ばしすぎない。後場の再上昇期待で粘らない。</div>
+            </div>
+            <div className="rounded-lg border border-border/60 bg-background/45 p-3">
+              <div className="text-xs text-muted-foreground">上限</div>
+              <div className="mt-1 text-lg font-semibold">{morningPilot?.max_positions ?? 1}銘柄 / {morningPilot?.max_shares ?? 100}株</div>
+              <div className="mt-1 text-xs leading-5 text-muted-foreground">混在ならノートレ。10時以降は新規ロングを作らない。</div>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(360px,0.8fr)]">
+            <div className="overflow-x-auto rounded-lg border border-border/60 bg-background/40">
+              <table className="w-full min-w-[1120px] text-sm">
+                <thead>
+                  <tr className="border-b border-border/50 bg-muted/20 text-muted-foreground">
+                    <th className="px-3 py-2 text-left">候補</th>
+                    <th className="px-3 py-2 text-left">フロー</th>
+                    <th className="px-3 py-2 text-right">優先度</th>
+                    <th className="px-3 py-2 text-right">終値</th>
+                    <th className="px-3 py-2 text-right">現在</th>
+                    <th className="px-3 py-2 text-right">寄付差</th>
+                    <th className="px-3 py-2 text-right">5日</th>
+                    <th className="px-3 py-2 text-right">25日線比</th>
+                    <th className="px-3 py-2 text-right">CVaR5</th>
+                    <th className="px-3 py-2 text-left">9:20判定</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {morningPilotRows.length === 0 ? (
+                    <tr><td colSpan={10} className="px-4 py-6 text-center text-muted-foreground">候補なし。ノートレ優先。</td></tr>
+                  ) : morningPilotRows.map((row) => {
+                    const rt = realtimeFor(row.ticker);
+                    const openDiff = priceDiffFromOpen(row) ?? undefined;
+                    const check = row.entry_status === 'READY'
+                      ? '候補。VWAP上とセグメント維持を確認'
+                      : row.trade_bucket === '実弾候補'
+                        ? '待ち。寄り後の維持確認'
+                        : '過熱注意。押し目以外は待ち';
+                    return (
+                      <tr key={`pilot-${row.code}`} className="border-b border-border/20">
+                        <td className="px-3 py-2">
+                          <div className="font-medium">{row.name}</div>
+                          <div className="text-xs text-muted-foreground">{row.ticker}</div>
+                        </td>
+                        <td className="px-3 py-2">
+                          <div className="font-medium">{row.flow_group || row.sub_segment || '-'}</div>
+                          <div className="text-xs text-muted-foreground">{row.theme_layer || row.core_segment || '-'}</div>
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums font-semibold">{fmt(row.entry_priority, 1)}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{fmt(row.close, 1)}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{fmt(rt?.price ?? undefined, 1)}</td>
+                        <td className={`px-3 py-2 text-right tabular-nums ${clsPct(openDiff)}`}>{yenAbs(openDiff)}</td>
+                        <td className={`px-3 py-2 text-right tabular-nums ${clsPct(row.ret5)}`}>{pct(row.ret5)}</td>
+                        <td className={`px-3 py-2 text-right tabular-nums ${clsPct(row.vs25)}`}>{pct(row.vs25)}</td>
+                        <td className={`px-3 py-2 text-right tabular-nums ${clsPct(row.cvar05)}`}>{pct(row.cvar05)}</td>
+                        <td className="px-3 py-2 text-xs leading-5 text-muted-foreground"><div className="max-w-[260px]">{check}</div></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="rounded-lg border border-border/60 bg-background/40 p-3">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div>
+                  <div className="text-sm font-semibold">検証根拠</div>
+                  <div className="text-xs text-muted-foreground">{morningPilot?.source || 'semicon_intraday_long_short_grid.csv'}</div>
+                </div>
+                <span className={`rounded border px-2 py-0.5 text-xs ${
+                  morningPilot?.available ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200' : 'border-amber-400/40 bg-amber-400/10 text-amber-200'
+                }`}>
+                  {morningPilot?.available ? '5分足検証あり' : '検証未読込'}
+                </span>
+              </div>
+              <div className="space-y-2">
+                {(morningPilot?.evidence || []).slice(0, 4).map((row) => (
+                  <div key={`${row.variant}-${row.entry}-${row.exit}`} className="rounded border border-border/50 bg-muted/10 p-2">
+                    <div className="text-xs font-medium">{row.label}</div>
+                    <div className="mt-1 grid grid-cols-4 gap-2 text-xs">
+                      <div><div className="text-muted-foreground">N</div><div className="text-right tabular-nums">{row.n}</div></div>
+                      <div><div className="text-muted-foreground">PF</div><div className="text-right font-semibold tabular-nums text-emerald-300">{fmt(row.pf, 2)}</div></div>
+                      <div><div className="text-muted-foreground">損益</div><div className={`text-right tabular-nums ${clsPct(row.sum_pnl_100)}`}>{yen(row.sum_pnl_100)}</div></div>
+                      <div><div className="text-muted-foreground">DD</div><div className="text-right tabular-nums text-rose-300">{yen(row.max_dd_100)}</div></div>
+                    </div>
+                  </div>
+                ))}
+                {(!morningPilot?.evidence || morningPilot.evidence.length === 0) && (
+                  <div className="rounded border border-border/50 bg-muted/10 p-2 text-xs text-muted-foreground">
+                    {morningPilot?.reason || '午前検証サマリーなし'}
+                  </div>
+                )}
+              </div>
+              <div className="mt-3 rounded border border-border/50 bg-muted/10 px-2 py-1.5 text-xs leading-5 text-muted-foreground">
+                {morningPilot?.takeaway || '9:20以降に崩れていないものだけを小さく扱う。'}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mb-4 rounded-lg border border-border bg-card p-4">
+          <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="text-xs text-muted-foreground">資金流入マップ</div>
+              <h2 className="mt-1 text-lg font-semibold">3層で端緒を見る</h2>
+              <p className="mt-2 max-w-5xl text-sm leading-6 text-muted-foreground">
+                テーマ層で投資家が一塊で見る単位、フロー層で実際に一緒に買われる単位、行動層で乗る/待つ/触らないを分けます。売買代金は買いシグナルではなく観測レイヤーです。
+              </p>
+            </div>
+            <div className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground">
+              date: {flow?.date || data?.data_date || '-'}
+            </div>
+          </div>
+          {flow?.available ? (
+            <>
+              <div className="grid gap-3 md:grid-cols-4">
+                <div className="rounded-lg border border-border/60 bg-background/45 p-3">
+                  <div className="text-xs text-muted-foreground">市場全体</div>
+                  <div className="mt-1 text-lg font-semibold tabular-nums">{oku(flow.market?.turnover_bil)}億円</div>
+                  <div className="mt-1 text-xs text-muted-foreground">5日 {mult(flow.market?.turnover_vs5)} / 20日 {mult(flow.market?.turnover_vs20)} / 60日 {mult(flow.market?.turnover_vs60)}</div>
+                </div>
+                <div className="rounded-lg border border-border/60 bg-background/45 p-3">
+                  <div className="text-xs text-muted-foreground">AI/半導体周辺</div>
+                  <div className="mt-1 text-lg font-semibold tabular-nums">{oku(flow.universe?.turnover_bil)}億円</div>
+                  <div className="mt-1 text-xs text-muted-foreground">市場比 {fmt(flow.universe?.market_share, 1)}% / 5日 {mult(flow.universe?.turnover_vs5)} / 20日 {mult(flow.universe?.turnover_vs20)}</div>
+                </div>
+                <div className="rounded-lg border border-border/60 bg-background/45 p-3">
+                  <div className="text-xs text-muted-foreground">top1除外</div>
+                  <div className="mt-1 text-lg font-semibold tabular-nums">{oku(flow.universe?.turnover_ex_top1_bil)}億円</div>
+                  <div className="mt-1 text-xs text-muted-foreground">top1 {flow.universe?.top_name || '-'} / 占有 {fmt(flow.universe?.top_share, 1)}%</div>
+                </div>
+                <div className="rounded-lg border border-border/60 bg-background/45 p-3">
+                  <div className="text-xs text-muted-foreground">広がり</div>
+                  <div className={`mt-1 text-lg font-semibold tabular-nums ${clsPct(flow.universe?.avg_ret1)}`}>{pct(flow.universe?.avg_ret1)}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">上昇比率 {fmt(flow.universe?.up_ratio, 0)}% / 対象 {flow.universe?.n ?? '-'}</div>
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-4 xl:grid-cols-2">
+                <div className="overflow-x-auto rounded-lg border border-border/60">
+                  <table className="w-full min-w-[760px] text-sm">
+                    <thead>
+                      <tr className="border-b border-border/50 bg-muted/20 text-muted-foreground">
+                        <th className="px-3 py-2 text-left">テーマ層</th>
+                        <th className="px-3 py-2 text-right">売買代金</th>
+                        <th className="px-3 py-2 text-right">5日比</th>
+                        <th className="px-3 py-2 text-right">20日比</th>
+                        <th className="px-3 py-2 text-right">60日比</th>
+                        <th className="px-3 py-2 text-right">騰落</th>
+                        <th className="px-3 py-2 text-right">上昇</th>
+                        <th className="px-3 py-2 text-left">端緒</th>
+                        <th className="px-3 py-2 text-left">行動</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {flowThemeRows.map((row) => (
+                        <tr key={row.segment} className="border-b border-border/20">
+                          <td className="px-3 py-2">
+                            <div className="font-semibold">{row.segment}</div>
+                            <div className="text-xs text-muted-foreground">top {row.top_name || '-'} / {fmt(row.top_share, 0)}%</div>
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums">{oku(row.turnover_bil)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{mult(row.turnover_vs5)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{mult(row.turnover_vs20)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{mult(row.turnover_vs60)}</td>
+                          <td className={`px-3 py-2 text-right tabular-nums ${clsPct(row.avg_ret1)}`}>{pct(row.avg_ret1)}</td>
+                          <td className={`px-3 py-2 text-right tabular-nums ${clsPct((row.up_ratio || 0) - 50)}`}>{fmt(row.up_ratio, 0)}%</td>
+                          <td className="px-3 py-2 text-xs text-muted-foreground">{row.hint || '-'}</td>
+                          <td className="px-3 py-2 text-xs font-medium">{row.action_hint || '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="overflow-x-auto rounded-lg border border-border/60">
+                  <table className="w-full min-w-[760px] text-sm">
+                    <thead>
+                      <tr className="border-b border-border/50 bg-muted/20 text-muted-foreground">
+                        <th className="px-3 py-2 text-left">フロー層</th>
+                        <th className="px-3 py-2 text-right">売買代金</th>
+                        <th className="px-3 py-2 text-right">5日比</th>
+                        <th className="px-3 py-2 text-right">20日比</th>
+                        <th className="px-3 py-2 text-right">60日比</th>
+                        <th className="px-3 py-2 text-right">騰落</th>
+                        <th className="px-3 py-2 text-right">上昇</th>
+                        <th className="px-3 py-2 text-left">端緒</th>
+                        <th className="px-3 py-2 text-left">行動</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {flowGroupRows.map((row) => (
+                        <tr key={row.segment} className="border-b border-border/20">
+                          <td className="px-3 py-2">
+                            <div className="font-semibold">{row.segment}</div>
+                            <div className="text-xs text-muted-foreground">top {row.top_name || '-'} / {fmt(row.top_share, 0)}%</div>
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums">{oku(row.turnover_bil)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{mult(row.turnover_vs5)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{mult(row.turnover_vs20)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{mult(row.turnover_vs60)}</td>
+                          <td className={`px-3 py-2 text-right tabular-nums ${clsPct(row.avg_ret1)}`}>{pct(row.avg_ret1)}</td>
+                          <td className={`px-3 py-2 text-right tabular-nums ${clsPct((row.up_ratio || 0) - 50)}`}>{fmt(row.up_ratio, 0)}%</td>
+                          <td className="px-3 py-2 text-xs text-muted-foreground">{row.hint || '-'}</td>
+                          <td className="px-3 py-2 text-xs font-medium">{row.action_hint || '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="mt-4 overflow-x-auto rounded-lg border border-border/60">
+                <table className="w-full min-w-[980px] text-sm">
+                  <thead>
+                    <tr className="border-b border-border/50 bg-muted/20 text-muted-foreground">
+                      <th className="px-3 py-2 text-left">個別上位</th>
+                      <th className="px-3 py-2 text-left">3層分類</th>
+                      <th className="px-3 py-2 text-right">売買代金</th>
+                      <th className="px-3 py-2 text-right">5日比</th>
+                      <th className="px-3 py-2 text-right">20日比</th>
+                      <th className="px-3 py-2 text-right">60日比</th>
+                      <th className="px-3 py-2 text-right">1日</th>
+                      <th className="px-3 py-2 text-left">フロー内</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {flowIndividualRows.map((row) => (
+                      <tr key={row.code} className="border-b border-border/20">
+                        <td className="px-3 py-2">
+                          <div className="font-semibold">{row.name}</div>
+                          <div className="text-xs text-muted-foreground">{row.code}</div>
+                        </td>
+                        <td className="px-3 py-2">
+                          <div>{row.theme_layer || row.core_segment}</div>
+                          <div className="text-xs text-muted-foreground">{row.flow_group || row.sub_segment}</div>
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums">{oku(row.turnover_bil)}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{mult(row.turnover_vs5)}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{mult(row.turnover_vs20)}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{mult(row.turnover_vs60)}</td>
+                        <td className={`px-3 py-2 text-right tabular-nums ${clsPct(row.ret1)}`}>{pct(row.ret1)}</td>
+                        <td className="px-3 py-2 text-xs text-muted-foreground">{row.flow_fit || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          ) : (
+            <div className="rounded-lg border border-border/60 bg-background/45 p-3 text-sm text-muted-foreground">
+              資金流入データ未生成: {flow?.reason || 'no flow analysis'}
+            </div>
+          )}
         </section>
 
         <section className="mb-4 rounded-lg border border-border bg-card p-4">
