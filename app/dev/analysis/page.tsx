@@ -865,9 +865,9 @@ export default function AnalysisCustomPage() {
                     </div>
                     {/* Price range table */}
                     <div className="overflow-x-auto">
-                      <table className="w-full text-sm min-w-[900px]">
+                      <table className="w-full text-base min-w-[900px]">
                         <thead>
-                          <tr className="text-muted-foreground text-sm border-b border-border/30">
+                          <tr className="text-muted-foreground text-base border-b border-border/30">
                             <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">価格帯</th>
                             <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">件</th>
                             {timeSegments.map(seg => (
@@ -898,10 +898,10 @@ export default function AnalysisCustomPage() {
                                         {displayMode === 'amount' ? formatProfit(value) : formatPct(value)}
                                       </div>
                                       <div className="flex justify-end gap-2">
-                                        <span className={`text-xs ${winrateClass(winRate)}`}>
+                                        <span className={`text-sm ${winrateClass(winRate)}`}>
                                           {winRate !== null ? `${Math.round(winRate)}%` : '-'}
                                         </span>
-                                        <span className={`text-xs ${pfClass(pf)}`}>
+                                        <span className={`text-sm ${pfClass(pf)}`}>
                                           {formatPF(pf)}
                                         </span>
                                       </div>
@@ -951,9 +951,9 @@ export default function AnalysisCustomPage() {
                     </div>
                     {/* Price range table */}
                     <div className="overflow-x-auto">
-                      <table className="w-full text-sm min-w-[900px]">
+                      <table className="w-full text-base min-w-[900px]">
                         <thead>
-                          <tr className="text-muted-foreground text-sm border-b border-border/30">
+                          <tr className="text-muted-foreground text-base border-b border-border/30">
                             <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">価格帯</th>
                             <th className="text-right px-2 py-2.5 font-medium whitespace-nowrap">件</th>
                             {timeSegments.map(seg => (
@@ -984,10 +984,10 @@ export default function AnalysisCustomPage() {
                                         {displayMode === 'amount' ? formatProfit(value) : formatPct(value)}
                                       </div>
                                       <div className="flex justify-end gap-2">
-                                        <span className={`text-xs ${winrateClass(winRate)}`}>
+                                        <span className={`text-sm ${winrateClass(winRate)}`}>
                                           {winRate !== null ? `${Math.round(winRate)}%` : '-'}
                                         </span>
-                                        <span className={`text-xs ${pfClass(pf)}`}>
+                                        <span className={`text-sm ${pfClass(pf)}`}>
                                           {formatPF(pf)}
                                         </span>
                                       </div>
