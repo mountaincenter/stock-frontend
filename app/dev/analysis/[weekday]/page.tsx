@@ -72,6 +72,42 @@ interface SummaryResponse {
   weekdays: WeekdayData[];
   bucketInfo?: { available: boolean; buckets: string[]; thresholds: { short: number; long: number } };
 }
+interface RiskMetrics {
+  n: number;
+  total: number;
+  avg: number | null;
+  pf: number | null;
+  winRate: number | null;
+  q05: number | null;
+  cvar05: number | null;
+  worstTrade: number | null;
+  dailyMaxDD: number | null;
+  worstDay: number | null;
+  dailyPlusRate: number | null;
+}
+interface RiskSegment {
+  key: string;
+  label: string;
+  time: string;
+  amount: RiskMetrics;
+  pct: RiskMetrics;
+}
+interface RiskMatrixRow {
+  marginKey: string;
+  marginLabel: string;
+  probKey: string;
+  probLabel: string;
+  count: number;
+  bestSegment: { key: string; label: string; pf: number | null; total: number; dailyMaxDD: number | null; cvar05: number | null } | null;
+  segments: RiskSegment[];
+}
+interface RiskMatrixResponse {
+  weekdayName: string;
+  segmentMode: string;
+  dataRange: { start: string | null; end: string | null; tradingDays: number };
+  dataScope?: { scope: string; analysisStartDate: string; excludedLegacyRows: number };
+  rows: RiskMatrixRow[];
+}
 
 // ===== Constants =====
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
@@ -83,7 +119,7 @@ const WEEKDAY_SLUG_MAP: Record<string, number> = {
 };
 const PRICE_RANGE_LABELS = ['~1,000円', '1,000~3,000円', '3,000~5,000円', '5,000~10,000円', '10,000円~'];
 const MARGIN_TYPES = ['制度信用', 'いちにち信用'];
-const BUCKET_SECTIONS = ['全体', 'SHORT', 'DISC', 'LONG'] as const;
+const BUCKET_SECTIONS = ['全体', 'SHORT', 'SKIP'] as const;
 
 type DisplayMode = 'amount' | 'pct';
 type SegmentMode = '4seg' | '11seg';
@@ -233,8 +269,9 @@ export default function WeekdayAnalysisPage() {
 
   // 拡張パネルデータ
   const [panelsData, setPanelsData] = useState<Record<string, unknown> | null>(null);
-  const [futuresGapData, setFuturesGapData] = useState<{ rows: { label: string; SHORT: Record<string, unknown>; DISC: Record<string, unknown>; LONG: Record<string, unknown> }[] } | null>(null);
-  const [nikkeiChangeData, setNikkeiChangeData] = useState<{ rows: { label: string; SHORT: Record<string, unknown>; DISC: Record<string, unknown>; LONG: Record<string, unknown> }[] } | null>(null);
+  const [futuresGapData, setFuturesGapData] = useState<{ rows: { label: string; SHORT: Record<string, unknown>; SKIP: Record<string, unknown> }[] } | null>(null);
+  const [nikkeiChangeData, setNikkeiChangeData] = useState<{ rows: { label: string; SHORT: Record<string, unknown>; SKIP: Record<string, unknown> }[] } | null>(null);
+  const [riskMatrixData, setRiskMatrixData] = useState<RiskMatrixResponse | null>(null);
 
   // アコーディオン state
   const [openSections, setOpenSections] = useState<Set<string>>(new Set(['全体']));
@@ -290,10 +327,12 @@ export default function WeekdayAnalysisPage() {
       fetch(`${API_BASE}/dev/analysis-custom/weekday-panels?weekday=${dayIndex}&direction=${dir}`).then(r => r.ok ? r.json() : null),
       fetch(`${API_BASE}/dev/analysis-custom/futures-gap-pf?weekday=${dayIndex}&direction=${dir}`).then(r => r.ok ? r.json() : null),
       fetch(`${API_BASE}/dev/analysis-custom/nikkei-change-pf?weekday=${dayIndex}&direction=${dir}`).then(r => r.ok ? r.json() : null),
-    ]).then(([panels, futures, nikkei]) => {
+      fetch(`${API_BASE}/dev/analysis-custom/weekday-risk-matrix?weekday=${dayIndex}&direction=${dir}&segment_mode=4seg`).then(r => r.ok ? r.json() : null),
+    ]).then(([panels, futures, nikkei, riskMatrix]) => {
       if (panels) setPanelsData(panels);
       if (futures) setFuturesGapData(futures);
       if (nikkei) setNikkeiChangeData(nikkei);
+      if (riskMatrix) setRiskMatrixData(riskMatrix);
     }).catch(() => {});
   }, [dayIndex]);
 
@@ -322,7 +361,7 @@ export default function WeekdayAnalysisPage() {
   // Bucket別に銘柄を分類
   const stocksByBucket = useMemo(() => {
     const result: Record<string, DetailStock[]> = { '全体': filteredStocks };
-    for (const b of ['SHORT', 'DISC', 'LONG']) {
+    for (const b of ['SHORT', 'SKIP']) {
       result[b] = filteredStocks.filter(s => s.bucket === b);
     }
     return result;
@@ -807,6 +846,62 @@ export default function WeekdayAnalysisPage() {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* ===== 実務リスク行列 ===== */}
+      {riskMatrixData && (
+        <div className="mb-6">
+          <div className="flex items-end justify-between gap-3 border-b border-border/30 pb-2 mb-4">
+            <h2 className="text-lg font-bold text-foreground">
+              実務リスク行列 — {WEEKDAY_SHORT[selectedDay]}曜日
+            </h2>
+            <div className="text-xs text-muted-foreground text-right">
+              {riskMatrixData.dataScope?.analysisStartDate}以降 / {riskMatrixData.dataRange.tradingDays}日 / 4seg
+            </div>
+          </div>
+          <div className="overflow-x-auto rounded-xl border border-border/40 bg-card/70">
+            <table className="w-full min-w-[980px] text-sm">
+              <thead className="bg-muted/30 text-xs text-muted-foreground">
+                <tr>
+                  <th className="text-left px-3 py-2 font-medium">区分</th>
+                  <th className="text-left px-3 py-2 font-medium">prob</th>
+                  <th className="text-right px-3 py-2 font-medium">件数</th>
+                  <th className="text-left px-3 py-2 font-medium">推奨時間</th>
+                  <th className="text-right px-3 py-2 font-medium">PF</th>
+                  <th className="text-right px-3 py-2 font-medium">損益100株</th>
+                  <th className="text-right px-3 py-2 font-medium">日次DD</th>
+                  <th className="text-right px-3 py-2 font-medium">CVaR5</th>
+                  <th className="text-right px-3 py-2 font-medium">日次勝率</th>
+                </tr>
+              </thead>
+              <tbody>
+                {riskMatrixData.rows
+                  .filter(r => ['all', 'seido', 'ichinichi_ex0'].includes(r.marginKey) && ['all', 'short', 'mix'].includes(r.probKey))
+                  .map(row => {
+                    const best = row.bestSegment;
+                    const bestSeg = best ? row.segments.find(s => s.key === best.key) : null;
+                    return (
+                      <tr key={`${row.marginKey}-${row.probKey}`} className="border-t border-border/20">
+                        <td className="px-3 py-2 text-foreground font-medium">{row.marginLabel}</td>
+                        <td className={`px-3 py-2 font-medium ${row.probLabel === 'SHORT' ? 'text-rose-400' : row.probLabel === 'MIX' ? 'text-amber-400' : 'text-muted-foreground'}`}>
+                          {row.probLabel}
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums">{row.count}</td>
+                        <td className="px-3 py-2 text-foreground">{best?.label ?? '-'}</td>
+                        <td className="px-3 py-2 text-right tabular-nums text-foreground">{best?.pf?.toFixed(2) ?? '-'}</td>
+                        <td className={`px-3 py-2 text-right tabular-nums ${(best?.total ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {best ? formatProfit(Math.round(best.total)) : '-'}
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums text-rose-300">{best?.dailyMaxDD !== null && best?.dailyMaxDD !== undefined ? formatProfit(Math.round(best.dailyMaxDD)) : '-'}</td>
+                        <td className="px-3 py-2 text-right tabular-nums text-rose-300">{best?.cvar05 !== null && best?.cvar05 !== undefined ? formatProfit(Math.round(best.cvar05)) : '-'}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{bestSeg?.amount.dailyPlusRate !== null && bestSeg?.amount.dailyPlusRate !== undefined ? `${bestSeg.amount.dailyPlusRate.toFixed(1)}%` : '-'}</td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
@@ -1772,13 +1867,12 @@ export default function WeekdayAnalysisPage() {
                       <thead><tr className="text-muted-foreground border-b border-border/30">
                         <th className="text-left px-2 py-1.5">Gap帯</th>
                         <th className="text-right px-2 py-1.5">SHORT</th>
-                        <th className="text-right px-2 py-1.5">DISC</th>
-                        <th className="text-right px-2 py-1.5">LONG</th>
+                        <th className="text-right px-2 py-1.5">SKIP</th>
                       </tr></thead>
                       <tbody>{futuresGapData.rows.map(r => (
                         <tr key={r.label} className="border-b border-border/20">
                           <td className="px-2 py-1.5 text-foreground">{r.label}</td>
-                          {(['SHORT','DISC','LONG'] as const).map(b => {
+                          {(['SHORT','SKIP'] as const).map(b => {
                             const cell = r[b] as { pf: number|null; n: number; avg: number|null; winRate: number|null };
                             return <td key={b} className={`text-right px-2 py-1.5 tabular-nums ${cell.pf !== null ? (cell.pf >= 1.5 ? 'text-emerald-400 font-bold' : cell.pf >= 1 ? 'text-foreground' : 'text-rose-400') : 'text-muted-foreground'}`}>
                               {cell.pf !== null ? `${cell.pf.toFixed(2)} (${cell.n})` : cell.n > 0 ? `- (${cell.n})` : '-'}
@@ -1796,13 +1890,12 @@ export default function WeekdayAnalysisPage() {
                       <thead><tr className="text-muted-foreground border-b border-border/30">
                         <th className="text-left px-2 py-1.5">N225帯</th>
                         <th className="text-right px-2 py-1.5">SHORT</th>
-                        <th className="text-right px-2 py-1.5">DISC</th>
-                        <th className="text-right px-2 py-1.5">LONG</th>
+                        <th className="text-right px-2 py-1.5">SKIP</th>
                       </tr></thead>
                       <tbody>{nikkeiChangeData.rows.map(r => (
                         <tr key={r.label} className="border-b border-border/20">
                           <td className="px-2 py-1.5 text-foreground">{r.label}</td>
-                          {(['SHORT','DISC','LONG'] as const).map(b => {
+                          {(['SHORT','SKIP'] as const).map(b => {
                             const cell = r[b] as { pf: number|null; n: number; avg: number|null; winRate: number|null };
                             return <td key={b} className={`text-right px-2 py-1.5 tabular-nums ${cell.pf !== null ? (cell.pf >= 1.5 ? 'text-emerald-400 font-bold' : cell.pf >= 1 ? 'text-foreground' : 'text-rose-400') : 'text-muted-foreground'}`}>
                               {cell.pf !== null ? `${cell.pf.toFixed(2)} (${cell.n})` : cell.n > 0 ? `- (${cell.n})` : '-'}
@@ -1833,11 +1926,11 @@ export default function WeekdayAnalysisPage() {
                         <th className="text-right px-2 py-1.5">売残中央</th>
                         <th className="text-right px-2 py-1.5">買残中央</th>
                       </tr></thead>
-                      <tbody>{(['SHORT','DISC','LONG'] as const).map(b => {
+                      <tbody>{(['SHORT','SKIP'] as const).map(b => {
                         const d = (panelsData.liquidity as Record<string, { n: number; volume_median: number|null; shares_median: number|null; sell_balance_median: number|null; buy_balance_median: number|null }>)[b];
                         if (!d || d.n === 0) return null;
                         return <tr key={b} className="border-b border-border/20">
-                          <td className={`px-2 py-1.5 font-medium ${b === 'SHORT' ? 'text-rose-400' : b === 'LONG' ? 'text-emerald-400' : 'text-amber-400'}`}>{b}</td>
+                          <td className={`px-2 py-1.5 font-medium ${b === 'SHORT' ? 'text-rose-400' : 'text-muted-foreground'}`}>{b}</td>
                           <td className="text-right px-2 py-1.5 tabular-nums text-foreground">{d.n}</td>
                           <td className="text-right px-2 py-1.5 tabular-nums text-foreground">{d.volume_median?.toLocaleString() ?? '-'}</td>
                           <td className="text-right px-2 py-1.5 tabular-nums text-foreground">{d.shares_median?.toLocaleString() ?? '-'}</td>
