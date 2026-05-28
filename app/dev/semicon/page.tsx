@@ -8,6 +8,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 type Decision = 'BUY_CANDIDATE' | 'WATCH' | 'AVOID';
 type CandidateFilter = 'ALL' | '実弾候補' | '指標銘柄' | '過熱注意' | '見送り';
+type SemiconView = 'OPERATE' | 'FLOW' | 'DETAIL';
 
 interface SemiconSignal {
   code: string;
@@ -564,11 +565,18 @@ const avoidCheckGroups = [
   },
 ];
 
+const viewTabs: Array<{ key: SemiconView; label: string; note: string }> = [
+  { key: 'OPERATE', label: '運用', note: '朝の判断と実弾候補' },
+  { key: 'FLOW', label: '資金フロー', note: 'どこに資金が来ているか' },
+  { key: 'DETAIL', label: '詳細', note: '分類・検証・全銘柄' },
+];
+
 export default function SemiconPage() {
   const [data, setData] = useState<SemiconResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<CandidateFilter>('ALL');
+  const [view, setView] = useState<SemiconView>('OPERATE');
   const [realtimeData, setRealtimeData] = useState<Record<string, RealtimeQuote>>({});
   const [realtimeLoading, setRealtimeLoading] = useState(false);
   const [realtimeTimestamp, setRealtimeTimestamp] = useState<string | null>(null);
@@ -734,7 +742,27 @@ export default function SemiconPage() {
           <StatCard label="見送り" value={bucketCount('見送り')} sub={`対象 ${data?.counts.total ?? 0}`} tone="bad" />
         </section>
 
-        <section className="mb-4 rounded-lg border border-emerald-500/25 bg-emerald-500/5 p-4">
+        <section className="mb-4 rounded-lg border border-border bg-card p-2">
+          <div className="grid gap-2 md:grid-cols-3">
+            {viewTabs.map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setView(tab.key)}
+                className={`rounded-md border px-3 py-2 text-left transition-colors ${
+                  view === tab.key
+                    ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-100'
+                    : 'border-border/50 bg-background/40 text-muted-foreground hover:bg-muted/30'
+                }`}
+              >
+                <div className="text-sm font-semibold">{tab.label}</div>
+                <div className="mt-0.5 text-xs">{tab.note}</div>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className={`${view === 'OPERATE' ? '' : 'hidden '}mb-4 rounded-lg border border-emerald-500/25 bg-emerald-500/5 p-4`}>
           <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
             <div>
               <div className="text-xs text-emerald-200/80">実弾パイロット</div>
@@ -864,7 +892,7 @@ export default function SemiconPage() {
           </div>
         </section>
 
-        <section className="mb-4 rounded-lg border border-border bg-card p-4">
+        <section className={`${view === 'FLOW' ? '' : 'hidden '}mb-4 rounded-lg border border-border bg-card p-4`}>
           <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
             <div>
               <div className="text-xs text-muted-foreground">資金流入マップ</div>
@@ -1020,7 +1048,7 @@ export default function SemiconPage() {
           )}
         </section>
 
-        <section className="mb-4 rounded-lg border border-border bg-card p-4">
+        <section className={`${view === 'FLOW' ? '' : 'hidden '}mb-4 rounded-lg border border-border bg-card p-4`}>
           <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
             <div>
               <div className="text-xs text-muted-foreground">外部地合い</div>
@@ -1114,7 +1142,7 @@ export default function SemiconPage() {
           </div>
         </section>
 
-        <section className="mb-4 rounded-lg border border-emerald-500/25 bg-card p-4">
+        <section className={`${view === 'OPERATE' ? '' : 'hidden '}mb-4 rounded-lg border border-emerald-500/25 bg-card p-4`}>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <div className="text-xs text-muted-foreground">今日の実務判断</div>
@@ -1165,7 +1193,7 @@ export default function SemiconPage() {
           </div>
         </section>
 
-        {holdShorts.length > 0 && (
+        {view === 'OPERATE' && holdShorts.length > 0 && (
           <section className="mb-4 rounded-lg border border-rose-500/30 bg-rose-500/10 p-4">
             <div className="mb-3">
               <div className="text-xs text-rose-200/80">既存ショート警戒</div>
@@ -1219,7 +1247,7 @@ export default function SemiconPage() {
           </section>
         )}
 
-        <details className="mb-4 rounded-lg border border-border/60 bg-card/60 px-4 py-3 text-sm">
+        <details className={`${view === 'DETAIL' ? '' : 'hidden '}mb-4 rounded-lg border border-border/60 bg-card/60 px-4 py-3 text-sm`}>
           <summary className="cursor-pointer select-none text-xs font-medium text-muted-foreground hover:text-foreground">
             開発情報
           </summary>
@@ -1234,7 +1262,7 @@ export default function SemiconPage() {
           </div>
         </details>
 
-        <section className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
+        <section className={`${view === 'DETAIL' ? '' : 'hidden '}mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4`}>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="max-w-4xl">
               <div className="text-xs text-amber-200/80">今日の実務結論</div>
@@ -1271,7 +1299,7 @@ export default function SemiconPage() {
           )}
         </section>
 
-        <section className="mb-4 rounded-lg border border-sky-500/30 bg-sky-500/10 p-4">
+        <section className={`${view === 'DETAIL' ? '' : 'hidden '}mb-4 rounded-lg border border-sky-500/30 bg-sky-500/10 p-4`}>
           <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
             <div>
               <div className="text-xs text-sky-200/80">月曜朝レジーム判定</div>
@@ -1318,7 +1346,7 @@ export default function SemiconPage() {
           </div>
         </section>
 
-        <section className="mb-4 rounded-lg border border-border bg-card p-4">
+        <section className={`${view === 'DETAIL' ? '' : 'hidden '}mb-4 rounded-lg border border-border bg-card p-4`}>
           <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
             <div>
               <div className="text-xs text-muted-foreground">分類の根拠</div>
@@ -1363,7 +1391,7 @@ export default function SemiconPage() {
           </div>
         </section>
 
-        <section className="mb-4 rounded-lg border border-border bg-card p-4">
+        <section className={`${view === 'DETAIL' ? '' : 'hidden '}mb-4 rounded-lg border border-border bg-card p-4`}>
           <div className="mb-3">
             <div className="text-xs text-muted-foreground">隣接国策テーマ・監視棚</div>
             <h2 className="mt-1 text-lg font-semibold">買う棚ではなく、資金ローテーションを早めに察知する棚</h2>
@@ -1395,7 +1423,7 @@ export default function SemiconPage() {
           </div>
         </section>
 
-        <section className="mb-4 rounded-lg border border-border bg-card p-4">
+        <section className={`${view === 'DETAIL' ? '' : 'hidden '}mb-4 rounded-lg border border-border bg-card p-4`}>
           <div className="mb-3">
             <h2 className="text-sm font-semibold">ユニバース整理</h2>
             <p className="mt-1 text-xs text-muted-foreground">
@@ -1436,7 +1464,7 @@ export default function SemiconPage() {
           </div>
         </section>
 
-        <section className="mb-4 rounded-lg border border-border bg-card p-4">
+        <section className={`${view === 'DETAIL' ? '' : 'hidden '}mb-4 rounded-lg border border-border bg-card p-4`}>
           <div className="mb-3">
             <h2 className="text-sm font-semibold">実弾候補フィルタ</h2>
             <p className="mt-1 text-xs text-muted-foreground">
@@ -1510,7 +1538,7 @@ export default function SemiconPage() {
           </div>
         </section>
 
-        <section className="mb-4 rounded-lg border border-border bg-card p-4">
+        <section className={`${view === 'OPERATE' ? '' : 'hidden '}mb-4 rounded-lg border border-border bg-card p-4`}>
           <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="text-sm font-semibold">エントリー条件</h2>
@@ -1575,7 +1603,7 @@ export default function SemiconPage() {
           </div>
         </section>
 
-        <section className="mb-4 rounded-lg border border-rose-500/25 bg-rose-500/10 p-4">
+        <section className={`${view === 'OPERATE' ? '' : 'hidden '}mb-4 rounded-lg border border-rose-500/25 bg-rose-500/10 p-4`}>
           <div className="mb-3">
             <div className="text-xs text-rose-200/80">見送り条件</div>
             <h2 className="mt-1 text-lg font-semibold text-rose-100">高値掴みと落ちるナイフを避ける</h2>
@@ -1602,7 +1630,7 @@ export default function SemiconPage() {
           </div>
         </section>
 
-        <section className="mb-4 rounded-lg border border-border bg-card p-4">
+        <section className={`${view === 'FLOW' ? '' : 'hidden '}mb-4 rounded-lg border border-border bg-card p-4`}>
           <div className="mb-3">
             <h2 className="text-sm font-semibold">セグメント強弱</h2>
             <p className="mt-1 text-xs text-muted-foreground">
@@ -1644,7 +1672,7 @@ export default function SemiconPage() {
           </div>
         </section>
 
-        <section className="mb-4 rounded-lg border border-border bg-card p-4">
+        <section className={`${view === 'DETAIL' ? '' : 'hidden '}mb-4 rounded-lg border border-border bg-card p-4`}>
           <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
             <div>
               <h2 className="text-sm font-semibold">検証: 市場モメンタム順張り</h2>
@@ -1697,7 +1725,7 @@ export default function SemiconPage() {
           </div>
         </section>
 
-        <section className="mb-4 rounded-lg border border-border bg-card p-4">
+        <section className={`${view === 'OPERATE' ? '' : 'hidden '}mb-4 rounded-lg border border-border bg-card p-4`}>
           <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
             <div>
               <h2 className="text-sm font-semibold">優先監視</h2>
@@ -1740,7 +1768,7 @@ export default function SemiconPage() {
           </div>
         </section>
 
-        <section className="mb-4 rounded-lg border border-border bg-card p-4">
+        <section className={`${view === 'DETAIL' ? '' : 'hidden '}mb-4 rounded-lg border border-border bg-card p-4`}>
           <h2 className="mb-3 text-sm font-semibold">米市場</h2>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1280px] text-sm">
@@ -1781,7 +1809,7 @@ export default function SemiconPage() {
           </div>
         </section>
 
-        <section className="rounded-lg border border-border bg-card">
+        <section className={`${view === 'DETAIL' ? '' : 'hidden '}rounded-lg border border-border bg-card`}>
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 px-4 py-3">
             <h2 className="text-sm font-semibold">候補銘柄</h2>
             <div className="flex gap-1">
