@@ -127,6 +127,7 @@ type DisplayMode = 'amount' | 'pct';
 type SegmentMode = '4seg' | '11seg';
 type FilterType = 'all' | 'ex0';
 type ExecutionDecision = 'GO' | 'SMALL' | 'SKIP';
+type OperationClass = '大引け保有向き' | '早期利確向き' | '短時間限定' | '見送り';
 
 // ===== Helpers =====
 function percentile(arr: number[], p: number): number {
@@ -193,6 +194,26 @@ const decisionClass = (decision: ExecutionDecision) => ({
   SMALL: 'bg-amber-500/15 text-amber-300 border-amber-500/40',
   SKIP: 'bg-rose-500/15 text-rose-300 border-rose-500/40',
 }[decision]);
+
+const operationClassStyle = (operationClass: OperationClass) => ({
+  '大引け保有向き': 'text-emerald-300',
+  '早期利確向き': 'text-cyan-300',
+  '短時間限定': 'text-amber-300',
+  '見送り': 'text-muted-foreground',
+}[operationClass]);
+
+const getOperationClass = (
+  best: RiskMatrixRow['bestSegment'],
+  close: RiskSegment | null,
+): OperationClass => {
+  const bestPf = best?.pf ?? null;
+  const closePf = close?.amount.pf ?? null;
+  if (!best || bestPf === null) return '見送り';
+  if (best.key === 'seg_1530' && bestPf >= 1.2) return '大引け保有向き';
+  if (best.key !== 'seg_1530' && bestPf >= 1.3 && closePf !== null && closePf < 1.0) return '短時間限定';
+  if (best.key !== 'seg_1530' && closePf !== null && closePf >= 1.0 && bestPf - closePf >= 0.3) return '早期利確向き';
+  return '見送り';
+};
 
 // filteredStocksからサマリーテーブル用の集計を行う
 function aggregateStocks(
@@ -565,8 +586,14 @@ export default function WeekdayAnalysisPage() {
       .map(row => {
         const best = row.bestSegment;
         const bestSeg = best ? row.segments.find(s => s.key === best.key) : null;
+        const closeSeg = row.segments.find(s => s.key === 'seg_1530') ?? null;
         const decision = getExecutionDecision(best);
-        return { row, best, bestSeg, decision };
+        const operationClass = getOperationClass(best, closeSeg);
+        const pfDelta = best?.pf !== null && best?.pf !== undefined && closeSeg?.amount.pf !== null && closeSeg?.amount.pf !== undefined
+          ? best.pf - closeSeg.amount.pf
+          : null;
+        const totalDelta = best && closeSeg ? best.total - closeSeg.amount.total : null;
+        return { row, best, bestSeg, closeSeg, decision, operationClass, pfDelta, totalDelta };
       });
   }, [riskMatrixData]);
 
@@ -855,7 +882,7 @@ export default function WeekdayAnalysisPage() {
         </div>
       </header>
 
-      {/* ===== 本日の実行ルール ===== */}
+      {/* ===== 曜日別出口ルール ===== */}
       {topExecutionRule && (
         <section className="mb-6 rounded-xl border border-border/50 bg-card/80 p-4">
           <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -864,7 +891,7 @@ export default function WeekdayAnalysisPage() {
                 {riskMatrixData?.dataScope?.analysisStartDate}以降 / {riskMatrixData?.dataRange.tradingDays}日 / 4seg
               </div>
               <h2 className="text-lg font-bold text-foreground">
-                本日の実行ルール — {WEEKDAY_SHORT[selectedDay]}曜日
+                曜日別出口ルール — {WEEKDAY_SHORT[selectedDay]}曜日
               </h2>
             </div>
             <span className={`px-3 py-1 rounded-md border text-sm font-bold ${decisionClass(topExecutionRule.decision)}`}>
@@ -888,11 +915,24 @@ export default function WeekdayAnalysisPage() {
               <div className="text-base font-semibold text-foreground">{topExecutionRule.best?.label ?? '-'}</div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground">PF</div>
-              <div className="text-base font-semibold tabular-nums text-foreground">{topExecutionRule.best?.pf?.toFixed(2) ?? '-'}</div>
+              <div className="text-xs text-muted-foreground">運用分類</div>
+              <div className={`text-base font-semibold ${operationClassStyle(topExecutionRule.operationClass)}`}>
+                {topExecutionRule.operationClass}
+              </div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground">損益100株</div>
+              <div className="text-xs text-muted-foreground">最適PF / 大引けPF</div>
+              <div className="text-base font-semibold tabular-nums text-foreground">{topExecutionRule.best?.pf?.toFixed(2) ?? '-'}</div>
+              <div className="text-xs tabular-nums text-muted-foreground">{topExecutionRule.closeSeg?.amount.pf?.toFixed(2) ?? '-'}</div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">PF差</div>
+              <div className={`text-base font-semibold tabular-nums ${(topExecutionRule.pfDelta ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {topExecutionRule.pfDelta !== null ? formatPctLabel(topExecutionRule.pfDelta).replace('%', '') : '-'}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground">最適損益100株</div>
               <div className={`text-base font-semibold tabular-nums ${(topExecutionRule.best?.total ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                 {topExecutionRule.best ? formatProfit(Math.round(topExecutionRule.best.total)) : '-'}
               </div>
@@ -915,6 +955,57 @@ export default function WeekdayAnalysisPage() {
                 {topExecutionRule.row.count} / {topExecutionRule.bestSeg?.amount.dailyPlusRate !== null && topExecutionRule.bestSeg?.amount.dailyPlusRate !== undefined ? `${topExecutionRule.bestSeg.amount.dailyPlusRate.toFixed(1)}%` : '-'}
               </div>
             </div>
+          </div>
+
+          <div className="mt-5 overflow-x-auto rounded-lg border border-border/30">
+            <table className="w-full min-w-[1100px] text-sm">
+              <thead className="bg-muted/30 text-xs text-muted-foreground">
+                <tr>
+                  <th className="text-left px-3 py-2 font-medium">判定</th>
+                  <th className="text-left px-3 py-2 font-medium">運用分類</th>
+                  <th className="text-left px-3 py-2 font-medium">信用区分</th>
+                  <th className="text-left px-3 py-2 font-medium">bucket</th>
+                  <th className="text-left px-3 py-2 font-medium">推奨出口</th>
+                  <th className="text-right px-3 py-2 font-medium">最適PF</th>
+                  <th className="text-right px-3 py-2 font-medium">大引けPF</th>
+                  <th className="text-right px-3 py-2 font-medium">PF差</th>
+                  <th className="text-right px-3 py-2 font-medium">最適損益</th>
+                  <th className="text-right px-3 py-2 font-medium">大引け損益</th>
+                  <th className="text-right px-3 py-2 font-medium">損益差</th>
+                  <th className="text-right px-3 py-2 font-medium">DD</th>
+                  <th className="text-right px-3 py-2 font-medium">CVaR5</th>
+                </tr>
+              </thead>
+              <tbody>
+                {executionRows.map(({ row, best, closeSeg, decision, operationClass, pfDelta, totalDelta }) => (
+                  <tr key={`exit-${row.marginKey}-${row.probKey}`} className="border-t border-border/20">
+                    <td className="px-3 py-2">
+                      <span className={`px-2 py-0.5 rounded border text-xs font-bold ${decisionClass(decision)}`}>{decision}</span>
+                    </td>
+                    <td className={`px-3 py-2 font-medium ${operationClassStyle(operationClass)}`}>{operationClass}</td>
+                    <td className="px-3 py-2 text-foreground">{row.marginLabel}</td>
+                    <td className={`px-3 py-2 font-medium ${row.probLabel === 'SHORT' ? 'text-rose-400' : row.probLabel === 'MIX' ? 'text-amber-400' : 'text-blue-400'}`}>{row.probLabel}</td>
+                    <td className="px-3 py-2 text-foreground">{best?.label ?? '-'}</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-foreground">{best?.pf?.toFixed(2) ?? '-'}</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{closeSeg?.amount.pf?.toFixed(2) ?? '-'}</td>
+                    <td className={`px-3 py-2 text-right tabular-nums ${(pfDelta ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {pfDelta !== null ? formatPctLabel(pfDelta).replace('%', '') : '-'}
+                    </td>
+                    <td className={`px-3 py-2 text-right tabular-nums ${(best?.total ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {best ? formatProfit(Math.round(best.total)) : '-'}
+                    </td>
+                    <td className={`px-3 py-2 text-right tabular-nums ${(closeSeg?.amount.total ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {closeSeg ? formatProfit(Math.round(closeSeg.amount.total)) : '-'}
+                    </td>
+                    <td className={`px-3 py-2 text-right tabular-nums ${(totalDelta ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {totalDelta !== null ? formatProfit(Math.round(totalDelta)) : '-'}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums text-rose-300">{best?.dailyMaxDD !== null && best?.dailyMaxDD !== undefined ? formatProfit(Math.round(best.dailyMaxDD)) : '-'}</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-rose-300">{best?.cvar05 !== null && best?.cvar05 !== undefined ? formatProfit(Math.round(best.cvar05)) : '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </section>
       )}
