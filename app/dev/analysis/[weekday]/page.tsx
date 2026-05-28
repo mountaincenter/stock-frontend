@@ -314,8 +314,8 @@ export default function WeekdayAnalysisPage() {
   const [displayMode, setDisplayMode] = useState<DisplayMode>('amount');
   const [segmentMode] = useState<SegmentMode>('11seg');
   const [summaryData, setSummaryData] = useState<SummaryResponse | null>(null);
-  const [ichFilter, setIchFilter] = useState<FilterType>('all');
-  const [ichChartFilter, setIchChartFilter] = useState<FilterType>('all');
+  const [ichFilter, setIchFilter] = useState<FilterType>('ex0');
+  const [ichChartFilter, setIchChartFilter] = useState<FilterType>('ex0');
 
   // 拡張パネルデータ
   const [panelsData, setPanelsData] = useState<Record<string, unknown> | null>(null);
@@ -726,7 +726,7 @@ export default function WeekdayAnalysisPage() {
             <span className="text-xs text-muted-foreground">制度{agg.seido.count}</span>
           )}
           {agg.ichinichiAll.count > 0 && (
-            <span className="text-xs text-muted-foreground">いちにち{agg.ichinichiAll.count}</span>
+            <span className="text-xs text-muted-foreground">いちにち除0{agg.ichinichiEx0.count}/{agg.ichinichiAll.count}</span>
           )}
         </button>
 
@@ -755,6 +755,9 @@ export default function WeekdayAnalysisPage() {
                   <div className="flex items-center gap-2 mb-3">
                     <span className="font-semibold text-lg text-foreground">いちにち信用</span>
                     <span className="text-muted-foreground text-base">{ichData.count}件</span>
+                    {ichFilter === 'ex0' && agg.ichinichiEx0.count !== agg.ichinichiAll.count && (
+                      <span className="text-xs text-muted-foreground">全数{agg.ichinichiAll.count}</span>
+                    )}
                     <div className="flex gap-1 ml-auto">
                       <button
                         onClick={() => setIchFilter('all')}
@@ -996,59 +999,6 @@ export default function WeekdayAnalysisPage() {
                 </div>
               );
             })}
-          </div>
-        </div>
-      )}
-
-      {/* ===== 実務リスク行列 ===== */}
-      {riskMatrixData && (
-        <div className="mb-6">
-          <div className="flex items-end justify-between gap-3 border-b border-border/30 pb-2 mb-4">
-            <h2 className="text-lg font-bold text-foreground">
-              実務リスク行列 — {WEEKDAY_SHORT[selectedDay]}曜日
-            </h2>
-            <div className="text-xs text-muted-foreground text-right">
-              {riskMatrixData.dataScope?.analysisStartDate}以降 / {riskMatrixData.dataRange.tradingDays}日 / 4seg
-            </div>
-          </div>
-          <div className="overflow-x-auto rounded-xl border border-border/40 bg-card/70">
-            <table className="w-full min-w-[980px] text-sm">
-              <thead className="bg-muted/30 text-xs text-muted-foreground">
-                <tr>
-                  <th className="text-left px-3 py-2 font-medium">区分</th>
-                  <th className="text-left px-3 py-2 font-medium">prob</th>
-                  <th className="text-right px-3 py-2 font-medium">件数</th>
-                  <th className="text-left px-3 py-2 font-medium">推奨時間</th>
-                  <th className="text-right px-3 py-2 font-medium">PF</th>
-                  <th className="text-right px-3 py-2 font-medium">損益100株</th>
-                  <th className="text-right px-3 py-2 font-medium">日次DD</th>
-                  <th className="text-right px-3 py-2 font-medium">CVaR5</th>
-                  <th className="text-right px-3 py-2 font-medium">日次勝率</th>
-                </tr>
-              </thead>
-              <tbody>
-                {executionRows
-                  .map(({ row, best, bestSeg }) => {
-                    return (
-                      <tr key={`${row.marginKey}-${row.probKey}`} className="border-t border-border/20">
-                        <td className="px-3 py-2 text-foreground font-medium">{row.marginLabel}</td>
-                        <td className={`px-3 py-2 font-medium ${row.probLabel === 'SHORT' ? 'text-rose-400' : row.probLabel === 'MIX' ? 'text-amber-400' : row.probLabel === 'SKIP' ? 'text-blue-400' : 'text-muted-foreground'}`}>
-                          {row.probLabel}
-                        </td>
-                        <td className="px-3 py-2 text-right tabular-nums">{row.count}</td>
-                        <td className="px-3 py-2 text-foreground">{formatExitLabel(bestSeg, best?.label)}</td>
-                        <td className="px-3 py-2 text-right tabular-nums text-foreground">{best?.pf?.toFixed(2) ?? '-'}</td>
-                        <td className={`px-3 py-2 text-right tabular-nums ${(best?.total ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                          {best ? formatProfit(Math.round(best.total)) : '-'}
-                        </td>
-                        <td className="px-3 py-2 text-right tabular-nums text-rose-300">{best?.dailyMaxDD !== null && best?.dailyMaxDD !== undefined ? formatProfit(Math.round(best.dailyMaxDD)) : '-'}</td>
-                        <td className="px-3 py-2 text-right tabular-nums text-rose-300">{best?.cvar05 !== null && best?.cvar05 !== undefined ? formatProfit(Math.round(best.cvar05)) : '-'}</td>
-                        <td className="px-3 py-2 text-right tabular-nums">{bestSeg?.amount.dailyPlusRate !== null && bestSeg?.amount.dailyPlusRate !== undefined ? `${bestSeg.amount.dailyPlusRate.toFixed(1)}%` : '-'}</td>
-                      </tr>
-                    );
-                  })}
-              </tbody>
-            </table>
           </div>
         </div>
       )}
