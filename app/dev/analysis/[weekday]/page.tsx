@@ -155,6 +155,9 @@ const formatPctLabel = (val: number) => {
   return `${sign}${val.toFixed(2)}%`;
 };
 
+const formatExitLabel = (segment: RiskSegment | null | undefined, fallback?: string | null) =>
+  segment ? `${segment.time} ${segment.label}` : (fallback ?? '-');
+
 const getSegmentClasses = (
   segments: Record<string, SegmentStats | SegmentStatsPct>,
   timeSegments: TimeSegment[],
@@ -923,7 +926,7 @@ export default function WeekdayAnalysisPage() {
                 </tr>
               </thead>
               <tbody>
-                {executionRows.map(({ row, best, closeSeg, decision, operationClass, pfDelta, totalDelta }) => (
+                {executionRows.map(({ row, best, bestSeg, closeSeg, decision, operationClass, pfDelta, totalDelta }) => (
                   <tr key={`exit-${row.marginKey}-${row.probKey}`} className="border-t border-border/20">
                     <td className="px-3 py-2">
                       <span className={`px-2 py-0.5 rounded border text-xs font-bold ${decisionClass(decision)}`}>{decision}</span>
@@ -931,7 +934,7 @@ export default function WeekdayAnalysisPage() {
                     <td className={`px-3 py-2 font-medium ${operationClassStyle(operationClass)}`}>{operationClass}</td>
                     <td className="px-3 py-2 text-foreground">{row.marginLabel}</td>
                     <td className={`px-3 py-2 font-medium ${row.probLabel === 'SHORT' ? 'text-rose-400' : row.probLabel === 'MIX' ? 'text-amber-400' : 'text-blue-400'}`}>{row.probLabel}</td>
-                    <td className="px-3 py-2 text-foreground">{best?.label ?? '-'}</td>
+                    <td className="px-3 py-2 text-foreground">{formatExitLabel(bestSeg, best?.label)}</td>
                     <td className="px-3 py-2 text-right tabular-nums text-foreground">{best?.pf?.toFixed(2) ?? '-'}</td>
                     <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{closeSeg?.amount.pf?.toFixed(2) ?? '-'}</td>
                     <td className={`px-3 py-2 text-right tabular-nums ${(pfDelta ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
@@ -1027,7 +1030,7 @@ export default function WeekdayAnalysisPage() {
                           {row.probLabel}
                         </td>
                         <td className="px-3 py-2 text-right tabular-nums">{row.count}</td>
-                        <td className="px-3 py-2 text-foreground">{best?.label ?? '-'}</td>
+                        <td className="px-3 py-2 text-foreground">{formatExitLabel(bestSeg, best?.label)}</td>
                         <td className="px-3 py-2 text-right tabular-nums text-foreground">{best?.pf?.toFixed(2) ?? '-'}</td>
                         <td className={`px-3 py-2 text-right tabular-nums ${(best?.total ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                           {best ? formatProfit(Math.round(best.total)) : '-'}
