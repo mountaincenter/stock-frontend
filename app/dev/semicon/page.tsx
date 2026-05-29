@@ -184,6 +184,78 @@ interface FlowAnalysis {
   notes?: string[];
 }
 
+interface ThemeFlowLeadRow {
+  memo_date?: string;
+  signal_date?: string;
+  issue?: number | string;
+  flow_group?: string;
+  stage?: string;
+  lead_score?: number;
+  theme_hits?: string;
+  direct_count?: number;
+  expanded_count?: number;
+  direct_names?: string;
+  flow_turnover_oku?: number;
+  flow_tv5?: number;
+  flow_tv20?: number;
+  flow_tv60?: number;
+  flow_ret1?: number;
+  flow_ret5?: number;
+  flow_up_ratio?: number;
+  top_code?: string;
+  top_name?: string;
+  top_share?: number;
+  laggard_code?: string;
+  laggard_name?: string;
+  laggard_ret5?: number;
+  laggard_vs25?: number;
+  laggard_va20?: number;
+  flow_next_ret5?: number;
+  flow_partial_days?: number;
+  flow_partial_ret?: number;
+  direct_next_ret5?: number;
+  direct_partial_ret?: number;
+  expanded_next_ret5?: number;
+  my_thesis?: string;
+}
+
+interface ThemeFlowLeads {
+  available: boolean;
+  source?: string;
+  source_policy?: string;
+  reason?: string | null;
+  latest_signal_date?: string;
+  latest_analyzed_memo_date?: string;
+  latest_memo?: {
+    memo_date?: string;
+    issue?: number | string;
+    source_url?: string;
+    theme_tags?: string[];
+    related_codes?: string[];
+    related_overseas?: string[];
+    rotation_stage?: string;
+    my_thesis?: string;
+  } | null;
+  pending_memo?: {
+    memo_date?: string;
+    issue?: number | string;
+    source_url?: string;
+    theme_tags?: string[];
+    related_codes?: string[];
+    related_overseas?: string[];
+    rotation_stage?: string;
+    my_thesis?: string;
+    status?: string;
+    reason?: string;
+  } | null;
+  primary?: ThemeFlowLeadRow;
+  latest_rows?: ThemeFlowLeadRow[];
+  recent_strong_rows?: ThemeFlowLeadRow[];
+  recent_rows?: ThemeFlowLeadRow[];
+  summary_rows?: Array<Record<string, string | number | null | undefined>>;
+  notes?: string[];
+}
+
 interface BucketSummaryRow {
   bucket: string;
   count: number;
@@ -257,6 +329,7 @@ interface SemiconResponse {
   classification_basis?: ClassificationBasisRow[];
   segment_strength?: SegmentStrengthRow[];
   flow_analysis?: FlowAnalysis;
+  theme_flow_leads?: ThemeFlowLeads;
   bucket_summary?: BucketSummaryRow[];
   hold_short_exposures?: HoldShortExposure[];
   market_indicators?: MarketIndicator[];
@@ -293,6 +366,16 @@ const clsPct = (v?: number) => v == null ? 'text-muted-foreground' : v > 0 ? 'te
 const yen = (v?: number) => v == null || Number.isNaN(v) ? '-' : `${v >= 0 ? '+' : ''}${Math.round(v).toLocaleString('ja-JP')}円`;
 const yenAbs = (v?: number) => v == null || Number.isNaN(v) ? '-' : `${Math.round(v).toLocaleString('ja-JP')}円`;
 const fmtPrice = (v?: number | null, digits = 2) => v == null || Number.isNaN(v) ? '-' : v.toLocaleString('ja-JP', { maximumFractionDigits: digits, minimumFractionDigits: digits });
+const stageLabel = (stage?: string) => {
+  const map: Record<string, string> = {
+    active_rotation: '資金流入',
+    theme_flow_seed: '端緒',
+    leader_only: 'リーダー集中',
+    washout_rebound_watch: '反転監視',
+    watch_only: '監視',
+  };
+  return stage ? (map[stage] || stage) : '-';
+};
 
 const indicatorTone = (indicator: MarketIndicator, ret1?: number | null) => {
   if (ret1 == null || Number.isNaN(ret1)) return 'neutral';
@@ -655,6 +738,9 @@ export default function SemiconPage() {
   const morningPilot = data?.morning_pilot;
   const hotThemeRows = (data?.segment_strength || []).slice(0, 3);
   const flow = data?.flow_analysis;
+  const themeLeads = data?.theme_flow_leads;
+  const themeLeadRows = (themeLeads?.latest_rows || []).slice(0, 10);
+  const strongThemeLeadRows = (themeLeads?.recent_strong_rows || []).slice(0, 8);
   const flowThemeRows = (flow?.theme_layers || flow?.core_segments || []).slice(0, 6);
   const flowGroupRows = (flow?.flow_groups || flow?.sub_segments || []).slice(0, 10);
   const flowIndividualRows = (flow?.individuals || []).slice(0, 10);
@@ -952,6 +1038,107 @@ export default function SemiconPage() {
             <div className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground">
               date: {flow?.date || data?.data_date || '-'}
             </div>
+          </div>
+          <div className="mb-4 rounded-lg border border-border/60 bg-background/45 p-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <div className="text-xs text-muted-foreground">電子デバイス深層テーマ</div>
+                <h3 className="mt-1 text-base font-semibold">週次ヘッドライン由来の端緒</h3>
+                <p className="mt-1 max-w-4xl text-xs leading-5 text-muted-foreground">
+                  記事本文は表示せず、圧縮メモと翌営業日の売買代金だけを接続します。ここは買いシグナルではなく、どのフローを優先監視するかの前段です。
+                </p>
+              </div>
+              <div className="rounded border border-border/50 px-2 py-1 text-xs text-muted-foreground">
+                signal: {themeLeads?.latest_signal_date || '-'} / memo: {themeLeads?.latest_analyzed_memo_date || '-'}
+              </div>
+            </div>
+
+            {themeLeads?.pending_memo && (
+              <div className="mt-3 rounded border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs leading-5 text-amber-100">
+                未検証メモ: {themeLeads.pending_memo.memo_date}号 / {themeLeads.pending_memo.reason || '翌営業日データ待ち'}
+                {themeLeads.pending_memo.theme_tags?.length ? ` / tags: ${themeLeads.pending_memo.theme_tags.join(', ')}` : ''}
+              </div>
+            )}
+
+            {themeLeads?.available ? (
+              <>
+                <div className="mt-3 grid gap-3 md:grid-cols-4">
+                  <div className="rounded border border-border/50 bg-muted/10 p-3">
+                    <div className="text-xs text-muted-foreground">主フロー</div>
+                    <div className="mt-1 text-lg font-semibold">{themeLeads.primary?.flow_group || '-'}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">{stageLabel(themeLeads.primary?.stage)} / score {fmt(themeLeads.primary?.lead_score, 1)}</div>
+                  </div>
+                  <div className="rounded border border-border/50 bg-muted/10 p-3">
+                    <div className="text-xs text-muted-foreground">資金量</div>
+                    <div className="mt-1 text-lg font-semibold tabular-nums">{fmt(themeLeads.primary?.flow_turnover_oku, 0)}億円</div>
+                    <div className="mt-1 text-xs text-muted-foreground">20日 {mult(themeLeads.primary?.flow_tv20)} / 60日 {mult(themeLeads.primary?.flow_tv60)}</div>
+                  </div>
+                  <div className="rounded border border-border/50 bg-muted/10 p-3">
+                    <div className="text-xs text-muted-foreground">広がり</div>
+                    <div className={`mt-1 text-lg font-semibold tabular-nums ${clsPct(themeLeads.primary?.flow_ret1)}`}>{pct(themeLeads.primary?.flow_ret1)}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">上昇比率 {fmt(themeLeads.primary?.flow_up_ratio, 0)}% / top {themeLeads.primary?.top_name || '-'}</div>
+                  </div>
+                  <div className="rounded border border-border/50 bg-muted/10 p-3">
+                    <div className="text-xs text-muted-foreground">次候補</div>
+                    <div className="mt-1 text-lg font-semibold">{themeLeads.primary?.laggard_name || '-'}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">5日 {pct(themeLeads.primary?.laggard_ret5)} / 25日 {pct(themeLeads.primary?.laggard_vs25)}</div>
+                  </div>
+                </div>
+
+                <div className="mt-3 overflow-x-auto rounded-lg border border-border/60">
+                  <table className="w-full min-w-[1120px] text-sm">
+                    <thead>
+                      <tr className="border-b border-border/50 bg-muted/20 text-muted-foreground">
+                        <th className="px-3 py-2 text-left">memo→signal</th>
+                        <th className="px-3 py-2 text-left">フロー</th>
+                        <th className="px-3 py-2 text-left">端緒</th>
+                        <th className="px-3 py-2 text-right">score</th>
+                        <th className="px-3 py-2 text-right">売買代金</th>
+                        <th className="px-3 py-2 text-right">20日比</th>
+                        <th className="px-3 py-2 text-right">騰落</th>
+                        <th className="px-3 py-2 text-right">上昇</th>
+                        <th className="px-3 py-2 text-left">直接銘柄</th>
+                        <th className="px-3 py-2 text-left">top/次候補</th>
+                        <th className="px-3 py-2 text-right">暫定</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {themeLeadRows.map((row, idx) => (
+                        <tr key={`${row.signal_date}-${row.flow_group}-${idx}`} className="border-b border-border/20">
+                          <td className="px-3 py-2 text-xs text-muted-foreground">
+                            <div>{row.memo_date || '-'}</div>
+                            <div>{row.signal_date || '-'}</div>
+                          </td>
+                          <td className="px-3 py-2 font-semibold">{row.flow_group || '-'}</td>
+                          <td className="px-3 py-2 text-xs">{stageLabel(row.stage)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{fmt(row.lead_score, 1)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{fmt(row.flow_turnover_oku, 0)}億</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{mult(row.flow_tv20)}</td>
+                          <td className={`px-3 py-2 text-right tabular-nums ${clsPct(row.flow_ret1)}`}>{pct(row.flow_ret1)}</td>
+                          <td className={`px-3 py-2 text-right tabular-nums ${clsPct((row.flow_up_ratio || 0) - 50)}`}>{fmt(row.flow_up_ratio, 0)}%</td>
+                          <td className="px-3 py-2 text-xs text-muted-foreground">{row.direct_names || '-'}</td>
+                          <td className="px-3 py-2 text-xs text-muted-foreground">
+                            <div>top {row.top_name || '-'} / {fmt(row.top_share, 0)}%</div>
+                            <div>次 {row.laggard_name || '-'}</div>
+                          </td>
+                          <td className={`px-3 py-2 text-right tabular-nums ${clsPct(row.flow_partial_ret)}`}>{pct(row.flow_partial_ret)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {strongThemeLeadRows.length > 0 && (
+                  <div className="mt-2 text-xs leading-5 text-muted-foreground">
+                    直近の強い端緒: {strongThemeLeadRows.map((row) => `${row.signal_date} ${row.flow_group}=${stageLabel(row.stage)}`).join(' / ')}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="mt-3 rounded border border-border/50 bg-muted/10 p-2 text-xs text-muted-foreground">
+                端緒CSV未読込: {themeLeads?.reason || 'no theme flow leads'}
+              </div>
+            )}
           </div>
           {flow?.available ? (
             <>
