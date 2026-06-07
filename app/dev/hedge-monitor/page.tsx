@@ -289,7 +289,7 @@ function PlaybookPanel({ playbook }: { playbook: HedgePlaybook | null | undefine
   const positions = Object.entries(playbook.positions ?? {});
 
   return (
-    <section className="mx-auto w-full max-w-[1280px] rounded border border-border bg-card p-5">
+    <section className="rounded border border-border bg-card p-5">
       <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-base font-medium">
