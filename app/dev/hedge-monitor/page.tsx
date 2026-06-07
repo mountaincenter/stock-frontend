@@ -519,10 +519,10 @@ function PositionPanel({ position }: { position: Position }) {
           </div>
         </div>
 
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.7fr)]">
-          <div className="rounded border border-border bg-card p-4">
+        <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.7fr)]">
+          <div className="min-w-0 overflow-hidden rounded border border-border bg-card p-4">
             <div className="mb-3 text-lg font-semibold">建玉</div>
-            <div className="overflow-x-auto">
+            <div className="w-full overflow-x-auto">
               <table className="w-full min-w-[620px] border-collapse text-sm md:text-base">
                 <thead className="text-sm text-muted-foreground">
                   <tr>
@@ -550,13 +550,13 @@ function PositionPanel({ position }: { position: Position }) {
             </div>
           </div>
 
-          <div className="rounded border border-border bg-card p-4">
+          <div className="min-w-0 overflow-hidden rounded border border-border bg-card p-4">
             <div className="mb-3 text-lg font-semibold">直近決済</div>
             <div className="space-y-1 text-sm md:text-base">
               {position.latest_trades.slice(0, 6).map((trade, idx) => (
                 <div
                   key={`${trade.trade_date}-${idx}`}
-                  className="grid grid-cols-[minmax(0,1fr)_8rem] items-center gap-3 border-b border-border/50 px-4 py-2 last:border-0 hover:bg-muted/50"
+                  className="grid min-w-0 grid-cols-[minmax(0,1fr)_8rem] items-center gap-3 border-b border-border/50 px-4 py-2 last:border-0 hover:bg-muted/50"
                 >
                   <span className="truncate text-muted-foreground">{trade.trade_date} {trade.side}</span>
                   <span className={`text-right font-sans font-semibold tabular-nums ${pnlClass(trade.realized_pnl)}`}>{yen(trade.realized_pnl)}</span>
