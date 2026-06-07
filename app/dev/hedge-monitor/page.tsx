@@ -63,6 +63,7 @@ type Position = {
     net_unrealized: number;
     realized_total: number;
     total_pnl: number;
+    total_pnl_change: number | null;
     hedged: boolean;
   };
   holdings: Holding[];
@@ -430,6 +431,12 @@ function PositionPanel({ position }: { position: Position }) {
               {yen(position.summary.total_pnl)}
             </div>
             <div className="text-xs text-muted-foreground">実現 + 含み</div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              前回比{" "}
+              <span className={`font-sans tabular-nums ${pnlClass(position.summary.total_pnl_change)}`}>
+                {yen(position.summary.total_pnl_change)}
+              </span>
+            </div>
           </div>
         </div>
       </div>
