@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { DevNavLinks } from "@/components/dev";
 import { RefreshCw, Shield, TrendingDown, TrendingUp } from "lucide-react";
 import type { BusinessDay, CandlestickData, HistogramData, IChartApi, Time, UTCTimestamp } from "lightweight-charts";
@@ -97,7 +98,9 @@ function num(value?: number | null) {
 
 function pnlClass(value?: number | null) {
   if (value == null) return "text-muted-foreground";
-  return value >= 0 ? "text-emerald-400" : "text-rose-400";
+  if (value > 0) return "text-price-up";
+  if (value < 0) return "text-price-down";
+  return "text-price-neutral";
 }
 
 function levelColor(kind: Level["kind"]) {
@@ -232,12 +235,24 @@ function CandleChart({ rows, levels }: { rows: PriceRow[]; levels: Level[] }) {
   return <div ref={ref} className="h-[760px] w-full overflow-hidden rounded border border-border bg-[#0b0f19]" />;
 }
 
-function SummaryCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function SummaryCard({
+  label,
+  value,
+  sub,
+  subNode,
+  valueTone,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  subNode?: ReactNode;
+  valueTone?: string;
+}) {
   return (
     <div className="rounded border border-border bg-card p-4 text-center">
       <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="mt-1 font-sans text-xl font-bold tabular-nums sm:text-2xl">{value}</div>
-      {sub && <div className="mt-1 text-xs text-muted-foreground">{sub}</div>}
+      <div className={`mt-1 font-sans text-xl font-bold tabular-nums sm:text-2xl ${valueTone ?? ""}`}>{value}</div>
+      {subNode ? subNode : sub && <div className="mt-1 text-xs text-muted-foreground">{sub}</div>}
     </div>
   );
 }
@@ -299,8 +314,19 @@ function PositionPanel({ position }: { position: Position }) {
 
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
-            <SummaryCard label="含み損益" value={yen(position.summary.net_unrealized)} sub={`買 ${yen(position.summary.long_unrealized)} / 売 ${yen(position.summary.short_unrealized)}`} />
-            <SummaryCard label="実現損益" value={yen(position.summary.realized_total)} />
+            <SummaryCard
+              label="含み損益"
+              value={yen(position.summary.net_unrealized)}
+              valueTone={pnlClass(position.summary.net_unrealized)}
+              subNode={
+                <div className="mt-1 text-xs">
+                  <span className={pnlClass(position.summary.long_unrealized)}>買 {yen(position.summary.long_unrealized)}</span>
+                  <span className="mx-1 text-muted-foreground">/</span>
+                  <span className={pnlClass(position.summary.short_unrealized)}>売 {yen(position.summary.short_unrealized)}</span>
+                </div>
+              }
+            />
+            <SummaryCard label="実現損益" value={yen(position.summary.realized_total)} valueTone={pnlClass(position.summary.realized_total)} />
             <SummaryCard label="買建" value={`${num(position.summary.long_qty)}株`} />
             <SummaryCard label="売建" value={`${num(position.summary.short_qty)}株`} />
             </div>
@@ -412,19 +438,22 @@ export default function HedgePage() {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <div className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur">
-        <div className="mx-auto flex max-w-[1800px] items-center justify-between gap-4 px-5 py-3">
-          <div className="flex items-center gap-4">
+        <div className="mx-auto flex max-w-[1800px] flex-col gap-3 px-5 py-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
             <h1 className="text-lg font-semibold">Hedge Monitor</h1>
-            <DevNavLinks />
+            <p className="text-sm text-muted-foreground">建玉・損益・節目を確認するヘッジ管理ビュー</p>
           </div>
-          <button
-            type="button"
-            onClick={fetchData}
-            className="inline-flex items-center gap-2 rounded border border-border px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
-          >
-            <RefreshCw className="h-4 w-4" />
-            更新
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <DevNavLinks />
+            <button
+              type="button"
+              onClick={fetchData}
+              className="inline-flex items-center gap-2 rounded border border-border px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <RefreshCw className="h-4 w-4" />
+              更新
+            </button>
+          </div>
         </div>
       </div>
 
@@ -435,9 +464,9 @@ export default function HedgePage() {
           <>
             <section className="grid gap-3 md:grid-cols-4">
               <SummaryCard label="監視銘柄" value={`${data.portfolio.watch_count}`} />
-              <SummaryCard label="含み損益" value={yen(data.portfolio.unrealized_pnl)} />
-              <SummaryCard label="実現損益" value={yen(data.portfolio.realized_pnl)} />
-              <SummaryCard label="合計損益" value={yen(data.portfolio.total_pnl)} />
+              <SummaryCard label="含み損益" value={yen(data.portfolio.unrealized_pnl)} valueTone={pnlClass(data.portfolio.unrealized_pnl)} />
+              <SummaryCard label="実現損益" value={yen(data.portfolio.realized_pnl)} valueTone={pnlClass(data.portfolio.realized_pnl)} />
+              <SummaryCard label="合計損益" value={yen(data.portfolio.total_pnl)} valueTone={pnlClass(data.portfolio.total_pnl)} />
             </section>
 
             <section className="rounded border border-border bg-card p-4">
