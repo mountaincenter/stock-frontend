@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DevNavLinks } from "@/components/dev";
 import { RefreshCw, Shield, TrendingDown, TrendingUp } from "lucide-react";
-import type { IChartApi } from "lightweight-charts";
+import type { BusinessDay, CandlestickData, HistogramData, IChartApi, Time, UTCTimestamp } from "lightweight-charts";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
@@ -119,12 +119,12 @@ function uniqueLevels(levels: Level[]) {
     .sort((a, b) => b.price - a.price);
 }
 
-function chartTime(date: string) {
+function chartTime(date: string): Time {
   if (date.length <= 10) {
     const [year, month, day] = date.split("-").map(Number);
-    return { year, month, day };
+    return { year, month, day } as BusinessDay;
   }
-  return Math.floor(new Date(date).getTime() / 1000);
+  return Math.floor(new Date(date).getTime() / 1000) as UTCTimestamp;
 }
 
 function CandleChart({ rows, levels }: { rows: PriceRow[]; levels: Level[] }) {
@@ -180,7 +180,7 @@ function CandleChart({ rows, levels }: { rows: PriceRow[]; levels: Level[] }) {
       });
       volume.priceScale().applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
 
-      const candleRows = rows
+      const candleRows: CandlestickData<Time>[] = rows
         .filter((r) => r.Open != null && r.High != null && r.Low != null && r.Close != null)
         .map((r) => ({
           time: chartTime(r.date),
@@ -189,7 +189,7 @@ function CandleChart({ rows, levels }: { rows: PriceRow[]; levels: Level[] }) {
           low: r.Low!,
           close: r.Close!,
         }));
-      const volumeRows = rows
+      const volumeRows: HistogramData<Time>[] = rows
         .filter((r) => r.Volume != null && r.Open != null && r.Close != null)
         .map((r) => ({
           time: chartTime(r.date),
