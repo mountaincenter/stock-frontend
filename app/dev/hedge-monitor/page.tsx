@@ -87,6 +87,8 @@ type HedgePlaybook = {
   created_at?: string;
   session?: string;
   title?: string;
+  final_judgment?: string[];
+  execution_order?: string[];
   market_context?: string[];
   portfolio_policy?: string[];
   positions?: Record<string, PlaybookPosition>;
@@ -274,10 +276,10 @@ function SummaryCard({
   valueTone?: string;
 }) {
   return (
-    <div className="rounded border border-border bg-card p-4 text-center">
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className={`mt-1 font-sans text-xl font-bold tabular-nums sm:text-2xl ${valueTone ?? ""}`}>{value}</div>
-      {subNode ? subNode : sub && <div className="mt-1 text-xs text-muted-foreground">{sub}</div>}
+    <div className="rounded border border-border bg-card px-5 py-4 text-center">
+      <div className="text-sm font-medium text-muted-foreground">{label}</div>
+      <div className={`mt-1 font-sans text-2xl font-bold tabular-nums md:text-3xl ${valueTone ?? ""}`}>{value}</div>
+      {subNode ? subNode : sub && <div className="mt-1 text-sm text-muted-foreground">{sub}</div>}
     </div>
   );
 }
@@ -287,35 +289,63 @@ function PlaybookPanel({ playbook }: { playbook: HedgePlaybook | null | undefine
   const positions = Object.entries(playbook.positions ?? {});
 
   return (
-    <section className="rounded border border-border bg-card p-4">
+    <section className="rounded border border-border bg-card p-5">
       <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="flex items-center gap-2 font-medium">
-            <BookOpen className="h-4 w-4 text-primary" />
+          <div className="flex items-center gap-2 text-base font-medium">
+            <BookOpen className="h-5 w-5 text-primary" />
             寄前プレイブック
           </div>
-          <h2 className="mt-1 text-lg font-semibold">{playbook.title ?? "Hedge Playbook"}</h2>
+          <h2 className="mt-1 text-xl font-semibold">{playbook.title ?? "Hedge Playbook"}</h2>
         </div>
-        <div className="text-right text-xs text-muted-foreground">
+        <div className="text-right text-sm text-muted-foreground">
           <div className="font-sans tabular-nums">{playbook.date}</div>
           {playbook.created_at && <div>{new Date(playbook.created_at).toLocaleString("ja-JP")}</div>}
           {playbook.session && <div>{playbook.session}</div>}
         </div>
       </div>
 
+      {(playbook.final_judgment?.length || playbook.execution_order?.length) ? (
+        <div className="mb-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          {playbook.final_judgment?.length ? (
+            <div className="rounded border border-amber-500/30 bg-amber-500/10 p-4">
+              <div className="mb-2 text-lg font-semibold text-amber-300">最終判断</div>
+              <ul className="space-y-2 text-base text-foreground">
+                {playbook.final_judgment.map((item) => (
+                  <li key={item} className="border-l border-amber-500/40 pl-3">{item}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {playbook.execution_order?.length ? (
+            <div className="rounded border border-border/70 bg-background/60 p-4">
+              <div className="mb-2 text-lg font-semibold">実行順</div>
+              <ol className="space-y-2 text-base text-muted-foreground">
+                {playbook.execution_order.map((item, idx) => (
+                  <li key={item} className="grid grid-cols-[2rem_minmax(0,1fr)] gap-2">
+                    <span className="text-right font-sans tabular-nums text-foreground">{idx + 1}</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.2fr)]">
         <div className="space-y-3">
           <div className="rounded border border-border/70 bg-background/60 p-3">
-            <div className="mb-2 text-sm font-semibold">市場前提</div>
-            <ul className="space-y-2 text-sm text-muted-foreground">
+            <div className="mb-2 text-base font-semibold">市場前提</div>
+            <ul className="space-y-2 text-base text-muted-foreground">
               {(playbook.market_context ?? []).map((item) => (
                 <li key={item} className="border-l border-border pl-3">{item}</li>
               ))}
             </ul>
           </div>
           <div className="rounded border border-border/70 bg-background/60 p-3">
-            <div className="mb-2 text-sm font-semibold">ポートフォリオ方針</div>
-            <ul className="space-y-2 text-sm text-muted-foreground">
+            <div className="mb-2 text-base font-semibold">ポートフォリオ方針</div>
+            <ul className="space-y-2 text-base text-muted-foreground">
               {(playbook.portfolio_policy ?? []).map((item) => (
                 <li key={item} className="border-l border-border pl-3">{item}</li>
               ))}
@@ -328,34 +358,34 @@ function PlaybookPanel({ playbook }: { playbook: HedgePlaybook | null | undefine
             <div key={ticker} className="rounded border border-border/70 bg-background/60 p-3">
               <div className="mb-2 flex items-center justify-between gap-2">
                 <div>
-                  <div className="font-sans text-sm font-semibold tabular-nums">{ticker}</div>
-                  <div className="text-sm text-muted-foreground">{item.name}</div>
+                  <div className="font-sans text-base font-semibold tabular-nums">{ticker}</div>
+                  <div className="text-base text-muted-foreground">{item.name}</div>
                 </div>
-                <span className="rounded bg-amber-500/20 px-2 py-0.5 text-[11px] font-medium text-amber-400">ヘッジ管理</span>
+                <span className="rounded bg-amber-500/20 px-2 py-0.5 text-xs font-medium text-amber-400">ヘッジ管理</span>
               </div>
-              {item.bias && <p className="mb-3 text-sm text-muted-foreground">{item.bias}</p>}
-              <div className="space-y-2 text-sm">
+              {item.bias && <p className="mb-3 text-base text-muted-foreground">{item.bias}</p>}
+              <div className="space-y-3 text-base">
                 {item.short_add && (
                   <div>
-                    <div className="text-xs font-semibold text-muted-foreground">真水ショート100</div>
+                    <div className="text-sm font-semibold text-muted-foreground">真水ショート100</div>
                     <div className="mt-0.5 text-foreground">{item.short_add}</div>
                   </div>
                 )}
                 {item.hedge_release && (
                   <div>
-                    <div className="text-xs font-semibold text-muted-foreground">ロングヘッジ精算</div>
+                    <div className="text-sm font-semibold text-muted-foreground">ロングヘッジ精算</div>
                     <div className="mt-0.5 text-foreground">{item.hedge_release}</div>
                   </div>
                 )}
                 {item.rehedge && (
                   <div>
-                    <div className="text-xs font-semibold text-muted-foreground">再ヘッジ/撤退</div>
+                    <div className="text-sm font-semibold text-muted-foreground">再ヘッジ/撤退</div>
                     <div className="mt-0.5 text-foreground">{item.rehedge}</div>
                   </div>
                 )}
               </div>
               {(item.take_profit?.length || item.no_trade?.length) && (
-                <div className="mt-3 grid gap-2 text-xs sm:grid-cols-2">
+                <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
                   {item.take_profit?.length ? (
                     <div className="rounded bg-muted/30 p-2">
                       <div className="mb-1 font-semibold text-muted-foreground">利確候補</div>
@@ -407,10 +437,10 @@ function PositionPanel({ position }: { position: Position }) {
       </div>
 
       <div className="space-y-4 p-4">
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(390px,0.9fr)]">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(420px,0.95fr)]">
           <div className="min-w-0">
           <div className="mb-3 flex items-center justify-between gap-2">
-            <div className="text-sm text-muted-foreground">
+            <div className="text-base text-muted-foreground">
               最新日足:
               <span className="ml-1 font-sans tabular-nums">O {num(latest?.Open)}</span>
               <span className="ml-2 font-sans tabular-nums">H {num(latest?.High)}</span>
@@ -423,7 +453,7 @@ function PositionPanel({ position }: { position: Position }) {
                   key={item}
                   type="button"
                   onClick={() => setMode(item)}
-                  className={`px-3 py-1 text-xs ${mode === item ? "bg-muted text-foreground" : "text-muted-foreground"}`}
+                  className={`px-4 py-1.5 text-sm ${mode === item ? "bg-muted text-foreground" : "text-muted-foreground"}`}
                 >
                   {item === "daily" ? "日足" : "5分足"}
                 </button>
@@ -440,7 +470,7 @@ function PositionPanel({ position }: { position: Position }) {
               value={yen(position.summary.net_unrealized)}
               valueTone={pnlClass(position.summary.net_unrealized)}
               subNode={
-                <div className="mt-1 text-xs">
+                <div className="mt-1 text-sm">
                   <span className={pnlClass(position.summary.long_unrealized)}>買 {yen(position.summary.long_unrealized)}</span>
                   <span className="mx-1 text-muted-foreground">/</span>
                   <span className={pnlClass(position.summary.short_unrealized)}>売 {yen(position.summary.short_unrealized)}</span>
@@ -457,8 +487,8 @@ function PositionPanel({ position }: { position: Position }) {
               <Shield className="h-4 w-4" />
               判断方針
             </div>
-            <p className="text-sm text-muted-foreground">{position.stance}</p>
-            <ul className="mt-3 space-y-2 text-sm">
+            <p className="text-base text-muted-foreground">{position.stance}</p>
+            <ul className="mt-3 space-y-2 text-base">
               {position.rules.map((rule) => (
                 <li key={rule} className="border-l border-border pl-3 text-muted-foreground">{rule}</li>
               ))}
@@ -471,7 +501,7 @@ function PositionPanel({ position }: { position: Position }) {
               {sortedLevels.map((level) => (
                 <div
                   key={`${level.label}-${level.price}`}
-                  className="grid grid-cols-[minmax(0,1fr)_7rem] items-center gap-3 rounded bg-muted/30 px-4 py-2 text-sm hover:bg-muted/50"
+                  className="grid grid-cols-[minmax(0,1fr)_7rem] items-center gap-3 rounded bg-muted/30 px-4 py-2 text-base hover:bg-muted/50"
                 >
                   <span className="truncate text-muted-foreground">{level.label}</span>
                   <span className="text-right font-sans tabular-nums">{num(level.price)}</span>
@@ -583,7 +613,7 @@ export default function HedgePage() {
         {error && <div className="rounded border border-rose-500/40 bg-rose-500/10 p-6 text-rose-300">{error}</div>}
         {data && (
           <>
-            <section className="grid gap-3 md:grid-cols-4">
+            <section className="grid gap-3">
               <SummaryCard label="監視銘柄" value={`${data.portfolio.watch_count}`} />
               <SummaryCard label="含み損益" value={yen(data.portfolio.unrealized_pnl)} valueTone={pnlClass(data.portfolio.unrealized_pnl)} />
               <SummaryCard label="実現損益" value={yen(data.portfolio.realized_pnl)} valueTone={pnlClass(data.portfolio.realized_pnl)} />
