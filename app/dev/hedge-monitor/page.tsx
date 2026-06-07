@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { DevNavLinks } from "@/components/dev";
-import { RefreshCw, Shield, TrendingDown, TrendingUp } from "lucide-react";
+import { BookOpen, RefreshCw, Shield, TrendingDown, TrendingUp } from "lucide-react";
 import type { BusinessDay, CandlestickData, HistogramData, IChartApi, Time, UTCTimestamp } from "lightweight-charts";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "";
@@ -72,9 +72,33 @@ type Position = {
   intraday_rows: PriceRow[];
 };
 
+type PlaybookPosition = {
+  name?: string;
+  bias?: string;
+  short_add?: string;
+  hedge_release?: string;
+  rehedge?: string;
+  take_profit?: string[];
+  no_trade?: string[];
+};
+
+type HedgePlaybook = {
+  date: string;
+  created_at?: string;
+  session?: string;
+  title?: string;
+  market_context?: string[];
+  portfolio_policy?: string[];
+  positions?: Record<string, PlaybookPosition>;
+  review?: {
+    status?: string;
+    fields?: string[];
+  };
+};
+
 type HedgePayload = {
   as_of: string;
-  source: Record<string, string>;
+  source: Record<string, string | null>;
   portfolio: {
     watch_count: number;
     unrealized_pnl: number;
@@ -82,6 +106,7 @@ type HedgePayload = {
     total_pnl: number;
   };
   rules: string[];
+  playbook?: HedgePlaybook | null;
   positions: Position[];
 };
 
@@ -254,6 +279,102 @@ function SummaryCard({
       <div className={`mt-1 font-sans text-xl font-bold tabular-nums sm:text-2xl ${valueTone ?? ""}`}>{value}</div>
       {subNode ? subNode : sub && <div className="mt-1 text-xs text-muted-foreground">{sub}</div>}
     </div>
+  );
+}
+
+function PlaybookPanel({ playbook }: { playbook: HedgePlaybook | null | undefined }) {
+  if (!playbook) return null;
+  const positions = Object.entries(playbook.positions ?? {});
+
+  return (
+    <section className="rounded border border-border bg-card p-4">
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2 font-medium">
+            <BookOpen className="h-4 w-4 text-primary" />
+            寄前プレイブック
+          </div>
+          <h2 className="mt-1 text-lg font-semibold">{playbook.title ?? "Hedge Playbook"}</h2>
+        </div>
+        <div className="text-right text-xs text-muted-foreground">
+          <div className="font-sans tabular-nums">{playbook.date}</div>
+          {playbook.created_at && <div>{new Date(playbook.created_at).toLocaleString("ja-JP")}</div>}
+          {playbook.session && <div>{playbook.session}</div>}
+        </div>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.2fr)]">
+        <div className="space-y-3">
+          <div className="rounded border border-border/70 bg-background/60 p-3">
+            <div className="mb-2 text-sm font-semibold">市場前提</div>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              {(playbook.market_context ?? []).map((item) => (
+                <li key={item} className="border-l border-border pl-3">{item}</li>
+              ))}
+            </ul>
+          </div>
+          <div className="rounded border border-border/70 bg-background/60 p-3">
+            <div className="mb-2 text-sm font-semibold">ポートフォリオ方針</div>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              {(playbook.portfolio_policy ?? []).map((item) => (
+                <li key={item} className="border-l border-border pl-3">{item}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        <div className="grid gap-3 lg:grid-cols-2">
+          {positions.map(([ticker, item]) => (
+            <div key={ticker} className="rounded border border-border/70 bg-background/60 p-3">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div>
+                  <div className="font-sans text-sm font-semibold tabular-nums">{ticker}</div>
+                  <div className="text-sm text-muted-foreground">{item.name}</div>
+                </div>
+                <span className="rounded bg-amber-500/20 px-2 py-0.5 text-[11px] font-medium text-amber-400">ヘッジ管理</span>
+              </div>
+              {item.bias && <p className="mb-3 text-sm text-muted-foreground">{item.bias}</p>}
+              <div className="space-y-2 text-sm">
+                {item.short_add && (
+                  <div>
+                    <div className="text-xs font-semibold text-muted-foreground">真水ショート100</div>
+                    <div className="mt-0.5 text-foreground">{item.short_add}</div>
+                  </div>
+                )}
+                {item.hedge_release && (
+                  <div>
+                    <div className="text-xs font-semibold text-muted-foreground">ロングヘッジ精算</div>
+                    <div className="mt-0.5 text-foreground">{item.hedge_release}</div>
+                  </div>
+                )}
+                {item.rehedge && (
+                  <div>
+                    <div className="text-xs font-semibold text-muted-foreground">再ヘッジ/撤退</div>
+                    <div className="mt-0.5 text-foreground">{item.rehedge}</div>
+                  </div>
+                )}
+              </div>
+              {(item.take_profit?.length || item.no_trade?.length) && (
+                <div className="mt-3 grid gap-2 text-xs sm:grid-cols-2">
+                  {item.take_profit?.length ? (
+                    <div className="rounded bg-muted/30 p-2">
+                      <div className="mb-1 font-semibold text-muted-foreground">利確候補</div>
+                      <div className="font-sans tabular-nums">{item.take_profit.join(" / ")}</div>
+                    </div>
+                  ) : null}
+                  {item.no_trade?.length ? (
+                    <div className="rounded bg-muted/30 p-2">
+                      <div className="mb-1 font-semibold text-muted-foreground">触らない条件</div>
+                      <div>{item.no_trade.join(" / ")}</div>
+                    </div>
+                  ) : null}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -481,6 +602,8 @@ export default function HedgePage() {
               </div>
             </section>
 
+            <PlaybookPanel playbook={data.playbook} />
+
             <div className="space-y-5">
               {data.positions.map((position) => (
                 <PositionPanel key={position.ticker} position={position} />
@@ -489,7 +612,7 @@ export default function HedgePage() {
 
             <footer className="flex items-center gap-2 pb-6 text-xs text-muted-foreground">
               <TrendingDown className="h-3.5 w-3.5" />
-              更新: {new Date(data.as_of).toLocaleString("ja-JP")} / source: {Object.values(data.source).join(" / ")}
+              更新: {new Date(data.as_of).toLocaleString("ja-JP")} / source: {Object.values(data.source).filter(Boolean).join(" / ")}
             </footer>
           </>
         )}
