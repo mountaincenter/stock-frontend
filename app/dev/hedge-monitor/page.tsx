@@ -289,7 +289,7 @@ function PlaybookPanel({ playbook }: { playbook: HedgePlaybook | null | undefine
   const positions = Object.entries(playbook.positions ?? {});
 
   return (
-    <section className="rounded border border-border bg-card p-5">
+    <section className="mx-auto w-full max-w-[1280px] rounded border border-border bg-card p-5">
       <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-base font-medium">
@@ -306,7 +306,7 @@ function PlaybookPanel({ playbook }: { playbook: HedgePlaybook | null | undefine
       </div>
 
       {(playbook.final_judgment?.length || playbook.execution_order?.length) ? (
-        <div className="mb-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="mb-4 space-y-3">
           {playbook.final_judgment?.length ? (
             <div className="rounded border border-amber-500/30 bg-amber-500/10 p-4">
               <div className="mb-2 text-lg font-semibold text-amber-300">最終判断</div>
@@ -333,30 +333,28 @@ function PlaybookPanel({ playbook }: { playbook: HedgePlaybook | null | undefine
         </div>
       ) : null}
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.2fr)]">
-        <div className="space-y-3">
-          <div className="rounded border border-border/70 bg-background/60 p-3">
-            <div className="mb-2 text-base font-semibold">市場前提</div>
-            <ul className="space-y-2 text-base text-muted-foreground">
-              {(playbook.market_context ?? []).map((item) => (
-                <li key={item} className="border-l border-border pl-3">{item}</li>
-              ))}
-            </ul>
-          </div>
-          <div className="rounded border border-border/70 bg-background/60 p-3">
-            <div className="mb-2 text-base font-semibold">ポートフォリオ方針</div>
-            <ul className="space-y-2 text-base text-muted-foreground">
-              {(playbook.portfolio_policy ?? []).map((item) => (
-                <li key={item} className="border-l border-border pl-3">{item}</li>
-              ))}
-            </ul>
-          </div>
+      <div className="space-y-3">
+        <div className="rounded border border-border/70 bg-background/60 p-4">
+          <div className="mb-2 text-base font-semibold">市場前提</div>
+          <ul className="space-y-2 text-base text-muted-foreground">
+            {(playbook.market_context ?? []).map((item) => (
+              <li key={item} className="border-l border-border pl-3">{item}</li>
+            ))}
+          </ul>
+        </div>
+        <div className="rounded border border-border/70 bg-background/60 p-4">
+          <div className="mb-2 text-base font-semibold">ポートフォリオ方針</div>
+          <ul className="space-y-2 text-base text-muted-foreground">
+            {(playbook.portfolio_policy ?? []).map((item) => (
+              <li key={item} className="border-l border-border pl-3">{item}</li>
+            ))}
+          </ul>
         </div>
 
-        <div className="grid gap-3 lg:grid-cols-2">
+        <div className="space-y-3">
           {positions.map(([ticker, item]) => (
-            <div key={ticker} className="rounded border border-border/70 bg-background/60 p-3">
-              <div className="mb-2 flex items-center justify-between gap-2">
+            <div key={ticker} className="rounded border border-border/70 bg-background/60 p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
                   <div className="font-sans text-base font-semibold tabular-nums">{ticker}</div>
                   <div className="text-base text-muted-foreground">{item.name}</div>
@@ -366,19 +364,19 @@ function PlaybookPanel({ playbook }: { playbook: HedgePlaybook | null | undefine
               {item.bias && <p className="mb-3 text-base text-muted-foreground">{item.bias}</p>}
               <div className="space-y-3 text-base">
                 {item.short_add && (
-                  <div>
+                  <div className="rounded bg-muted/20 p-3">
                     <div className="text-sm font-semibold text-muted-foreground">真水ショート100</div>
                     <div className="mt-0.5 text-foreground">{item.short_add}</div>
                   </div>
                 )}
                 {item.hedge_release && (
-                  <div>
+                  <div className="rounded bg-muted/20 p-3">
                     <div className="text-sm font-semibold text-muted-foreground">ロングヘッジ精算</div>
                     <div className="mt-0.5 text-foreground">{item.hedge_release}</div>
                   </div>
                 )}
                 {item.rehedge && (
-                  <div>
+                  <div className="rounded bg-muted/20 p-3">
                     <div className="text-sm font-semibold text-muted-foreground">再ヘッジ/撤退</div>
                     <div className="mt-0.5 text-foreground">{item.rehedge}</div>
                   </div>
@@ -613,7 +611,7 @@ export default function HedgePage() {
         {error && <div className="rounded border border-rose-500/40 bg-rose-500/10 p-6 text-rose-300">{error}</div>}
         {data && (
           <>
-            <section className="grid gap-3">
+            <section className="grid gap-3 lg:grid-cols-4">
               <SummaryCard label="監視銘柄" value={`${data.portfolio.watch_count}`} />
               <SummaryCard label="含み損益" value={yen(data.portfolio.unrealized_pnl)} valueTone={pnlClass(data.portfolio.unrealized_pnl)} />
               <SummaryCard label="実現損益" value={yen(data.portfolio.realized_pnl)} valueTone={pnlClass(data.portfolio.realized_pnl)} />
