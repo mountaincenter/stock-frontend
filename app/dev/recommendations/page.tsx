@@ -10,9 +10,9 @@ type DayTradeStock = {
   grok_rank: number | null;
   close: number | null;
   price_diff: number | null;
-  volume: number | null;
-  turnover: number | null;
-  vol_ratio: number | null;
+  volume?: number | null;
+  turnover?: number | null;
+  vol_ratio?: number | null;
   rsi9: number | null;
   atr_pct: number | null;
   prob_up: number | null;
@@ -565,15 +565,15 @@ export default function DayTradeListPage() {
     };
   };
 
-  const formatVolume = (vol: number | null) => {
-    if (vol === null) return "-";
+  const formatVolume = (vol: number | null | undefined) => {
+    if (vol == null) return "-";
     if (vol >= 1_000_000) return `${(vol / 1_000_000).toFixed(1)}M`;
     if (vol >= 1_000) return `${(vol / 1_000).toFixed(0)}K`;
     return vol.toLocaleString();
   };
 
-  const formatTurnover = (amount: number | null) => {
-    if (amount === null) return "-";
+  const formatTurnover = (amount: number | null | undefined) => {
+    if (amount == null) return "-";
     if (amount >= 100_000_000) return `${(amount / 100_000_000).toFixed(1)}億`;
     if (amount >= 10_000_000) return `${(amount / 10_000_000).toFixed(1)}千万`;
     if (amount >= 10_000) return `${(amount / 10_000).toFixed(0)}万`;
@@ -584,7 +584,7 @@ export default function DayTradeListPage() {
     const turnover = stock.turnover ?? null;
     if (turnover === null) return "unknown";
     if (turnover < 20_000_000) return "red";
-    if (turnover < 50_000_000 || (stock.volume !== null && stock.volume < 50_000)) return "yellow";
+    if (turnover < 50_000_000 || (stock.volume != null && stock.volume < 50_000)) return "yellow";
     return "normal";
   };
 
@@ -1407,7 +1407,7 @@ export default function DayTradeListPage() {
                             <div>{formatTurnover(stock.turnover)}</div>
                             <div className="text-[10px] text-muted-foreground">
                               {formatVolume(stock.volume)}
-                              {stock.vol_ratio !== null ? ` / x${stock.vol_ratio.toFixed(2)}` : ""}
+                              {stock.vol_ratio != null ? ` / x${stock.vol_ratio.toFixed(2)}` : ""}
                             </div>
                           </div>
                         </td>
