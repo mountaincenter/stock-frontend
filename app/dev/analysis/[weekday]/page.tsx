@@ -17,6 +17,15 @@ interface TimeSegment {
   time: string;
 }
 
+interface DataScope {
+  scope?: string;
+  analysisStartDate?: string;
+  excludedLegacyRows?: number;
+  rows?: number;
+  analysisSource?: string;
+  priceBasis?: string;
+}
+
 interface DetailStock {
   date: string;
   ticker: string;
@@ -70,7 +79,7 @@ interface WeekdayData { weekday: string; seido: SeidoData; ichinichi: IchinichiD
 interface SummaryResponse {
   timeSegments11: TimeSegment[]; timeSegments4: TimeSegment[];
   weekdays: WeekdayData[];
-  bucketInfo?: { available: boolean; buckets: string[]; thresholds: { short: number; long: number } };
+  bucketInfo?: { available: boolean; buckets: string[]; thresholds: { low: number; high: number } };
 }
 interface RiskMetrics {
   n: number;
@@ -105,7 +114,7 @@ interface RiskMatrixResponse {
   weekdayName: string;
   segmentMode: string;
   dataRange: { start: string | null; end: string | null; tradingDays: number };
-  dataScope?: { scope: string; analysisStartDate: string; excludedLegacyRows: number };
+  dataScope?: DataScope;
   rows: RiskMatrixRow[];
 }
 
@@ -119,9 +128,27 @@ const WEEKDAY_SLUG_MAP: Record<string, number> = {
 };
 const PRICE_RANGE_LABELS = ['~1,000円', '1,000~3,000円', '3,000~5,000円', '5,000~10,000円', '10,000円~'];
 const MARGIN_TYPES = ['制度信用', 'いちにち信用'];
-const BUCKET_SECTIONS = ['全体', 'SHORT', 'MIX', 'SKIP'] as const;
+const PROB_REGIMES = ['LOW_PROB_HEAT', 'MID_PROB_HEAT', 'HIGH_PROB_HEAT'] as const;
+const BUCKET_SECTIONS = ['全体', ...PROB_REGIMES] as const;
 const EXECUTION_MARGIN_KEYS = ['seido', 'ichinichi_ex0'] as const;
-const EXECUTION_PROB_KEYS = ['short', 'mix', 'skip'] as const;
+const EXECUTION_PROB_KEYS = ['low', 'mid', 'high'] as const;
+const PROB_REGIME_COLORS: Record<string, string> = {
+  LOW_PROB_HEAT: 'text-sky-400',
+  MID_PROB_HEAT: 'text-amber-400',
+  HIGH_PROB_HEAT: 'text-fuchsia-300',
+};
+
+const dataSourceLabel = (scope?: DataScope) => {
+  if (scope?.analysisSource === 'grok_master_jquants_segments') return 'J-Quants分足master';
+  if (scope?.analysisSource === 'grok_trending_archive') return 'archive seg';
+  return scope?.analysisSource ?? 'source未確認';
+};
+
+const priceBasisLabel = (scope?: DataScope) => {
+  if (scope?.priceBasis === 'jquants_minute') return 'JQ分足価格';
+  if (scope?.priceBasis === 'archive_seg') return 'archive価格';
+  return scope?.priceBasis ?? '価格基準未確認';
+};
 
 type DisplayMode = 'amount' | 'pct';
 type SegmentMode = '4seg' | '11seg';
@@ -211,6 +238,16 @@ const cardToneClass = (tone: 'good' | 'warn' | 'bad' | 'neutral') => ({
   bad: 'border-rose-500/30 bg-rose-500/10 text-rose-300',
   neutral: 'border-border/40 bg-muted/25 text-muted-foreground',
 }[tone]);
+
+const bestRegimeMetric = (row: Record<string, unknown>) => {
+  return PROB_REGIMES
+    .map((regime) => {
+      const metric = row[regime] as { pf?: number | null; n?: number } | undefined;
+      return { regime, pf: metric?.pf ?? null, n: metric?.n ?? 0 };
+    })
+    .filter((r) => r.pf !== null && r.n >= 10)
+    .sort((a, b) => (b.pf ?? 0) - (a.pf ?? 0))[0] ?? { regime: null, pf: null, n: 0 };
+};
 
 const getOperationClass = (
   best: RiskMatrixRow['bestSegment'],
@@ -348,8 +385,8 @@ export default function WeekdayAnalysisPage() {
 
   // 拡張パネルデータ
   const [panelsData, setPanelsData] = useState<Record<string, unknown> | null>(null);
-  const [futuresGapData, setFuturesGapData] = useState<{ rows: { label: string; SHORT: Record<string, unknown>; SKIP: Record<string, unknown> }[] } | null>(null);
-  const [nikkeiChangeData, setNikkeiChangeData] = useState<{ rows: { label: string; SHORT: Record<string, unknown>; SKIP: Record<string, unknown> }[] } | null>(null);
+  const [futuresGapData, setFuturesGapData] = useState<{ rows: { label: string }[] } | null>(null);
+  const [nikkeiChangeData, setNikkeiChangeData] = useState<{ rows: { label: string }[] } | null>(null);
   const [riskMatrixData, setRiskMatrixData] = useState<RiskMatrixResponse | null>(null);
 
   // アコーディオン state
@@ -426,7 +463,7 @@ export default function WeekdayAnalysisPage() {
     return data.results.find(r => r.key === WEEKDAYS[selectedDay]) || null;
   }, [data, selectedDay]);
 
-  // Filter stocks (no grade filter — grade is handled per section)
+  // Filter stocks. prob_regime grouping is handled per section.
   const filteredStocks = useMemo(() => {
     if (!weekdayGroup) return [];
     return weekdayGroup.stocks.filter(s => {
@@ -442,16 +479,16 @@ export default function WeekdayAnalysisPage() {
     return segmentMode === '11seg' ? summaryData.timeSegments11 : summaryData.timeSegments4;
   }, [summaryData, segmentMode, segments]);
 
-  // Bucket別に銘柄を分類
+  // prob_regime別に銘柄を分類
   const stocksByBucket = useMemo(() => {
     const result: Record<string, DetailStock[]> = { '全体': filteredStocks };
-    for (const b of ['SHORT', 'MIX', 'SKIP']) {
+    for (const b of PROB_REGIMES) {
       result[b] = filteredStocks.filter(s => s.bucket === b);
     }
     return result;
   }, [filteredStocks]);
 
-  // Bucket別の集計
+  // prob_regime別の集計
   const aggregationByBucket = useMemo(() => {
     const result: Record<string, ReturnType<typeof aggregateStocks>> = {};
     for (const key of BUCKET_SECTIONS) {
@@ -469,13 +506,13 @@ export default function WeekdayAnalysisPage() {
     // ENTRY: 先物Gap帯で最もPFが高い帯
     if (futuresGapData?.rows) {
       const bestGap = futuresGapData.rows
-        .map(r => ({ label: r.label, pf: (r.SHORT as { pf: number | null; n: number })?.pf, n: (r.SHORT as { n: number })?.n ?? 0 }))
+        .map(r => ({ label: r.label, ...bestRegimeMetric(r as Record<string, unknown>) }))
         .filter(r => r.pf !== null && r.n >= 10)
         .sort((a, b) => (b.pf ?? 0) - (a.pf ?? 0))[0];
       if (bestGap) {
         summary.push({
           category: 'ENTRY', icon: '▶', label: '先物Gap最適帯',
-          value: `${bestGap.label} → PF ${bestGap.pf!.toFixed(2)}`,
+          value: `${bestGap.label} / ${bestGap.regime} → PF ${bestGap.pf!.toFixed(2)}`,
           detail: `(n=${bestGap.n})`,
           color: bestGap.pf! >= 1.5 ? 'emerald' : bestGap.pf! >= 1 ? 'amber' : 'rose',
         });
@@ -485,13 +522,13 @@ export default function WeekdayAnalysisPage() {
     // ENTRY: N225変化率で最もPFが高い帯
     if (nikkeiChangeData?.rows) {
       const bestN225 = nikkeiChangeData.rows
-        .map(r => ({ label: r.label, pf: (r.SHORT as { pf: number | null; n: number })?.pf, n: (r.SHORT as { n: number })?.n ?? 0 }))
+        .map(r => ({ label: r.label, ...bestRegimeMetric(r as Record<string, unknown>) }))
         .filter(r => r.pf !== null && r.n >= 10)
         .sort((a, b) => (b.pf ?? 0) - (a.pf ?? 0))[0];
       if (bestN225) {
         summary.push({
           category: 'ENTRY', icon: '▶', label: 'N225最適帯',
-          value: `${bestN225.label} → PF ${bestN225.pf!.toFixed(2)}`,
+          value: `${bestN225.label} / ${bestN225.regime} → PF ${bestN225.pf!.toFixed(2)}`,
           detail: `(n=${bestN225.n})`,
           color: bestN225.pf! >= 1.5 ? 'emerald' : bestN225.pf! >= 1 ? 'amber' : 'rose',
         });
@@ -593,8 +630,8 @@ export default function WeekdayAnalysisPage() {
     return summary.length > 0 ? summary : null;
   }, [panelsData, futuresGapData, nikkeiChangeData]);
 
-  // ===== チャート用グレード切替 =====
-  const [chartBucket, setChartGrade] = useState<string>('全体');
+  // ===== チャート用prob_regime切替 =====
+  const [chartBucket, setChartRegime] = useState<string>('全体');
   const chartStocks = useMemo(() => stocksByBucket[chartBucket] || [], [stocksByBucket, chartBucket]);
 
   // ===== Pareto data =====
@@ -928,7 +965,7 @@ export default function WeekdayAnalysisPage() {
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
               <div className="text-xs text-muted-foreground mb-1">
-                {riskMatrixData?.dataScope?.analysisStartDate}以降 / {riskMatrixData?.dataRange.tradingDays}日 / 4seg
+                {riskMatrixData?.dataScope?.analysisStartDate}以降 / {riskMatrixData?.dataRange.tradingDays}日 / 4seg / {dataSourceLabel(riskMatrixData?.dataScope)} / {priceBasisLabel(riskMatrixData?.dataScope)}
               </div>
               <h2 className="text-lg font-bold text-foreground">
                 曜日別出口ルール — {WEEKDAY_SHORT[selectedDay]}曜日
@@ -957,7 +994,7 @@ export default function WeekdayAnalysisPage() {
                   <th className="text-left px-3 py-2 font-medium">判定</th>
                   <th className="text-left px-3 py-2 font-medium">運用区分</th>
                   <th className="text-left px-3 py-2 font-medium">信用区分</th>
-                  <th className="text-left px-3 py-2 font-medium">bucket</th>
+                  <th className="text-left px-3 py-2 font-medium">prob regime</th>
                   <th className="text-right px-3 py-2 font-medium">最適PF</th>
                   <th className="text-right px-3 py-2 font-medium">大引けPF</th>
                   <th className="text-right px-3 py-2 font-medium">PF差</th>
@@ -986,7 +1023,7 @@ export default function WeekdayAnalysisPage() {
                       )}
                     </td>
                     <td className="px-3 py-2 text-foreground">{row.marginLabel}</td>
-                    <td className={`px-3 py-2 font-medium ${row.probLabel === 'SHORT' ? 'text-rose-400' : row.probLabel === 'MIX' ? 'text-amber-400' : 'text-blue-400'}`}>{row.probLabel}</td>
+                    <td className={`px-3 py-2 font-medium ${PROB_REGIME_COLORS[row.probLabel] ?? 'text-muted-foreground'}`}>{row.probLabel}</td>
                     <td className="px-3 py-2 text-right tabular-nums text-foreground">{best?.pf?.toFixed(2) ?? '-'}</td>
                     <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{closeSeg?.amount.pf?.toFixed(2) ?? '-'}</td>
                     <td className={`px-3 py-2 text-right tabular-nums ${(pfDelta ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
@@ -1050,7 +1087,7 @@ export default function WeekdayAnalysisPage() {
         </div>
       )}
 
-      {/* ===== Grade別サマリーテーブル（アコーディオン） ===== */}
+      {/* ===== prob_regime別サマリーテーブル（アコーディオン） ===== */}
       <div className="mb-4">
         <div className="flex items-center gap-2 mb-2">
           <button
@@ -1063,13 +1100,13 @@ export default function WeekdayAnalysisPage() {
         {BUCKET_SECTIONS.map(g => renderBucketSection(g))}
       </div>
 
-      {/* ===== チャート用グレード切替タブ ===== */}
+      {/* ===== チャート用prob_regime切替タブ ===== */}
       <div className="flex items-center gap-2 mb-4">
         <span className="text-xs text-muted-foreground">グラフ:</span>
         {BUCKET_SECTIONS.map(g => (
           <button
             key={g}
-            onClick={() => setChartGrade(g)}
+            onClick={() => setChartRegime(g)}
             className={`px-3 py-1 text-xs rounded-md border transition-colors ${
               chartBucket === g
                 ? 'bg-primary text-primary-foreground border-primary'
@@ -2153,18 +2190,20 @@ export default function WeekdayAnalysisPage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {futuresGapData && (
                   <div className="rounded-xl border border-border/40 bg-card/80 p-4">
-                    <div className="text-xs text-muted-foreground mb-2">先物Gap帯 × Bucket PF</div>
+                    <div className="text-xs text-muted-foreground mb-2">先物Gap帯 × prob_regime PF</div>
                     <table className="w-full text-sm">
                       <thead><tr className="text-muted-foreground border-b border-border/30">
                         <th className="text-left px-2 py-1.5">Gap帯</th>
-                        <th className="text-right px-2 py-1.5">SHORT</th>
-                        <th className="text-right px-2 py-1.5">SKIP</th>
+                        {PROB_REGIMES.map((b) => (
+                          <th key={b} className={`text-right px-2 py-1.5 ${PROB_REGIME_COLORS[b]}`}>{b}</th>
+                        ))}
                       </tr></thead>
                       <tbody>{futuresGapData.rows.map(r => (
                         <tr key={r.label} className="border-b border-border/20">
                           <td className="px-2 py-1.5 text-foreground">{r.label}</td>
-                          {(['SHORT','SKIP'] as const).map(b => {
-                            const cell = r[b] as { pf: number|null; n: number; avg: number|null; winRate: number|null };
+                          {PROB_REGIMES.map(b => {
+                            const cell = ((r as Record<string, unknown>)[b] as { pf: number|null; n: number; avg: number|null; winRate: number|null } | undefined)
+                              ?? { pf: null, n: 0, avg: null, winRate: null };
                             return <td key={b} className={`text-right px-2 py-1.5 tabular-nums ${cell.pf !== null ? (cell.pf >= 1.5 ? 'text-emerald-400 font-bold' : cell.pf >= 1 ? 'text-foreground' : 'text-rose-400') : 'text-muted-foreground'}`}>
                               {cell.pf !== null ? `${cell.pf.toFixed(2)} (${cell.n})` : cell.n > 0 ? `- (${cell.n})` : '-'}
                             </td>;
@@ -2176,18 +2215,20 @@ export default function WeekdayAnalysisPage() {
                 )}
                 {nikkeiChangeData && (
                   <div className="rounded-xl border border-border/40 bg-card/80 p-4">
-                    <div className="text-xs text-muted-foreground mb-2">N225変化率帯 × Bucket PF</div>
+                    <div className="text-xs text-muted-foreground mb-2">N225変化率帯 × prob_regime PF</div>
                     <table className="w-full text-sm">
                       <thead><tr className="text-muted-foreground border-b border-border/30">
                         <th className="text-left px-2 py-1.5">N225帯</th>
-                        <th className="text-right px-2 py-1.5">SHORT</th>
-                        <th className="text-right px-2 py-1.5">SKIP</th>
+                        {PROB_REGIMES.map((b) => (
+                          <th key={b} className={`text-right px-2 py-1.5 ${PROB_REGIME_COLORS[b]}`}>{b}</th>
+                        ))}
                       </tr></thead>
                       <tbody>{nikkeiChangeData.rows.map(r => (
                         <tr key={r.label} className="border-b border-border/20">
                           <td className="px-2 py-1.5 text-foreground">{r.label}</td>
-                          {(['SHORT','SKIP'] as const).map(b => {
-                            const cell = r[b] as { pf: number|null; n: number; avg: number|null; winRate: number|null };
+                          {PROB_REGIMES.map(b => {
+                            const cell = ((r as Record<string, unknown>)[b] as { pf: number|null; n: number; avg: number|null; winRate: number|null } | undefined)
+                              ?? { pf: null, n: 0, avg: null, winRate: null };
                             return <td key={b} className={`text-right px-2 py-1.5 tabular-nums ${cell.pf !== null ? (cell.pf >= 1.5 ? 'text-emerald-400 font-bold' : cell.pf >= 1 ? 'text-foreground' : 'text-rose-400') : 'text-muted-foreground'}`}>
                               {cell.pf !== null ? `${cell.pf.toFixed(2)} (${cell.n})` : cell.n > 0 ? `- (${cell.n})` : '-'}
                             </td>;
@@ -2210,18 +2251,18 @@ export default function WeekdayAnalysisPage() {
                   <div className="rounded-xl border border-border/40 bg-card/80 p-4">
                     <table className="w-full text-sm">
                       <thead><tr className="text-muted-foreground border-b border-border/30">
-                        <th className="text-left px-2 py-1.5">Bucket</th>
+                        <th className="text-left px-2 py-1.5">prob_regime</th>
                         <th className="text-right px-2 py-1.5">件数</th>
                         <th className="text-right px-2 py-1.5">出来高中央</th>
                         <th className="text-right px-2 py-1.5">株数中央</th>
                         <th className="text-right px-2 py-1.5">売残中央</th>
                         <th className="text-right px-2 py-1.5">買残中央</th>
                       </tr></thead>
-                      <tbody>{(['SHORT','SKIP'] as const).map(b => {
+                      <tbody>{PROB_REGIMES.map(b => {
                         const d = (panelsData.liquidity as Record<string, { n: number; volume_median: number|null; shares_median: number|null; sell_balance_median: number|null; buy_balance_median: number|null }>)[b];
                         if (!d || d.n === 0) return null;
                         return <tr key={b} className="border-b border-border/20">
-                          <td className={`px-2 py-1.5 font-medium ${b === 'SHORT' ? 'text-rose-400' : 'text-muted-foreground'}`}>{b}</td>
+                          <td className={`px-2 py-1.5 font-medium ${PROB_REGIME_COLORS[b]}`}>{b}</td>
                           <td className="text-right px-2 py-1.5 tabular-nums text-foreground">{d.n}</td>
                           <td className="text-right px-2 py-1.5 tabular-nums text-foreground">{d.volume_median?.toLocaleString() ?? '-'}</td>
                           <td className="text-right px-2 py-1.5 tabular-nums text-foreground">{d.shares_median?.toLocaleString() ?? '-'}</td>

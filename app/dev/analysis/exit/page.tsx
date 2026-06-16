@@ -42,7 +42,7 @@ interface DetailResponse {
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 const WEEKDAYS = ['月曜日', '火曜日', '水曜日', '木曜日', '金曜日'] as const;
 const WEEKDAY_SHORT = ['月', '火', '水', '木', '金'] as const;
-const BUCKET_OPTIONS = ['全体', 'SHORT', 'DISC', 'LONG'] as const;
+const BUCKET_OPTIONS = ['全体', 'SHORT', 'SKIP'] as const;
 const PRICE_RANGE_LABELS = ['~1,000円', '1,000~3,000円', '3,000~5,000円', '5,000~10,000円', '10,000円~'];
 
 // P&Lバケット（金額ベース）

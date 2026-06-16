@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { Pencil, Check, X, ChevronDown, ChevronUp, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw } from "lucide-react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
+import { Pencil, Check, X, ChevronDown, ChevronUp, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw, AlertTriangle } from "lucide-react";
 import { DevNavLinks, FilterButtonGroup } from "@/components/dev";
 
 type DayTradeStock = {
@@ -10,13 +10,18 @@ type DayTradeStock = {
   grok_rank: number | null;
   close: number | null;
   price_diff: number | null;
+  volume: number | null;
+  turnover: number | null;
+  vol_ratio: number | null;
   rsi9: number | null;
   atr_pct: number | null;
   prob_up: number | null;
   prob_bin: string | null;
   price_band: string | null;
   bucket: string | null;
+  prob_regime?: string | null;
   credit_bucket: string | null;
+  tradable?: boolean;
   expected_pf: number | null;
   expected_pf_n: number;
   expected_pf_basis: string | null;
@@ -61,7 +66,7 @@ type Summary = {
 
 type ProbBinCell = {
   label: string;
-  decision?: "SHORT" | "SKIP" | "MIX";
+  decision?: string;
   n: number;
   pf: number | null;
   winRate: number | null;
@@ -91,6 +96,7 @@ type ProbBinPfData = {
 };
 
 type RiskMetrics = {
+  n?: number;
   total: number;
   pf: number | null;
   dailyMaxDD: number | null;
@@ -103,6 +109,20 @@ type RiskSegment = {
   time: string;
   amount: RiskMetrics;
 };
+
+type ExitMaxPfDisplay = {
+  pf: number | null;
+  n: number;
+  time: string;
+  label: string;
+  lowN: boolean;
+} | null;
+
+type PfDisplay = {
+  pf: number | null;
+  n: number;
+  lowN: boolean;
+} | null;
 
 type WeekdayRiskRow = {
   marginKey: string;
@@ -124,17 +144,86 @@ type WeekdayRiskRow = {
 type WeekdayRiskMatrix = {
   weekdayName: string;
   dataRange: { tradingDays: number };
-  dataScope?: { analysisStartDate: string };
+  dataScope?: {
+    analysisStartDate?: string;
+    analysisSource?: string;
+    priceBasis?: string;
+  };
   rows: WeekdayRiskRow[];
 };
 
 type FilterType = "all" | "unchecked" | "shortable" | "day_trade" | "ng";
 type ExitDecision = "GO" | "CONDITIONAL" | "SKIP";
 type ExitOperation = "通常" | "早期利確" | "時間指定" | "見送り";
+type ProbRegime = "LOW_PROB_HEAT" | "MID_PROB_HEAT" | "HIGH_PROB_HEAT";
+type OperationClass = "入力待ち" | "残なし" | "保留" | "見送り" | "小ロット" | "推奨";
+type LiquidityLevel = "red" | "yellow" | "normal" | "unknown";
+
+type OperationPlan = {
+  label: OperationClass;
+  detail: string;
+  className: string;
+};
+
+type SortKey = keyof DayTradeStock | "parent_pf";
+type SortValue = string | number | boolean | null | undefined;
+
+const PROB_REGIME_ORDER: Record<string, number> = {
+  LOW_PROB_HEAT: 0,
+  MID_PROB_HEAT: 1,
+  HIGH_PROB_HEAT: 2,
+  SHORT: 0,
+  MIX: 1,
+  SKIP: 2,
+};
+
+const normalizeProbRegime = (value: string | null | undefined): ProbRegime | null => {
+  if (value === "SHORT") return "LOW_PROB_HEAT";
+  if (value === "MIX") return "MID_PROB_HEAT";
+  if (value === "SKIP") return "HIGH_PROB_HEAT";
+  if (value === "LOW_PROB_HEAT" || value === "MID_PROB_HEAT" || value === "HIGH_PROB_HEAT") return value;
+  return null;
+};
+
+const probRegimeClass = (value: string | null | undefined) => {
+  const regime = normalizeProbRegime(value);
+  if (regime === "LOW_PROB_HEAT") return "text-sky-400";
+  if (regime === "MID_PROB_HEAT") return "text-amber-400";
+  if (regime === "HIGH_PROB_HEAT") return "text-fuchsia-300";
+  return "text-muted-foreground";
+};
+
+const probRegimeLabel = (value: string | null | undefined) => {
+  const regime = normalizeProbRegime(value);
+  if (regime === "LOW_PROB_HEAT") return "L";
+  if (regime === "MID_PROB_HEAT") return "M";
+  if (regime === "HIGH_PROB_HEAT") return "H";
+  return "-";
+};
+
+const probRegimeBadgeClass = (value: string | null | undefined) => {
+  const regime = normalizeProbRegime(value);
+  if (regime === "LOW_PROB_HEAT") return "border-sky-500/40 bg-sky-500/10 text-sky-300";
+  if (regime === "MID_PROB_HEAT") return "border-amber-500/40 bg-amber-500/10 text-amber-300";
+  if (regime === "HIGH_PROB_HEAT") return "border-fuchsia-500/40 bg-fuchsia-500/10 text-fuchsia-300";
+  return "border-border/40 bg-muted/20 text-muted-foreground";
+};
+
+const dataSourceLabel = (scope?: WeekdayRiskMatrix["dataScope"]) => {
+  if (scope?.analysisSource === "grok_master_jquants_segments") return "J-Quants分足master";
+  if (scope?.analysisSource === "grok_trending_archive") return "archive seg";
+  return scope?.analysisSource ?? "source未確認";
+};
+
+const priceBasisLabel = (scope?: WeekdayRiskMatrix["dataScope"]) => {
+  if (scope?.priceBasis === "jquants_minute") return "JQ分足価格";
+  if (scope?.priceBasis === "archive_seg") return "archive価格";
+  return scope?.priceBasis ?? "価格基準未確認";
+};
 
 const FILTER_OPTIONS = [
   { value: "all", label: "すべて" },
-  { value: "unchecked", label: "未チェック" },
+  { value: "unchecked", label: "入力待ち" },
   { value: "shortable", label: "制度" },
   { value: "day_trade", label: "いちにち" },
   { value: "ng", label: "NG" },
@@ -169,7 +258,7 @@ export default function DayTradeListPage() {
   const [expandedTicker, setExpandedTicker] = useState<string | null>(null);
   const [historyData, setHistoryData] = useState<Record<string, HistoryRecord[]>>({});
   const [loadingHistory, setLoadingHistory] = useState<string | null>(null);
-  const [sortKey, setSortKey] = useState<keyof DayTradeStock | null>("prob_up");
+  const [sortKey, setSortKey] = useState<SortKey | null>("prob_up");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   // リアルタイム寄付価格
@@ -198,6 +287,7 @@ export default function DayTradeListPage() {
     note: string;
   } | null>(null);
   const [weekdayRisk, setWeekdayRisk] = useState<WeekdayRiskMatrix | null>(null);
+  const [weekdayRisk11, setWeekdayRisk11] = useState<WeekdayRiskMatrix | null>(null);
 
   const fetchData = async () => {
     try {
@@ -210,10 +300,12 @@ export default function DayTradeListPage() {
       if (data.weekday_rule) setWeekdayRule(data.weekday_rule);
       const weekdayIdx = data.weekday_rule?.weekday ? WEEKDAY_TO_INDEX[data.weekday_rule.weekday] : undefined;
       if (weekdayIdx !== undefined) {
-        const riskRes = await fetch(`/api/dev/weekday-risk-matrix?weekday=${weekdayIdx}&direction=short&segment_mode=4seg`);
-        if (riskRes.ok) {
-          setWeekdayRisk(await riskRes.json());
-        }
+        const [riskRes, risk11Res] = await Promise.all([
+          fetch(`/api/dev/weekday-risk-matrix?weekday=${weekdayIdx}&direction=short&segment_mode=4seg`),
+          fetch(`/api/dev/weekday-risk-matrix?weekday=${weekdayIdx}&direction=short&segment_mode=11seg`),
+        ]);
+        if (riskRes.ok) setWeekdayRisk(await riskRes.json());
+        if (risk11Res.ok) setWeekdayRisk11(await risk11Res.json());
       }
       setLoading(false);
     } catch (err) {
@@ -399,12 +491,6 @@ export default function DayTradeListPage() {
     return price.toLocaleString("ja-JP", { maximumFractionDigits: 0 });
   };
 
-  const formatPercent = (pct: number | null, decimals = 2) => {
-    if (pct === null) return "-";
-    const sign = pct >= 0 ? "+" : "";
-    return `${sign}${pct.toFixed(decimals)}%`;
-  };
-
   const formatProfit = (profit: number | null) => {
     if (profit === null) return "-";
     const sign = profit >= 0 ? "+" : "";
@@ -429,6 +515,56 @@ export default function DayTradeListPage() {
     };
   };
 
+  const pfTextClass = (pf: number | null | undefined) => {
+    if (pf === null || pf === undefined) return "text-muted-foreground";
+    if (pf >= 2) return "text-emerald-400 font-semibold";
+    if (pf >= 1.2) return "text-amber-400 font-medium";
+    return "text-rose-400 font-medium";
+  };
+
+  const getRiskRowForStock = (stock: DayTradeStock, matrix: WeekdayRiskMatrix | null) => {
+    if (!matrix || stock.ng) return null;
+    const regime = normalizeProbRegime(stock.bucket);
+    if (!regime) return null;
+    const probKey =
+      regime === "LOW_PROB_HEAT" ? "low" :
+      regime === "MID_PROB_HEAT" ? "mid" :
+      "high";
+    const marginKey =
+      stock.credit_bucket === "制度信用" ? "seido" :
+      stock.credit_bucket === "いちにち信用_除株数0" ? "ichinichi_ex0" :
+      null;
+    if (!marginKey) return null;
+    return matrix.rows.find(r => r.marginKey === marginKey && r.probKey === probKey) ?? null;
+  };
+
+  const getParentPfDisplay = (stock: DayTradeStock): PfDisplay => {
+    const row = getRiskRowForStock(stock, weekdayRisk11 ?? weekdayRisk);
+    const close = row?.segments.find(s => s.key === "seg_1530");
+    if (!row || !close) return null;
+    const n = close.amount.n ?? row.count;
+    return {
+      pf: close.amount.pf,
+      n,
+      lowN: n < 30,
+    };
+  };
+
+  const getExitMaxPfDisplay = (stock: DayTradeStock): ExitMaxPfDisplay => {
+    const row = getRiskRowForStock(stock, weekdayRisk11 ?? weekdayRisk);
+    const best = row?.bestSegment;
+    if (!row || !best) return null;
+    const bestSeg = row.segments.find(s => s.key === best.key);
+    const n = bestSeg?.amount.n ?? row.count;
+    return {
+      pf: best.pf,
+      n,
+      time: bestSeg?.time ?? best.key.replace("seg_", "").replace(/^(\d{2})(\d{2})$/, "$1:$2"),
+      label: bestSeg?.label ?? best.label,
+      lowN: n < 30,
+    };
+  };
+
   const formatVolume = (vol: number | null) => {
     if (vol === null) return "-";
     if (vol >= 1_000_000) return `${(vol / 1_000_000).toFixed(1)}M`;
@@ -436,16 +572,92 @@ export default function DayTradeListPage() {
     return vol.toLocaleString();
   };
 
+  const formatTurnover = (amount: number | null) => {
+    if (amount === null) return "-";
+    if (amount >= 100_000_000) return `${(amount / 100_000_000).toFixed(1)}億`;
+    if (amount >= 10_000_000) return `${(amount / 10_000_000).toFixed(1)}千万`;
+    if (amount >= 10_000) return `${(amount / 10_000).toFixed(0)}万`;
+    return amount.toLocaleString();
+  };
+
+  const getLiquidityLevel = (stock: DayTradeStock): LiquidityLevel => {
+    const turnover = stock.turnover ?? null;
+    if (turnover === null) return "unknown";
+    if (turnover < 20_000_000) return "red";
+    if (turnover < 50_000_000 || (stock.volume !== null && stock.volume < 50_000)) return "yellow";
+    return "normal";
+  };
+
+  const getLiquidityClass = (stock: DayTradeStock) => {
+    const level = getLiquidityLevel(stock);
+    if (level === "unknown") return "text-muted-foreground";
+    if (level === "red") return "text-rose-400 font-medium";
+    if (level === "yellow") return "text-amber-400 font-medium";
+    return "text-foreground";
+  };
+
+  const isTradableForShort = (stock: DayTradeStock) => {
+    if (typeof stock.tradable === "boolean") return stock.tradable;
+    return stock.credit_bucket === "制度信用" || stock.credit_bucket === "いちにち信用_除株数0";
+  };
+
+  const isInputPending = (stock: DayTradeStock) =>
+    !stock.shortable && !stock.day_trade && !stock.ng;
+
+  const isNoDayTradeShares = (stock: DayTradeStock) =>
+    !stock.shortable &&
+    stock.day_trade &&
+    !stock.ng &&
+    (stock.day_trade_available_shares === null || stock.day_trade_available_shares <= 0);
+
+  const getOperationPlan = (stock: DayTradeStock): OperationPlan => {
+    const liquidity = getLiquidityLevel(stock);
+    const expectedPf = stock.expected_pf;
+    const expectedAvgWeak = stock.expected_pnl_avg !== null && stock.expected_pnl_avg <= 0;
+    const sampleForSmallLot = stock.expected_pf_n >= 15;
+    const sampleForRecommendation = stock.expected_pf_n >= 30;
+    const canUse200Shares =
+      stock.shortable ||
+      (stock.day_trade_available_shares !== null && stock.day_trade_available_shares >= 200);
+
+    if (isInputPending(stock)) {
+      return { label: "入力待ち", detail: "信用未入力", className: "border-border/50 bg-muted/20 text-muted-foreground" };
+    }
+    if (isNoDayTradeShares(stock)) {
+      return { label: "残なし", detail: "いちにち0", className: "border-border/50 bg-muted/20 text-muted-foreground" };
+    }
+    if (stock.ng) {
+      return { label: "見送り", detail: "NG指定", className: "border-rose-500/35 bg-rose-500/10 text-rose-300" };
+    }
+    if (!isTradableForShort(stock)) {
+      return { label: "保留", detail: "信用要確認", className: "border-amber-500/35 bg-amber-500/10 text-amber-300" };
+    }
+    if (expectedPf === null || !sampleForSmallLot) {
+      return { label: "保留", detail: "検証不足", className: "border-amber-500/35 bg-amber-500/10 text-amber-300" };
+    }
+    if (liquidity === "red") {
+      return { label: "見送り", detail: "流動性薄", className: "border-rose-500/35 bg-rose-500/10 text-rose-300" };
+    }
+    if (expectedPf < 1.2 || expectedAvgWeak) {
+      return { label: "見送り", detail: "期待値弱", className: "border-rose-500/35 bg-rose-500/10 text-rose-300" };
+    }
+    if (expectedPf >= 2.0 && sampleForRecommendation && canUse200Shares && liquidity === "normal") {
+      return { label: "推奨", detail: "200株分割", className: "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" };
+    }
+    return { label: "小ロット", detail: "100株", className: "border-sky-500/35 bg-sky-500/10 text-sky-300" };
+  };
+
   const getProbBinDecision = (bin: ProbBinCell) => {
-    if (bin.decision) return bin.decision;
+    const normalized = normalizeProbRegime(bin.decision);
+    if (normalized) return normalized;
     const start = Number(bin.label.split("-")[0]);
     const end = Number(bin.label.split("-")[1]);
     if (Number.isFinite(start) && Number.isFinite(end)) {
-      if (end <= 0.4) return "SHORT";
-      if (start >= 0.5) return "SKIP";
-      return "MIX";
+      if (end <= 0.4) return "LOW_PROB_HEAT";
+      if (start >= 0.5) return "HIGH_PROB_HEAT";
+      return "MID_PROB_HEAT";
     }
-    return "SKIP";
+    return "HIGH_PROB_HEAT";
   };
 
   const getExitOperation = (best: WeekdayRiskRow["bestSegment"], close: RiskSegment | null): ExitOperation => {
@@ -459,23 +671,45 @@ export default function DayTradeListPage() {
     return "見送り";
   };
 
+  const getRiskNote = (best: WeekdayRiskRow["bestSegment"]) => {
+    if (!best) return null;
+    const notes: string[] = [];
+    if (best.dailyMaxDD !== null) {
+      if (best.dailyMaxDD < -50000) notes.push("DD重め");
+      else if (best.dailyMaxDD < -30000) notes.push("DD注意");
+    }
+    if (best.cvar05 !== null) {
+      if (best.cvar05 < -25000) notes.push("CVaR重め");
+      else if (best.cvar05 < -15000) notes.push("CVaR注意");
+    }
+    return notes.length > 0 ? notes.join(" / ") : null;
+  };
+
   const getExitDecision = (row: WeekdayRiskRow, operation: ExitOperation, close: RiskSegment | null): ExitDecision => {
     const best = row.bestSegment;
     if (!best || best.pf === null || best.dailyMaxDD === null || best.cvar05 === null || operation === "見送り") return "SKIP";
     const closePf = close?.amount.pf ?? null;
     const riskOk = best.dailyMaxDD >= -30000 && best.cvar05 >= -15000;
+    if (best.pf < 1.2 || best.total <= 0) return "SKIP";
     if (best.pf >= 1.5 && best.total > 0 && riskOk && closePf !== null && closePf >= 1.0 && operation === "通常") return "GO";
-    if (best.pf >= 1.2 && best.total > 0 && best.dailyMaxDD >= -50000) return "CONDITIONAL";
-    return "SKIP";
+    return "CONDITIONAL";
   };
 
   const getExitReason = (decision: ExitDecision, operation: ExitOperation, best: WeekdayRiskRow["bestSegment"], close: RiskSegment | null, pfDelta: number | null) => {
-    if (decision === "SKIP") return "期待値不足";
+    if (decision === "SKIP") {
+      if (!best || best.pf === null) return "検証不足";
+      if (operation === "見送り") return "出口条件未達";
+      if (best.pf < 1.2 || best.total <= 0) return "期待値不足";
+      return "リスク過大";
+    }
     const closePf = close?.amount.pf ?? null;
-    if (operation === "時間指定") return "大引けPF<1";
-    if (operation === "早期利確") return pfDelta !== null ? `PF差 +${pfDelta.toFixed(2)}` : "早期利確優位";
-    if (best?.dailyMaxDD !== null && best?.dailyMaxDD !== undefined && best.dailyMaxDD < -30000) return "DD注意";
-    if (best?.cvar05 !== null && best?.cvar05 !== undefined && best.cvar05 < -15000) return "CVaR注意";
+    const riskNote = getRiskNote(best);
+    if (operation === "時間指定") return riskNote ? `大引けPF<1 / ${riskNote}` : "大引けPF<1";
+    if (operation === "早期利確") {
+      const edgeNote = pfDelta !== null ? `PF差 +${pfDelta.toFixed(2)}` : "早期利確優位";
+      return riskNote ? `${edgeNote} / ${riskNote}` : edgeNote;
+    }
+    if (riskNote) return riskNote;
     if (closePf !== null && closePf < 1.2) return "大引けPF弱め";
     return "大引け可";
   };
@@ -493,10 +727,10 @@ export default function DayTradeListPage() {
     見送り: "text-muted-foreground",
   }[operation]);
 
-  const weekdayExitRows = useMemo(() => {
+  const weekdayExitRows = (() => {
     if (!weekdayRisk) return [];
     return weekdayRisk.rows
-      .filter(row => ["seido", "ichinichi_ex0"].includes(row.marginKey) && ["short", "mix", "skip"].includes(row.probKey))
+      .filter(row => ["seido", "ichinichi_ex0"].includes(row.marginKey) && ["low", "mid", "high"].includes(row.probKey))
       .map(row => {
         const best = row.bestSegment;
         const bestSeg = best ? row.segments.find(s => s.key === best.key) ?? null : null;
@@ -510,15 +744,11 @@ export default function DayTradeListPage() {
         const totalDelta = best && close ? best.total - close.amount.total : null;
         return { row, best, bestSeg, close, operation, decision, pfDelta, reason, totalDelta };
       });
-  }, [weekdayRisk]);
+  })();
 
-  const getDecisionClass = (decision: string) => {
-    if (decision === "SHORT") return "text-rose-400";
-    if (decision === "MIX") return "text-amber-400";
-    return "text-muted-foreground";
-  };
+  const getDecisionClass = (decision: string) => probRegimeClass(decision);
 
-  const toggleSort = (key: keyof DayTradeStock) => {
+  const toggleSort = (key: SortKey) => {
     if (sortKey === key) {
       if (sortDir === "asc") setSortDir("desc");
       else { setSortKey(null); setSortDir("asc"); }
@@ -528,7 +758,7 @@ export default function DayTradeListPage() {
     }
   };
 
-  const SortIcon = ({ col }: { col: keyof DayTradeStock }) => {
+  const SortIcon = ({ col }: { col: SortKey }) => {
     if (sortKey !== col) return <ArrowUpDown className="w-3 h-3 opacity-30 ml-0.5 inline" />;
     return sortDir === "asc"
       ? <ArrowUp className="w-3 h-3 text-primary ml-0.5 inline" />
@@ -552,24 +782,36 @@ export default function DayTradeListPage() {
     }
 
     if (sortKey) {
-      const bucketRank: Record<string, number> = { SHORT: 0, SKIP: 1 };
+      const riskMatrix = weekdayRisk11 ?? weekdayRisk;
+      const getParentPfSortValue = (stock: DayTradeStock): number | null => {
+        const row = getRiskRowForStock(stock, riskMatrix);
+        const close = row?.segments.find(s => s.key === "seg_1530");
+        return close?.amount.pf ?? null;
+      };
+      const getSortValue = (stock: DayTradeStock, key: SortKey): SortValue => {
+        if (key === "parent_pf") return getParentPfSortValue(stock);
+        return stock[key];
+      };
+
       list = [...list].sort((a, b) => {
-        const av = a[sortKey];
-        const bv = b[sortKey];
+        const av = getSortValue(a, sortKey);
+        const bv = getSortValue(b, sortKey);
         if (av == null && bv == null) return 0;
         if (av == null) return 1;
         if (bv == null) return -1;
         let cmp: number;
         if (sortKey === "bucket") {
-          cmp = (bucketRank[av as string] ?? 99) - (bucketRank[bv as string] ?? 99);
+          cmp = (PROB_REGIME_ORDER[av as string] ?? 99) - (PROB_REGIME_ORDER[bv as string] ?? 99);
+        } else if (typeof av === "string" || typeof bv === "string") {
+          cmp = String(av).localeCompare(String(bv));
         } else {
-          cmp = typeof av === "string" ? av.localeCompare(bv as string) : (av as number) - (bv as number);
+          cmp = Number(av) - Number(bv);
         }
         return sortDir === "asc" ? cmp : -cmp;
       });
     }
     return list;
-  }, [stocks, filter, sortKey, sortDir, excludeZeroShares]);
+  }, [stocks, filter, sortKey, sortDir, excludeZeroShares, weekdayRisk, weekdayRisk11]);
 
   if (loading) {
     return (
@@ -633,6 +875,33 @@ export default function DayTradeListPage() {
           </div>
         </header>
 
+        <section className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-300" />
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-amber-200">寄り前運用メモ: 特別気配疑いは通常候補と別扱い</div>
+              <div className="mt-2 grid gap-2 text-xs text-amber-100/85 md:grid-cols-4">
+                <div>
+                  <span className="font-semibold text-amber-100">取消/見送り:</span>
+                  <span className="ml-1">すぐ寄り付かない、9:00特別売り気配、09:05以降GD-10%以上、15:30初回約定。</span>
+                </div>
+                <div>
+                  <span className="font-semibold text-amber-100">GU:</span>
+                  <span className="ml-1">9:00に普通に寄るGUは即取消ではない。遅延GU+S高気配は小ロット以下または見送り。</span>
+                </div>
+                <div>
+                  <span className="font-semibold text-amber-100">9:30判定:</span>
+                  <span className="ml-1">VWAP上なら撤退/ノートレ、VWAP下なら継続候補。GU後もVWAP基準で見る。</span>
+                </div>
+                <div>
+                  <span className="font-semibold text-amber-100">出口:</span>
+                  <span className="ml-1">曜日出口ルールに従い11:30/14:00/大引けを分ける。左尾管理を優先。</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* 曜日ルールバナー */}
         {weekdayRule && weekdayExitRows.length === 0 && (
           <div className={`mb-4 rounded-xl border px-4 py-3 flex items-center gap-3 ${
@@ -672,7 +941,7 @@ export default function DayTradeListPage() {
             <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
               <div>
                 <div className="text-xs text-muted-foreground">
-                  {weekdayRisk?.dataScope?.analysisStartDate}以降 / {weekdayRisk?.dataRange.tradingDays}日 / 4seg
+                  {weekdayRisk?.dataScope?.analysisStartDate}以降 / {weekdayRisk?.dataRange.tradingDays}日 / 4seg / {dataSourceLabel(weekdayRisk?.dataScope)} / {priceBasisLabel(weekdayRisk?.dataScope)}
                 </div>
                 <h2 className="text-sm font-bold text-foreground">曜日出口ルール — {weekdayRisk?.weekdayName}</h2>
               </div>
@@ -691,7 +960,7 @@ export default function DayTradeListPage() {
                     <th className="text-left px-3 py-2 font-medium">判定</th>
                     <th className="text-left px-3 py-2 font-medium">運用区分</th>
                     <th className="text-left px-3 py-2 font-medium">信用区分</th>
-                    <th className="text-left px-3 py-2 font-medium">bucket</th>
+                    <th className="text-left px-3 py-2 font-medium">prob regime</th>
                     <th className="text-right px-3 py-2 font-medium">最適PF</th>
                     <th className="text-right px-3 py-2 font-medium">大引けPF</th>
                     <th className="text-right px-3 py-2 font-medium">PF差</th>
@@ -715,7 +984,7 @@ export default function DayTradeListPage() {
                         {decision === "SKIP" ? "見送り" : `${operation} / ${bestSeg ? `${bestSeg.time} ${bestSeg.label}` : "-"}`}
                       </td>
                       <td className="px-3 py-2 text-foreground">{row.marginLabel}</td>
-                      <td className={`px-3 py-2 font-medium ${getDecisionClass(row.probLabel)}`}>{row.probLabel}</td>
+                      <td className={`px-3 py-2 font-medium ${getDecisionClass(row.probLabel)}`}>{probRegimeLabel(row.probLabel)}</td>
                       <td className="px-3 py-2 text-right tabular-nums text-foreground">{best?.pf?.toFixed(2) ?? "-"}</td>
                       <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{close?.amount.pf?.toFixed(2) ?? "-"}</td>
                       <td className={`px-3 py-2 text-right tabular-nums ${(pfDelta ?? 0) >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
@@ -773,7 +1042,7 @@ export default function DayTradeListPage() {
             <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 via-transparent to-transparent pointer-events-none" />
             <div className="relative">
               <div className="text-xl sm:text-2xl tabular-nums font-bold text-amber-400">{summary.unchecked}</div>
-              <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap">未チェック</div>
+              <div className="text-xs text-muted-foreground mt-1 whitespace-nowrap">入力待ち</div>
             </div>
           </div>
         </div>
@@ -913,15 +1182,15 @@ export default function DayTradeListPage() {
                 <tr className="border-b border-border/40 bg-muted/30">
                   <th className="px-2 py-3 text-left text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("ticker")}>銘柄<SortIcon col="ticker" /></th>
                   <th className="px-2 py-3 text-left text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("stock_name")}>名称<SortIcon col="stock_name" /></th>
-                  <th className="px-2 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("grok_rank")}>Rank<SortIcon col="grok_rank" /></th>
-                  <th className="px-2 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("appearance_count")}>登場<SortIcon col="appearance_count" /></th>
+                  <th className="px-2 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">運用</th>
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("close")}>終値<SortIcon col="close" /></th>
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("price_diff")}>前日差<SortIcon col="price_diff" /></th>
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">寄付差</th>
-                  <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("expected_pf")}>期待PF<SortIcon col="expected_pf" /></th>
+                  <th className="px-1.5 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("parent_pf")}>親PF<SortIcon col="parent_pf" /></th>
+                  <th className="px-1.5 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">出口</th>
+                  <th className="px-1.5 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("expected_pf")}>区間PF<SortIcon col="expected_pf" /></th>
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("prob_up")}>prob<SortIcon col="prob_up" /></th>
-                  <th className="px-2 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("bucket")}>Action<SortIcon col="bucket" /></th>
-                  <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("atr_pct")}>ATR%<SortIcon col="atr_pct" /></th>
+                  <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("turnover")}>流動性<SortIcon col="turnover" /></th>
                   <th className="px-2 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">
                     {bulkEditMode ? "制度" : "信用区分"}
                   </th>
@@ -951,7 +1220,8 @@ export default function DayTradeListPage() {
                   const canExpand = !bulkEditMode && stock.appearance_count >= 1;
                   const history = historyData[stock.ticker] || [];
                   const isLoadingHistory = loadingHistory === stock.ticker;
-                  const colSpan = bulkEditMode ? 17 : 15;
+                  const operation = getOperationPlan(stock);
+                  const colSpan = bulkEditMode ? 17 : 14;
 
                   return (
                     <React.Fragment key={stock.ticker}>
@@ -980,19 +1250,18 @@ export default function DayTradeListPage() {
                             {stock.stock_name}
                           </button>
                           <div className="flex gap-1 mt-0.5">
-                            {stock.short_recommended && (
-                              <span className="text-[10px] px-1 py-0 rounded bg-emerald-500/20 text-emerald-400 font-medium">SHORT推奨</span>
-                            )}
                             {stock.reason_category && (
                               <span className="text-[10px] px-1 py-0 rounded bg-white/5 text-muted-foreground">{stock.reason_category}</span>
                             )}
                           </div>
                         </td>
-                        <td className="px-2 py-4 text-center tabular-nums text-foreground">
-                          {stock.grok_rank ?? "-"}
-                        </td>
-                        <td className={`px-2 py-4 text-center tabular-nums ${stock.appearance_count > 1 ? "text-primary font-medium" : "text-muted-foreground"}`}>
-                          {stock.appearance_count}
+                        <td className="px-2 py-4 text-center whitespace-nowrap">
+                          <div className="inline-flex flex-col items-center gap-0.5">
+                            <span className={`rounded border px-2 py-0.5 text-xs font-semibold ${operation.className}`}>
+                              {operation.label}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">{operation.detail}</span>
+                          </div>
                         </td>
                         <td className="px-2 py-4 text-right tabular-nums whitespace-nowrap text-muted-foreground">
                           {formatPrice(stock.close)}
@@ -1053,7 +1322,45 @@ export default function DayTradeListPage() {
                             return (diff > 0 ? "+" : "") + diff.toLocaleString();
                           })()}
                         </td>
-                        <td className={`px-2 py-3 text-right tabular-nums ${
+                        <td className={`px-1.5 py-3 text-right tabular-nums ${
+                          (() => {
+                            const parentPf = getParentPfDisplay(stock);
+                            return pfTextClass(parentPf?.pf);
+                          })()
+                        }`}>
+                          {(() => {
+                            const parentPf = getParentPfDisplay(stock);
+                            if (!parentPf || parentPf.pf === null) return "-";
+                            return (
+                              <div className="leading-tight" title="曜日×信用区分×L/M/H 大引けPF">
+                                <div>{parentPf.pf.toFixed(2)}</div>
+                                <div className={`text-[10px] ${parentPf.lowN ? "text-amber-400" : "text-muted-foreground"}`}>
+                                  n={parentPf.n}
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </td>
+                        <td className={`px-1.5 py-3 text-right tabular-nums ${
+                          (() => {
+                            const exitPf = getExitMaxPfDisplay(stock);
+                            return pfTextClass(exitPf?.pf);
+                          })()
+                        }`}>
+                          {(() => {
+                            const exitPf = getExitMaxPfDisplay(stock);
+                            if (!exitPf || exitPf.pf === null) return "-";
+                            return (
+                              <div className="leading-tight" title={`${exitPf.time} ${exitPf.label} / 11seg最適`}>
+                                <div>{exitPf.time}</div>
+                                <div className={`text-[10px] ${exitPf.lowN ? "text-amber-400" : "text-muted-foreground"}`}>
+                                  PF {exitPf.pf.toFixed(2)}
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </td>
+                        <td className={`px-1.5 py-3 text-right tabular-nums ${
                           stock.expected_pf !== null
                             ? stock.expected_pf >= 2
                               ? "text-emerald-400 font-semibold"
@@ -1088,23 +1395,21 @@ export default function DayTradeListPage() {
                                 : "text-muted-foreground"
                             : "text-muted-foreground"
                         }`}>
-                          {stock.prob_up !== null ? stock.prob_up.toFixed(2) : "-"}
+                          <div className="inline-flex items-center justify-end gap-1.5 whitespace-nowrap">
+                            <span>{stock.prob_up !== null ? stock.prob_up.toFixed(2) : "-"}</span>
+                            <span className={`inline-flex h-4 min-w-4 items-center justify-center rounded border px-1 text-[10px] font-bold ${probRegimeBadgeClass(stock.bucket)}`}>
+                              {probRegimeLabel(stock.bucket)}
+                            </span>
+                          </div>
                         </td>
-                        <td className={`px-2 py-4 text-center tabular-nums font-medium ${
-                          stock.bucket === "SHORT" ? "text-rose-400" :
-                          stock.bucket === "SKIP" ? "text-muted-foreground" :
-                          "text-muted-foreground"
-                        }`}>
-                          {stock.bucket ?? "-"}
-                        </td>
-                        <td className={`px-2 py-4 text-right tabular-nums whitespace-nowrap ${
-                          stock.atr_pct !== null && stock.atr_pct < 3
-                            ? "text-rose-400 font-medium"
-                            : stock.atr_pct !== null && stock.atr_pct >= 6
-                              ? "text-emerald-400 font-medium"
-                              : "text-muted-foreground"
-                        }`}>
-                          {stock.atr_pct !== null ? stock.atr_pct.toFixed(1) : "-"}
+                        <td className={`px-2 py-4 text-right tabular-nums whitespace-nowrap ${getLiquidityClass(stock)}`}>
+                          <div className="leading-tight">
+                            <div>{formatTurnover(stock.turnover)}</div>
+                            <div className="text-[10px] text-muted-foreground">
+                              {formatVolume(stock.volume)}
+                              {stock.vol_ratio !== null ? ` / x${stock.vol_ratio.toFixed(2)}` : ""}
+                            </div>
+                          </div>
                         </td>
                         {bulkEditMode ? (
                           <>
@@ -1269,18 +1574,18 @@ export default function DayTradeListPage() {
           </div>
         </div>
 
-        {/* ML Bucket Legend */}
+        {/* Prob Regime Legend */}
         <div className="relative overflow-hidden rounded-xl border border-primary/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 mt-4 px-4 py-3 shadow-lg shadow-black/5 backdrop-blur-xl">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none" />
           <div className="relative">
-            <div className="text-xs text-muted-foreground mb-2 font-medium">ML予測 閾値区分（PFテーブル用）</div>
+            <div className="text-xs text-muted-foreground mb-2 font-medium">prob_regime（Grok熱量レジーム）</div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-              <span><span className="text-rose-400 font-medium">SHORT</span>: prob &lt; 0.4</span>
-              <span><span className="text-amber-400 font-medium">MIX</span>: 0.4 ≤ prob &lt; 0.5</span>
-              <span><span className="text-muted-foreground font-medium">SKIP</span>: prob ≥ 0.5（ショート回避）</span>
+              <span><span className="text-sky-400 font-medium">LOW_PROB_HEAT</span>: prob &lt; 0.4</span>
+              <span><span className="text-amber-400 font-medium">MID_PROB_HEAT</span>: 0.4 ≤ prob &lt; 0.5</span>
+              <span><span className="text-fuchsia-300 font-medium">HIGH_PROB_HEAT</span>: prob ≥ 0.5</span>
             </div>
             <div className="text-xs text-muted-foreground mt-2">
-              prob: 株価上昇確率 / ATR: <span className="text-rose-400">3%未満</span>=負け傾向 <span className="text-emerald-400">6%以上</span>=高ボラ
+              prob_regimeは売買GO/SKIPではなく、曜日・信用区分・流動性と組み合わせる熱量分類。流動性: 売買代金 / 出来高 / 出来高倍率
             </div>
           </div>
         </div>
@@ -1301,7 +1606,7 @@ export default function DayTradeListPage() {
           <div className="relative px-4 py-3">
             <div className="flex items-center justify-between mb-3">
               <div className="text-sm text-muted-foreground font-medium">
-                prob別パフォーマンス（{probPfData?.probSource === "wfcv" ? "WFCV" : probPfData?.probSource === "live" ? "live" : "hybrid"} / SHORT/MIX/SKIP / 残0除外）
+                prob別パフォーマンス（{probPfData?.probSource === "wfcv" ? "WFCV" : probPfData?.probSource === "live" ? "live" : "hybrid"} / prob_regime / 残0除外）
               </div>
               {probPfData && (
                 <div className="text-sm text-muted-foreground">
@@ -1420,7 +1725,7 @@ export default function DayTradeListPage() {
                           <table className="w-full text-sm md:text-base">
                             <thead>
                               <tr className="border-b border-border/40">
-                                <th className="px-2 py-1.5 text-left text-muted-foreground font-medium">判定</th>
+                                <th className="px-2 py-1.5 text-left text-muted-foreground font-medium">regime</th>
                                 <th className="px-2 py-1.5 text-left text-muted-foreground font-medium">prob区間</th>
                                 <th className="px-2 py-1.5 text-right text-muted-foreground font-medium">件数</th>
                                 <th className="px-2 py-1.5 text-right text-muted-foreground font-medium">勝率</th>
@@ -1436,7 +1741,7 @@ export default function DayTradeListPage() {
                                 const decision = getProbBinDecision(bin);
                                 if (bin.n === 0) return (
                                   <tr key={bin.label} className="border-b border-border/20">
-                                    <td className={`px-2 py-1.5 font-medium ${getDecisionClass(decision)}`}>{decision}</td>
+                                    <td className={`px-2 py-1.5 font-medium ${getDecisionClass(decision)}`}>{probRegimeLabel(decision)}</td>
                                     <td className="px-2 py-1.5 font-medium">{bin.label}</td>
                                     <td className="px-2 py-1.5 text-right text-muted-foreground/40">0</td>
                                     <td colSpan={6} className="px-2 py-1.5 text-center text-muted-foreground/30">-</td>
@@ -1451,7 +1756,7 @@ export default function DayTradeListPage() {
                                 const barColor = bin.total !== null && bin.total >= 0 ? "bg-emerald-500/60" : "bg-rose-500/60";
                                 return (
                                   <tr key={bin.label} className="border-b border-border/20 hover:bg-muted/20">
-                                    <td className={`px-2 py-1.5 font-medium ${getDecisionClass(decision)}`}>{decision}</td>
+                                    <td className={`px-2 py-1.5 font-medium ${getDecisionClass(decision)}`}>{probRegimeLabel(decision)}</td>
                                     <td className="px-2 py-1.5 font-medium">{bin.label}</td>
                                     <td className="px-2 py-1.5 text-right tabular-nums">{bin.n}</td>
                                     <td className={`px-2 py-1.5 text-right tabular-nums ${wrColor}`}>{bin.winRate !== null ? `${bin.winRate}%` : "-"}</td>

@@ -27,6 +27,15 @@ interface TimeSegment {
   time: string;
 }
 
+interface DataScope {
+  scope?: string;
+  analysisStartDate?: string;
+  excludedLegacyRows?: number;
+  rows?: number;
+  analysisSource?: string;
+  priceBasis?: string;
+}
+
 interface PriceRangeData {
   label: string;
   count: number;
@@ -116,6 +125,7 @@ interface ApiResponse {
   strategyCandidates?: StrategyCandidate[];
   excludeExtreme: boolean;
   direction: string;
+  dataScope?: DataScope;
   filters: {
     priceMin: number;
     priceMax: number;
@@ -125,7 +135,7 @@ interface ApiResponse {
   bucketInfo?: {
     available: boolean;
     buckets: string[];
-    thresholds: { short: number; long: number };
+    thresholds: { low: number; high: number };
   };
 }
 
@@ -170,11 +180,16 @@ const DETAIL_VIEW_LABELS: Record<DetailViewType, string> = {
   weekday: '曜日別',
 };
 
-const BUCKET_LABELS = ['SHORT', 'MIX', 'SKIP'] as const;
+const BUCKET_LABELS = ['LOW_PROB_HEAT', 'MID_PROB_HEAT', 'HIGH_PROB_HEAT'] as const;
 const BUCKET_COLORS: Record<string, string> = {
-  SHORT: 'text-rose-400',
-  MIX: 'text-amber-400',
-  SKIP: 'text-muted-foreground',
+  LOW_PROB_HEAT: 'text-sky-400',
+  MID_PROB_HEAT: 'text-amber-400',
+  HIGH_PROB_HEAT: 'text-fuchsia-300',
+};
+const BUCKET_ORDER: Record<string, number> = {
+  LOW_PROB_HEAT: 0,
+  MID_PROB_HEAT: 1,
+  HIGH_PROB_HEAT: 2,
 };
 const WEEKDAY_SLUGS = ['mon', 'tue', 'wed', 'thu', 'fri'] as const;
 
@@ -220,6 +235,106 @@ const decisionClass = (decision: StrategyCandidate['decision']) => ({
   CONDITIONAL: 'bg-amber-500/15 text-amber-300 border-amber-500/40',
   SKIP: 'bg-rose-500/15 text-rose-300 border-rose-500/40',
 }[decision]);
+
+const DECISION_ORDER: Record<StrategyCandidate['decision'], number> = {
+  GO: 0,
+  CONDITIONAL: 1,
+  SKIP: 2,
+};
+
+const DECISION_LABELS: Record<StrategyCandidate['decision'], string> = {
+  GO: '大引け',
+  CONDITIONAL: '条件',
+  SKIP: '見送り',
+};
+
+type CandidateClassKey = 'HOLD_OK' | 'TIME_EXIT' | 'EARLY_EXIT' | 'REVIEW' | 'NO_EDGE' | 'LOW_N';
+const CANDIDATE_CLASS_ORDER: CandidateClassKey[] = ['HOLD_OK', 'TIME_EXIT', 'EARLY_EXIT', 'REVIEW', 'NO_EDGE', 'LOW_N'];
+
+const CANDIDATE_CLASS_META: Record<CandidateClassKey, { label: string; shortLabel: string; tone: string; order: number }> = {
+  HOLD_OK: {
+    label: '大引け採用',
+    shortLabel: '大引け',
+    tone: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300',
+    order: 0,
+  },
+  TIME_EXIT: {
+    label: '時間指定',
+    shortLabel: '時間',
+    tone: 'border-amber-500/40 bg-amber-500/10 text-amber-300',
+    order: 1,
+  },
+  EARLY_EXIT: {
+    label: '早期利確',
+    shortLabel: '早利',
+    tone: 'border-cyan-500/40 bg-cyan-500/10 text-cyan-300',
+    order: 2,
+  },
+  REVIEW: {
+    label: '詳細確認',
+    shortLabel: '確認',
+    tone: 'border-violet-500/40 bg-violet-500/10 text-violet-300',
+    order: 3,
+  },
+  NO_EDGE: {
+    label: '期待値不足',
+    shortLabel: '不足',
+    tone: 'border-rose-500/35 bg-rose-500/10 text-rose-300',
+    order: 4,
+  },
+  LOW_N: {
+    label: 'サンプル不足',
+    shortLabel: '少数',
+    tone: 'border-border/40 bg-muted/20 text-muted-foreground',
+    order: 5,
+  },
+};
+
+const CANDIDATE_CLASS_DESCRIPTIONS: Record<CandidateClassKey, string> = {
+  HOLD_OK: '最適出口が大引けで、最適PF>=1.5・大引けPF>=1.0・合計損益>0。途中で逃げなくても期待値が残る候補。',
+  TIME_EXIT: '最適PF>=1.2・合計損益>0だが、大引けPF<1.0。大引けまで持たず、表示された最適時間で切る前提。',
+  EARLY_EXIT: '最適PF>=1.2・合計損益>0で、大引けPFは1.0以上だが、途中出口が大引けよりPF+0.3以上良い候補。',
+  REVIEW: '最適PF>=1.2・合計損益>0だが、時間指定/早期利確に明確分類できない候補。曜日詳細でDD/CVaR・地合い・出口を確認。',
+  NO_EDGE: '最適PF<1.2、または合計損益<=0。現時点では採用しない候補。',
+  LOW_N: '件数が10未満、またはPFが算出できない候補。統計的に判断しない。',
+};
+
+const classifyCandidate = (row: StrategyCandidate): CandidateClassKey => {
+  if (row.count < 10 || !row.bestSegment || row.bestSegment.pf === null) return 'LOW_N';
+  if (row.decision === 'GO') return 'HOLD_OK';
+  if (row.decision === 'CONDITIONAL') {
+    if ((row.closeSegment?.pf ?? null) !== null && (row.closeSegment?.pf ?? 0) < 1.0) return 'TIME_EXIT';
+    if (row.bestSegment.key !== 'seg_1530' && (row.pfDelta ?? 0) >= 0.3) return 'EARLY_EXIT';
+    return 'REVIEW';
+  }
+  return 'NO_EDGE';
+};
+
+const regimeShortLabel = (regime: string) => {
+  if (regime === 'LOW_PROB_HEAT') return 'LOW';
+  if (regime === 'MID_PROB_HEAT') return 'MID';
+  if (regime === 'HIGH_PROB_HEAT') return 'HIGH';
+  return regime;
+};
+
+const dataSourceLabel = (scope?: DataScope) => {
+  if (scope?.analysisSource === 'grok_master_jquants_segments') return 'J-Quants分足master';
+  if (scope?.analysisSource === 'grok_trending_archive') return 'archive seg';
+  return scope?.analysisSource ?? 'source未確認';
+};
+
+const priceBasisLabel = (scope?: DataScope) => {
+  if (scope?.priceBasis === 'jquants_minute') return 'JQ分足価格';
+  if (scope?.priceBasis === 'archive_seg') return 'archive価格';
+  return scope?.priceBasis ?? '価格基準未確認';
+};
+
+const sortStrategyCandidates = (a: StrategyCandidate, b: StrategyCandidate) =>
+  CANDIDATE_CLASS_META[classifyCandidate(a)].order - CANDIDATE_CLASS_META[classifyCandidate(b)].order
+  || DECISION_ORDER[a.decision] - DECISION_ORDER[b.decision]
+  || a.weekdayIndex - b.weekdayIndex
+  || a.marginLabel.localeCompare(b.marginLabel)
+  || (BUCKET_ORDER[a.bucket] ?? 99) - (BUCKET_ORDER[b.bucket] ?? 99);
 
 // Color classes for segments
 const getSegmentClasses = (
@@ -286,7 +401,7 @@ export default function AnalysisCustomPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
 
-  // Bucket filters
+  // prob_regime filters
   const [selectedBuckets, setSelectedBuckets] = useState<Set<string>>(new Set());
   const [bucketsAvailable, setBucketsAvailable] = useState(false);
 
@@ -483,6 +598,29 @@ export default function AnalysisCustomPage() {
     overall.pctSegments4
   );
   const segClasses = getSegmentClasses(overallSegs, timeSegments, displayMode);
+  const strategyCandidates = data.strategyCandidates ?? [];
+  const sortedStrategyCandidates = [...strategyCandidates].sort(sortStrategyCandidates);
+  const strategyClassCounts = CANDIDATE_CLASS_ORDER.reduce((acc, key) => {
+    acc[key] = strategyCandidates.filter(r => classifyCandidate(r) === key).length;
+    return acc;
+  }, {} as Record<CandidateClassKey, number>);
+  const weekdayCandidateGroups = WEEKDAY_SLUGS.map((slug, idx) => {
+    const rows = sortedStrategyCandidates.filter(r => r.weekdayIndex === idx);
+    const activeRows = rows.filter(r => r.decision !== 'SKIP');
+    return {
+      slug,
+      index: idx,
+      weekday: weekdays[idx]?.weekday ?? `${idx + 1}`,
+      rule: weekdays[idx]?.weekday_rule ?? null,
+      rows,
+      activeRows,
+      primaryRows: activeRows.length > 0 ? activeRows : rows.slice(0, 2),
+      classCounts: CANDIDATE_CLASS_ORDER.reduce((acc, key) => {
+        acc[key] = rows.filter(r => classifyCandidate(r) === key).length;
+        return acc;
+      }, {} as Record<CandidateClassKey, number>),
+    };
+  });
 
   return (
     <main className="relative min-h-screen">
@@ -509,6 +647,14 @@ export default function AnalysisCustomPage() {
               {direction === 'long' && ' | 制度+いちにち全部'}
               {excludeExtreme && <span className="ml-2 text-amber-400">(異常日除外中)</span>}
             </p>
+            <div className="mt-1 flex flex-wrap gap-2 text-xs">
+              <span className="rounded border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 text-cyan-300">
+                {dataSourceLabel(data.dataScope)}
+              </span>
+              <span className="rounded border border-border/40 bg-muted/20 px-2 py-0.5 text-muted-foreground">
+                {priceBasisLabel(data.dataScope)}
+              </span>
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded border border-rose-500/30 bg-rose-500/10 px-3 py-1 text-xs text-rose-300">
@@ -525,12 +671,12 @@ export default function AnalysisCustomPage() {
               />
               <span className="text-xs text-amber-400 whitespace-nowrap">異常日除外</span>
             </label>
-            {/* Bucket フィルター */}
+            {/* prob_regime フィルター */}
             {bucketsAvailable && (
               <>
                 <span className="text-border">|</span>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs text-muted-foreground">Bucket:</span>
+                  <span className="text-xs text-muted-foreground">Regime:</span>
                   {BUCKET_LABELS.map((b) => (
                     <label key={b} className="flex items-center gap-1 cursor-pointer">
                       <input
@@ -667,31 +813,132 @@ export default function AnalysisCustomPage() {
         </div>
 
         {/* Strategy Candidates */}
-        {data.strategyCandidates && (
+        {strategyCandidates.length > 0 && (
           <section className="mb-6 rounded-xl border border-border/50 bg-card/80 p-4">
             <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
               <div>
                 <h2 className="text-lg font-bold text-foreground">戦略候補一覧</h2>
                 <p className="text-xs text-muted-foreground mt-1">
-                  曜日 × 信用区分 × bucket を4区分で評価。候補を選び、曜日別出口ルールで深掘りする。
+                  曜日を主軸に、信用区分とprob_regimeで実行候補を絞る。詳細は曜日リンクから出口・DD・CVaRを確認。
                 </p>
               </div>
               <div className="flex flex-wrap gap-2 text-xs">
-                {(['GO', 'CONDITIONAL', 'SKIP'] as const).map(d => (
-                  <span key={d} className={`rounded border px-2 py-1 ${decisionClass(d)}`}>
-                    {d} {data.strategyCandidates?.filter(r => r.decision === d).length ?? 0}
+                {CANDIDATE_CLASS_ORDER.map(key => (
+                  <span key={key} className={`rounded border px-2 py-1 ${CANDIDATE_CLASS_META[key].tone}`}>
+                    {CANDIDATE_CLASS_META[key].label} {strategyClassCounts[key]}
                   </span>
                 ))}
               </div>
             </div>
+
+            <details className="mb-4 rounded-lg border border-border/40 bg-background/30">
+              <summary className="cursor-pointer px-3 py-2 text-sm font-semibold text-foreground hover:bg-muted/20">
+                分類定義を表示
+              </summary>
+              <div className="border-t border-border/30 px-3 py-3">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+                  {CANDIDATE_CLASS_ORDER.map(key => (
+                    <div key={key} className={`rounded-md border px-3 py-2 ${CANDIDATE_CLASS_META[key].tone}`}>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-sm font-bold">{CANDIDATE_CLASS_META[key].label}</div>
+                        <div className="text-xs tabular-nums">件数 {strategyClassCounts[key]}</div>
+                      </div>
+                      <div className="mt-1 text-xs leading-5 text-muted-foreground">
+                        {CANDIDATE_CLASS_DESCRIPTIONS[key]}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 text-xs leading-5 text-muted-foreground">
+                  注: この上位画面の分類はPF・損益・出口時刻ベース。DD/CVaRは曜日詳細画面の出口ルールで確認する。
+                </div>
+              </div>
+            </details>
+
+            <div className="grid grid-cols-1 xl:grid-cols-5 gap-3 mb-4">
+              {weekdayCandidateGroups.map(group => (
+                <div key={group.slug} className="rounded-lg border border-border/40 bg-background/35 p-3 min-h-[210px]">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div>
+                      <Link href={`/dev/analysis/${group.slug}`} className="text-base font-bold text-primary hover:underline">
+                        {group.weekday.replace('曜日', '')}
+                      </Link>
+                      {group.rule && (
+                        <div className="mt-1 text-[11px] text-muted-foreground leading-snug">
+                          {group.rule.rule}
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-right text-[11px] leading-5">
+                      {CANDIDATE_CLASS_ORDER
+                        .filter(key => group.classCounts[key] > 0 && key !== 'NO_EDGE' && key !== 'LOW_N')
+                        .slice(0, 2)
+                        .map(key => (
+                          <div key={key} className={CANDIDATE_CLASS_META[key].tone.split(' ').find(c => c.startsWith('text-')) ?? 'text-muted-foreground'}>
+                            {CANDIDATE_CLASS_META[key].shortLabel} {group.classCounts[key]}
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    {group.primaryRows.map(row => {
+                      const classKey = classifyCandidate(row);
+                      const classMeta = CANDIDATE_CLASS_META[classKey];
+                      return (
+                        <Link
+                          key={`${row.weekday}-${row.marginKey}-${row.bucket}`}
+                          href={`/dev/analysis/${group.slug}`}
+                          className={`block rounded-md border px-2.5 py-2 transition-colors hover:bg-muted/30 ${classMeta.tone}`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="rounded border border-current/40 px-1.5 py-0.5 text-[10px] font-bold">
+                              {classMeta.label}
+                            </span>
+                            <span className={`text-[11px] font-medium ${BUCKET_COLORS[row.bucket] ?? 'text-muted-foreground'}`}>
+                              {regimeShortLabel(row.bucket)}
+                            </span>
+                          </div>
+                          <div className="mt-1 flex items-baseline justify-between gap-2">
+                            <span className="text-sm text-foreground">{row.marginLabel}</span>
+                            <span className={`text-lg font-bold tabular-nums ${pfClass(row.bestSegment?.pf ?? null)}`}>
+                              PF {formatPF(row.bestSegment?.pf ?? null)}
+                            </span>
+                          </div>
+                          <div className="mt-1 flex justify-between gap-2 text-[11px] text-muted-foreground">
+                            <span>{row.bestSegment ? `${row.bestSegment.time} ${row.bestSegment.label}` : '-'}</span>
+                            <span className="tabular-nums">{row.count}件</span>
+                          </div>
+                          <div className={`mt-1 text-right text-xs tabular-nums ${(row.bestSegment?.profit ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            {row.bestSegment ? formatProfit(row.bestSegment.profit) : '-'}
+                          </div>
+                        </Link>
+                      );
+                    })}
+
+                    {group.activeRows.length === 0 && (
+                      <div className="rounded-md border border-border/30 bg-muted/10 px-2.5 py-3 text-xs text-muted-foreground">
+                        採用候補なし。詳細側で例外条件だけ確認。
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
             <div className="overflow-x-auto rounded-lg border border-border/30">
+              <div className="flex items-center justify-between gap-3 border-b border-border/30 bg-muted/20 px-3 py-2">
+                <div className="text-sm font-semibold text-foreground">詳細テーブル</div>
+                <div className="text-xs text-muted-foreground">曜日リンクから深掘りへ移動</div>
+              </div>
               <table className="w-full min-w-[980px] text-sm">
                 <thead className="bg-muted/30 text-xs text-muted-foreground">
                   <tr>
-                    <th className="text-left px-3 py-2 font-medium">判定</th>
+                    <th className="text-left px-3 py-2 font-medium">分類</th>
+                    <th className="text-left px-3 py-2 font-medium">粗判定</th>
                     <th className="text-left px-3 py-2 font-medium">曜日</th>
                     <th className="text-left px-3 py-2 font-medium">信用区分</th>
-                    <th className="text-left px-3 py-2 font-medium">bucket</th>
+                    <th className="text-left px-3 py-2 font-medium">prob regime</th>
                     <th className="text-right px-3 py-2 font-medium">件数</th>
                     <th className="text-left px-3 py-2 font-medium">最適時間</th>
                     <th className="text-right px-3 py-2 font-medium">最適PF</th>
@@ -702,19 +949,19 @@ export default function AnalysisCustomPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {[...data.strategyCandidates]
-                    .sort((a, b) => {
-                      const rank = { GO: 0, CONDITIONAL: 1, SKIP: 2 };
-                      return rank[a.decision] - rank[b.decision]
-                        || a.weekdayIndex - b.weekdayIndex
-                        || a.marginLabel.localeCompare(b.marginLabel)
-                        || a.bucket.localeCompare(b.bucket);
-                    })
-                    .map(row => (
+                  {sortedStrategyCandidates.map(row => {
+                    const classKey = classifyCandidate(row);
+                    const classMeta = CANDIDATE_CLASS_META[classKey];
+                    return (
                       <tr key={`${row.weekday}-${row.marginKey}-${row.bucket}`} className="border-t border-border/20">
                         <td className="px-3 py-2">
-                          <span className={`px-2 py-0.5 rounded border text-xs font-bold ${decisionClass(row.decision)}`}>
-                            {row.decision}
+                          <span className={`px-2 py-0.5 rounded border text-xs font-bold ${classMeta.tone}`}>
+                            {classMeta.label}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2">
+                          <span className={`px-2 py-0.5 rounded border text-xs ${decisionClass(row.decision)}`}>
+                            {DECISION_LABELS[row.decision]}
                           </span>
                         </td>
                         <td className="px-3 py-2">
@@ -742,7 +989,8 @@ export default function AnalysisCustomPage() {
                         </td>
                         <td className="px-3 py-2 text-muted-foreground">{row.reason}</td>
                       </tr>
-                    ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
