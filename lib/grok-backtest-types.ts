@@ -41,6 +41,9 @@ export interface BacktestStats {
   total_profit_per_100_shares: number; // 100株あたりの累計利益
   best_profit_per_100_shares: number; // 100株あたりの最高利益
   worst_profit_per_100_shares: number; // 100株あたりの最低利益
+  gross_profit_per_100_shares?: number; // 銘柄単位の総利益
+  gross_loss_per_100_shares?: number; // 銘柄単位の総損失
+  trade_profit_factor?: number | null; // 銘柄単位PF
   total_days: number; // 取引日数
 }
 
@@ -55,6 +58,9 @@ export interface DailyStats {
   avg_return: number;
   count: number;
   total_profit_per_100: number; // 100株あたりの日次損益
+  gross_profit_per_100?: number; // その日の銘柄単位総利益
+  gross_loss_per_100?: number; // その日の銘柄単位総損失
+  trade_profit_factor?: number | null; // その日の銘柄単位PF
   top5_total_profit_per_100: number; // Top5の100株あたりの日次損益
   top5_avg_return: number; // Top5の平均リターン
   top5_win_rate: number; // Top5の勝率
@@ -90,6 +96,10 @@ export interface ScopeMetadata {
   source_credit_bucket_counts: Record<string, number>;
   after_start_credit_bucket_counts: Record<string, number>;
   display_credit_bucket_counts: Record<string, number>;
+  analysis_source?: string;
+  price_basis?: string;
+  jq_buy_price_coverage?: number | null;
+  jq_profit_phase2_coverage?: number | null;
 }
 
 export interface DashboardData {

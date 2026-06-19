@@ -23,18 +23,18 @@ type DataScope = "tradable" | "all";
 const PHASE_INFO = {
   phase1: {
     label: "Phase 1",
-    title: "前場引け売り",
-    description: "9:00寄付買い → 11:30前引け売り"
+    title: "前場引け買戻し",
+    description: "9:00売建 → 11:30前引け買戻し"
   },
   phase2: {
     label: "Phase 2",
-    title: "大引け売り",
-    description: "9:00寄付買い → 15:30大引け売り"
+    title: "大引け買戻し",
+    description: "9:00売建 → 15:30大引け買戻し"
   },
   phase3: {
     label: "Phase 3",
     title: "利確損切戦略",
-    description: "9:00寄付買い → +3%利確 または -3%損切り"
+    description: "9:00売建 → +3%利確 または -3%損切り"
   }
 } as const;
 
@@ -42,6 +42,22 @@ const SCOPE_INFO = {
   tradable: { label: "2025-12-22以降・残0除外" },
   all: { label: "全データ" },
 } as const;
+
+function formatYen(value: number | null | undefined) {
+  if (value === null || value === undefined) return "—";
+  return `${Math.round(value).toLocaleString()}円`;
+}
+
+function formatSignedYen(value: number | null | undefined) {
+  if (value === null || value === undefined) return "—";
+  return `${value > 0 ? "+" : ""}${Math.round(value).toLocaleString()}円`;
+}
+
+function priceBasisLabel(value: string | null | undefined) {
+  if (value === "jquants_minute") return "JQ分足価格";
+  if (value === "archive_price") return "archive価格";
+  return value ?? "価格基準未確認";
+}
 
 interface BacktestResult {
   ticker: string;
@@ -164,6 +180,7 @@ export default function DailyDetailPage() {
 
   const { stats, results } = data;
   const scopeLabel = data.scope_metadata?.label ?? SCOPE_INFO[dataScope].label;
+  const basisLabel = priceBasisLabel(data.scope_metadata?.price_basis);
 
   return (
     <main className="relative min-h-screen">
@@ -209,7 +226,7 @@ export default function DailyDetailPage() {
                   {date}
                 </h1>
                 <p className="text-muted-foreground text-xs">
-                  {PHASE_INFO[selectedPhase].title}戦略: {PHASE_INFO[selectedPhase].description} ・ {scopeLabel}
+                  {PHASE_INFO[selectedPhase].title}戦略: {PHASE_INFO[selectedPhase].description} ・ {scopeLabel} ・ {basisLabel}
                 </p>
               </div>
             </div>
@@ -413,7 +430,7 @@ export default function DailyDetailPage() {
                           </span>
                         </td>
                         <td className="px-3 py-2 text-sm text-right text-foreground tabular-nums">
-                          {result.buy_price !== null ? `${result.buy_price.toLocaleString()}円` : "—"}
+                          {formatYen(result.buy_price)}
                         </td>
                         <td className={`px-3 py-2 text-sm text-right tabular-nums font-bold ${
                           isWin && result.sell_price !== null &&
@@ -426,7 +443,7 @@ export default function DailyDetailPage() {
                             ? "text-rose-400"
                             : "text-muted-foreground"
                         }`}>
-                          {result.sell_price !== null ? `${result.sell_price.toLocaleString()}円` : "—"}
+                          {formatYen(result.sell_price)}
                         </td>
                         <td className={`px-3 py-2 text-sm text-right tabular-nums font-bold ${
                           isWin && result.sell_price !== null &&
@@ -436,8 +453,8 @@ export default function DailyDetailPage() {
                             : "text-muted-foreground"
                         }`}>
                           {selectedPhase === "phase1"
-                            ? (result.morning_high !== null ? `${result.morning_high.toLocaleString()}円` : "—")
-                            : (result.high !== null ? `${result.high.toLocaleString()}円` : "—")
+                            ? formatYen(result.morning_high)
+                            : formatYen(result.high)
                           }
                         </td>
                         <td className={`px-3 py-2 text-sm text-right tabular-nums font-bold ${
@@ -448,8 +465,8 @@ export default function DailyDetailPage() {
                             : "text-muted-foreground"
                         }`}>
                           {selectedPhase === "phase1"
-                            ? (result.morning_low !== null ? `${result.morning_low.toLocaleString()}円` : "—")
-                            : (result.low !== null ? `${result.low.toLocaleString()}円` : "—")
+                            ? formatYen(result.morning_low)
+                            : formatYen(result.low)
                           }
                         </td>
                         <td className={`px-3 py-2 text-sm text-right font-bold ${
@@ -493,12 +510,7 @@ export default function DailyDetailPage() {
                             ? "text-muted-foreground"
                             : "text-muted-foreground/50"
                         }`}>
-                          {result.profit_per_100 !== null && result.profit_per_100 !== undefined ? (
-                            <>
-                              {result.profit_per_100 > 0 ? "+" : ""}
-                              {result.profit_per_100.toLocaleString()}円
-                            </>
-                          ) : "—"}
+                          {formatSignedYen(result.profit_per_100)}
                         </td>
                         <td className="px-3 py-2 text-sm text-right">
                           {result.reason ? (

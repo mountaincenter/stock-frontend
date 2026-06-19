@@ -32,15 +32,27 @@ type Phase = "phase1" | "phase2" | "phase3";
 type DataScope = "tradable" | "all";
 
 const PHASE_INFO = {
-  phase1: { label: "Phase 1", title: "前場引け売り", description: "9:00→11:30" },
-  phase2: { label: "Phase 2", title: "大引け売り", description: "9:00→15:30" },
-  phase3: { label: "Phase 3", title: "利確損切", description: "±3%" },
+  phase1: { label: "Phase 1", title: "前場引け買戻し", description: "9:00売建→11:30買戻し" },
+  phase2: { label: "Phase 2", title: "大引け買戻し", description: "9:00売建→15:30買戻し" },
+  phase3: { label: "Phase 3", title: "利確損切", description: "売建±3%" },
 } as const;
 
 const SCOPE_INFO = {
   tradable: { label: "2025-12-22以降・残0除外" },
   all: { label: "全データ" },
 } as const;
+
+function formatProfitFactor(value: number | null | undefined) {
+  if (value === null || value === undefined || Number.isNaN(value)) return "—";
+  if (!Number.isFinite(value)) return "∞";
+  return value.toFixed(2);
+}
+
+function priceBasisLabel(value: string | null | undefined) {
+  if (value === "jquants_minute") return "JQ分足価格";
+  if (value === "archive_price") return "archive価格";
+  return value ?? "価格基準未確認";
+}
 
 export default function DevDashboard() {
   const { isAuthenticated, user } = useAuth();
@@ -243,6 +255,8 @@ export default function DevDashboard() {
       return sum + Math.round(count * winRate / 100);
     }, 0);
     const totalProfit = filteredDailyStats.reduce((sum, s) => sum + (s.total_profit_per_100 ?? 0), 0);
+    const grossProfit = filteredDailyStats.reduce((sum, s) => sum + (s.gross_profit_per_100 ?? 0), 0);
+    const grossLoss = filteredDailyStats.reduce((sum, s) => sum + (s.gross_loss_per_100 ?? 0), 0);
 
     return {
       overall: {
@@ -250,13 +264,16 @@ export default function DevDashboard() {
         valid_count: totalCount,
         avg_profit_per_100_shares: totalCount > 0 ? totalProfit / totalCount : 0,
         total_profit_per_100_shares: totalProfit,
+        gross_profit_per_100_shares: grossProfit,
+        gross_loss_per_100_shares: grossLoss,
+        trade_profit_factor: grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? Infinity : null,
         total_days: filteredDailyStats.length,
       },
     };
   }, [filteredDailyStats]);
 
-  // PF (Profit Factor): 日次利益合計 / |日次損失合計|
-  const profitFactor = useMemo(() => {
+  // 日次PF: 日次合計利益 / |日次合計損失|
+  const dailyProfitFactor = useMemo(() => {
     const grossWin = filteredDailyStats.reduce((sum, s) => {
       const p = s.total_profit_per_100 ?? 0;
       return p > 0 ? sum + p : sum;
@@ -337,6 +354,9 @@ export default function DevDashboard() {
   const displayStats = dateFilter === "all"
     ? { overall: dashboardData.overall_stats }
     : filteredStats ?? { overall: dashboardData.overall_stats };
+  const tradeProfitFactor = displayStats.overall.trade_profit_factor;
+  const scopeLabel = dashboardData?.scope_metadata?.label ?? SCOPE_INFO[selectedScope].label;
+  const basisLabel = priceBasisLabel(dashboardData?.scope_metadata?.price_basis);
 
   return (
     <main className="relative min-h-screen">
@@ -354,7 +374,7 @@ export default function DevDashboard() {
           <div>
             <h1 className="text-xl font-bold text-foreground">GROK Backtest</h1>
             <p className="text-muted-foreground text-sm">
-              {PHASE_INFO[selectedPhase].title} ({PHASE_INFO[selectedPhase].description}) ・ {dashboardData?.scope_metadata?.label ?? SCOPE_INFO[selectedScope].label}
+              {PHASE_INFO[selectedPhase].title} ({PHASE_INFO[selectedPhase].description}) ・ {scopeLabel} ・ {basisLabel}
             </p>
           </div>
 
@@ -604,10 +624,21 @@ export default function DevDashboard() {
             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-transparent pointer-events-none" />
             <div className="relative">
               <div className="text-muted-foreground text-xs mb-2">PF</div>
-              <div className={`text-2xl tabular-nums font-bold text-right ${profitFactor >= 1 ? "text-emerald-400" : "text-rose-400"}`}>
-                {profitFactor === Infinity ? "∞" : profitFactor.toFixed(2)}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <div className="text-muted-foreground/70 text-xs text-right">日次</div>
+                  <div className={`text-xl tabular-nums font-bold text-right ${dailyProfitFactor >= 1 ? "text-emerald-400" : "text-rose-400"}`}>
+                    {formatProfitFactor(dailyProfitFactor)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground/70 text-xs text-right">銘柄</div>
+                  <div className={`text-xl tabular-nums font-bold text-right ${(tradeProfitFactor ?? 0) >= 1 ? "text-emerald-400" : "text-rose-400"}`}>
+                    {formatProfitFactor(tradeProfitFactor)}
+                  </div>
+                </div>
               </div>
-              <div className="text-muted-foreground/70 text-xs mt-1 text-right">Profit Factor</div>
+              <div className="text-muted-foreground/70 text-xs mt-1 text-right">日次合計 / 銘柄単位</div>
             </div>
           </div>
 
