@@ -37,6 +37,8 @@ interface DetailStock {
   shares: number | null;
   mlProb: number | null;
   bucket: string | null;
+  probBin: string | null;
+  bucketDecision: string | null;
   segments: Record<string, number | null>;
 }
 
@@ -106,6 +108,7 @@ interface RiskMatrixRow {
   marginLabel: string;
   probKey: string;
   probLabel: string;
+  probDecision?: string | null;
   count: number;
   bestSegment: { key: string; label: string; pf: number | null; total: number; dailyMaxDD: number | null; cvar05: number | null } | null;
   segments: RiskSegment[];
@@ -113,6 +116,8 @@ interface RiskMatrixRow {
 interface RiskMatrixResponse {
   weekdayName: string;
   segmentMode: string;
+  probMode?: 'bin' | 'regime';
+  probLabels?: string[];
   dataRange: { start: string | null; end: string | null; tradingDays: number };
   dataScope?: DataScope;
   rows: RiskMatrixRow[];
@@ -129,9 +134,33 @@ const WEEKDAY_SLUG_MAP: Record<string, number> = {
 const PRICE_RANGE_LABELS = ['~1,000円', '1,000~3,000円', '3,000~5,000円', '5,000~10,000円', '10,000円~'];
 const MARGIN_TYPES = ['制度信用', 'いちにち信用'];
 const PROB_REGIMES = ['LOW_PROB_HEAT', 'MID_PROB_HEAT', 'HIGH_PROB_HEAT'] as const;
-const BUCKET_SECTIONS = ['全体', ...PROB_REGIMES] as const;
 const EXECUTION_MARGIN_KEYS = ['seido', 'ichinichi_ex0'] as const;
-const EXECUTION_PROB_KEYS = ['low', 'mid', 'high'] as const;
+const PROB_BIN_LABELS = [
+  '0.0-0.1',
+  '0.1-0.2',
+  '0.2-0.3',
+  '0.3-0.4',
+  '0.4-0.5',
+  '0.5-0.6',
+  '0.6-0.7',
+  '0.7-0.8',
+  '0.8-0.9',
+  '0.9-1.0',
+];
+const PROB_BIN_ORDER: Record<string, number> = Object.fromEntries(PROB_BIN_LABELS.map((label, index) => [label, index]));
+const PROB_BIN_DECISIONS: Record<string, string> = {
+  '0.0-0.1': 'LOW_PROB_HEAT',
+  '0.1-0.2': 'LOW_PROB_HEAT',
+  '0.2-0.3': 'LOW_PROB_HEAT',
+  '0.3-0.4': 'LOW_PROB_HEAT',
+  '0.4-0.5': 'MID_PROB_HEAT',
+  '0.5-0.6': 'HIGH_PROB_HEAT',
+  '0.6-0.7': 'HIGH_PROB_HEAT',
+  '0.7-0.8': 'HIGH_PROB_HEAT',
+  '0.8-0.9': 'HIGH_PROB_HEAT',
+  '0.9-1.0': 'HIGH_PROB_HEAT',
+};
+const PROB_GROUP_SECTIONS = ['全体', ...PROB_BIN_LABELS];
 const PROB_REGIME_COLORS: Record<string, string> = {
   LOW_PROB_HEAT: 'text-sky-400',
   MID_PROB_HEAT: 'text-amber-400',
@@ -191,6 +220,16 @@ const formatOperationLabel = (
   segment: RiskSegment | null | undefined,
   fallback?: string | null,
 ) => decision === 'SKIP' ? '見送り' : `${operationClass} / ${formatExitLabel(segment, fallback)}`;
+
+const probMatrixClass = (row: RiskMatrixRow) =>
+  row.probDecision ? (PROB_REGIME_COLORS[row.probDecision] ?? 'text-muted-foreground') : (PROB_REGIME_COLORS[row.probLabel] ?? 'text-muted-foreground');
+
+const probMatrixLabel = (row: RiskMatrixRow) => row.probKey.includes('-') ? row.probLabel : row.probLabel;
+
+const probGroupClass = (group: string) => {
+  const decision = PROB_BIN_DECISIONS[group] ?? group;
+  return PROB_REGIME_COLORS[decision] ?? 'text-foreground';
+};
 
 const getSegmentClasses = (
   segments: Record<string, SegmentStats | SegmentStatsPct>,
@@ -398,12 +437,12 @@ export default function WeekdayAnalysisPage() {
       return next;
     });
   };
-  const allOpen = openSections.size === BUCKET_SECTIONS.length;
+  const allOpen = openSections.size === PROB_GROUP_SECTIONS.length;
   const toggleAll = () => {
     if (allOpen) {
       setOpenSections(new Set());
     } else {
-      setOpenSections(new Set(BUCKET_SECTIONS));
+      setOpenSections(new Set(PROB_GROUP_SECTIONS));
     }
   };
 
@@ -448,7 +487,7 @@ export default function WeekdayAnalysisPage() {
       fetch(`${API_BASE}/dev/analysis-custom/weekday-panels?weekday=${dayIndex}&direction=${dir}`).then(r => r.ok ? r.json() : null),
       fetch(`${API_BASE}/dev/analysis-custom/futures-gap-pf?weekday=${dayIndex}&direction=${dir}`).then(r => r.ok ? r.json() : null),
       fetch(`${API_BASE}/dev/analysis-custom/nikkei-change-pf?weekday=${dayIndex}&direction=${dir}`).then(r => r.ok ? r.json() : null),
-      fetch(`${API_BASE}/dev/analysis-custom/weekday-risk-matrix?weekday=${dayIndex}&direction=${dir}&segment_mode=4seg`).then(r => r.ok ? r.json() : null),
+      fetch(`${API_BASE}/dev/analysis-custom/weekday-risk-matrix?weekday=${dayIndex}&direction=${dir}&segment_mode=4seg&prob_mode=bin`).then(r => r.ok ? r.json() : null),
     ]).then(([panels, futures, nikkei, riskMatrix]) => {
       if (panels) setPanelsData(panels);
       if (futures) setFuturesGapData(futures);
@@ -463,7 +502,7 @@ export default function WeekdayAnalysisPage() {
     return data.results.find(r => r.key === WEEKDAYS[selectedDay]) || null;
   }, [data, selectedDay]);
 
-  // Filter stocks. prob_regime grouping is handled per section.
+  // Filter stocks. prob_bin grouping is handled per section.
   const filteredStocks = useMemo(() => {
     if (!weekdayGroup) return [];
     return weekdayGroup.stocks.filter(s => {
@@ -479,19 +518,19 @@ export default function WeekdayAnalysisPage() {
     return segmentMode === '11seg' ? summaryData.timeSegments11 : summaryData.timeSegments4;
   }, [summaryData, segmentMode, segments]);
 
-  // prob_regime別に銘柄を分類
+  // prob区間別に銘柄を分類
   const stocksByBucket = useMemo(() => {
     const result: Record<string, DetailStock[]> = { '全体': filteredStocks };
-    for (const b of PROB_REGIMES) {
-      result[b] = filteredStocks.filter(s => s.bucket === b);
+    for (const b of PROB_BIN_LABELS) {
+      result[b] = filteredStocks.filter(s => s.probBin === b);
     }
     return result;
   }, [filteredStocks]);
 
-  // prob_regime別の集計
+  // prob区間別の集計
   const aggregationByBucket = useMemo(() => {
     const result: Record<string, ReturnType<typeof aggregateStocks>> = {};
-    for (const key of BUCKET_SECTIONS) {
+    for (const key of PROB_GROUP_SECTIONS) {
       result[key] = aggregateStocks(stocksByBucket[key] || [], timeSegments);
     }
     return result;
@@ -630,7 +669,7 @@ export default function WeekdayAnalysisPage() {
     return summary.length > 0 ? summary : null;
   }, [panelsData, futuresGapData, nikkeiChangeData]);
 
-  // ===== チャート用prob_regime切替 =====
+  // ===== チャート用prob区間切替 =====
   const [chartBucket, setChartRegime] = useState<string>('全体');
   const chartStocks = useMemo(() => stocksByBucket[chartBucket] || [], [stocksByBucket, chartBucket]);
 
@@ -666,7 +705,13 @@ export default function WeekdayAnalysisPage() {
     if (!riskMatrixData) return [];
     return riskMatrixData.rows
       .filter(r => EXECUTION_MARGIN_KEYS.includes(r.marginKey as typeof EXECUTION_MARGIN_KEYS[number])
-        && EXECUTION_PROB_KEYS.includes(r.probKey as typeof EXECUTION_PROB_KEYS[number]))
+        && r.probKey !== 'all')
+      .sort((a, b) => {
+        const marginOrder = EXECUTION_MARGIN_KEYS.indexOf(a.marginKey as typeof EXECUTION_MARGIN_KEYS[number])
+          - EXECUTION_MARGIN_KEYS.indexOf(b.marginKey as typeof EXECUTION_MARGIN_KEYS[number]);
+        if (marginOrder !== 0) return marginOrder;
+        return (PROB_BIN_ORDER[a.probKey] ?? 99) - (PROB_BIN_ORDER[b.probKey] ?? 99);
+      })
       .map(row => {
         const best = row.bestSegment;
         const bestSeg = best ? row.segments.find(s => s.key === best.key) : null;
@@ -792,7 +837,7 @@ export default function WeekdayAnalysisPage() {
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-border/40 bg-card/80 hover:bg-card transition-colors"
         >
           <span className={`text-xs transition-transform ${isOpen ? 'rotate-90' : ''}`}>▶</span>
-          <span className="font-semibold text-foreground">{bucketKey}</span>
+          <span className={`font-semibold ${bucketKey === '全体' ? 'text-foreground' : probGroupClass(bucketKey)}`}>{bucketKey}</span>
           <span className="text-sm text-muted-foreground">{stocks.length}件</span>
           {agg.seido.count > 0 && (
             <span className="text-xs text-muted-foreground">制度{agg.seido.count}</span>
@@ -994,7 +1039,7 @@ export default function WeekdayAnalysisPage() {
                   <th className="text-left px-3 py-2 font-medium">判定</th>
                   <th className="text-left px-3 py-2 font-medium">運用区分</th>
                   <th className="text-left px-3 py-2 font-medium">信用区分</th>
-                  <th className="text-left px-3 py-2 font-medium">prob regime</th>
+                  <th className="text-left px-3 py-2 font-medium">prob区間</th>
                   <th className="text-right px-3 py-2 font-medium">最適PF</th>
                   <th className="text-right px-3 py-2 font-medium">大引けPF</th>
                   <th className="text-right px-3 py-2 font-medium">PF差</th>
@@ -1023,7 +1068,10 @@ export default function WeekdayAnalysisPage() {
                       )}
                     </td>
                     <td className="px-3 py-2 text-foreground">{row.marginLabel}</td>
-                    <td className={`px-3 py-2 font-medium ${PROB_REGIME_COLORS[row.probLabel] ?? 'text-muted-foreground'}`}>{row.probLabel}</td>
+                    <td className={`px-3 py-2 font-medium ${probMatrixClass(row)}`}>
+                      <div>{probMatrixLabel(row)}</div>
+                      <div className="text-[11px] text-muted-foreground">n={row.count}</div>
+                    </td>
                     <td className="px-3 py-2 text-right tabular-nums text-foreground">{best?.pf?.toFixed(2) ?? '-'}</td>
                     <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{closeSeg?.amount.pf?.toFixed(2) ?? '-'}</td>
                     <td className={`px-3 py-2 text-right tabular-nums ${(pfDelta ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
@@ -1087,7 +1135,7 @@ export default function WeekdayAnalysisPage() {
         </div>
       )}
 
-      {/* ===== prob_regime別サマリーテーブル（アコーディオン） ===== */}
+      {/* ===== prob区間別サマリーテーブル（アコーディオン） ===== */}
       <div className="mb-4">
         <div className="flex items-center gap-2 mb-2">
           <button
@@ -1097,20 +1145,20 @@ export default function WeekdayAnalysisPage() {
             {allOpen ? '全て閉じる' : '全て開く'}
           </button>
         </div>
-        {BUCKET_SECTIONS.map(g => renderBucketSection(g))}
+        {PROB_GROUP_SECTIONS.map(g => renderBucketSection(g))}
       </div>
 
-      {/* ===== チャート用prob_regime切替タブ ===== */}
+      {/* ===== チャート用prob区間切替タブ ===== */}
       <div className="flex items-center gap-2 mb-4">
         <span className="text-xs text-muted-foreground">グラフ:</span>
-        {BUCKET_SECTIONS.map(g => (
+        {PROB_GROUP_SECTIONS.map(g => (
           <button
             key={g}
             onClick={() => setChartRegime(g)}
             className={`px-3 py-1 text-xs rounded-md border transition-colors ${
               chartBucket === g
                 ? 'bg-primary text-primary-foreground border-primary'
-                : 'bg-muted/30 border-border/40 text-muted-foreground hover:bg-muted/50'
+                : `bg-muted/30 border-border/40 hover:bg-muted/50 ${g === '全体' ? 'text-muted-foreground' : probGroupClass(g)}`
             }`}
           >
             {g}{stocksByBucket[g]?.length ? ` (${stocksByBucket[g].length})` : ''}

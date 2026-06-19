@@ -76,6 +76,8 @@ interface StrategyCandidate {
   marginKey: string;
   marginLabel: string;
   bucket: string;
+  bucketDecision?: string | null;
+  probMode?: 'bin' | 'regime';
   count: number;
   decision: 'GO' | 'CONDITIONAL' | 'SKIP';
   reason: string;
@@ -181,6 +183,18 @@ const DETAIL_VIEW_LABELS: Record<DetailViewType, string> = {
 };
 
 const BUCKET_LABELS = ['LOW_PROB_HEAT', 'MID_PROB_HEAT', 'HIGH_PROB_HEAT'] as const;
+const PROB_BIN_LABELS = [
+  '0.0-0.1',
+  '0.1-0.2',
+  '0.2-0.3',
+  '0.3-0.4',
+  '0.4-0.5',
+  '0.5-0.6',
+  '0.6-0.7',
+  '0.7-0.8',
+  '0.8-0.9',
+  '0.9-1.0',
+];
 const BUCKET_COLORS: Record<string, string> = {
   LOW_PROB_HEAT: 'text-sky-400',
   MID_PROB_HEAT: 'text-amber-400',
@@ -190,6 +204,7 @@ const BUCKET_ORDER: Record<string, number> = {
   LOW_PROB_HEAT: 0,
   MID_PROB_HEAT: 1,
   HIGH_PROB_HEAT: 2,
+  ...Object.fromEntries(PROB_BIN_LABELS.map((label, index) => [label, index])),
 };
 const WEEKDAY_SLUGS = ['mon', 'tue', 'wed', 'thu', 'fri'] as const;
 
@@ -316,6 +331,12 @@ const regimeShortLabel = (regime: string) => {
   if (regime === 'HIGH_PROB_HEAT') return 'HIGH';
   return regime;
 };
+
+const strategyBucketClass = (row: StrategyCandidate) =>
+  row.bucketDecision ? (BUCKET_COLORS[row.bucketDecision] ?? 'text-foreground') : (BUCKET_COLORS[row.bucket] ?? 'text-foreground');
+
+const strategyBucketLabel = (row: StrategyCandidate) =>
+  row.probMode === 'bin' ? row.bucket : regimeShortLabel(row.bucket);
 
 const dataSourceLabel = (scope?: DataScope) => {
   if (scope?.analysisSource === 'grok_master_jquants_segments') return 'J-Quants分足master';
@@ -819,7 +840,7 @@ export default function AnalysisCustomPage() {
               <div>
                 <h2 className="text-lg font-bold text-foreground">戦略候補一覧</h2>
                 <p className="text-xs text-muted-foreground mt-1">
-                  曜日を主軸に、信用区分とprob_regimeで実行候補を絞る。詳細は曜日リンクから出口・DD・CVaRを確認。
+                  曜日を主軸に、信用区分とprob区間で実行候補を絞る。詳細は曜日リンクから出口・DD・CVaRを確認。
                 </p>
               </div>
               <div className="flex flex-wrap gap-2 text-xs">
@@ -895,8 +916,8 @@ export default function AnalysisCustomPage() {
                             <span className="rounded border border-current/40 px-1.5 py-0.5 text-[10px] font-bold">
                               {classMeta.label}
                             </span>
-                            <span className={`text-[11px] font-medium ${BUCKET_COLORS[row.bucket] ?? 'text-muted-foreground'}`}>
-                              {regimeShortLabel(row.bucket)}
+                            <span className={`text-[11px] font-medium ${strategyBucketClass(row)}`}>
+                              {strategyBucketLabel(row)}
                             </span>
                           </div>
                           <div className="mt-1 flex items-baseline justify-between gap-2">
@@ -938,7 +959,7 @@ export default function AnalysisCustomPage() {
                     <th className="text-left px-3 py-2 font-medium">粗判定</th>
                     <th className="text-left px-3 py-2 font-medium">曜日</th>
                     <th className="text-left px-3 py-2 font-medium">信用区分</th>
-                    <th className="text-left px-3 py-2 font-medium">prob regime</th>
+                    <th className="text-left px-3 py-2 font-medium">prob区間</th>
                     <th className="text-right px-3 py-2 font-medium">件数</th>
                     <th className="text-left px-3 py-2 font-medium">最適時間</th>
                     <th className="text-right px-3 py-2 font-medium">最適PF</th>
@@ -970,7 +991,7 @@ export default function AnalysisCustomPage() {
                           </Link>
                         </td>
                         <td className="px-3 py-2 text-foreground">{row.marginLabel}</td>
-                        <td className={`px-3 py-2 font-medium ${BUCKET_COLORS[row.bucket] ?? 'text-foreground'}`}>{row.bucket}</td>
+                        <td className={`px-3 py-2 font-medium ${strategyBucketClass(row)}`}>{strategyBucketLabel(row)}</td>
                         <td className="px-3 py-2 text-right tabular-nums text-foreground">{row.count}</td>
                         <td className="px-3 py-2 text-foreground">
                           {row.bestSegment ? `${row.bestSegment.time} ${row.bestSegment.label}` : '-'}

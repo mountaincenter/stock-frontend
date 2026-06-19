@@ -129,6 +129,7 @@ type WeekdayRiskRow = {
   marginLabel: string;
   probKey: string;
   probLabel: string;
+  probDecision?: string | null;
   count: number;
   bestSegment: {
     key: string;
@@ -143,6 +144,8 @@ type WeekdayRiskRow = {
 
 type WeekdayRiskMatrix = {
   weekdayName: string;
+  probMode?: "bin" | "regime";
+  probLabels?: string[];
   dataRange: { tradingDays: number };
   dataScope?: {
     analysisStartDate?: string;
@@ -177,6 +180,21 @@ const PROB_REGIME_ORDER: Record<string, number> = {
   SKIP: 2,
 };
 
+const PROB_BIN_LABELS = [
+  "0.0-0.1",
+  "0.1-0.2",
+  "0.2-0.3",
+  "0.3-0.4",
+  "0.4-0.5",
+  "0.5-0.6",
+  "0.6-0.7",
+  "0.7-0.8",
+  "0.8-0.9",
+  "0.9-1.0",
+];
+const PROB_BIN_ORDER: Record<string, number> = Object.fromEntries(PROB_BIN_LABELS.map((label, index) => [label, index]));
+const EXECUTION_MARGIN_KEYS = ["seido", "ichinichi_ex0"] as const;
+
 const normalizeProbRegime = (value: string | null | undefined): ProbRegime | null => {
   if (value === "SHORT") return "LOW_PROB_HEAT";
   if (value === "MIX") return "MID_PROB_HEAT";
@@ -199,6 +217,16 @@ const probRegimeLabel = (value: string | null | undefined) => {
   if (regime === "MID_PROB_HEAT") return "M";
   if (regime === "HIGH_PROB_HEAT") return "H";
   return "-";
+};
+
+const probGroupClass = (row: WeekdayRiskRow) => {
+  if (row.probDecision) return probRegimeClass(row.probDecision);
+  return probRegimeClass(row.probLabel);
+};
+
+const probGroupLabel = (row: WeekdayRiskRow) => {
+  if (row.probKey.includes("-")) return row.probLabel;
+  return probRegimeLabel(row.probLabel);
 };
 
 const probRegimeBadgeClass = (value: string | null | undefined) => {
@@ -301,8 +329,8 @@ export default function DayTradeListPage() {
       const weekdayIdx = data.weekday_rule?.weekday ? WEEKDAY_TO_INDEX[data.weekday_rule.weekday] : undefined;
       if (weekdayIdx !== undefined) {
         const [riskRes, risk11Res] = await Promise.all([
-          fetch(`/api/dev/weekday-risk-matrix?weekday=${weekdayIdx}&direction=short&segment_mode=4seg`),
-          fetch(`/api/dev/weekday-risk-matrix?weekday=${weekdayIdx}&direction=short&segment_mode=11seg`),
+          fetch(`/api/dev/weekday-risk-matrix?weekday=${weekdayIdx}&direction=short&segment_mode=4seg&prob_mode=bin`),
+          fetch(`/api/dev/weekday-risk-matrix?weekday=${weekdayIdx}&direction=short&segment_mode=11seg&prob_mode=bin`),
         ]);
         if (riskRes.ok) setWeekdayRisk(await riskRes.json());
         if (risk11Res.ok) setWeekdayRisk11(await risk11Res.json());
@@ -524,12 +552,18 @@ export default function DayTradeListPage() {
 
   const getRiskRowForStock = (stock: DayTradeStock, matrix: WeekdayRiskMatrix | null) => {
     if (!matrix || stock.ng) return null;
-    const regime = normalizeProbRegime(stock.bucket);
-    if (!regime) return null;
-    const probKey =
-      regime === "LOW_PROB_HEAT" ? "low" :
-      regime === "MID_PROB_HEAT" ? "mid" :
-      "high";
+    let probKey: string | null = null;
+    if (matrix.probMode === "bin") {
+      probKey = stock.prob_bin ?? null;
+    } else {
+      const regime = normalizeProbRegime(stock.bucket);
+      if (!regime) return null;
+      probKey =
+        regime === "LOW_PROB_HEAT" ? "low" :
+        regime === "MID_PROB_HEAT" ? "mid" :
+        "high";
+    }
+    if (!probKey) return null;
     const marginKey =
       stock.credit_bucket === "制度信用" ? "seido" :
       stock.credit_bucket === "いちにち信用_除株数0" ? "ichinichi_ex0" :
@@ -730,7 +764,13 @@ export default function DayTradeListPage() {
   const weekdayExitRows = (() => {
     if (!weekdayRisk) return [];
     return weekdayRisk.rows
-      .filter(row => ["seido", "ichinichi_ex0"].includes(row.marginKey) && ["low", "mid", "high"].includes(row.probKey))
+      .filter(row => ["seido", "ichinichi_ex0"].includes(row.marginKey) && row.probKey !== "all")
+      .sort((a, b) => {
+        const marginOrder = EXECUTION_MARGIN_KEYS.indexOf(a.marginKey as typeof EXECUTION_MARGIN_KEYS[number])
+          - EXECUTION_MARGIN_KEYS.indexOf(b.marginKey as typeof EXECUTION_MARGIN_KEYS[number]);
+        if (marginOrder !== 0) return marginOrder;
+        return (PROB_BIN_ORDER[a.probKey] ?? 99) - (PROB_BIN_ORDER[b.probKey] ?? 99);
+      })
       .map(row => {
         const best = row.bestSegment;
         const bestSeg = best ? row.segments.find(s => s.key === best.key) ?? null : null;
@@ -960,7 +1000,7 @@ export default function DayTradeListPage() {
                     <th className="text-left px-3 py-2 font-medium">判定</th>
                     <th className="text-left px-3 py-2 font-medium">運用区分</th>
                     <th className="text-left px-3 py-2 font-medium">信用区分</th>
-                    <th className="text-left px-3 py-2 font-medium">prob regime</th>
+                    <th className="text-left px-3 py-2 font-medium">prob区間</th>
                     <th className="text-right px-3 py-2 font-medium">最適PF</th>
                     <th className="text-right px-3 py-2 font-medium">大引けPF</th>
                     <th className="text-right px-3 py-2 font-medium">PF差</th>
@@ -984,7 +1024,10 @@ export default function DayTradeListPage() {
                         {decision === "SKIP" ? "見送り" : `${operation} / ${bestSeg ? `${bestSeg.time} ${bestSeg.label}` : "-"}`}
                       </td>
                       <td className="px-3 py-2 text-foreground">{row.marginLabel}</td>
-                      <td className={`px-3 py-2 font-medium ${getDecisionClass(row.probLabel)}`}>{probRegimeLabel(row.probLabel)}</td>
+                      <td className={`px-3 py-2 font-medium ${probGroupClass(row)}`}>
+                        <div>{probGroupLabel(row)}</div>
+                        <div className="text-[11px] text-muted-foreground">n={row.count}</div>
+                      </td>
                       <td className="px-3 py-2 text-right tabular-nums text-foreground">{best?.pf?.toFixed(2) ?? "-"}</td>
                       <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{close?.amount.pf?.toFixed(2) ?? "-"}</td>
                       <td className={`px-3 py-2 text-right tabular-nums ${(pfDelta ?? 0) >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
@@ -1578,14 +1621,14 @@ export default function DayTradeListPage() {
         <div className="relative overflow-hidden rounded-xl border border-primary/40 bg-gradient-to-br from-card/50 via-card/80 to-card/50 mt-4 px-4 py-3 shadow-lg shadow-black/5 backdrop-blur-xl">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none" />
           <div className="relative">
-            <div className="text-xs text-muted-foreground mb-2 font-medium">prob_regime（Grok熱量レジーム）</div>
+            <div className="text-xs text-muted-foreground mb-2 font-medium">prob区間とGrok熱量バッジ</div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
               <span><span className="text-sky-400 font-medium">LOW_PROB_HEAT</span>: prob &lt; 0.4</span>
               <span><span className="text-amber-400 font-medium">MID_PROB_HEAT</span>: 0.4 ≤ prob &lt; 0.5</span>
               <span><span className="text-fuchsia-300 font-medium">HIGH_PROB_HEAT</span>: prob ≥ 0.5</span>
             </div>
             <div className="text-xs text-muted-foreground mt-2">
-              prob_regimeは売買GO/SKIPではなく、曜日・信用区分・流動性と組み合わせる熱量分類。流動性: 売買代金 / 出来高 / 出来高倍率
+              L/M/Hは視覚バッジ。期待PFと出口ルールは、曜日・信用区分・prob 0.1区間・流動性を組み合わせて確認する。
             </div>
           </div>
         </div>
