@@ -29,11 +29,17 @@ interface PasskeyCredential {
 type SortField = "date" | "win_rate" | "count";
 type SortDirection = "asc" | "desc";
 type Phase = "phase1" | "phase2" | "phase3";
+type DataScope = "tradable" | "all";
 
 const PHASE_INFO = {
   phase1: { label: "Phase 1", title: "前場引け売り", description: "9:00→11:30" },
   phase2: { label: "Phase 2", title: "大引け売り", description: "9:00→15:30" },
   phase3: { label: "Phase 3", title: "利確損切", description: "±3%" },
+} as const;
+
+const SCOPE_INFO = {
+  tradable: { label: "2025-12-22以降・残0除外" },
+  all: { label: "全データ" },
 } as const;
 
 export default function DevDashboard() {
@@ -48,6 +54,7 @@ export default function DevDashboard() {
   const [dateFilter, setDateFilter] = useState<"all" | "week" | "month">("all");
   const [selectedVersion, setSelectedVersion] = useState<string | null>(null);
   const [selectedPhase, setSelectedPhase] = useState<Phase>("phase2");
+  const [selectedScope, setSelectedScope] = useState<DataScope>("tradable");
 
   // 設定モーダル
   const [showSettings, setShowSettings] = useState(false);
@@ -170,9 +177,11 @@ export default function DevDashboard() {
     const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "";
     const params = new URLSearchParams();
     params.append("phase", selectedPhase);
+    params.append("scope", selectedScope);
     if (selectedVersion) params.append("prompt_version", selectedVersion);
 
     setLoading(true);
+    setError(null);
     fetch(`${API_BASE}/api/dev/backtest/summary?${params.toString()}`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch");
@@ -186,7 +195,7 @@ export default function DevDashboard() {
         setError(err.message);
         setLoading(false);
       });
-  }, [selectedVersion, selectedPhase]);
+  }, [selectedVersion, selectedPhase, selectedScope]);
 
   const sortedStats = useMemo(() => {
     if (!dashboardData) return [];
@@ -345,7 +354,7 @@ export default function DevDashboard() {
           <div>
             <h1 className="text-xl font-bold text-foreground">GROK Backtest</h1>
             <p className="text-muted-foreground text-sm">
-              {PHASE_INFO[selectedPhase].title} ({PHASE_INFO[selectedPhase].description})
+              {PHASE_INFO[selectedPhase].title} ({PHASE_INFO[selectedPhase].description}) ・ {dashboardData?.scope_metadata?.label ?? SCOPE_INFO[selectedScope].label}
             </p>
           </div>
 
@@ -372,6 +381,16 @@ export default function DevDashboard() {
                 value={dateFilter}
                 onChange={setDateFilter}
               />
+
+              <label className="inline-flex h-8 items-center gap-2 rounded-lg bg-muted/30 px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
+                <input
+                  type="checkbox"
+                  checked={selectedScope === "all"}
+                  onChange={(e) => setSelectedScope(e.target.checked ? "all" : "tradable")}
+                  className="h-3.5 w-3.5 rounded border-border bg-background accent-primary"
+                />
+                全データ
+              </label>
 
               {/* 設定ボタン */}
               <button
@@ -722,7 +741,7 @@ export default function DevDashboard() {
                           {stat.cumulative_profit_per_100 >= 0 ? "+" : ""}{Math.round(stat.cumulative_profit_per_100).toLocaleString()}円
                         </td>
                         <td className="px-3 py-2.5">
-                          <Link href={`/dev/daily/${stat.date}`} className="text-primary hover:text-primary/80 transition-colors">
+                          <Link href={`/dev/daily/${stat.date}?scope=${selectedScope}`} className="text-primary hover:text-primary/80 transition-colors">
                             <ArrowUpRight className="w-4 h-4" />
                           </Link>
                         </td>

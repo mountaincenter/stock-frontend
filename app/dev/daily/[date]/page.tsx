@@ -4,6 +4,7 @@ import { useEffect, useState, Fragment } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
+import type { ScopeMetadata } from "@/lib/grok-backtest-types";
 import {
   ArrowLeft,
   TrendingUp,
@@ -17,6 +18,7 @@ import {
 
 
 type Phase = "phase1" | "phase2" | "phase3";
+type DataScope = "tradable" | "all";
 
 const PHASE_INFO = {
   phase1: {
@@ -34,6 +36,11 @@ const PHASE_INFO = {
     title: "利確損切戦略",
     description: "9:00寄付買い → +3%利確 または -3%損切り"
   }
+} as const;
+
+const SCOPE_INFO = {
+  tradable: { label: "2025-12-22以降・残0除外" },
+  all: { label: "全データ" },
 } as const;
 
 interface BacktestResult {
@@ -57,6 +64,8 @@ interface BacktestResult {
   daily_max_gain_pct: number | null;
   daily_max_drawdown_pct: number | null;
   morning_volume: number | null;
+  credit_bucket?: string | null;
+  tradable?: boolean;
 }
 
 interface DailyStats {
@@ -76,11 +85,16 @@ interface DailyBacktest {
   date: string;
   stats: DailyStats;
   results: BacktestResult[];
+  scope_metadata?: ScopeMetadata;
 }
 
 export default function DailyDetailPage() {
   const params = useParams();
   const date = params.date as string;
+  const dataScope: DataScope =
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("scope") === "all"
+      ? "all"
+      : "tradable";
 
   const [data, setData] = useState<DailyBacktest | null>(null);
   const [loading, setLoading] = useState(true);
@@ -92,7 +106,10 @@ export default function DailyDetailPage() {
 
     setLoading(true);
     const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "";
-    fetch(`${API_BASE}/api/dev/backtest/daily/${date}?phase=${selectedPhase}`)
+    const query = new URLSearchParams();
+    query.append("phase", selectedPhase);
+    query.append("scope", dataScope);
+    fetch(`${API_BASE}/api/dev/backtest/daily/${date}?${query.toString()}`)
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch");
         return res.json();
@@ -105,7 +122,7 @@ export default function DailyDetailPage() {
         setError(err.message);
         setLoading(false);
       });
-  }, [date, selectedPhase]);
+  }, [date, selectedPhase, dataScope]);
 
   if (loading) {
     return (
@@ -146,6 +163,7 @@ export default function DailyDetailPage() {
   }
 
   const { stats, results } = data;
+  const scopeLabel = data.scope_metadata?.label ?? SCOPE_INFO[dataScope].label;
 
   return (
     <main className="relative min-h-screen">
@@ -191,7 +209,7 @@ export default function DailyDetailPage() {
                   {date}
                 </h1>
                 <p className="text-muted-foreground text-xs">
-                  {PHASE_INFO[selectedPhase].title}戦略: {PHASE_INFO[selectedPhase].description}
+                  {PHASE_INFO[selectedPhase].title}戦略: {PHASE_INFO[selectedPhase].description} ・ {scopeLabel}
                 </p>
               </div>
             </div>

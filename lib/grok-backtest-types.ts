@@ -22,6 +22,8 @@ export interface BacktestRecord {
   max_gain_pct: number | null; // 始値からの最大上昇率
   max_drawdown_pct: number | null; // 始値からの最大下落率
   prompt_version: string; // プロンプトバージョン (例: "v1_0_baseline")
+  credit_bucket?: string | null;
+  tradable?: boolean;
 }
 
 export interface BacktestStats {
@@ -74,6 +76,22 @@ export interface Alert {
   action?: string;
 }
 
+export interface ScopeMetadata {
+  scope: 'tradable' | 'all';
+  label: string;
+  filter_start_date: string | null;
+  tradable_credit_buckets: string[];
+  source_count: number;
+  source_date_count: number;
+  after_start_count: number;
+  after_start_date_count: number;
+  display_count: number;
+  display_date_count: number;
+  source_credit_bucket_counts: Record<string, number>;
+  after_start_credit_bucket_counts: Record<string, number>;
+  display_credit_bucket_counts: Record<string, number>;
+}
+
 export interface DashboardData {
   overall_stats: BacktestStats;
   top5_stats: Top5Stats;
@@ -83,4 +101,5 @@ export interface DashboardData {
   alerts: Alert[];
   available_versions?: string[]; // 利用可能なプロンプトバージョンのリスト
   current_version?: string; // 現在表示中のバージョン
+  scope_metadata?: ScopeMetadata;
 }
