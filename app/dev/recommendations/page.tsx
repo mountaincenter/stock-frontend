@@ -168,7 +168,7 @@ type OperationPlan = {
   className: string;
 };
 
-type SortKey = keyof DayTradeStock | "parent_pf";
+type SortKey = keyof DayTradeStock | "max_pf" | "close_pf";
 type SortValue = string | number | boolean | null | undefined;
 
 const PROB_REGIME_ORDER: Record<string, number> = {
@@ -299,7 +299,7 @@ export default function DayTradeListPage() {
 
   // prob別パフォーマンス
   const [probPfData, setProbPfData] = useState<ProbBinPfData | null>(null);
-  const [probPfView, setProbPfView] = useState<string>("daily");
+  const [probPfView, setProbPfView] = useState<string>("weekday");
   const [probPfPriceFilter, setProbPfPriceFilter] = useState<string>("all");
   const [probPfMarginFilter, setProbPfMarginFilter] = useState<string>("");
   const [probPfSource, setProbPfSource] = useState<"hybrid" | "live" | "wfcv">("hybrid");
@@ -365,7 +365,7 @@ export default function DayTradeListPage() {
 
   useEffect(() => {
     fetchData();
-    fetchProbPf("daily", "all", "", "hybrid");
+    fetchProbPf("weekday", "all", "", "hybrid");
   }, [fetchProbPf]);
 
   const fetchRealtime = useCallback(async (force: boolean = false) => {
@@ -525,24 +525,6 @@ export default function DayTradeListPage() {
     return `${sign}${profit.toLocaleString()}`;
   };
 
-  const getPfBasisDisplay = (stock: DayTradeStock) => {
-    if (!stock.expected_pf_basis) return null;
-    const basis = stock.expected_pf_basis;
-    const n = stock.expected_pf_n ?? 0;
-    const confidence = stock.expected_pf_confidence ||
-      (n >= 100 ? "厚い" :
-      n >= 50 ? "標準" :
-      n >= 30 ? "参考" :
-      n >= 10 ? "少" :
-      n > 0 ? "極薄" :
-      "不足");
-    return {
-      basis,
-      meta: `n=${n} ${confidence}`,
-      lowN: n < 30 || basis === "残0" || basis === "取扱なし",
-    };
-  };
-
   const pfTextClass = (pf: number | null | undefined) => {
     if (pf === null || pf === undefined) return "text-muted-foreground";
     if (pf >= 2) return "text-emerald-400 font-semibold";
@@ -572,7 +554,7 @@ export default function DayTradeListPage() {
     return matrix.rows.find(r => r.marginKey === marginKey && r.probKey === probKey) ?? null;
   };
 
-  const getParentPfDisplay = (stock: DayTradeStock): PfDisplay => {
+  const getClosePfDisplay = (stock: DayTradeStock): PfDisplay => {
     const row = getRiskRowForStock(stock, weekdayRisk11 ?? weekdayRisk);
     const close = row?.segments.find(s => s.key === "seg_1530");
     if (!row || !close) return null;
@@ -584,7 +566,7 @@ export default function DayTradeListPage() {
     };
   };
 
-  const getExitMaxPfDisplay = (stock: DayTradeStock): ExitMaxPfDisplay => {
+  const getMaxPfDisplay = (stock: DayTradeStock): ExitMaxPfDisplay => {
     const row = getRiskRowForStock(stock, weekdayRisk11 ?? weekdayRisk);
     const best = row?.bestSegment;
     if (!row || !best) return null;
@@ -646,10 +628,12 @@ export default function DayTradeListPage() {
 
   const getOperationPlan = (stock: DayTradeStock): OperationPlan => {
     const liquidity = getLiquidityLevel(stock);
-    const expectedPf = stock.expected_pf;
+    const closePf = getClosePfDisplay(stock);
+    const expectedPf = closePf ? closePf.pf : stock.expected_pf;
+    const expectedN = closePf ? closePf.n : (stock.expected_pf_n ?? 0);
     const expectedAvgWeak = stock.expected_pnl_avg !== null && stock.expected_pnl_avg <= 0;
-    const sampleForSmallLot = stock.expected_pf_n >= 15;
-    const sampleForRecommendation = stock.expected_pf_n >= 30;
+    const sampleForSmallLot = expectedN >= 15;
+    const sampleForRecommendation = expectedN >= 30;
     const canUse200Shares =
       stock.shortable ||
       (stock.day_trade_available_shares !== null && stock.day_trade_available_shares >= 200);
@@ -823,13 +807,18 @@ export default function DayTradeListPage() {
 
     if (sortKey) {
       const riskMatrix = weekdayRisk11 ?? weekdayRisk;
-      const getParentPfSortValue = (stock: DayTradeStock): number | null => {
+      const getMaxPfSortValue = (stock: DayTradeStock): number | null => {
+        const row = getRiskRowForStock(stock, riskMatrix);
+        return row?.bestSegment?.pf ?? null;
+      };
+      const getClosePfSortValue = (stock: DayTradeStock): number | null => {
         const row = getRiskRowForStock(stock, riskMatrix);
         const close = row?.segments.find(s => s.key === "seg_1530");
         return close?.amount.pf ?? null;
       };
       const getSortValue = (stock: DayTradeStock, key: SortKey): SortValue => {
-        if (key === "parent_pf") return getParentPfSortValue(stock);
+        if (key === "max_pf") return getMaxPfSortValue(stock);
+        if (key === "close_pf") return getClosePfSortValue(stock);
         return stock[key];
       };
 
@@ -1229,9 +1218,9 @@ export default function DayTradeListPage() {
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("close")}>終値<SortIcon col="close" /></th>
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("price_diff")}>前日差<SortIcon col="price_diff" /></th>
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">寄付差</th>
-                  <th className="px-1.5 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("parent_pf")}>親PF<SortIcon col="parent_pf" /></th>
+                  <th className="px-1.5 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("max_pf")}>最大PF<SortIcon col="max_pf" /></th>
                   <th className="px-1.5 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">出口</th>
-                  <th className="px-1.5 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("expected_pf")}>区間PF<SortIcon col="expected_pf" /></th>
+                  <th className="px-1.5 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("close_pf")}>大引PF<SortIcon col="close_pf" /></th>
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("prob_up")}>prob<SortIcon col="prob_up" /></th>
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("turnover")}>流動性<SortIcon col="turnover" /></th>
                   <th className="px-2 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">
@@ -1367,18 +1356,18 @@ export default function DayTradeListPage() {
                         </td>
                         <td className={`px-1.5 py-3 text-right tabular-nums ${
                           (() => {
-                            const parentPf = getParentPfDisplay(stock);
-                            return pfTextClass(parentPf?.pf);
+                            const maxPf = getMaxPfDisplay(stock);
+                            return pfTextClass(maxPf?.pf);
                           })()
                         }`}>
                           {(() => {
-                            const parentPf = getParentPfDisplay(stock);
-                            if (!parentPf || parentPf.pf === null) return "-";
+                            const maxPf = getMaxPfDisplay(stock);
+                            if (!maxPf || maxPf.pf === null) return "-";
                             return (
-                              <div className="leading-tight" title="曜日×信用区分×L/M/H 大引けPF">
-                                <div>{parentPf.pf.toFixed(2)}</div>
-                                <div className={`text-[10px] ${parentPf.lowN ? "text-amber-400" : "text-muted-foreground"}`}>
-                                  n={parentPf.n}
+                              <div className="leading-tight" title="曜日×信用区分×prob 0.1区間×時間帯の最大PF">
+                                <div>{maxPf.pf.toFixed(2)}</div>
+                                <div className={`text-[10px] ${maxPf.lowN ? "text-amber-400" : "text-muted-foreground"}`}>
+                                  n={maxPf.n}
                                 </div>
                               </div>
                             );
@@ -1386,48 +1375,41 @@ export default function DayTradeListPage() {
                         </td>
                         <td className={`px-1.5 py-3 text-right tabular-nums ${
                           (() => {
-                            const exitPf = getExitMaxPfDisplay(stock);
+                            const exitPf = getMaxPfDisplay(stock);
                             return pfTextClass(exitPf?.pf);
                           })()
                         }`}>
                           {(() => {
-                            const exitPf = getExitMaxPfDisplay(stock);
+                            const exitPf = getMaxPfDisplay(stock);
                             if (!exitPf || exitPf.pf === null) return "-";
                             return (
-                              <div className="leading-tight" title={`${exitPf.time} ${exitPf.label} / 11seg最適`}>
+                              <div className="leading-tight" title={`${exitPf.time} ${exitPf.label} / 最大PFの出口`}>
                                 <div>{exitPf.time}</div>
-                                <div className={`text-[10px] ${exitPf.lowN ? "text-amber-400" : "text-muted-foreground"}`}>
-                                  PF {exitPf.pf.toFixed(2)}
+                                <div className="text-[10px] text-muted-foreground">
+                                  {exitPf.label}
                                 </div>
                               </div>
                             );
                           })()}
                         </td>
                         <td className={`px-1.5 py-3 text-right tabular-nums ${
-                          stock.expected_pf !== null
-                            ? stock.expected_pf >= 2
-                              ? "text-emerald-400 font-semibold"
-                              : stock.expected_pf >= 1.2
-                                ? "text-amber-400 font-medium"
-                                : "text-rose-400 font-medium"
-                            : "text-muted-foreground"
+                          (() => {
+                            const closePf = getClosePfDisplay(stock);
+                            return pfTextClass(closePf?.pf);
+                          })()
                         }`}>
-                          <div title={`avg=${stock.expected_pnl_avg ?? "-"} / WR=${stock.expected_wr ?? "-"}% / ${stock.prob_bin ?? "-"} / ${stock.price_band ?? "-"}`}>
-                            {(() => {
-                              const basis = getPfBasisDisplay(stock);
-                              if (stock.expected_pf === null) return "-";
-                              return (
-                                <div className="leading-tight">
-                                  <div>{stock.expected_pf.toFixed(2)}</div>
-                                  {basis && (
-                                    <div className={`text-[10px] ${basis.lowN ? "text-amber-400" : "text-muted-foreground"}`}>
-                                      {basis.meta}
-                                    </div>
-                                  )}
+                          {(() => {
+                            const closePf = getClosePfDisplay(stock);
+                            if (!closePf || closePf.pf === null) return "-";
+                            return (
+                              <div className="leading-tight" title={`曜日×信用区分×prob 0.1区間の大引PF / ${stock.prob_bin ?? "-"} / ${stock.price_band ?? "-"}`}>
+                                <div>{closePf.pf.toFixed(2)}</div>
+                                <div className={`text-[10px] ${closePf.lowN ? "text-amber-400" : "text-muted-foreground"}`}>
+                                  n={closePf.n}
                                 </div>
-                              );
-                            })()}
-                          </div>
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td className={`px-2 py-4 text-right tabular-nums ${
                           stock.prob_up !== null
@@ -1649,7 +1631,7 @@ export default function DayTradeListPage() {
           <div className="relative px-4 py-3">
             <div className="flex items-center justify-between mb-3">
               <div className="text-sm text-muted-foreground font-medium">
-                prob別パフォーマンス（{probPfData?.probSource === "wfcv" ? "WFCV" : probPfData?.probSource === "live" ? "live" : "hybrid"} / prob_regime / 残0除外）
+                prob別パフォーマンス（{probPfData?.probSource === "wfcv" ? "WFCV" : probPfData?.probSource === "live" ? "live" : "hybrid"} / prob 0.1区間 / 残0除外）
               </div>
               {probPfData && (
                 <div className="text-sm text-muted-foreground">
