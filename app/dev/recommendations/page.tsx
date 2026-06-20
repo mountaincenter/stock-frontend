@@ -1042,6 +1042,34 @@ export default function DayTradeListPage() {
                 </tbody>
               </table>
             </div>
+            <details className="mt-3 rounded-lg border border-border/40 bg-background/40 px-3 py-2 text-sm">
+              <summary className="cursor-pointer select-none text-xs font-semibold text-muted-foreground hover:text-foreground">
+                指標の読み方（DD / 左尾CVaR5）
+              </summary>
+              <div className="mt-3 grid gap-3 text-xs leading-relaxed text-muted-foreground md:grid-cols-3">
+                <div>
+                  <div className="mb-1 font-semibold text-foreground">DD</div>
+                  <p>
+                    日次損益を日付順に積み上げた累計損益が、過去最高値から最も大きく落ち込んだ金額。
+                    連敗や回復までの資産曲線の沈み込みを見る指標。
+                  </p>
+                </div>
+                <div>
+                  <div className="mb-1 font-semibold text-foreground">左尾CVaR5</div>
+                  <p>
+                    日次損益を悪い順に並べ、下位5%の日だけを平均した損益。
+                    かなり悪い日に、平均してどれくらい負けるかを見る指標。
+                  </p>
+                </div>
+                <div>
+                  <div className="mb-1 font-semibold text-foreground">使い分け</div>
+                  <p>
+                    DDは連続負けを含む途中の痛み、CVaR5は単日の悪い日の重さ。
+                    この表では表示中の曜日・信用区分・prob区間・出口ルールにおける100株あたり日次損益で計算。nが少ない行は参考値。
+                  </p>
+                </div>
+              </div>
+            </details>
           </section>
         )}
 
