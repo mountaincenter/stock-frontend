@@ -1247,7 +1247,15 @@ export default function DayTradeListPage() {
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("price_diff")}>前日差<SortIcon col="price_diff" /></th>
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">寄付差</th>
                   <th className="px-1.5 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("max_pf")}>最大PF<SortIcon col="max_pf" /></th>
-                  <th className="px-1.5 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">出口</th>
+                  <th
+                    className="px-1.5 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap"
+                    title="銘柄別は11segの最大PF出口。下部の曜日出口ルールは4seg表示です。"
+                  >
+                    <div className="leading-tight">
+                      <div>出口</div>
+                      <div className="text-[10px] text-muted-foreground">11seg</div>
+                    </div>
+                  </th>
                   <th className="px-1.5 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("close_pf")}>大引PF<SortIcon col="close_pf" /></th>
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("prob_up")}>prob<SortIcon col="prob_up" /></th>
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("turnover")}>流動性<SortIcon col="turnover" /></th>
@@ -1411,11 +1419,13 @@ export default function DayTradeListPage() {
                             const exitPf = getMaxPfDisplay(stock);
                             if (!exitPf || exitPf.pf === null) return "-";
                             return (
-                              <div className="leading-tight" title={`${exitPf.time} ${exitPf.label} / 最大PFの出口`}>
+                              <div
+                                className="leading-tight"
+                                title={`${exitPf.time} / 11seg ${exitPf.label} / 曜日×信用区分×prob区間の11seg最大PF。下部の4seg表とは粒度が異なります。`}
+                              >
                                 <div>{exitPf.time}</div>
-                                <div className="text-[10px] text-muted-foreground">
-                                  {exitPf.label}
-                                </div>
+                                <div className="text-[10px] text-muted-foreground">11seg</div>
+                                <div className="text-[10px] text-muted-foreground whitespace-nowrap">{exitPf.label}</div>
                               </div>
                             );
                           })()}
