@@ -286,8 +286,8 @@ export default function DayTradeListPage() {
   const [expandedTicker, setExpandedTicker] = useState<string | null>(null);
   const [historyData, setHistoryData] = useState<Record<string, HistoryRecord[]>>({});
   const [loadingHistory, setLoadingHistory] = useState<string | null>(null);
-  const [sortKey, setSortKey] = useState<SortKey | null>("prob_up");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [sortKey, setSortKey] = useState<SortKey | null>("close_pf");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   // リアルタイム寄付価格
   const [realtimeData, setRealtimeData] = useState<Record<string, { price: number | null; open: number | null; marketState: string | null; marketTime: string | null }>>({});
