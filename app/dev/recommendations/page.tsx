@@ -28,6 +28,33 @@ type DayTradeStock = {
   expected_pf_confidence?: string | null;
   expected_pnl_avg: number | null;
   expected_wr: number | null;
+  expected_exit_basis?: string | null;
+  expected_max_pf?: number | null;
+  expected_max_pf_n?: number;
+  expected_max_pf_time?: string | null;
+  expected_max_pf_label?: string | null;
+  expected_max_pf_segment?: string | null;
+  expected_close_pf?: number | null;
+  expected_close_pf_n?: number;
+  operational_pf_basis?: string | null;
+  operational_max_pf?: number | null;
+  operational_max_pf_n?: number;
+  operational_max_pf_time?: string | null;
+  operational_max_pf_label?: string | null;
+  operational_max_pf_segment?: string | null;
+  operational_close_pf?: number | null;
+  operational_close_pf_n?: number;
+  recent_risk_level?: "none" | "watch" | "high" | string | null;
+  recent_risk_reason?: string | null;
+  recent_risk_lookback_days?: number;
+  recent_weekday_pf?: number | null;
+  recent_weekday_n?: number;
+  recent_weekday_total?: number;
+  recent_cell_pf?: number | null;
+  recent_cell_n?: number;
+  recent_cell_total?: number;
+  recent_cell_worst?: number | null;
+  recent_cell_loss_10k_count?: number;
   shortable: boolean;
   day_trade: boolean;
   ng: boolean;
@@ -168,7 +195,7 @@ type OperationPlan = {
   className: string;
 };
 
-type SortKey = keyof DayTradeStock | "max_pf" | "close_pf";
+type SortKey = keyof DayTradeStock | "max_pf" | "close_pf" | "bin_pf";
 type SortValue = string | number | boolean | null | undefined;
 
 const PROB_REGIME_ORDER: Record<string, number> = {
@@ -532,7 +559,7 @@ export default function DayTradeListPage() {
     return "text-rose-400 font-medium";
   };
 
-  const getRiskRowForStock = (stock: DayTradeStock, matrix: WeekdayRiskMatrix | null) => {
+  const getRiskRowForStock = useCallback((stock: DayTradeStock, matrix: WeekdayRiskMatrix | null) => {
     if (!matrix || stock.ng) return null;
     let probKey: string | null = null;
     if (matrix.probMode === "bin") {
@@ -552,9 +579,62 @@ export default function DayTradeListPage() {
       null;
     if (!marginKey) return null;
     return matrix.rows.find(r => r.marginKey === marginKey && r.probKey === probKey) ?? null;
-  };
+  }, []);
 
-  const getClosePfDisplay = (stock: DayTradeStock): PfDisplay => {
+  const getOperationalClosePfDisplay = useCallback((stock: DayTradeStock): PfDisplay => {
+    if (stock.operational_close_pf !== undefined && stock.operational_close_pf !== null) {
+      const n = stock.operational_close_pf_n ?? 0;
+      return {
+        pf: stock.operational_close_pf,
+        n,
+        lowN: n < 30,
+      };
+    }
+    const row = getRiskRowForStock(stock, weekdayRisk);
+    const close = row?.segments.find(s => s.key === "seg_1530");
+    if (!row || !close) return null;
+    const n = close.amount.n ?? row.count;
+    return {
+      pf: close.amount.pf,
+      n,
+      lowN: n < 30,
+    };
+  }, [getRiskRowForStock, weekdayRisk]);
+
+  const getOperationalMaxPfDisplay = useCallback((stock: DayTradeStock): ExitMaxPfDisplay => {
+    if (stock.operational_max_pf !== undefined && stock.operational_max_pf !== null) {
+      const n = stock.operational_max_pf_n ?? 0;
+      return {
+        pf: stock.operational_max_pf,
+        n,
+        time: stock.operational_max_pf_time ?? "-",
+        label: stock.operational_max_pf_label ?? stock.operational_max_pf_segment ?? "-",
+        lowN: n < 30,
+      };
+    }
+    const row = getRiskRowForStock(stock, weekdayRisk);
+    const best = row?.bestSegment;
+    if (!row || !best) return null;
+    const bestSeg = row.segments.find(s => s.key === best.key);
+    const n = bestSeg?.amount.n ?? row.count;
+    return {
+      pf: best.pf,
+      n,
+      time: bestSeg?.time ?? best.key.replace("seg_", "").replace(/^(\d{2})(\d{2})$/, "$1:$2"),
+      label: bestSeg?.label ?? best.label,
+      lowN: n < 30,
+    };
+  }, [getRiskRowForStock, weekdayRisk]);
+
+  const getClosePfDisplay = useCallback((stock: DayTradeStock): PfDisplay => {
+    if (stock.expected_close_pf !== undefined && stock.expected_close_pf !== null) {
+      const n = stock.expected_close_pf_n ?? 0;
+      return {
+        pf: stock.expected_close_pf,
+        n,
+        lowN: n < 30,
+      };
+    }
     const row = getRiskRowForStock(stock, weekdayRisk11 ?? weekdayRisk);
     const close = row?.segments.find(s => s.key === "seg_1530");
     if (!row || !close) return null;
@@ -564,9 +644,19 @@ export default function DayTradeListPage() {
       n,
       lowN: n < 30,
     };
-  };
+  }, [getRiskRowForStock, weekdayRisk11, weekdayRisk]);
 
-  const getMaxPfDisplay = (stock: DayTradeStock): ExitMaxPfDisplay => {
+  const getMaxPfDisplay = useCallback((stock: DayTradeStock): ExitMaxPfDisplay => {
+    if (stock.expected_max_pf !== undefined && stock.expected_max_pf !== null) {
+      const n = stock.expected_max_pf_n ?? 0;
+      return {
+        pf: stock.expected_max_pf,
+        n,
+        time: stock.expected_max_pf_time ?? "-",
+        label: stock.expected_max_pf_label ?? stock.expected_max_pf_segment ?? "-",
+        lowN: n < 30,
+      };
+    }
     const row = getRiskRowForStock(stock, weekdayRisk11 ?? weekdayRisk);
     const best = row?.bestSegment;
     if (!row || !best) return null;
@@ -579,7 +669,7 @@ export default function DayTradeListPage() {
       label: bestSeg?.label ?? best.label,
       lowN: n < 30,
     };
-  };
+  }, [getRiskRowForStock, weekdayRisk11, weekdayRisk]);
 
   const formatVolume = (vol: number | null | undefined) => {
     if (vol == null) return "-";
@@ -612,6 +702,33 @@ export default function DayTradeListPage() {
     return "text-foreground";
   };
 
+  const recentRiskClass = (stock: DayTradeStock) => {
+    if (stock.recent_risk_level === "high") return "text-rose-300";
+    if (stock.recent_risk_level === "watch") return "text-amber-300";
+    return "text-muted-foreground";
+  };
+
+  const recentRiskText = (stock: DayTradeStock) => {
+    if (stock.recent_risk_level !== "high" && stock.recent_risk_level !== "watch") return null;
+    const pf = stock.recent_cell_pf ?? stock.recent_weekday_pf;
+    const n = stock.recent_cell_n && stock.recent_cell_n > 0 ? stock.recent_cell_n : stock.recent_weekday_n;
+    const pfText = pf !== null && pf !== undefined ? `PF ${pf.toFixed(2)}` : "PF -";
+    return `直近 ${pfText}${n ? ` n=${n}` : ""}`;
+  };
+
+  const recentRiskTitle = (stock: DayTradeStock) => {
+    const parts = [
+      stock.recent_risk_reason,
+      stock.recent_cell_pf !== null && stock.recent_cell_pf !== undefined
+        ? `同セルPF ${stock.recent_cell_pf.toFixed(2)} / n=${stock.recent_cell_n ?? 0} / 損益 ${formatProfit(stock.recent_cell_total ?? 0)}`
+        : null,
+      stock.recent_weekday_pf !== null && stock.recent_weekday_pf !== undefined
+        ? `曜日PF ${stock.recent_weekday_pf.toFixed(2)} / n=${stock.recent_weekday_n ?? 0} / 損益 ${formatProfit(stock.recent_weekday_total ?? 0)}`
+        : null,
+    ].filter(Boolean);
+    return parts.join(" / ");
+  };
+
   const isTradableForShort = (stock: DayTradeStock) => {
     if (typeof stock.tradable === "boolean") return stock.tradable;
     return stock.credit_bucket === "制度信用" || stock.credit_bucket === "いちにち信用_除株数0";
@@ -628,10 +745,11 @@ export default function DayTradeListPage() {
 
   const getOperationPlan = (stock: DayTradeStock): OperationPlan => {
     const liquidity = getLiquidityLevel(stock);
-    const closePf = getClosePfDisplay(stock);
+    const operationalClosePf = getOperationalClosePfDisplay(stock);
+    const closePf = operationalClosePf ?? getClosePfDisplay(stock);
     const expectedPf = closePf ? closePf.pf : stock.expected_pf;
     const expectedN = closePf ? closePf.n : (stock.expected_pf_n ?? 0);
-    const expectedAvgWeak = stock.expected_pnl_avg !== null && stock.expected_pnl_avg <= 0;
+    const expectedAvgWeak = !operationalClosePf && stock.expected_pnl_avg !== null && stock.expected_pnl_avg <= 0;
     const sampleForSmallLot = expectedN >= 15;
     const sampleForRecommendation = expectedN >= 30;
     const canUse200Shares =
@@ -658,6 +776,9 @@ export default function DayTradeListPage() {
     }
     if (expectedPf < 1.2 || expectedAvgWeak) {
       return { label: "見送り", detail: "期待値弱", className: "border-rose-500/35 bg-rose-500/10 text-rose-300" };
+    }
+    if (stock.recent_risk_level === "high" && expectedPf >= 2.0) {
+      return { label: "小ロット", detail: "直近警戒", className: "border-amber-500/35 bg-amber-500/10 text-amber-300" };
     }
     if (expectedPf >= 2.0 && sampleForRecommendation && canUse200Shares && liquidity === "normal") {
       return { label: "推奨", detail: "200株分割", className: "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" };
@@ -806,19 +927,19 @@ export default function DayTradeListPage() {
     }
 
     if (sortKey) {
-      const riskMatrix = weekdayRisk11 ?? weekdayRisk;
       const getMaxPfSortValue = (stock: DayTradeStock): number | null => {
-        const row = getRiskRowForStock(stock, riskMatrix);
-        return row?.bestSegment?.pf ?? null;
+        return getOperationalMaxPfDisplay(stock)?.pf ?? getMaxPfDisplay(stock)?.pf ?? null;
       };
       const getClosePfSortValue = (stock: DayTradeStock): number | null => {
-        const row = getRiskRowForStock(stock, riskMatrix);
-        const close = row?.segments.find(s => s.key === "seg_1530");
-        return close?.amount.pf ?? null;
+        return getOperationalClosePfDisplay(stock)?.pf ?? getClosePfDisplay(stock)?.pf ?? null;
+      };
+      const getBinPfSortValue = (stock: DayTradeStock): number | null => {
+        return getMaxPfDisplay(stock)?.pf ?? null;
       };
       const getSortValue = (stock: DayTradeStock, key: SortKey): SortValue => {
         if (key === "max_pf") return getMaxPfSortValue(stock);
         if (key === "close_pf") return getClosePfSortValue(stock);
+        if (key === "bin_pf") return getBinPfSortValue(stock);
         return stock[key];
       };
 
@@ -840,7 +961,7 @@ export default function DayTradeListPage() {
       });
     }
     return list;
-  }, [stocks, filter, sortKey, sortDir, excludeZeroShares, weekdayRisk, weekdayRisk11]);
+  }, [stocks, filter, sortKey, sortDir, excludeZeroShares, getOperationalMaxPfDisplay, getOperationalClosePfDisplay, getMaxPfDisplay, getClosePfDisplay]);
 
   if (loading) {
     return (
@@ -1246,17 +1367,29 @@ export default function DayTradeListPage() {
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("close")}>終値<SortIcon col="close" /></th>
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("price_diff")}>前日差<SortIcon col="price_diff" /></th>
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap">寄付差</th>
-                  <th className="px-1.5 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("max_pf")}>最大PF<SortIcon col="max_pf" /></th>
+                  <th
+                    className="px-1.5 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary"
+                    onClick={() => toggleSort("close_pf")}
+                    title="運用PF: 曜日×信用区分×L/M/H×4seg。並び替えは運用大引PF基準。"
+                  >
+                    運用PF<SortIcon col="close_pf" />
+                  </th>
                   <th
                     className="px-1.5 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap"
-                    title="銘柄別は11segの最大PF出口。下部の曜日出口ルールは4seg表示です。"
+                    title="運用出口: 曜日×信用区分×L/M/H×4segの最大PF時刻。"
                   >
                     <div className="leading-tight">
                       <div>出口</div>
-                      <div className="text-[10px] text-muted-foreground">11seg</div>
+                      <div className="text-[10px] text-muted-foreground">4seg</div>
                     </div>
                   </th>
-                  <th className="px-1.5 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("close_pf")}>大引PF<SortIcon col="close_pf" /></th>
+                  <th
+                    className="px-1.5 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary"
+                    onClick={() => toggleSort("bin_pf")}
+                    title="区間PF: 曜日×信用区分×prob 0.1区間×11seg。n<30は参考。"
+                  >
+                    区間PF<SortIcon col="bin_pf" />
+                  </th>
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("prob_up")}>prob<SortIcon col="prob_up" /></th>
                   <th className="px-2 py-3 text-right text-foreground font-medium text-xs whitespace-nowrap cursor-pointer select-none hover:text-primary" onClick={() => toggleSort("turnover")}>流動性<SortIcon col="turnover" /></th>
                   <th className="px-2 py-3 text-center text-foreground font-medium text-xs whitespace-nowrap">
@@ -1329,6 +1462,11 @@ export default function DayTradeListPage() {
                               {operation.label}
                             </span>
                             <span className="text-[10px] text-muted-foreground">{operation.detail}</span>
+                            {recentRiskText(stock) && (
+                              <span className={`text-[10px] ${recentRiskClass(stock)}`} title={recentRiskTitle(stock)}>
+                                {recentRiskText(stock)}
+                              </span>
+                            )}
                           </div>
                         </td>
                         <td className="px-2 py-4 text-right tabular-nums whitespace-nowrap text-muted-foreground">
@@ -1392,18 +1530,22 @@ export default function DayTradeListPage() {
                         </td>
                         <td className={`px-1.5 py-3 text-right tabular-nums ${
                           (() => {
-                            const maxPf = getMaxPfDisplay(stock);
-                            return pfTextClass(maxPf?.pf);
+                            const opClosePf = getOperationalClosePfDisplay(stock);
+                            return pfTextClass(opClosePf?.pf);
                           })()
                         }`}>
                           {(() => {
-                            const maxPf = getMaxPfDisplay(stock);
-                            if (!maxPf || maxPf.pf === null) return "-";
+                            const opMaxPf = getOperationalMaxPfDisplay(stock);
+                            const opClosePf = getOperationalClosePfDisplay(stock);
+                            if (!opMaxPf || opMaxPf.pf === null) return "-";
                             return (
-                              <div className="leading-tight" title="曜日×信用区分×prob 0.1区間×時間帯の最大PF">
-                                <div>{maxPf.pf.toFixed(2)}</div>
-                                <div className={`text-[10px] ${maxPf.lowN ? "text-amber-400" : "text-muted-foreground"}`}>
-                                  n={maxPf.n}
+                              <div className="leading-tight" title="曜日×信用区分×L/M/H×4seg。ロット/出口判断の主PF。">
+                                <div>{opMaxPf.pf.toFixed(2)}</div>
+                                <div className={`text-[10px] ${opMaxPf.lowN ? "text-amber-400" : "text-muted-foreground"}`}>
+                                  n={opMaxPf.n}
+                                </div>
+                                <div className={`text-[10px] ${pfTextClass(opClosePf?.pf)}`}>
+                                  大引 {opClosePf?.pf !== null && opClosePf?.pf !== undefined ? opClosePf.pf.toFixed(2) : "-"}
                                 </div>
                               </div>
                             );
@@ -1411,20 +1553,20 @@ export default function DayTradeListPage() {
                         </td>
                         <td className={`px-1.5 py-3 text-right tabular-nums ${
                           (() => {
-                            const exitPf = getMaxPfDisplay(stock);
+                            const exitPf = getOperationalMaxPfDisplay(stock);
                             return pfTextClass(exitPf?.pf);
                           })()
                         }`}>
                           {(() => {
-                            const exitPf = getMaxPfDisplay(stock);
+                            const exitPf = getOperationalMaxPfDisplay(stock);
                             if (!exitPf || exitPf.pf === null) return "-";
                             return (
                               <div
                                 className="leading-tight"
-                                title={`${exitPf.time} / 11seg ${exitPf.label} / 曜日×信用区分×prob区間の11seg最大PF。下部の4seg表とは粒度が異なります。`}
+                                title={`${exitPf.time} / 4seg ${exitPf.label} / 曜日×信用区分×L/M/Hの運用最大PF。`}
                               >
                                 <div>{exitPf.time}</div>
-                                <div className="text-[10px] text-muted-foreground">11seg</div>
+                                <div className="text-[10px] text-muted-foreground">4seg</div>
                                 <div className="text-[10px] text-muted-foreground whitespace-nowrap">{exitPf.label}</div>
                               </div>
                             );
@@ -1432,18 +1574,22 @@ export default function DayTradeListPage() {
                         </td>
                         <td className={`px-1.5 py-3 text-right tabular-nums ${
                           (() => {
-                            const closePf = getClosePfDisplay(stock);
-                            return pfTextClass(closePf?.pf);
+                            const binMaxPf = getMaxPfDisplay(stock);
+                            return pfTextClass(binMaxPf?.pf);
                           })()
                         }`}>
                           {(() => {
-                            const closePf = getClosePfDisplay(stock);
-                            if (!closePf || closePf.pf === null) return "-";
+                            const binMaxPf = getMaxPfDisplay(stock);
+                            const binClosePf = getClosePfDisplay(stock);
+                            if (!binMaxPf || binMaxPf.pf === null) return "-";
                             return (
-                              <div className="leading-tight" title={`曜日×信用区分×prob 0.1区間の大引PF / ${stock.prob_bin ?? "-"} / ${stock.price_band ?? "-"}`}>
-                                <div>{closePf.pf.toFixed(2)}</div>
-                                <div className={`text-[10px] ${closePf.lowN ? "text-amber-400" : "text-muted-foreground"}`}>
-                                  n={closePf.n}
+                              <div className="leading-tight" title={`曜日×信用区分×prob 0.1区間×11seg。銘柄補正用 / ${stock.prob_bin ?? "-"} / ${stock.price_band ?? "-"}`}>
+                                <div>{binMaxPf.pf.toFixed(2)}</div>
+                                <div className={`text-[10px] ${binMaxPf.lowN ? "text-amber-400" : "text-muted-foreground"}`}>
+                                  n={binMaxPf.n} {binMaxPf.time}
+                                </div>
+                                <div className={`text-[10px] ${pfTextClass(binClosePf?.pf)}`}>
+                                  大引 {binClosePf?.pf !== null && binClosePf?.pf !== undefined ? binClosePf.pf.toFixed(2) : "-"}
                                 </div>
                               </div>
                             );
@@ -1648,7 +1794,7 @@ export default function DayTradeListPage() {
               <span><span className="text-fuchsia-300 font-medium">HIGH_PROB_HEAT</span>: prob ≥ 0.5</span>
             </div>
             <div className="text-xs text-muted-foreground mt-2">
-              L/M/Hは視覚バッジ。期待PFと出口ルールは、曜日・信用区分・prob 0.1区間・流動性を組み合わせて確認する。
+              運用PFは曜日・信用区分・L/M/H・4segで判断する。区間PFは曜日・信用区分・prob 0.1区間・11segの補助情報で、n&lt;30は参考値。
             </div>
           </div>
         </div>
