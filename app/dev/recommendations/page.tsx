@@ -183,8 +183,6 @@ type WeekdayRiskMatrix = {
 };
 
 type FilterType = "all" | "unchecked" | "shortable" | "day_trade" | "ng";
-type ExitDecision = "GO" | "CONDITIONAL" | "SKIP";
-type ExitOperation = "通常" | "早期利確" | "時間指定" | "見送り";
 type ProbRegime = "LOW_PROB_HEAT" | "MID_PROB_HEAT" | "HIGH_PROB_HEAT";
 type OperationClass = "入力待ち" | "残なし" | "保留" | "見送り" | "小ロット" | "推奨";
 type LiquidityLevel = "red" | "yellow" | "normal" | "unknown";
@@ -333,12 +331,14 @@ export default function DayTradeListPage() {
   const [probPfLoading, setProbPfLoading] = useState(false);
   const [probPfExpanded, setProbPfExpanded] = useState<Set<string>>(new Set());
 
-  // 曜日ルール
+  // 曜日実績
   const [weekdayRule, setWeekdayRule] = useState<{
     weekday: string;
     direction: string;
     rule: string;
-    pf: number;
+    pf: number | null;
+    n?: number;
+    pnl?: number;
     note: string;
   } | null>(null);
   const [weekdayRisk, setWeekdayRisk] = useState<WeekdayRiskMatrix | null>(null);
@@ -799,73 +799,6 @@ export default function DayTradeListPage() {
     return "HIGH_PROB_HEAT";
   };
 
-  const getExitOperation = (best: WeekdayRiskRow["bestSegment"], close: RiskSegment | null): ExitOperation => {
-    const bestPf = best?.pf ?? null;
-    const closePf = close?.amount.pf ?? null;
-    if (!best || bestPf === null) return "見送り";
-    if (best.key === "seg_1530" && bestPf >= 1.2) return "通常";
-    if (best.key !== "seg_1530" && bestPf >= 1.3 && closePf !== null && closePf < 1.0) return "時間指定";
-    if (best.key !== "seg_1530" && closePf !== null && closePf >= 1.0 && bestPf - closePf >= 0.3) return "早期利確";
-    if (bestPf >= 1.2 && closePf !== null && closePf >= 1.0) return "通常";
-    return "見送り";
-  };
-
-  const getRiskNote = (best: WeekdayRiskRow["bestSegment"]) => {
-    if (!best) return null;
-    const notes: string[] = [];
-    if (best.dailyMaxDD !== null) {
-      if (best.dailyMaxDD < -50000) notes.push("DD重め");
-      else if (best.dailyMaxDD < -30000) notes.push("DD注意");
-    }
-    if (best.cvar05 !== null) {
-      if (best.cvar05 < -25000) notes.push("CVaR重め");
-      else if (best.cvar05 < -15000) notes.push("CVaR注意");
-    }
-    return notes.length > 0 ? notes.join(" / ") : null;
-  };
-
-  const getExitDecision = (row: WeekdayRiskRow, operation: ExitOperation, close: RiskSegment | null): ExitDecision => {
-    const best = row.bestSegment;
-    if (!best || best.pf === null || best.dailyMaxDD === null || best.cvar05 === null || operation === "見送り") return "SKIP";
-    const closePf = close?.amount.pf ?? null;
-    const riskOk = best.dailyMaxDD >= -30000 && best.cvar05 >= -15000;
-    if (best.pf < 1.2 || best.total <= 0) return "SKIP";
-    if (best.pf >= 1.5 && best.total > 0 && riskOk && closePf !== null && closePf >= 1.0 && operation === "通常") return "GO";
-    return "CONDITIONAL";
-  };
-
-  const getExitReason = (decision: ExitDecision, operation: ExitOperation, best: WeekdayRiskRow["bestSegment"], close: RiskSegment | null, pfDelta: number | null) => {
-    if (decision === "SKIP") {
-      if (!best || best.pf === null) return "検証不足";
-      if (operation === "見送り") return "出口条件未達";
-      if (best.pf < 1.2 || best.total <= 0) return "期待値不足";
-      return "リスク過大";
-    }
-    const closePf = close?.amount.pf ?? null;
-    const riskNote = getRiskNote(best);
-    if (operation === "時間指定") return riskNote ? `大引けPF<1 / ${riskNote}` : "大引けPF<1";
-    if (operation === "早期利確") {
-      const edgeNote = pfDelta !== null ? `PF差 +${pfDelta.toFixed(2)}` : "早期利確優位";
-      return riskNote ? `${edgeNote} / ${riskNote}` : edgeNote;
-    }
-    if (riskNote) return riskNote;
-    if (closePf !== null && closePf < 1.2) return "大引けPF弱め";
-    return "大引け可";
-  };
-
-  const exitDecisionClass = (decision: ExitDecision) => ({
-    GO: "bg-emerald-500/15 text-emerald-300 border-emerald-500/40",
-    CONDITIONAL: "bg-amber-500/15 text-amber-300 border-amber-500/40",
-    SKIP: "bg-rose-500/15 text-rose-300 border-rose-500/40",
-  }[decision]);
-
-  const exitOperationClass = (operation: ExitOperation) => ({
-    通常: "text-emerald-300",
-    早期利確: "text-cyan-300",
-    時間指定: "text-amber-300",
-    見送り: "text-muted-foreground",
-  }[operation]);
-
   const weekdayExitRows = (() => {
     if (!weekdayRisk) return [];
     return weekdayRisk.rows
@@ -880,14 +813,11 @@ export default function DayTradeListPage() {
         const best = row.bestSegment;
         const bestSeg = best ? row.segments.find(s => s.key === best.key) ?? null : null;
         const close = row.segments.find(s => s.key === "seg_1530") ?? null;
-        const operation = getExitOperation(best, close);
-        const decision = getExitDecision(row, operation, close);
         const pfDelta = best?.pf !== null && best?.pf !== undefined && close?.amount.pf !== null && close?.amount.pf !== undefined
           ? best.pf - close.amount.pf
           : null;
-        const reason = getExitReason(decision, operation, best, close, pfDelta);
         const totalDelta = best && close ? best.total - close.amount.total : null;
-        return { row, best, bestSeg, close, operation, decision, pfDelta, reason, totalDelta };
+        return { row, best, bestSeg, close, pfDelta, totalDelta };
       });
   })();
 
@@ -1045,42 +975,22 @@ export default function DayTradeListPage() {
                 </div>
                 <div>
                   <span className="font-semibold text-amber-100">出口:</span>
-                  <span className="ml-1">曜日出口ルールに従い11:30/14:00/大引けを分ける。左尾管理を優先。</span>
+                  <span className="ml-1">11:30/14:00/大引けの期間内比較は参考値。7月の既存運用は変更しない。</span>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* 曜日ルールバナー */}
+        {/* 曜日実績バナー */}
         {weekdayRule && weekdayExitRows.length === 0 && (
-          <div className={`mb-4 rounded-xl border px-4 py-3 flex items-center gap-3 ${
-            weekdayRule.direction === "long"
-              ? "border-emerald-500/40 bg-emerald-500/10"
-              : weekdayRule.direction === "excluded"
-                ? "border-amber-500/40 bg-amber-500/10"
-                : "border-rose-500/40 bg-rose-500/10"
-          }`}>
-            <span className={`text-lg font-bold ${
-              weekdayRule.direction === "long"
-                ? "text-emerald-400"
-                : weekdayRule.direction === "excluded"
-                  ? "text-amber-400"
-                  : "text-rose-400"
-            }`}>
-              {weekdayRule.weekday}
-            </span>
+          <div className="mb-4 rounded-xl border border-border/50 bg-card/80 px-4 py-3 flex items-center gap-3">
+            <span className="text-lg font-bold text-foreground">{weekdayRule.weekday}</span>
             <div className="flex-1">
-              <span className={`text-sm font-medium ${
-                weekdayRule.direction === "long"
-                  ? "text-emerald-400"
-                  : weekdayRule.direction === "excluded"
-                    ? "text-amber-400"
-                    : "text-rose-400"
-              }`}>
-                {weekdayRule.rule}
+              <span className="text-sm font-medium text-foreground">{weekdayRule.rule}</span>
+              <span className="text-xs text-muted-foreground ml-2">
+                PF {weekdayRule.pf !== null ? weekdayRule.pf.toFixed(2) : "-"} / n={weekdayRule.n ?? 0}
               </span>
-              <span className="text-xs text-muted-foreground ml-2">PF {weekdayRule.pf.toFixed(2)}</span>
             </div>
             <span className="text-xs text-muted-foreground max-w-xs hidden sm:block">{weekdayRule.note}</span>
           </div>
@@ -1093,28 +1003,28 @@ export default function DayTradeListPage() {
                 <div className="text-xs text-muted-foreground">
                   {weekdayRisk?.dataScope?.analysisStartDate}以降 / {weekdayRisk?.dataRange.tradingDays}日 / 4seg / {dataSourceLabel(weekdayRisk?.dataScope)} / {priceBasisLabel(weekdayRisk?.dataScope)}
                 </div>
-                <h2 className="text-sm font-bold text-foreground">曜日出口ルール — {weekdayRisk?.weekdayName}</h2>
+                <h2 className="text-sm font-bold text-foreground">期間内出口比較: {weekdayRisk?.weekdayName}</h2>
               </div>
               <div className="flex flex-wrap gap-2 text-xs">
-                {(["GO", "CONDITIONAL", "SKIP"] as const).map(d => (
-                  <span key={d} className={`rounded border px-2 py-1 ${exitDecisionClass(d)}`}>
-                    {d} {weekdayExitRows.filter(r => r.decision === d).length}
-                  </span>
-                ))}
+                <span className="rounded border border-border/40 bg-muted/30 px-2 py-1 text-muted-foreground">
+                  比較セル {weekdayExitRows.length}
+                </span>
+                <span className="rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-amber-300">
+                  RETROSPECTIVE
+                </span>
               </div>
             </div>
             <div className="overflow-x-auto rounded-lg border border-border/30">
-              <table className="w-full min-w-[1100px] text-sm">
+              <table className="w-full min-w-[1000px] text-sm">
                 <thead className="bg-muted/30 text-xs text-muted-foreground">
                   <tr>
-                    <th className="text-left px-3 py-2 font-medium">判定</th>
-                    <th className="text-left px-3 py-2 font-medium">運用区分</th>
+                    <th className="text-left px-3 py-2 font-medium">期間内最高PF時刻</th>
                     <th className="text-left px-3 py-2 font-medium">信用区分</th>
                     <th className="text-left px-3 py-2 font-medium">prob区間</th>
-                    <th className="text-right px-3 py-2 font-medium">最適PF</th>
+                    <th className="text-right px-3 py-2 font-medium">期間内最高PF</th>
                     <th className="text-right px-3 py-2 font-medium">大引けPF</th>
                     <th className="text-right px-3 py-2 font-medium">PF差</th>
-                    <th className="text-right px-3 py-2 font-medium">最適損益</th>
+                    <th className="text-right px-3 py-2 font-medium">最高PF時損益</th>
                     <th className="text-right px-3 py-2 font-medium">大引け損益</th>
                     <th className="text-right px-3 py-2 font-medium">損益差</th>
                     <th className="text-right px-3 py-2 font-medium">DD</th>
@@ -1122,16 +1032,10 @@ export default function DayTradeListPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {weekdayExitRows.map(({ row, best, bestSeg, close, operation, decision, pfDelta, reason, totalDelta }) => (
+                  {weekdayExitRows.map(({ row, best, bestSeg, close, pfDelta, totalDelta }) => (
                     <tr key={`${row.marginKey}-${row.probKey}`} className="border-t border-border/20">
-                      <td className="px-3 py-2">
-                        <span className={`px-2 py-0.5 rounded border text-xs font-bold ${exitDecisionClass(decision)}`}>{decision}</span>
-                        {decision === "CONDITIONAL" && (
-                          <div className="mt-1 text-[11px] text-amber-300">{reason}</div>
-                        )}
-                      </td>
-                      <td className={`px-3 py-2 font-medium ${decision === "SKIP" ? "text-muted-foreground" : exitOperationClass(operation)}`}>
-                        {decision === "SKIP" ? "見送り" : `${operation} / ${bestSeg ? `${bestSeg.time} ${bestSeg.label}` : "-"}`}
+                      <td className="px-3 py-2 font-medium text-foreground">
+                        {bestSeg ? `${bestSeg.time} ${bestSeg.label}` : "-"}
                       </td>
                       <td className="px-3 py-2 text-foreground">{row.marginLabel}</td>
                       <td className={`px-3 py-2 font-medium ${probGroupClass(row)}`}>
@@ -1186,7 +1090,7 @@ export default function DayTradeListPage() {
                   <div className="mb-1 font-semibold text-foreground">使い分け</div>
                   <p>
                     DDは連続負けを含む途中の痛み、CVaR5は単日の悪い日の重さ。
-                    この表では表示中の曜日・信用区分・prob区間・出口ルールにおける100株あたり日次損益で計算。nが少ない行は参考値。
+                    この表では表示中の曜日・信用区分・prob区間・比較時刻における100株あたり日次損益で計算。nが少ない行は参考値。
                   </p>
                 </div>
               </div>
