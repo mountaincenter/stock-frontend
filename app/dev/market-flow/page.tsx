@@ -4,7 +4,6 @@ import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Activity, ArrowDownRight, ArrowUpRight, CheckCircle2, Layers, LockKeyhole, RefreshCw, ShieldAlert, Target } from "lucide-react";
 import { DevNavLinks } from "@/components/dev";
-import { ProtectedRoute } from "@/src/components/auth/ProtectedRoute";
 
 interface Summary {
   latest_total_turnover_bil?: number | null;
@@ -2719,9 +2718,5 @@ function MarketFlowContent() {
 }
 
 export default function MarketFlowPage() {
-  return (
-    <ProtectedRoute requirePasskeySession={true}>
-      <MarketFlowContent />
-    </ProtectedRoute>
-  );
+  return <MarketFlowContent />;
 }
