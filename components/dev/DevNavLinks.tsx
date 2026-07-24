@@ -26,6 +26,7 @@ const NAV_GROUPS: NavItem[][] = [
   ],
   // Strategy
   [
+    { href: "/dev/market-flow", label: "Flow" },
     { href: "/dev/semicon", label: "Semicon" },
     { href: "/dev/hedge-monitor", label: "Hedge" },
     { href: "/dev/pairs", label: "Pairs" },
