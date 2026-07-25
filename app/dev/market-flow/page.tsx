@@ -112,6 +112,124 @@ interface MarketTemperature {
   risk_pressure?: number | null;
 }
 
+interface MarketDirection {
+  score?: number | null;
+  label?: string | null;
+  tone?: Tone | string | null;
+  summary?: string | null;
+  components?: Array<TemperatureComponent & { weight?: number | null }>;
+  breadth?: {
+    top150_up_rate_pct?: number | null;
+    top30_up_rate_pct?: number | null;
+    top150_open_to_close_pct?: number | null;
+    top30_open_to_close_pct?: number | null;
+    positive_sector_rate_pct?: number | null;
+    non_etf_open_to_close_pct?: number | null;
+  };
+  sector_coverage?: {
+    classified_turnover_pct?: number | null;
+    unclassified_count?: number | null;
+    unclassified_turnover_bil?: number | null;
+  };
+  method?: string | null;
+}
+
+interface ExecutionPermission {
+  score?: number | null;
+  label?: string | null;
+  tone?: Tone | string | null;
+  action?: string | null;
+  caps?: string[];
+  components?: TemperatureComponent[];
+  metrics?: {
+    component_dispersion?: number | null;
+    top1_share_pct?: number | null;
+    top10_share_pct?: number | null;
+    extreme_move_rate_pct?: number | null;
+    concentration_risk?: number | null;
+  };
+  method?: string | null;
+}
+
+interface SectorRadarStock {
+  ticker?: string | null;
+  code?: string | null;
+  name?: string | null;
+  rank?: number | null;
+  turnover_bil?: number | null;
+  open_to_close_pct?: number | null;
+}
+
+type SectorRadarStatus = "leader" | "emerging" | "watch" | "risk" | "fading" | "neutral";
+
+interface SectorRadarRow {
+  sector: string;
+  status: SectorRadarStatus | string;
+  status_label?: string | null;
+  count?: number | null;
+  turnover_bil?: number | null;
+  turnover_share_pct?: number | null;
+  avg_open_to_close_pct?: number | null;
+  up_rate_pct?: number | null;
+  avg_prior_5d_turnover_bil?: number | null;
+  avg_prior_20d_turnover_bil?: number | null;
+  latest_vs_prior_5d?: number | null;
+  latest_vs_prior_20d?: number | null;
+  new_count?: number | null;
+  rank_up_count?: number | null;
+  positive_streak_days?: number | null;
+  active_streak_days?: number | null;
+  turnover_percentile?: number | null;
+  attention_score?: number | null;
+  direction_score?: number | null;
+  flow_score?: number | null;
+  top_stocks?: SectorRadarStock[];
+  top_names?: string[];
+  evidence?: string[];
+}
+
+interface SectorRadar {
+  available?: boolean;
+  reason?: string | null;
+  baseline?: {
+    prior_5d_dates?: string[];
+    prior_20d_dates?: string[];
+  };
+  coverage?: {
+    classified_turnover_pct?: number | null;
+    unclassified_count?: number | null;
+    unclassified_turnover_bil?: number | null;
+  };
+  status_counts?: Partial<Record<SectorRadarStatus, number>>;
+  rows?: SectorRadarRow[];
+}
+
+interface SemiconductorMonitorGroup {
+  key: string;
+  label: string;
+  turnover_bil?: number | null;
+  turnover_share_pct?: number | null;
+  open_to_close_pct?: number | null;
+  up_rate_pct?: number | null;
+  positive_streak_days?: number | null;
+}
+
+interface SemiconductorMonitor {
+  state?: string | null;
+  label?: string | null;
+  tone?: Tone | string | null;
+  summary?: string | null;
+  metrics?: {
+    core_share_pct?: number | null;
+    core_open_to_close_pct?: number | null;
+    kioxia_share_pct?: number | null;
+    kioxia_open_to_close_pct?: number | null;
+    ex_kioxia_open_to_close_pct?: number | null;
+    semicon_etf_open_to_close_pct?: number | null;
+  };
+  groups?: SemiconductorMonitorGroup[];
+}
+
 interface FlowAnalysisAlert {
   key: string;
   severity?: "high" | "medium" | "warn" | "info" | string | null;
@@ -363,6 +481,10 @@ interface MarketFlowResponse {
   recent_dates?: string[];
   summary?: Summary;
   market_regime?: MarketRegime;
+  market_direction?: MarketDirection;
+  execution_permission?: ExecutionPermission;
+  sector_radar?: SectorRadar;
+  semiconductor_monitor?: SemiconductorMonitor;
   market_temperature?: MarketTemperature;
   execution_program?: ExecutionProgram;
   flow_analysis?: FlowAnalysis;
@@ -411,10 +533,10 @@ const oku = (value?: number | null) =>
     : `${(value * 10).toLocaleString("ja-JP", { maximumFractionDigits: 0 })}億`;
 
 const tonePct = (value?: number | null) => {
-  if (value == null || Number.isNaN(value)) return "text-muted-foreground";
-  if (value > 0) return "text-emerald-500";
-  if (value < 0) return "text-rose-500";
-  return "text-muted-foreground";
+  if (value == null || Number.isNaN(value)) return "text-price-neutral";
+  if (value > 0) return "text-price-up";
+  if (value < 0) return "text-price-down";
+  return "text-price-neutral";
 };
 
 type Tone = "neutral" | "good" | "bad" | "warn";
@@ -436,8 +558,8 @@ const normalizeTone = (tone?: Tone | string | null): Tone => {
 
 const toneTextClass = (tone?: Tone | string | null) => {
   const normalized = normalizeTone(tone);
-  if (normalized === "good") return "text-emerald-600";
-  if (normalized === "bad") return "text-rose-600";
+  if (normalized === "good") return "text-price-up";
+  if (normalized === "bad") return "text-price-down";
   if (normalized === "warn") return "text-amber-600";
   return "text-foreground";
 };
@@ -847,6 +969,292 @@ function BucketStockTable({ rows }: { rows: FlowRow[] }) {
         </tbody>
       </table>
     </div>
+  );
+}
+
+const signedScore = (value?: number | null) =>
+  value == null || Number.isNaN(value)
+    ? "-"
+    : `${value > 0 ? "+" : ""}${Math.round(value)}`;
+
+function SignedBar({ value }: { value?: number | null }) {
+  const score = value == null || Number.isNaN(value) ? 0 : clamp(value, -100, 100);
+  const width = Math.abs(score) / 2;
+  const left = score < 0 ? 50 - width : 50;
+  const color = score > 0 ? "var(--price-up)" : score < 0 ? "var(--price-down)" : "var(--price-neutral)";
+
+  return (
+    <div className="relative h-1.5 overflow-hidden rounded bg-muted">
+      <div className="absolute inset-y-0 left-1/2 w-px bg-border" />
+      <div
+        className="absolute inset-y-0 rounded"
+        style={{ left: `${left}%`, width: `${width}%`, backgroundColor: color }}
+      />
+    </div>
+  );
+}
+
+function MarketOverviewPanel({
+  direction,
+  permission,
+}: {
+  direction?: MarketDirection;
+  permission?: ExecutionPermission;
+}) {
+  const breadth = direction?.breadth;
+  const metrics = permission?.metrics;
+  const directionScore = direction?.score;
+  const permissionScore = permission?.score;
+
+  return (
+    <section className="min-w-0 overflow-hidden rounded-lg border bg-card">
+      <div className="grid lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="border-b p-4 lg:border-b-0 lg:border-r">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="text-[11px] font-medium text-muted-foreground">全市場方向</div>
+              <div className="mt-1 flex items-baseline gap-3">
+                <span className={`text-3xl font-semibold tabular-nums ${tonePct(directionScore)}`}>
+                  {signedScore(directionScore)}
+                </span>
+                <span className={`text-sm font-semibold ${tonePct(directionScore)}`}>{direction?.label || "-"}</span>
+              </div>
+            </div>
+            <div className="text-right text-xs text-muted-foreground">{direction?.summary || "-"}</div>
+          </div>
+          <div className="mt-3">
+            <SignedBar value={directionScore} />
+            <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
+              <span>-100</span>
+              <span>0</span>
+              <span>+100</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-[11px] font-medium text-muted-foreground">執行許可度</div>
+              <div className="mt-1 flex items-baseline gap-3">
+                <span className={`text-3xl font-semibold tabular-nums ${toneTextClass(permission?.tone)}`}>
+                  {fmt(permissionScore, 0)}
+                </span>
+                <span className="text-sm font-semibold">{permission?.label || "-"}</span>
+              </div>
+            </div>
+            <span className="rounded border px-2 py-1 text-xs text-muted-foreground">
+              {permission?.action || "-"}
+            </span>
+          </div>
+          <div className="mt-3 h-1.5 overflow-hidden rounded bg-muted">
+            <div
+              className="h-full rounded bg-primary"
+              style={{ width: `${clamp(permissionScore ?? 0, 0, 100)}%` }}
+            />
+          </div>
+          <div className="mt-2 truncate text-xs text-muted-foreground">
+            {permission?.caps?.length ? permission.caps.join(" / ") : "制限なし"}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid border-t sm:grid-cols-2 xl:grid-cols-4">
+        <div className="border-b px-4 py-3 sm:border-r xl:border-b-0">
+          <div className="text-[10px] font-medium text-muted-foreground">Top150上昇率</div>
+          <div className={`mt-1 text-xl font-semibold tabular-nums ${tonePct((breadth?.top150_up_rate_pct ?? 50) - 50)}`}>
+            {plainPct(breadth?.top150_up_rate_pct, 1)}
+          </div>
+          <div className="mt-1 text-xs text-muted-foreground">OC {pct(breadth?.top150_open_to_close_pct, 2)}</div>
+        </div>
+        <div className="border-b px-4 py-3 xl:border-b-0 xl:border-r">
+          <div className="text-[10px] font-medium text-muted-foreground">上昇セクター率</div>
+          <div className={`mt-1 text-xl font-semibold tabular-nums ${tonePct((breadth?.positive_sector_rate_pct ?? 50) - 50)}`}>
+            {plainPct(breadth?.positive_sector_rate_pct, 1)}
+          </div>
+          <div className="mt-1 text-xs text-muted-foreground">全業種OC {pct(breadth?.non_etf_open_to_close_pct, 2)}</div>
+        </div>
+        <div className="border-b px-4 py-3 sm:border-r sm:border-b-0">
+          <div className="text-[10px] font-medium text-muted-foreground">売買代金集中</div>
+          <div className="mt-1 text-xl font-semibold tabular-nums">{plainPct(metrics?.top1_share_pct, 1)}</div>
+          <div className="mt-1 text-xs text-muted-foreground">Top10 {plainPct(metrics?.top10_share_pct, 1)}</div>
+        </div>
+        <div className="px-4 py-3">
+          <div className="text-[10px] font-medium text-muted-foreground">急変銘柄率</div>
+          <div className={`mt-1 text-xl font-semibold tabular-nums ${(metrics?.extreme_move_rate_pct ?? 0) > 10 ? "text-price-down" : "text-foreground"}`}>
+            {plainPct(metrics?.extreme_move_rate_pct, 1)}
+          </div>
+          <div className="mt-1 text-xs text-muted-foreground">集中リスク {fmt(metrics?.concentration_risk, 0)}</div>
+        </div>
+      </div>
+
+      <div className="grid border-t md:grid-cols-3">
+        {(direction?.components ?? []).map((component) => (
+          <div key={component.key} className="border-b px-4 py-3 last:border-b-0 md:border-b-0 md:border-r md:last:border-r-0">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-xs font-medium text-muted-foreground">{component.label}</span>
+              <span className={`text-sm font-semibold tabular-nums ${tonePct(component.score)}`}>
+                {signedScore(component.score)}
+              </span>
+            </div>
+            <div className="mt-2">
+              <SignedBar value={component.score} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+const sectorStatusClass = (status?: string | null) => {
+  if (status === "leader") return "bg-emerald-500/20 text-emerald-400";
+  if (status === "emerging") return "bg-sky-500/20 text-sky-400";
+  if (status === "risk") return "bg-rose-500/20 text-rose-400";
+  if (status === "fading") return "bg-amber-500/20 text-amber-400";
+  return "bg-white/5 text-muted-foreground";
+};
+
+type SectorRadarFilter = "focus" | "leader" | "emerging" | "risk" | "all";
+
+function SectorRadarPanel({ radar }: { radar?: SectorRadar }) {
+  const [filter, setFilter] = useState<SectorRadarFilter>("focus");
+  const rows = radar?.rows ?? [];
+  const filteredRows = rows.filter((row) => {
+    if (filter === "all") return true;
+    if (filter === "focus") return ["leader", "emerging", "risk", "watch"].includes(row.status);
+    return row.status === filter;
+  });
+  const counts = radar?.status_counts ?? {};
+  const filters: Array<[SectorRadarFilter, string]> = [
+    ["focus", "注目"],
+    ["leader", `主役 ${counts.leader ?? 0}`],
+    ["emerging", `浮上 ${counts.emerging ?? 0}`],
+    ["risk", `リスク ${counts.risk ?? 0}`],
+    ["all", "全業種"],
+  ];
+
+  return (
+    <section className="min-w-0 overflow-hidden rounded-lg border bg-card">
+      <div className="flex flex-col gap-3 border-b px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h2 className="text-sm font-semibold">資金移動レーダー</h2>
+          <div className="mt-1 text-xs text-muted-foreground">
+            分類済み {plainPct(radar?.coverage?.classified_turnover_pct, 1)}
+            {radar?.coverage?.unclassified_count ? ` / 未分類 ${fmt(radar.coverage.unclassified_count, 0)}銘柄` : ""}
+          </div>
+        </div>
+        <div className="flex gap-1 overflow-x-auto rounded-lg border bg-muted/30 p-1 text-xs">
+          {filters.map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setFilter(key)}
+              className={`whitespace-nowrap rounded-md px-3 py-1.5 font-medium transition-colors ${
+                filter === key
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[1180px] text-sm">
+          <thead className="bg-muted/40 text-xs text-muted-foreground">
+            <tr>
+              <th className="px-3 py-2 text-left font-medium">状態</th>
+              <th className="px-3 py-2 text-left font-medium">セクター</th>
+              <th className="px-3 py-2 text-right font-medium">Flow</th>
+              <th className="px-3 py-2 text-right font-medium">注目度</th>
+              <th className="px-3 py-2 text-right font-medium">売買代金</th>
+              <th className="px-3 py-2 text-right font-medium">5日比</th>
+              <th className="px-3 py-2 text-right font-medium">20日比</th>
+              <th className="px-3 py-2 text-right font-medium">OC</th>
+              <th className="px-3 py-2 text-right font-medium">上昇率</th>
+              <th className="px-3 py-2 text-right font-medium">陽線</th>
+              <th className="px-3 py-2 text-right font-medium">New/Up</th>
+              <th className="px-3 py-2 text-left font-medium">主な銘柄</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredRows.length === 0 && (
+              <tr>
+                <td colSpan={12} className="px-3 py-8 text-center text-muted-foreground">-</td>
+              </tr>
+            )}
+            {filteredRows.map((row) => (
+              <tr key={row.sector} className="border-t hover:bg-muted/30">
+                <td className="px-3 py-2">
+                  <span className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium ${sectorStatusClass(row.status)}`}>
+                    {row.status_label || row.status}
+                  </span>
+                </td>
+                <td className="px-3 py-2 font-medium">{row.sector}</td>
+                <td className={`px-3 py-2 text-right font-semibold tabular-nums ${tonePct(row.flow_score)}`}>{signedScore(row.flow_score)}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{fmt(row.attention_score, 0)}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{oku(row.turnover_bil)}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{mult(row.latest_vs_prior_5d)}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{mult(row.latest_vs_prior_20d)}</td>
+                <td className={`px-3 py-2 text-right tabular-nums ${tonePct(row.avg_open_to_close_pct)}`}>{pct(row.avg_open_to_close_pct, 2)}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{plainPct(row.up_rate_pct, 1)}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{fmt(row.positive_streak_days, 0)}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{fmt(row.new_count, 0)} / {fmt(row.rank_up_count, 0)}</td>
+                <td className="max-w-[280px] truncate px-3 py-2 text-muted-foreground">{names(row.top_names)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+function SemiconductorMonitorPanel({ monitor }: { monitor?: SemiconductorMonitor }) {
+  return (
+    <section className="min-w-0 overflow-hidden rounded-lg border bg-card">
+      <div className="flex flex-col gap-2 border-b px-4 py-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <div className="text-[11px] font-medium text-muted-foreground">半導体監視</div>
+          <div className="mt-1 flex items-baseline gap-3">
+            <h2 className={`text-base font-semibold ${toneTextClass(monitor?.tone)}`}>{monitor?.label || "-"}</h2>
+            <span className="text-xs text-muted-foreground">{monitor?.summary || "-"}</span>
+          </div>
+        </div>
+        <span className={`rounded px-2 py-1 text-xs ${sectorStatusClass(monitor?.state === "leadership" ? "leader" : monitor?.state === "risk_source" ? "risk" : "neutral")}`}>
+          {monitor?.state || "-"}
+        </span>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[760px] text-sm">
+          <thead className="bg-muted/40 text-xs text-muted-foreground">
+            <tr>
+              <th className="px-3 py-2 text-left font-medium">分類</th>
+              <th className="px-3 py-2 text-right font-medium">Share</th>
+              <th className="px-3 py-2 text-right font-medium">売買代金</th>
+              <th className="px-3 py-2 text-right font-medium">OC</th>
+              <th className="px-3 py-2 text-right font-medium">上昇率</th>
+              <th className="px-3 py-2 text-right font-medium">陽線</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(monitor?.groups ?? []).map((group) => (
+              <tr key={group.key} className="border-t hover:bg-muted/30">
+                <td className="px-3 py-2 font-medium">{group.label}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{plainPct(group.turnover_share_pct, 1)}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{oku(group.turnover_bil)}</td>
+                <td className={`px-3 py-2 text-right tabular-nums ${tonePct(group.open_to_close_pct)}`}>{pct(group.open_to_close_pct, 2)}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{plainPct(group.up_rate_pct, 1)}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{fmt(group.positive_streak_days, 0)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
 
@@ -1974,6 +2382,10 @@ function MarketFlowContent() {
 
   const summary = data?.summary;
   const regime = data?.market_regime;
+  const marketDirection = data?.market_direction;
+  const executionPermission = data?.execution_permission;
+  const sectorRadar = data?.sector_radar;
+  const semiconductorMonitor = data?.semiconductor_monitor;
   const temperature = data?.market_temperature;
   const executionProgram = data?.execution_program;
   const flowAnalysis = data?.flow_analysis;
@@ -2162,8 +2574,8 @@ function MarketFlowContent() {
   };
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-5 px-3 py-4 md:px-5">
+    <main className="min-h-screen overflow-x-hidden bg-background text-foreground">
+      <div className="mx-auto flex min-w-0 w-full max-w-[1440px] flex-col gap-5 px-3 py-4 md:px-5">
         <div className="flex flex-col gap-3 border-b border-border/70 pb-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex min-w-0 items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg border bg-card">
@@ -2177,12 +2589,12 @@ function MarketFlowContent() {
               </div>
             </div>
           </div>
-          <div className="flex items-center justify-between gap-3">
-            <DevNavLinks className="overflow-x-auto" />
+          <div className="flex min-w-0 items-center justify-between gap-3">
+            <DevNavLinks className="min-w-0 max-w-full overflow-x-auto" />
             <button
               type="button"
               onClick={() => void load()}
-              className="inline-flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium hover:bg-muted"
+              className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium hover:bg-muted"
               disabled={loading}
             >
               <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
@@ -2203,34 +2615,47 @@ function MarketFlowContent() {
           </div>
         )}
 
-        <section className="grid gap-4 xl:grid-cols-[1.35fr_0.85fr]">
-          <MarketTemperatureCard
-            temperature={temperature}
-            regime={regime}
-            summary={summary}
-            bucketRows={bucketRows}
-            bucketWeeklyRows={bucketWeeklyRows}
-            otherLeads={otherRows}
-          />
+        <MarketOverviewPanel direction={marketDirection} permission={executionPermission} />
 
-          <ShareCompositionCard
-            totalTurnover={summary?.latest_total_turnover_bil}
-            historyRows={data?.history_rows}
-            segments={shareSegments}
-          />
-        </section>
+        <SectorRadarPanel radar={sectorRadar} />
 
-        <TradeStanceCard stance={tradeStance} />
+        <SemiconductorMonitorPanel monitor={semiconductorMonitor} />
 
         <ExecutionProgramPanel program={executionProgram} />
 
-        <FlowAnalysisPanel analysis={flowAnalysis} />
+        <details className="border-t border-border/70 pt-1">
+          <summary className="cursor-pointer px-1 py-3 text-sm font-medium text-muted-foreground hover:text-foreground">
+            既存判定・詳細
+          </summary>
+          <div className="flex flex-col gap-5 pt-2">
+            <section className="grid gap-4 xl:grid-cols-[1.35fr_0.85fr]">
+              <MarketTemperatureCard
+                temperature={temperature}
+                regime={regime}
+                summary={summary}
+                bucketRows={bucketRows}
+                bucketWeeklyRows={bucketWeeklyRows}
+                otherLeads={otherRows}
+              />
 
-        <PersistencePanel
-          buckets={sustainedBuckets}
-          sectors={sustainedOtherSectors}
-          stocks={sustainedStocks}
-        />
+              <ShareCompositionCard
+                totalTurnover={summary?.latest_total_turnover_bil}
+                historyRows={data?.history_rows}
+                segments={shareSegments}
+              />
+            </section>
+
+            <TradeStanceCard stance={tradeStance} />
+
+            <FlowAnalysisPanel analysis={flowAnalysis} />
+
+            <PersistencePanel
+              buckets={sustainedBuckets}
+              sectors={sustainedOtherSectors}
+              stocks={sustainedStocks}
+            />
+          </div>
+        </details>
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/70 pt-4">
           <div>
