@@ -107,7 +107,7 @@ function Fact({
       <div className="text-[10px] uppercase tracking-wide text-[#787d8a]">
         {label}
       </div>
-      <div className={`mt-1 font-mono text-sm font-medium ${tone || "text-[#e4e6eb]"}`}>
+      <div className={`mt-1 font-sans text-sm font-medium tabular-nums ${tone || "text-[#e4e6eb]"}`}>
         {value}
       </div>
     </div>
@@ -133,7 +133,7 @@ function StageRail({ stage }: { stage: Stage }) {
         >
           <span
             className={[
-              "font-mono text-[10px]",
+              "font-sans text-[10px] tabular-nums",
               index <= current ? "text-[#4d8bff]" : "text-[#787d8a]",
             ].join(" ")}
           >
@@ -448,7 +448,7 @@ export default function TradingReplayClient({
               <Link
                 key={available}
                 href={`/trading/${encodeURIComponent(available)}/demo`}
-                className="rounded border border-[#404551] bg-[#131722] px-3 py-2 font-mono text-xs text-[#4d8bff] hover:border-[#4d8bff]"
+                className="rounded border border-[#404551] bg-[#131722] px-3 py-2 font-sans text-xs tabular-nums text-[#4d8bff] hover:border-[#4d8bff]"
               >
                 {available}
               </Link>
@@ -482,14 +482,14 @@ export default function TradingReplayClient({
               <div className="text-[10px] uppercase tracking-[0.22em] text-[#787d8a]">
                 YMNK Trading Replay
               </div>
-              <h1 className="font-mono text-lg font-semibold">
+              <h1 className="font-sans text-lg font-semibold tabular-nums">
                 {selectedCase?.ticker}{" "}
                 <span className="font-sans text-sm font-normal text-[#a1a7b4]">
                   {selectedCase?.name}
                 </span>
               </h1>
             </div>
-            <span className="rounded border border-[#4d8bff]/40 bg-[#4d8bff]/10 px-2 py-1 font-mono text-[10px] text-[#75a3ff]">
+            <span className="rounded border border-[#4d8bff]/40 bg-[#4d8bff]/10 px-2 py-1 font-sans text-[10px] tabular-nums text-[#75a3ff]">
               BLIND {selectedCase?.cutoff}
             </span>
           </div>
@@ -501,7 +501,7 @@ export default function TradingReplayClient({
               id="case-date"
               value={selectedCaseId}
               onChange={(event) => setSelectedCaseId(event.target.value)}
-              className="h-8 rounded border border-[#404551] bg-[#131722] px-2 font-mono text-xs text-[#e4e6eb]"
+              className="h-8 rounded border border-[#404551] bg-[#131722] px-2 font-sans text-xs tabular-nums text-[#e4e6eb]"
             >
               {caseList.cases.map((item) => (
                 <option key={item.id} value={item.id}>
