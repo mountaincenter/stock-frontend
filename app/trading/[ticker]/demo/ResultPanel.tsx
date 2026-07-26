@@ -73,7 +73,7 @@ function Metric({
   return (
     <div className="rounded-md border border-[#404551] bg-[#1e222d] px-3 py-3">
       <div className="text-[11px] text-[#a1a7b4]">{label}</div>
-      <div className={`mt-1 font-mono text-lg font-semibold ${tone}`}>{value}</div>
+      <div className={`mt-1 font-sans text-lg font-semibold tabular-nums ${tone}`}>{value}</div>
       {sub ? <div className="mt-1 text-[11px] text-[#787d8a]">{sub}</div> : null}
     </div>
   );
@@ -239,7 +239,7 @@ function SideResult({ outcome }: { outcome: SideOutcome }) {
             outcome.profitIntervals.map((interval) => (
               <span
                 key={`${interval.start}-${interval.end}`}
-                className="rounded border border-emerald-400/20 bg-emerald-400/10 px-2 py-1 font-mono text-[11px] text-price-up"
+                className="rounded border border-emerald-400/20 bg-emerald-400/10 px-2 py-1 font-sans text-[11px] tabular-nums text-price-up"
               >
                 {profitIntervalLabel(interval, outcome.closeTime)}
               </span>

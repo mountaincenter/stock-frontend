@@ -29,6 +29,14 @@ const COLORS = {
   muted: "#787d8a",
 };
 
+const FALLBACK_CHART_FONT =
+  '"Helvetica Neue", "SF Pro Text", "Noto Sans JP", sans-serif';
+
+function chartFontFamily(): string {
+  const bodyFont = window.getComputedStyle(document.body).fontFamily.trim();
+  return bodyFont || FALLBACK_CHART_FONT;
+}
+
 const timeFormatter = new Intl.DateTimeFormat("ja-JP", {
   hour: "2-digit",
   minute: "2-digit",
@@ -108,6 +116,7 @@ export function DailyReplayChart({ rows }: DailyReplayChartProps) {
         layout: {
           background: { type: ColorType.Solid, color: COLORS.background },
           textColor: COLORS.text,
+          fontFamily: chartFontFamily(),
           panes: {
             separatorColor: COLORS.border,
             separatorHoverColor: COLORS.blue,
@@ -294,6 +303,7 @@ export function IntradayReplayCharts({
         layout: {
           background: { type: ColorType.Solid, color: COLORS.background },
           textColor: COLORS.text,
+          fontFamily: chartFontFamily(),
         },
         grid: {
           vertLines: { color: COLORS.grid },

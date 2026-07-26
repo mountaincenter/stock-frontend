@@ -76,7 +76,7 @@ export default function TradingLandingClient() {
               >
                 <div className="flex items-center gap-2 text-[#4d8bff]">
                   <Icon className="h-4 w-4" />
-                  <span className="font-mono text-[10px]">{item.label}</span>
+                  <span className="font-sans text-[10px] tabular-nums">{item.label}</span>
                 </div>
                 <h2 className="mt-3 text-base font-semibold">{item.title}</h2>
                 <p className="mt-1 text-xs leading-5 text-[#a1a7b4]">
@@ -107,13 +107,13 @@ export default function TradingLandingClient() {
                   className="group flex items-center justify-between bg-[#1e222d] px-4 py-4 hover:bg-[#262b37]"
                 >
                   <div>
-                    <div className="font-mono text-base font-semibold">
+                    <div className="font-sans text-base font-semibold tabular-nums">
                       {item.ticker}
                     </div>
                     <div className="mt-1 text-xs text-[#a1a7b4]">
                       {item.name}
                     </div>
-                    <div className="mt-2 font-mono text-[10px] text-[#787d8a]">
+                    <div className="mt-2 font-sans text-[10px] tabular-nums text-[#787d8a]">
                       {item.date}
                     </div>
                   </div>
