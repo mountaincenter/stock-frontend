@@ -468,6 +468,64 @@ interface ExecutionProgram {
   recent_primary?: ForwardRecord[];
 }
 
+type CandidateSelectionStatus = "qualified" | "watch" | "unverified";
+type CandidateDirection = "long" | "short";
+
+interface FlowCandidate {
+  as_of_date?: string | null;
+  valid_for?: string | null;
+  selection_status: CandidateSelectionStatus;
+  direction: CandidateDirection;
+  flow_status?: "confirmed" | "forming" | string | null;
+  calm_status?: "confirmed" | "volatile" | "unverified" | string | null;
+  flow_score?: number | null;
+  calm_score?: number | null;
+  qualification_score?: number | null;
+  rank?: number | null;
+  rank_change?: number | null;
+  ticker: string;
+  code?: string | null;
+  stock_name?: string | null;
+  sector?: string | null;
+  trading_value_billion?: number | null;
+  open_to_close_pct?: number | null;
+  stock_oc_3d?: number | null;
+  active_days_3d?: number | null;
+  direction_days_3d?: number | null;
+  sector_oc?: number | null;
+  sector_oc_3d?: number | null;
+  sector_direction_days_3d?: number | null;
+  sector_up_rate_pct?: number | null;
+  sector_leader_share_pct?: number | null;
+  consecutive_days_in_top150?: number | null;
+  atr14_pct?: number | null;
+  atr_percentile?: number | null;
+  price_date?: string | null;
+  calm_reasons?: string[];
+  risk_reasons?: string[];
+}
+
+interface CandidateLens {
+  as_of_date?: string | null;
+  valid_for?: string | null;
+  scope?: string | null;
+  method?: string | null;
+  coverage?: {
+    eligible_count?: number | null;
+    atr_available_count?: number | null;
+  };
+  thresholds?: {
+    atr_cross_section_q65_pct?: number | null;
+    absolute_oc_q75_pct?: number | null;
+    turnover_q25_billion?: number | null;
+    sector_breadth_long_pct?: number | null;
+    sector_breadth_short_pct?: number | null;
+    sector_leader_share_max_pct?: number | null;
+  };
+  candidates?: FlowCandidate[];
+  notes?: string[];
+}
+
 interface MarketFlowResponse {
   available: boolean;
   reason?: string;
@@ -488,6 +546,7 @@ interface MarketFlowResponse {
   market_temperature?: MarketTemperature;
   execution_program?: ExecutionProgram;
   flow_analysis?: FlowAnalysis;
+  candidate_lens?: CandidateLens;
   bucket_daily?: BucketRow[];
   bucket_weekly?: BucketRow[];
   bucket_snapshot_dates?: string[];
@@ -1208,6 +1267,153 @@ function SectorRadarPanel({ radar }: { radar?: SectorRadar }) {
             ))}
           </tbody>
         </table>
+      </div>
+    </section>
+  );
+}
+
+const candidateStatusLabel = (status: CandidateSelectionStatus) => {
+  if (status === "qualified") return "合格";
+  if (status === "watch") return "監視";
+  return "未検証";
+};
+
+const candidateStatusClass = (status: CandidateSelectionStatus) => {
+  if (status === "qualified") return "border-emerald-500/30 bg-emerald-500/10 text-price-up";
+  if (status === "watch") return "border-amber-500/30 bg-amber-500/10 text-amber-600";
+  return "border-border bg-muted/40 text-muted-foreground";
+};
+
+const candidateAction = (status: CandidateSelectionStatus) => {
+  if (status === "qualified") return "当日条件確認";
+  if (status === "watch") return "監視のみ";
+  return "執行未検証";
+};
+
+function CandidateLensPanel({ lens }: { lens?: CandidateLens }) {
+  const candidates = lens?.candidates ?? [];
+  const rows = candidates.slice(0, 12);
+  const qualifiedCount = candidates.filter((row) => row.selection_status === "qualified").length;
+  const watchCount = candidates.filter((row) => row.selection_status === "watch").length;
+  const unverifiedCount = candidates.filter((row) => row.selection_status === "unverified").length;
+
+  return (
+    <section className="min-w-0 overflow-hidden rounded-lg border bg-card">
+      <div className="flex flex-col gap-3 border-b px-4 py-3 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <div className="text-[11px] font-medium text-muted-foreground">翌営業日候補</div>
+          <h2 className="mt-1 text-base font-semibold">資金方向 × 落ち着き</h2>
+        </div>
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+          <span>基準日 {lens?.as_of_date || "-"}</span>
+          <span>
+            ATR {fmt(lens?.coverage?.atr_available_count, 0)} / {fmt(lens?.coverage?.eligible_count, 0)}
+          </span>
+          <span>半導体・ETF除外</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 border-b text-center">
+        <div className="border-r px-3 py-2">
+          <div className="text-[10px] text-muted-foreground">合格</div>
+          <div className="mt-0.5 font-semibold tabular-nums text-price-up">{qualifiedCount}</div>
+        </div>
+        <div className="border-r px-3 py-2">
+          <div className="text-[10px] text-muted-foreground">監視</div>
+          <div className="mt-0.5 font-semibold tabular-nums text-amber-600">{watchCount}</div>
+        </div>
+        <div className="px-3 py-2">
+          <div className="text-[10px] text-muted-foreground">未検証</div>
+          <div className="mt-0.5 font-semibold tabular-nums text-muted-foreground">{unverifiedCount}</div>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[1320px] text-sm">
+          <thead className="bg-muted/40 text-xs text-muted-foreground">
+            <tr>
+              <th className="px-2 py-2 text-left font-medium">判定</th>
+              <th className="px-2 py-2 text-left font-medium">方向</th>
+              <th className="px-2 py-2 text-right font-medium">Rank</th>
+              <th className="px-2 py-2 text-left font-medium">銘柄</th>
+              <th className="px-2 py-2 text-left font-medium">業種</th>
+              <th className="px-2 py-2 text-right font-medium">Flow / Calm</th>
+              <th className="px-2 py-2 text-right font-medium">当日 / 3日OC</th>
+              <th className="px-2 py-2 text-right font-medium">業種 / 3日OC</th>
+              <th className="px-2 py-2 text-right font-medium">上昇率 / 集中</th>
+              <th className="px-2 py-2 text-right font-medium">ATR14</th>
+              <th className="px-2 py-2 text-left font-medium">扱い</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 && (
+              <tr>
+                <td colSpan={11} className="px-3 py-8 text-center text-muted-foreground">
+                  候補なし
+                </td>
+              </tr>
+            )}
+            {rows.map((candidate) => (
+              <tr key={`${candidate.direction}-${candidate.ticker}`} className="border-t hover:bg-muted/30">
+                <td className="px-2 py-2">
+                  <span className={`inline-flex rounded border px-1.5 py-0.5 text-[10px] font-medium ${candidateStatusClass(candidate.selection_status)}`}>
+                    {candidateStatusLabel(candidate.selection_status)}
+                  </span>
+                </td>
+                <td className={`px-2 py-2 font-semibold ${candidate.direction === "long" ? "text-price-up" : "text-price-down"}`}>
+                  {candidate.direction === "long" ? "LONG" : "SHORT"}
+                </td>
+                <td className="px-2 py-2 text-right tabular-nums">
+                  {fmt(candidate.rank, 0)}
+                  <span className="ml-1 text-[10px] text-muted-foreground">
+                    <RankDelta value={candidate.rank_change} />
+                  </span>
+                </td>
+                <td className="max-w-[220px] px-2 py-2">
+                  <Link href={`/${candidate.ticker}`} className="font-medium hover:text-primary">
+                    {candidate.code || candidate.ticker.replace(".T", "")}
+                  </Link>
+                  <div className="truncate text-xs text-muted-foreground">{candidate.stock_name || "-"}</div>
+                </td>
+                <td className="max-w-[150px] truncate px-2 py-2">{candidate.sector || "-"}</td>
+                <td className="px-2 py-2 text-right tabular-nums">
+                  {fmt(candidate.flow_score, 0)} / {fmt(candidate.calm_score, 0)}
+                </td>
+                <td className="px-2 py-2 text-right tabular-nums">
+                  <span className={tonePct(candidate.open_to_close_pct)}>{pct(candidate.open_to_close_pct, 2)}</span>
+                  <span className="text-muted-foreground"> / </span>
+                  <span className={tonePct(candidate.stock_oc_3d)}>{pct(candidate.stock_oc_3d, 2)}</span>
+                </td>
+                <td className="px-2 py-2 text-right tabular-nums">
+                  <span className={tonePct(candidate.sector_oc)}>{pct(candidate.sector_oc, 2)}</span>
+                  <span className="text-muted-foreground"> / </span>
+                  <span className={tonePct(candidate.sector_oc_3d)}>{pct(candidate.sector_oc_3d, 2)}</span>
+                </td>
+                <td className="px-2 py-2 text-right tabular-nums">
+                  {plainPct(candidate.sector_up_rate_pct, 0)}
+                  <span className="text-muted-foreground"> / </span>
+                  {plainPct(candidate.sector_leader_share_pct, 0)}
+                </td>
+                <td className="px-2 py-2 text-right tabular-nums">
+                  {plainPct(candidate.atr14_pct, 2)}
+                  <div className="text-[10px] text-muted-foreground">P{fmt(candidate.atr_percentile, 0)}</div>
+                </td>
+                <td className="max-w-[180px] px-2 py-2">
+                  <div className="font-medium">{candidateAction(candidate.selection_status)}</div>
+                  <div className="truncate text-[10px] text-muted-foreground">
+                    {candidate.risk_reasons?.join(" / ") || candidate.calm_reasons?.slice(0, 2).join(" / ") || "-"}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex flex-wrap gap-x-5 gap-y-1 border-t px-4 py-2 text-[11px] text-muted-foreground">
+        <span>次営業日のみ有効</span>
+        <span>決算・開示・PTS・米国市場・寄前気配は未反映</span>
+        <span>合格は寄成指示ではなく当日確認対象</span>
       </div>
     </section>
   );
@@ -2389,6 +2595,7 @@ function MarketFlowContent() {
   const temperature = data?.market_temperature;
   const executionProgram = data?.execution_program;
   const flowAnalysis = data?.flow_analysis;
+  const candidateLens = data?.candidate_lens;
   const bucketRows = useMemo(() => data?.bucket_daily ?? [], [data]);
   const bucketWeeklyRows = useMemo(() => data?.bucket_weekly ?? [], [data]);
   const bucketSnapshotDates = useMemo(
@@ -2618,6 +2825,8 @@ function MarketFlowContent() {
         <MarketOverviewPanel direction={marketDirection} permission={executionPermission} />
 
         <SectorRadarPanel radar={sectorRadar} />
+
+        <CandidateLensPanel lens={candidateLens} />
 
         <SemiconductorMonitorPanel monitor={semiconductorMonitor} />
 
