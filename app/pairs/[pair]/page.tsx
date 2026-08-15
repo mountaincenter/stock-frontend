@@ -485,9 +485,6 @@ function PairChartContent({ tk1, tk2 }: { tk1: string; tk2: string }) {
           <Link href="/dev/pairs" className="text-muted-foreground hover:text-foreground text-sm transition-colors">
             &larr; Pairs
           </Link>
-          <Link href="/dev/dashboard" className="text-muted-foreground hover:text-foreground text-sm transition-colors">
-            Dashboard
-          </Link>
         </div>
 
         {/* Header */}

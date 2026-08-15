@@ -15,7 +15,6 @@ const NAV_GROUPS: NavItem[][] = [
   // Core
   [
     { href: "/dev", label: "Dashboard" },
-    { href: "/dev/dashboard", label: "Trading" },
     { href: "/dev/analysis", label: "Analysis" },
   ],
   // Data
