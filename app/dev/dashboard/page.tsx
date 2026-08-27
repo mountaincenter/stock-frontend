@@ -37,6 +37,9 @@ interface GrokStock {
   close: number | null;
   price_diff: number | null;
   prob_up: number | null;
+  ml_status?: string | null;
+  ml_history_rows?: number | null;
+  ml_required_history_rows?: number | null;
   prob_bin: string | null;
   expected_pf: number | null;
   expected_pnl_avg: number | null;
@@ -824,7 +827,16 @@ export default function DashboardPage() {
                       <td className={`px-2 py-2.5 text-right tabular-nums whitespace-nowrap ${g.expected_pf != null && g.expected_pf >= 1.5 ? 'text-teal-400' : g.expected_pf != null && g.expected_pf < 1 ? 'text-rose-400' : ''}`}>{g.expected_pf?.toFixed(2) ?? '—'}</td>
                       <td className={`px-2 py-2.5 text-right tabular-nums whitespace-nowrap ${(g.expected_pnl_avg ?? 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{g.expected_pnl_avg != null ? `${g.expected_pnl_avg >= 0 ? '+' : ''}${fmt(Math.round(g.expected_pnl_avg))}` : '—'}</td>
                       <td className="px-2 py-2.5 text-right tabular-nums text-muted-foreground whitespace-nowrap">{g.expected_wr != null ? `${g.expected_wr.toFixed(1)}%` : '—'}</td>
-                      <td className="px-2 py-2.5 text-right tabular-nums text-muted-foreground whitespace-nowrap">{g.prob_up != null ? `${(g.prob_up * 100).toFixed(0)}%` : g.prob_bin ?? '—'}</td>
+                      <td
+                        className="px-2 py-2.5 text-right tabular-nums text-muted-foreground whitespace-nowrap"
+                        title={g.ml_status === 'insufficient_history' ? `ML算出不可（${g.ml_history_rows ?? '?'}/${g.ml_required_history_rows ?? '?'}日）` : undefined}
+                      >
+                        {g.prob_up != null
+                          ? `${(g.prob_up * 100).toFixed(0)}%`
+                          : g.ml_status === 'insufficient_history'
+                            ? 'ML算出不可'
+                            : g.prob_bin ?? '—'}
+                      </td>
                       <td className="px-2 py-2.5 text-muted-foreground whitespace-nowrap">{g.credit_bucket ?? (g.shortable ? '制度' : 'いちにち')}</td>
                       <td className="px-2 py-2.5 text-muted-foreground whitespace-nowrap">{g.reason_category ?? '—'}</td>
                     </tr>

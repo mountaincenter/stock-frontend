@@ -16,6 +16,10 @@ type DayTradeStock = {
   rsi9: number | null;
   atr_pct: number | null;
   prob_up: number | null;
+  ml_status?: string | null;
+  ml_unavailable_reason?: string | null;
+  ml_history_rows?: number | null;
+  ml_required_history_rows?: number | null;
   prob_bin: string | null;
   price_band: string | null;
   bucket: string | null;
@@ -1509,7 +1513,17 @@ export default function DayTradeListPage() {
                             : "text-muted-foreground"
                         }`}>
                           <div className="inline-flex items-center justify-end gap-1.5 whitespace-nowrap">
-                            <span>{stock.prob_up !== null ? stock.prob_up.toFixed(2) : "-"}</span>
+                            <span title={
+                              stock.ml_status === "insufficient_history"
+                                ? `ML算出不可（${stock.ml_history_rows ?? "?"}/${stock.ml_required_history_rows ?? "?"}日）`
+                                : undefined
+                            }>
+                              {stock.prob_up !== null
+                                ? stock.prob_up.toFixed(2)
+                                : stock.ml_status === "insufficient_history"
+                                  ? "ML算出不可"
+                                  : "-"}
+                            </span>
                             <span className={`inline-flex h-4 min-w-4 items-center justify-center rounded border px-1 text-[10px] font-bold ${probRegimeBadgeClass(stock.bucket)}`}>
                               {probRegimeLabel(stock.bucket)}
                             </span>
