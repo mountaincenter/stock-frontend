@@ -25,7 +25,7 @@ const NAV_GROUPS: NavItem[][] = [
   ],
   // Strategy
   [
-    { href: "/dev/market-flow", label: "Flow" },
+    { href: "/dev/market-flow-daily", label: "Flow" },
     { href: "/dev/daytradeetf", label: "Daytrade ETF" },
   ],
 ];
