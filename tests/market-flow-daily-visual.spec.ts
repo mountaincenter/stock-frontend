@@ -33,6 +33,9 @@ test.describe("daily market flow", () => {
       await expect(page.getByRole("heading", { name: "翌日の優先順位" })).toBeVisible();
       await expect(page.getByRole("heading", { name: "資金の行き先" })).toBeVisible();
       await expect(page.getByRole("heading", { name: "N225 / TOPIX" })).toBeVisible();
+      await expect(page.getByRole("navigation")).toBeVisible();
+      await expect(page.getByRole("link", { name: "Dashboard", exact: true })).toHaveAttribute("href", "/dev");
+      await expect(page.getByRole("link", { name: "Flow", exact: true })).toHaveAttribute("href", "/dev/market-flow-daily");
       await expect(page.getByRole("link", { name: "網羅版" })).toHaveAttribute("href", "/dev/market-flow");
       await expect(page.getByText(/米国指標、CME、先物/)).toBeVisible();
       await expect(page.getByText(/売買代金proxy|構成銘柄Va合計/).first()).toBeVisible();

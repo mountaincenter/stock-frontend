@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, RefreshCw } from "lucide-react";
+import { DevNavLinks } from "@/components/dev";
 
 interface FlowRow {
   date?: string;
@@ -717,7 +718,7 @@ export default function MarketFlowDailyPage() {
   return (
     <main className="min-h-screen bg-[#070b09] text-[#e9f0ec]">
       <div className="mx-auto max-w-[1440px] px-3 pb-12 pt-3 sm:px-5 lg:px-7">
-        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1d2923] px-1 pb-3">
+        <header className="flex flex-col gap-3 border-b border-[#1d2923] px-1 pb-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex items-center gap-3">
             <span className="rounded-md bg-[#dce7e1] px-2.5 py-1 text-[10px] font-bold tracking-[0.18em] text-[#0b100e]">DAILY</span>
             <div>
@@ -725,14 +726,19 @@ export default function MarketFlowDailyPage() {
               <p className="text-xs text-[#71827a]">{fullDate(data.latest_date)} · J-Quants</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button type="button" onClick={() => void load()} aria-label="データを更新" className="rounded-lg border border-[#223029] p-2 text-[#71827a] hover:bg-[#111a16] hover:text-white">
-              <RefreshCw className="h-3.5 w-3.5" />
-            </button>
-            <Link href="/dev/market-flow" className="inline-flex items-center gap-1.5 rounded-lg border border-[#223029] bg-[#0d1411] px-3.5 py-2 text-xs font-medium hover:bg-[#111a16]">
-              網羅版
-              <ArrowRight className="h-3 w-3" />
-            </Link>
+          <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between xl:justify-end">
+            <div className="min-w-0 overflow-x-auto">
+              <DevNavLinks className="min-w-max" />
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <button type="button" onClick={() => void load()} aria-label="データを更新" className="rounded-lg border border-[#223029] p-2 text-[#71827a] hover:bg-[#111a16] hover:text-white">
+                <RefreshCw className="h-3.5 w-3.5" />
+              </button>
+              <Link href="/dev/market-flow" className="inline-flex items-center gap-1.5 rounded-lg border border-[#223029] bg-[#0d1411] px-3.5 py-2 text-xs font-medium hover:bg-[#111a16]">
+                網羅版
+                <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
           </div>
         </header>
 
